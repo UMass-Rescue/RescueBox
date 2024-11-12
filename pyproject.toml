@@ -10,6 +10,7 @@ rescuebox = "rescuebox.main:app"
 
 [tool.poetry.dependencies]
 requests = "^2.32.3"
+#python = ">=3.11,<4.0"
 python = ">=3.11,<3.13"
 pyyaml = "^6.0.2"
 typer = "^0.12.5"

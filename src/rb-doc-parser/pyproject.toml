@@ -8,7 +8,7 @@ authors = ["Jagath Jai Kumar <jagath.jaikumar@gmail.com>"]
 rb-doc-parser = "rb_doc_parser.main:app"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11"
 ollama = "*"
 typer = "*"
 rb-lib = "*"
