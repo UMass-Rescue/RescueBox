@@ -46,6 +46,9 @@ def head(
     """
     Print the first n lines of a file
     """
+    if not os.path.exists(path):
+        print(f"Path {path} does not exist")
+        raise typer.Abort()
     with open(path, "r") as f:
         for _ in range(n):
             print(f.readline())

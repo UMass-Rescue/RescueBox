@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "rb-deepfake-app"
+version = "0.1.0"
+description = "deepfake plugin"
+authors = ["Jagath Jai Kumar <jagath.jaikumar@gmail.com>"]
+packages = [{include = "rb_deepfake_app"}]
+
+[tool.poetry.scripts]
+rb-file-utils = "rb_deepfake_app.main:app"
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+typer = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
