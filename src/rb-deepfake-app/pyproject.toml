@@ -6,7 +6,7 @@ authors = ["Jagath Jai Kumar <jagath.jaikumar@gmail.com>"]
 packages = [{include = "rb_deepfake_app"}]
 
 [tool.poetry.scripts]
-rb-file-utils = "rb_deepfake_app.main:app"
+rb-deepfake-app = "rb_deepfake_app.main:app"
 
 [tool.poetry.dependencies]
 python = ">=3.11"
