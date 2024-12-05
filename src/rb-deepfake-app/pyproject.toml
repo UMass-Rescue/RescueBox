@@ -11,7 +11,12 @@ rb-deepfake-app = "rb_deepfake_app.main:app"
 [tool.poetry.dependencies]
 python = ">=3.11"
 typer = "*"
+flask-ml = "0.2.5"
+rb_file_utils = "*"
 
+[[tool.poetry.source]]
+name = "piwheels"
+url = "https://www.piwheels.org/simple/"
 
 [build-system]
 requires = ["poetry-core"]

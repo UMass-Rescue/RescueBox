@@ -3,11 +3,11 @@ import os
 import sys
 
 if sys.stdout is None:
-    f = open(r"C:\work\out.log", "w")
+    f = open(r"out.log", "w")
     # sys.stdout = open(os.devnull, "w")
     sys.stdout = f
 if sys.stderr is None:
-    f = open(r"C:\work\err.log", "w")
+    f = open(r"err.log", "w")
     sys.stdout = f
     # sys.stderr = open(os.devnull, "w")
 
@@ -17,6 +17,9 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from rb.api import routes
+from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 app = FastAPI(
     title="RescueBoxAPI",
@@ -32,6 +35,12 @@ logger = logging.getLogger("uvicorn.error")
 logger.propagate = True
 logger.setLevel(logging.DEBUG)
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+	exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
+	logging.error(f"{request}: {exc_str}")
+	content = {'status_code': 10422, 'message': exc_str, 'data': None}
+	return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
 @app.get("/log")
 async def main():
@@ -48,6 +57,7 @@ app.mount(
 app.include_router(routes.probes_router, prefix="/probes")
 app.include_router(routes.cli_router)
 app.include_router(routes.ui_router)
+app.include_router(routes.plugin_router)
 
 
 if __name__ == "__main__":
