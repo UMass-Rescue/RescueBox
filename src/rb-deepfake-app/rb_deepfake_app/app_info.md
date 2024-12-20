@@ -126,4 +126,68 @@ python server.py
 - Check CUDA and GPU drivers if using GPU acceleration
 - Verify video file formats (MP4, AVI recommended)
 
+# Deepfake Detection Results
+
+## Experimental Setup
+- **Dataset**: Deepfake TIMIT
+
+
+## Model Performance Comparison  
+
+| Data             | FAKE | REAL | Total | Accuracy (%) |  
+|-------------------|------|------|-------|--------------|  
+| **Higher Quality** | 320  | 0    | 320   | 100.0        |  
+| **Lower Quality**  | 320  | 0    | 320   | 100.0        |  
+
+
+## Detailed Analysis
+- **Higher Quality Videos**:
+  - Low confidence scores for fake videos
+  - All fake videos correctly identified
+  - No false positives
+  - 100% accuracy
+
+## Inference Times  
+- Processes 1 second of video in approximately 10 seconds on an M1 Mac CPU. Dependent on frame-rate.
+
+# Instructions to Generate Metrics
+
+1. **Dataset**: You need one of the following datasets:
+   - **DeepFakeTIMIT** (Lower Quality and Higher Quality)
+   - **SDFVD** (videos_fake and videos_real)
+
+   Download the dataset from the appropriate source and extract it to a local directory.
+
+## Instructions
+
+### 1. Setup for DeepFakeTIMIT Dataset
+   - Place the **Lower Quality** videos in one directory and the **Higher Quality** videos in another.
+   - Run the script separately for each quality level and collate the results afterward.
+
+### 2. Running the Script
+   - Update the `search_directories` variable in the `evalpipeline.py` script to point to the directory containing the video files.
+   - Run the script using:
+     ```bash
+     python evalpipeline.py
+     ```
+  
+### 3. Script Behavior
+   - The script will:
+     1. Search for video files in the specified directory (including subdirectories).
+     2. Process each video using the detection model.
+     3. Generate a results CSV file for each model, saved in the same directory as the script (e.g., `deepfake_results_0.csv`).
+
+### 4. Collating Results for DeepFakeTIMIT
+   - After processing both the **Lower Quality** and **Higher Quality** datasets:
+     - Combine the respective CSV files using a tool like pandas:
+       ```python
+       import pandas as pd
+
+       low_quality_results = pd.read_csv('deepfake_results_0.csv')  # Update file name as necessary
+       high_quality_results = pd.read_csv('deepfake_results_1.csv')
+
+       combined_results = pd.concat([low_quality_results, high_quality_results])
+       combined_results.to_csv('deepfake_combined_results.csv', index=False)
+       ```
+     - Review the combined results.
 

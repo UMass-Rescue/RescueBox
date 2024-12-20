@@ -15,19 +15,19 @@ import math
 import torchvision
 
 
-def return_pytorch04_xception(pretrained=False):
+def return_pytorch04_xception(weight_path=None):
     # Raises warning "src not broadcastable to dst" but thats fine
     model = xception(pretrained=False)
-    if pretrained:
+    if weight_path is not None:
         # Load model in torch 0.4+
         model.fc = model.last_linear
         del model.last_linear
-        state_dict = torch.load(
-            '/Users/aravadikesh/Documents/GitHub/FaceForensics/classification/weights/xception-b5690688.pth')
+        state_dict = torch.load(weight_path)
         for name, weights in state_dict.items():
             if 'pointwise' in name:
                 state_dict[name] = weights.unsqueeze(-1).unsqueeze(-1)
         model.load_state_dict(state_dict)
+        print('Loaded Model')
         model.last_linear = model.fc
         del model.fc
     return model
@@ -38,11 +38,12 @@ class TransferModel(nn.Module):
     Simple transfer learning model that takes an imagenet pretrained model with
     a fc layer as base model and retrains a new fc layer for num_out_classes
     """
-    def __init__(self, modelchoice, num_out_classes=2, dropout=0.0):
+    def __init__(self, modelchoice, num_out_classes=2, dropout=0.0, model_path=None):
         super(TransferModel, self).__init__()
         self.modelchoice = modelchoice
+        self.model_path = model_path
         if modelchoice == 'xception':
-            self.model = return_pytorch04_xception()
+            self.model = return_pytorch04_xception(weight_path=model_path)
             # Replace fc
             num_ftrs = self.model.last_linear.in_features
             if not dropout:
@@ -116,17 +117,21 @@ class TransferModel(nn.Module):
 
 
 def model_selection(modelname, num_out_classes,
-                    dropout=None):
+                    dropout=None, model_path=None):
     """
     :param modelname:
     :return: model, image size, pretraining<yes/no>, input_list
     """
     if modelname == 'xception':
         return TransferModel(modelchoice='xception',
-                             num_out_classes=num_out_classes), 299, \
+                             num_out_classes=num_out_classes, model_path=model_path), 299, \
                True, ['image'], None
     elif modelname == 'resnet18':
         return TransferModel(modelchoice='resnet18', dropout=dropout,
+                             num_out_classes=num_out_classes), \
+               224, True, ['image'], None
+    elif modelname == 'resnet50':
+        return TransferModel(modelchoice='resnet50', dropout=dropout,
                              num_out_classes=num_out_classes), \
                224, True, ['image'], None
     else:

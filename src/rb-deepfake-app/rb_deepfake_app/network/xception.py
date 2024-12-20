@@ -218,7 +218,6 @@ def xception(num_classes=1000, pretrained='imagenet'):
 
         model = Xception(num_classes=num_classes)
         model.load_state_dict(model_zoo.load_url(settings['url']))
-        # model.load_state_dict(torch.load('/Users/aravadikesh/Documents/GitHub/FaceForensics/classification/weights/xception-b0b7af25.pth', map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
 
         model.input_space = settings['input_space']
         model.input_size = settings['input_size']
