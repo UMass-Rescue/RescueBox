@@ -57,7 +57,8 @@ app.mount(
 app.include_router(routes.probes_router, prefix="/probes")
 app.include_router(routes.cli_router)
 app.include_router(routes.ui_router)
-app.include_router(routes.plugin_router)
+app.include_router(routes.demo_plugin_router)
+app.include_router(routes.deepfake_plugin_router)
 
 
 if __name__ == "__main__":

@@ -1633,11 +1633,29 @@ develop = true
 
 [package.dependencies]
 flask-ml = "0.2.5"
+rb_file_utils = "*"
 typer = "*"
 
 [package.source]
 type = "directory"
 url = "src/rb-deepfake-app"
+
+[[package]]
+name = "rb-demo-app"
+version = "0.1.0"
+description = "demo plugin"
+optional = false
+python-versions = ">=3.11"
+files = []
+develop = true
+
+[package.dependencies]
+flask-ml = "0.2.5"
+typer = "*"
+
+[package.source]
+type = "directory"
+url = "src/rb-demo-app"
 
 [[package]]
 name = "rb-doc-parser"
@@ -2120,4 +2138,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<=3.13"
-content-hash = "1ecbeac1ec3cd1de18e62ad1e9b8ebc8b7fd9630b43a26fceb416d91132b7a6c"
+content-hash = "3948b146d842c63cd4a00edcd4ecf401b5d1bc824b45b93421152fd0f34022e9"

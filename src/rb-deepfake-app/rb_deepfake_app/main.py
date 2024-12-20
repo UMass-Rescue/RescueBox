@@ -1,6 +1,7 @@
 import os
 from typing import Annotated, Optional, List, Dict
 from typing_extensions import TypedDict
+from flask_ml.flask_ml_server import load_file_as_string
 from flask_ml.flask_ml_server.models import (
     BatchFileInput,
     FileInput,
@@ -32,7 +33,7 @@ from pprint import pprint
 from fastapi import APIRouter, Depends
 
 
-plugin_router = APIRouter()
+deepfake_plugin_router = APIRouter()
 
 app = typer.Typer()
 
@@ -40,6 +41,7 @@ logger = logging.getLogger("uvicorn.error")
 logger.propagate = True
 logger.setLevel(logging.DEBUG)
 
+@deepfake_plugin_router.get("/api/create_deepfake_detection_task_schema")
 def create_deepfake_detection_task_schema() -> TaskSchema:
     return TaskSchema(
         inputs=[
@@ -93,7 +95,7 @@ class DeepfakeDetectionParameters(TypedDict):
 def show_json(path: str):
     if not os.path.exists(path):
         print(f"Path {path} does not exist")
-        raise typer.Abort()
+        return "output path {path} does not exist"
     with open(path, "r") as f:
         for line in f:
             print(line)
@@ -110,10 +112,24 @@ def run_deepfake(
         str, help="The output format eg:json"
     )
 )-> str:
+    """
+    RescueBox plugin DeepFakeDetector
+      This application is a machine learning-powered deepfake detection tool that analyzes video files to 
+      determine whether they contain manipulated (fake) or original (real) content. 
+      
+      https://github.com/UMass-Rescue/DeepFakeDetector/blob/main/video_detector/app_info.md
+
+    """
+    if not os.path.exists(video_paths):
+        print(f"Input Path {video_paths} does not exist")
+        return "Input path {video_paths} does not exist"
     fi = FileInput(path = video_paths)
     
     vp = BatchFileInput( files= [fi])
     
+    if not os.path.exists(output_directory):
+        print(f"Output Path {output_directory} does not exist")
+        return "Output path {output_directory} does not exist"
     od = DirectoryInput( path = output_directory)
 
     df = DeepfakeDetectionInputs(video_paths=vp, output_directory=od)
@@ -126,7 +142,7 @@ def run_deepfake(
     response = requests.get("http://localhost:8000/run/",  data = json.dumps(dt, default=vars),headers={'Content-Type': 'application/json'})
     response_dict = response.json() 
     outfile = { "output_json": "not available"}
-    if response_dict["files"][0] is not None:
+    if response_dict["files"]:
         pprint("title: " + response_dict["files"][0]["title"])
         pprint("path: " + response_dict["files"][0]["path"])
         outfile = response_dict["files"][0]["path"]
@@ -134,7 +150,31 @@ def run_deepfake(
     show_json(outfile)
     return json.dumps(outfile)
 
-@plugin_router.get("/run/")
+@deepfake_plugin_router.get("/api/routes") # Electron call
+def get_routes():
+    route = {
+        "task_schema": "/api/create_deepfake_detection_task_schema",
+        "run_task": '/api/run',
+        "short_title": "Deepfake Detection",
+        "order": 0
+    }
+    routes = [route]
+    return routes
+
+    
+    
+
+@deepfake_plugin_router.get("/api/app_metadata") # Electron call 
+def app_metadata():
+    return {
+    "name" : "Video DeepFake Detector",
+    "author": "UMass Rescue",
+    "version": "0.1.0",
+    "info": load_file_as_string("/tmp/app_info.md"),
+    }
+
+@deepfake_plugin_router.get("/run/")
+@deepfake_plugin_router.post("/api/run") # electron call
 def detect_deepfake(inputs: DeepfakeDetectionInputs, parameters: DeepfakeDetectionParameters
 ) -> ResponseBody:
 

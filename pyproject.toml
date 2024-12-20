@@ -20,6 +20,7 @@ rb-lib = { path = "src/rb-lib", develop = true }
 rb-file-utils = { path = "src/rb-file-utils", develop = true }
 rb-doc-parser = { path = "src/rb-doc-parser", develop = true }
 
+rb-demo-app = { path = "src/rb-demo-app", develop = true }
 rb-deepfake-app = { path = "src/rb-deepfake-app", develop = true }
 
 # Don't add new packages here, add them appropriately in the list above

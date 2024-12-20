@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "rb-demo-app"
+version = "0.1.0"
+description = "demo plugin"
+authors = ["Jagath Jai Kumar <jagath.jaikumar@gmail.com>"]
+packages = [{include = "rb_demo_app"}]
+
+[tool.poetry.scripts]
+rb-demo-app = "rb_demo_app.main:app"
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+typer = "*"
+flask-ml = "0.2.5"
+
+[[tool.poetry.source]]
+name = "piwheels"
+url = "https://www.piwheels.org/simple/"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
