@@ -1,5 +1,5 @@
 #!/bin/sh
-# make an executable rescuebox clu
+# make an executable rescuebox cli
 # add --debug=imports if needed
 # install pre reqs like python , python dev , windows wsl env need wslview ( /usr/bin/xdg-open -> /usr/bin/wslview )
 
