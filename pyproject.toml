@@ -14,7 +14,12 @@ python = ">=3.11,<3.13"
 pyyaml = "^6.0.2"
 typer = "^0.12.5"
 llvmlite = "^0.44.0"
+pytest = "^8.3.4"
+httpx = "^0.28.1"
+# add dependencies common to all plugins here
 numba = "^0.61.0"
+torch = "2.2.2"
+numpy = "1.26.4"
 
 rb-lib = { path = "src/rb-lib", develop = true }
 
@@ -23,8 +28,8 @@ rb-doc-parser = { path = "src/rb-doc-parser", develop = true }
 rb-audio-transcription = { path = "src/rb-audio-transcription", develop = true }
 
 # Don't add new packages here, add them appropriately in the list above
-torch = "2.2.2"
-numpy = "1.26.4"
+
+
 
 
 [tool.poetry.group.dev.dependencies]

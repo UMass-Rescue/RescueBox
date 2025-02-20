@@ -1,5 +1,4 @@
 import pathlib
-
 from rb_file_utils.main import app
 from typer.testing import CliRunner
 

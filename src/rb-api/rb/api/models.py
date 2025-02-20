@@ -9,6 +9,9 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
+API_APPMETDATA="app_metadata"
+API_ROUTES="routes"
+PLUGIN_SCHEMA_SUFFIX="_schema"
 
 class AppMetadata(BaseModel):
     model_config = ConfigDict(

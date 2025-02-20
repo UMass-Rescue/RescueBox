@@ -27,7 +27,7 @@ class AudioTranscriptionModel:
 
     def transcribe(self, audio_path: str, out_dir: str = None) -> str:
         self._validate_audio_path(audio_path)
-        res = self.model.transcribe(str(audio_path))["text"]
+        res = self.model.transcribe(str(audio_path), fp16=False)["text"]
         if out_dir:
             self._write_res_to_dir(
                 [{"file_path": str(audio_path), "result": res}], out_dir
