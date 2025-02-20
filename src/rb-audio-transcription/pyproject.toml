@@ -9,6 +9,7 @@ packages = [{include = "rb_audio_transcription"}]
 rb-audio-transcription = "rb_audio_transcription.main:app"
 
 [tool.poetry.dependencies]
+cmake = "*"
 python = "^3.11"
 openai-whisper = "*"
 

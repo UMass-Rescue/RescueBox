@@ -2,11 +2,10 @@ import inspect
 import time
 import json
 import logging
-from typing import Callable, Generator, Optional, Any
+from typing import Callable, Generator, Optional
 from pydantic import BaseModel
-
 import typer
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from makefun import with_signature
 from rb.lib.stdout import Capturing  # type: ignore
@@ -21,8 +20,8 @@ from rb.api.models import (
     BatchTextResponse,
     BatchDirectoryResponse,
 )
-
 from rescuebox.main import app as rescuebox_app
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -36,13 +35,21 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
         try:
             logger.debug(f"Executing CLI command: {callback.__name__} with args={args}, kwargs={kwargs}")
             result = callback(*args, **kwargs)  # Ensure this returns a valid Pydantic model
-            logger.debug(f"CLI command output: {result}")
+            
+            logger.debug(f"CLI command output type:  {type(result)}")
 
-            if isinstance(result, BaseModel):  # Ensure it's a valid Pydantic model
+            if isinstance(result, ResponseBody):  # Ensure it's a valid Pydantic model
+                return result
+            if isinstance(result, BaseModel):  # Ensure it's a valid Pydantic model , not sure if this is needed for desktop calls
                 return ResponseBody(root=result)
+            if isinstance(result, dict):  # or Ensure it's a valid dict model for desktop app metadata call to work
+                return result
+            if isinstance(result, list):  # or Ensure it's a valid str model for routes call
+                return result
+            # this has an issue of nor sending back details to desktop ui the api caller ?
             raise ValueError(f"Invalid return type from Typer command: {type(result)}")
         except Exception as e:
-            logger.error(f"Error executing CLI command: {e}")
+            logger.error("Error executing CLI command: %s", e)
             raise HTTPException(
                 status_code=400,
                 detail={"error": f"Typer CLI aborted {e}", "stdout": stdout[-10:]},
@@ -52,7 +59,7 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
 def streaming_endpoint(callback: Callable, *args, **kwargs) -> Generator:
     """Execute a CLI command and stream the results with proper response handling"""
 
-    logger.debug(f"🚀 Streaming started for command: {callback.__name__} with args={args}, kwargs={kwargs}")
+    logger.debug(f"🚀Streaming started for command: {callback.__name__} with args={args}, kwargs={kwargs}")
 
     for line in capture_stdout_as_generator(callback, *args, **kwargs):
         try:
@@ -96,20 +103,11 @@ def streaming_endpoint(callback: Callable, *args, **kwargs) -> Generator:
         time.sleep(0.01)
 
 
-
 def command_callback(command: typer.models.CommandInfo):
     """Create a FastAPI endpoint handler for a Typer CLI command with `ResponseBody`"""
 
     original_signature = inspect.signature(command.callback)
-    new_params = []
-
-    # Convert Typer CLI arguments to FastAPI-compatible query/body parameters
-    for param in original_signature.parameters.values():
-        if param.default is inspect.Parameter.empty:  # Required argument
-            param = param.replace(default=Query(..., description=f"Required parameter {param.name}"))
-        elif param.default is Ellipsis:  # Typer required argument
-            param = param.replace(default=Query(..., description=f"Required parameter {param.name}"))
-        new_params.append(param)
+    new_params = list(original_signature.parameters.values())
 
     streaming_param = inspect.Parameter(
         "streaming",
@@ -123,7 +121,7 @@ def command_callback(command: typer.models.CommandInfo):
 
     @with_signature(new_signature)
     def wrapper(*args, **kwargs) -> ResponseBody:
-        logger.debug(f"FastAPI wrapper called for {command.callback.__name__} with args={args}, kwargs={kwargs}")
+        # logger.debug(f"FastAPI wrapper called for {command.callback.__name__} with args={args}, kwargs={kwargs}")
 
         streaming = kwargs.pop("streaming", False)
         if streaming:
@@ -144,14 +142,30 @@ for plugin in rescuebox_app.registered_groups:
     router = APIRouter()
 
     for command in plugin.typer_instance.registered_commands:
-        logger.debug(f"Registering FastAPI route for CLI command: {command.callback.__name__}")
         
-        router.add_api_route(
-            f"/{command.callback.__name__}",
-            endpoint=command_callback(command),
-            methods=["POST"],
-            name=command.callback.__name__,
-            response_model=ResponseBody,
-        )
-
-    cli_router.include_router(router, prefix=f"/{plugin.name}", tags=[plugin.name])
+        desktop_api_prefix =f'/api/'
+        schema_suffix =f'_schema'
+        if command.name and (command.name.startswith(desktop_api_prefix) or command.name.endswith(schema_suffix)):
+            logger.debug(f'plugin command name is {command.name}')
+            router.add_api_route(
+                f"/{command.callback.__name__}",
+                endpoint=command_callback(command),
+                methods=["GET"],
+                name=command.callback.__name__,
+            )
+            if command.name.startswith(desktop_api_prefix):
+                # TODO: this prefix '/api' has to change when there are multiple plugins
+                cli_router.include_router(router, prefix='/api', tags=[plugin.name])
+            else:
+                cli_router.include_router(router, prefix=f"/{plugin.name}", tags=[plugin.name])
+            logger.debug(f"Registering FastAPI route for {plugin.name} desktop call: {command.callback.__name__}")
+        else:
+            router.add_api_route(
+                f"/{command.callback.__name__}",
+                endpoint=command_callback(command),
+                methods=["POST"],
+                name=command.callback.__name__,
+                response_model=ResponseBody,
+            )
+            logger.debug(f"Registering FastAPI route for {plugin.name} command: {command.callback.__name__}")
+            cli_router.include_router(router, prefix=f"/{plugin.name}", tags=[plugin.name])
