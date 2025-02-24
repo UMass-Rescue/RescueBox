@@ -8,6 +8,7 @@ from typing import Annotated, Any, TypedDict
 from fastapi import Body, Depends, HTTPException, Response
 from rb.api.models import (
     BatchTextResponse,
+    DirectoryInput,
     FileInput,
     FloatParameterDescriptor,
     InputSchema,
@@ -117,10 +118,10 @@ def task_schema() -> Response:
     return obj.model_dump(mode="json")
 
 
-class FileInputs(TypedDict):
+class DirInputs(TypedDict):
     """model input to transcribe"""
 
-    file_inputs: BatchFileInput
+    dir_input: DirectoryInput
 
 
 class FileParameters(TypedDict):
@@ -131,16 +132,14 @@ class FileParameters(TypedDict):
     example_parameter3: int
 
 
-def cli_inputs_parser(input_path: str) -> FileInputs:
+def cli_inputs_parser(input_path: str) -> DirInputs:
     """input string value to pydantic type"""
     try:
         logger.debug("-----DEBUG cli_inputs_parser inputs str to pydantic object ---")
         logger.debug(input_path)
-        if is_pathname_valid(input_path):
-            return FileInputs(
-                file_inputs=BatchFileInput(files=[FileInput(path=input_path)])
-            )
-        raise typer.Abort()
+        return DirInputs(
+            dir_input=DirectoryInput(path=input_path)
+        )
     except Exception as e:
         logger.error("Invalid full path input for transcribe command: %s %s", input_path, e)
         raise typer.Abort()
@@ -195,7 +194,7 @@ def alternate_params_parser(p: str) -> ParameterSchema:
         logger.error("Invalid data format: %d", e)
         raise typer.Abort()
 
-def validate_inputs(inputs: FileInputs):
+def validate_inputs(inputs: DirectoryInput):
     '''
     verify inputs are usable
     note: fastapi only validates input is a pydantic object
@@ -203,11 +202,14 @@ def validate_inputs(inputs: FileInputs):
     '''
     try:
         logger.debug("-----validate DEBUG inputs ---")
-        logger.debug("length input files %d", len(inputs["file_inputs"].files))
-        files = [is_pathname_valid_arg_parser(e.path) for e in inputs["file_inputs"].files]
+        logger.debug("length input files %d", len(inputs["dir_input"].path))
+        # entry.is_file()
+        dirp = inputs["dir_input"].path
+        logger.debug(f"-----inputs {dirp} ")
+        files = [file.path for file in dir.iterdir()]
         logger.debug(files)
         if len(files) < 1:
-            raise HTTPException(status_code=400, detail=f"no 'file_inputs' for transcribe command")
+            raise HTTPException(status_code=400, detail=f"no 'files_in given directory' for transcribe command")
         logger.debug("------validate DEBUG ---")
         ## this return object is now ready for use in transcribe function
         return inputs
@@ -218,8 +220,8 @@ def validate_inputs(inputs: FileInputs):
 @app.command(f'transcribe')
 def transcribe(
     inputs: Annotated[
-        FileInputs,
-        typer.Argument(parser=cli_inputs_parser, help="input file path"),
+        DirInputs,
+        typer.Argument(parser=cli_inputs_parser, help="input directory path"),
         Body(embed=True), Depends(validate_inputs)
     ],
     parameters: Annotated[
@@ -232,12 +234,17 @@ def transcribe(
    
     logger.debug("-----DEBUG inputs are already validated ---")
     logger.debug(parameters)
-    files = [e.path for e in inputs["file_inputs"].files]
+    dirp = inputs["dir_input"].path
+    logger.debug(f"-----inputs dir = {dirp} ")
+
+    audio_extensions = {".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"}
+    files = [str(file) for file in Path(dirp).iterdir() if file.suffix.lower() in audio_extensions]
+
     logger.debug(files)
     logger.debug("------DEBUG ---")
 
     if not files:
-        typer.echo("invalid audio file paths given.")
+        typer.echo("no audio files in given path.")
         raise typer.Exit(code=1)
 
     results = model.transcribe_batch(files)

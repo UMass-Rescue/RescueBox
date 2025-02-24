@@ -7,7 +7,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath, RootModel
 
 API_APPMETDATA="app_metadata"
 API_ROUTES="routes"
@@ -48,14 +48,14 @@ class FileInput(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    path: str
+    path: FilePath
 
 
 class DirectoryInput(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    path: str
+    path: DirectoryPath
 
 
 class TextInput(BaseModel):

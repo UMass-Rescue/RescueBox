@@ -56,7 +56,7 @@ def test_transcribe_command():
     r''' call audio transcribe command cli to transcribe a sample audio file'''
     cwd = Path.cwd()
     full_path = os.path.join(
-        cwd, "src", "rb-audio-transcription", "tests", "sample.mp3"
+        cwd, "src", "rb-audio-transcription", "tests"
     )
     result = runner.invoke(
         cli_app, ['transcribe', full_path, "'e1': 'example', 'e2' : 0.1, 'e3': 1"]
