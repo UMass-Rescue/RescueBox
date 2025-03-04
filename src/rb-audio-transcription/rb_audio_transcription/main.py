@@ -1,5 +1,5 @@
 """audio transcribe plugin"""
-
+import sys, os
 import json
 import logging
 from pathlib import Path
@@ -29,8 +29,11 @@ from rb.api.utils import (
 )
 import typer
 from rb_audio_transcription.model import AudioTranscriptionModel
-
-logging.basicConfig(level=logging.DEBUG)
+# this here seems to turn on is the log level for the plugin
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    logging.basicConfig(level=logging.INFO)
+else:
+    logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = typer.Typer()
@@ -43,11 +46,15 @@ info_file_path = Path("app-info.md")
 def load_file_as_string(file_path: str) -> str:
     """read in plugin doc"""
 
-    # Target file or directory
-    target = Path(__file__).parent.resolve()
+    target = Path(__file__).parent.resolve()    
+    # pyinstaller exe path
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        temp = getattr(sys, '_MEIPASS', Path(__file__).resolve())
+        target = Path(temp) / 'audio'
+
     full_path = target / Path(file_path)
-    fp = Path(full_path)
-    if not fp.is_file():
+    
+    if not full_path.is_file():
         raise FileNotFoundError(f"File {full_path} not found")
     with open(full_path, "r") as f:
         return f.read()
@@ -62,6 +69,9 @@ def app_metadata() -> Any:
         "version": "0.1.0",
         "info": load_file_as_string(info_file_path),
     }
+    # this is for cli output
+    typer.echo(obj)
+    # this is for api outpur
     return obj
 
 
@@ -78,6 +88,7 @@ def routes() -> Any:
     route_list = [
         route
     ]
+    typer.echo(route_list)
     return route_list
 
 
@@ -111,6 +122,7 @@ def task_schema() -> Response:
             ),
         ],
     )
+    typer.echo(obj.model_dump(mode="json"))
     return obj.model_dump(mode="json")
 
 
@@ -146,7 +158,7 @@ def cli_inputs_parser(input_path: str) -> DirInputs:
 def cli_params_parser(p: str) -> FileParameters:
     '''
     Mandatory cli callback
-    three parameters of type ; string/text , floar , int
+    three parameters of type : string/text , float , int
     '''
     try:
         params = string_to_dict(p)
@@ -178,7 +190,7 @@ def alternate_params_parser(p: str) -> ParameterSchema:
     # this fucntion is not used , just an example
     try:
         params = string_to_dict(p)
-        # logger.info(f"-----DEBUG parser ---")
+        logger.info(f"-----DEBUG parser ---")
         range_object = IntRangeDescriptor(min=params["c"], max=params["d"])
         func = get_int_range_check_func_arg_parser(range_object)
         if func(params["e"]):
@@ -246,3 +258,6 @@ def transcribe(
     logger.info("Transcription Result: %s", result_texts)  # Debug log
     response = BatchTextResponse(texts=result_texts)
     return ResponseBody(root=response)
+
+if __name__ == "__main__":
+    app()
