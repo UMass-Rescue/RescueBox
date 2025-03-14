@@ -22,7 +22,7 @@ a = Analysis(
     binaries=[('ffmpeg.exe', ".")],
     datas=[('src/rb-audio-transcription/rb_audio_transcription/app-info.md', 'audio'),
         ('src/rb-api/rb/api/static', 'static'), ('src/rb-api/rb/api/templates', 'templates'),
-         ('src/rb-doc-parser/rb_doc_parser/chat_config.yml', '.'),
+         ('src/rb-doc-parser/rb_doc_parser/chat_config.yml', 'rb_doc_parser'),
         ('static/favicon.ico', 'static'),( whisper_file, 'whisper/assets')],
     hiddenimports=hiddenimports,
     hookspath=[],

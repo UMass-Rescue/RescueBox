@@ -1,5 +1,7 @@
 import requests
+import logging
 from bs4 import BeautifulSoup
+logger = logging.getLogger(__name__)
 
 BASE_WIKI_URL = "https://github.com/UMass-Rescue/RescueBox/wiki"
 
@@ -29,7 +31,7 @@ def get_wiki_page_links():
         return page_urls
 
     except requests.RequestException as e:
-        print(f"Error fetching wiki page links: {e}")
+        logger.debug("Error fetching wiki page links: %s", e)
         return []
 
 
@@ -47,14 +49,27 @@ def download_wiki_page(url):
         wiki_content_div = soup.find("div", class_="markdown-body")
 
         if not wiki_content_div:
-            print(f"Warning: No markdown content found on {url}")
+            logger.debug("Warning: No markdown content found on %s", url)
             return None
 
         return wiki_content_div.get_text().strip()
 
     except requests.RequestException as e:
-        print(f"Error downloading {url}: {e}")
+        logger.error("Error downloading %s %s", url, e)
         return None
+
+def get_rescuebox_code():
+    import os
+    dir_path = os.path.join("src")
+    file_data = {}
+    for root, _, files in os.walk(dir_path):
+        for filename in files:
+            if not str(filename).endswith('.py') or 'lib' in str(filename):
+                continue
+            filepath = os.path.join(root, filename)
+            with open(filepath, 'r') as file:
+                file_data[filepath] = file.readlines()
+    return file_data
 
 
 def download_all_wiki_pages():
@@ -66,14 +81,18 @@ def download_all_wiki_pages():
 
     for page_url in wiki_pages:
         page_name = page_url.split("/")[-1]  # Extract the page name
-        # print(f"Fetching: {page_name}")
+        if page_name == '_history':
+            continue
+        logger.debug("Fetching: %s", page_name)
         markdown_text = download_wiki_page(page_url)
 
         if markdown_text:
-            wiki_data[page_name] = markdown_text
+            parts = markdown_text.split('\n')
+            wiki_data[page_name] = parts
 
     return wiki_data
 
 
 # Example Usage
 all_wiki_content = download_all_wiki_pages()
+

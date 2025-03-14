@@ -18,12 +18,14 @@ def download_model(chat_config: dict) -> None:
 
 def stream_output(user_content: str, chat_config: dict) -> str:
     download_model(chat_config)
-
+    # print(user_content)
+    # print(chat_config["prompt"]["system"])
+    user_content = "in the context of rescuebox or RescueBox or RescueBox plugin " + user_content 
     stream = ollama.chat(
         model=chat_config["model"]["name"],
         messages=[
             {"role": "system", "content": chat_config["prompt"]["system"]},
-            {"role": "user", "content": user_content},
+            {"role": "user", "content": f"{chat_config["prompt"]["system"]}\n\n{user_content}" },
         ],
         stream=True,
     )
