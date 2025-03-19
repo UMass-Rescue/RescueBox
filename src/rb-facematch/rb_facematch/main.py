@@ -188,10 +188,10 @@ def cli_inputs_parser(input_path: str) -> FindFaceInputs:
     input string value to pydantic type
     """
     try:
-        logger.debug("-----DEBUG cli_inputs_parser inputs str to pydantic object ---")
+        logger.debug("-----DEBUG find_face cli_inputs_parser inputs str to pydantic object ---")
         logger.debug(input_path)
-        fileInput = FileInput(path=input_path)
-        return BatchFileInput(files=List[fileInput])
+        file_input = FileInput(path=input_path)
+        return FindFaceInputs(image_paths=BatchFileInput(files=[file_input]))
     except Exception as e:
         logger.error(e)
         raise typer.Abort()
@@ -229,12 +229,12 @@ def cli_params_parser(p: str) -> FindFaceParameters:
     """
     try:
         params = string_to_dict(p)
-        logger.debug("-----DEBUG FileParameters parser %s ---", params)
-        if len(params) == 2:
+        if len(params.items()) == 2:
             # check valid Input with pydantic types
+            logger.debug("-----DEBUG FileParameters parser %s ---", params)
             return FindFaceParameters(
-                database_name= StrictStr(params[0]),
-                similarity_threshold= PositiveFloat(params[1])
+                database_name= StrictStr(params['database_name']),
+                similarity_threshold= PositiveFloat(params['similarity_threshold'])
             )
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         logger.error("Invalid parameter input: %s", e)
@@ -256,6 +256,11 @@ def findface(
     ] = None, # type: ignore
 ) -> ResponseBody:
     ''' search for an image from the database'''
+    logger.debug("--------")
+    logger.debug(inputs)
+    logger.debug(parameters)
+    logger.debug("--------")
+
     # Get list of file paths from input
     input_file_paths = [item.path for item in inputs["image_paths"].files]
 
@@ -263,10 +268,6 @@ def findface(
     parameters["database_name"] = os.path.join(
         "data", parameters["database_name"] + ".csv"
     )
-    logger.debug("--------")
-    logger.debug(parameters)
-    logger.debug(input_file_paths)
-    logger.debug("--------")
                  
     # Check CUDNN compatability
     check_cuDNN_version()
@@ -308,11 +309,11 @@ def cli_upload_inputs_parser(input_path: str) -> BulkUploadInputs:
         logger.debug("-----DEBUG cli_inputs_parser inputs str to pydantic object ---")
         logger.debug(input_path)
 
-        paths = [p for p in input_path.split("," | None)]
+        paths = [p for p in input_path.split(",")]
         dir_inputs_list = [DirectoryInput(path=DirectoryPath(path)) for path in paths]
 
         return BulkUploadInputs(
-            directory_paths=BatchDirectoryInput(directories=List[dir_inputs_list])
+            directory_paths=BatchDirectoryInput(directories=dir_inputs_list)
         )
     except Exception as e:
         logger.error(e)
@@ -358,17 +359,17 @@ def cli_upload_params_parser(p: str) -> BulkUploadParameters:
     """
     try:
         params = string_to_dict(p)
-        logger.debug("-----DEBUG FileParameters parser %s ---", params)
-        if len(params) == 2 :
+        if len(params.items()) == 2 :
+            logger.debug("-----DEBUG Upload params parser 0 %s ---", StrictStr(params['dropdown_database_name']))
+            logger.debug("-----DEBUG Upload params parser 1 %s ---", StrictStr(params['database_name']))
             # check if valid names db are passed in
             return BulkUploadParameters(
-                dropdown_database_name=StrictStr(params[0]),
-                database_name=StrictStr(params[1]),
+                dropdown_database_name=StrictStr(params['dropdown_database_name']),
+                database_name=StrictStr(params['database_name']),
             )
         else:
-            raise HTTPException(
-            status_code=400, detail=f'database upload names, expected 2, actual {p}'
-            )
+            logger.error("Invalid parameter input : %s", params)
+            raise typer.Abort()
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         logger.error("Invalid parameter input : %s", e)
         raise typer.Abort()
@@ -393,6 +394,10 @@ def bulkupload(
     ''' Upload files from a list of input directories'''
     # If dropdown value chosen is Create a new database, then add database path to available databases, otherwise set
     # database path to dropdown value
+    logger.debug("--------")
+    logger.debug(parameters)
+    logger.debug(inputs)
+    logger.debug("--------")
 
     if parameters["dropdown_database_name"] != "Create a new database":
         parameters["database_name"] = parameters["dropdown_database_name"]
@@ -411,11 +416,6 @@ def bulkupload(
         input_directory_paths = [
             item.path for item in inputs["directory_paths"].directories
         ]
-
-        print("--------")
-        print(parameters)
-        print(input_directory_paths)
-        print("--------")
 
         # Call the model function
         response = face_match_model.bulk_upload(
