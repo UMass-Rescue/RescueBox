@@ -61,7 +61,7 @@ def download_all_wiki_pages():
 
     for page_url in wiki_pages:
         page_name = page_url.split("/")[-1]  # Extract the page name
-        print(f"Fetching: {page_name}")
+        # print(f"Fetching: {page_name}")
         markdown_text = download_wiki_page(page_url)
 
         if markdown_text:
@@ -72,6 +72,3 @@ def download_all_wiki_pages():
 # Example Usage
 all_wiki_content = download_all_wiki_pages()
 
-# Print a preview of collected content
-for page, content in all_wiki_content.items():
-    print(f"\n=== {page} ===\n{content[:500]}...\n")  # Show first 500 chars per page

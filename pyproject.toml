@@ -20,12 +20,16 @@ httpx = "^0.28.1"
 numba = "^0.61.0"
 torch = "2.2.2"
 numpy = "1.26.4"
+scikit-learn = "1.6.1"
+tensorflow-intel = {version = "2.18.0", markers = 'sys_platform == "win32"' }
+tensorflow = {version = "2.18.1", markers = 'sys_platform != "win32"' }
 
 rb-lib = { path = "src/rb-lib", develop = true }
 
 rb-file-utils = { path = "src/rb-file-utils", develop = true }
 rb-doc-parser = { path = "src/rb-doc-parser", develop = true }
 rb-audio-transcription = { path = "src/rb-audio-transcription", develop = true }
+rb-facematch = {path = "src/rb-facematch", develop = true }
 
 # Don't add new packages here, add them appropriately in the list above
 beautifulsoup4 = "^4.13.3"
