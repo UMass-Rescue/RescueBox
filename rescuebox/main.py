@@ -25,9 +25,13 @@ def list_plugins() -> list[str]:
     from rescuebox.plugins import plugins  # Lazy Import
     print("Plugins:")
     plugin_list = []
-    for plugin in plugins:
-        print(f"- {plugin.full_name}, {plugin.cli_name}")
-        plugin_list.append(plugin.cli_name)
+    names = {}
+    for rb_plugin in plugins:
+        print(f"- {rb_plugin.full_name}, {rb_plugin.cli_name}")
+        if rb_plugin.cli_name == 'fs' or rb_plugin.cli_name == 'docs':
+            continue
+        names = {"plugin_name": rb_plugin.cli_name}
+        plugin_list.append(names)
     return plugin_list
 
 

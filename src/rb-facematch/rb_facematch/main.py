@@ -76,7 +76,7 @@ def app_metadata() -> Any:
 
 @app.command(API_ROUTES)  # /api/routes Electron call
 def routes() -> Any:
-    route = [
+    routes_list = [
         {
             "task_schema": "/facematch/upload_schema",
             "run_task": "/facematch/bulkupload",
@@ -89,9 +89,6 @@ def routes() -> Any:
             "short_title": "Find Matching Faces",
             "order": 1,
         },
-    ]
-    routes_list = [
-        route,
     ]
     return routes_list
 
@@ -138,7 +135,7 @@ def find_face_task_schema() -> Response:
 
 
 @app.command(f"upload{PLUGIN_SCHEMA_SUFFIX}")
-def upload_task_schema() -> Response:
+def upload_schema() -> Response:
     """matching route order=0"""
     obj = TaskSchema(
         inputs=[
@@ -273,14 +270,12 @@ def findface(
     check_cuDNN_version()
 
     # Call model function to find matches
-    status, results = face_match_model.find_face(
+    _, results = face_match_model.find_face(
         input_file_paths[0],
         parameters["similarity_threshold"],
         parameters["database_name"],
     )
-    # domain logic ...
-    results = ["/foo", "/bar"]
-
+    
     image_results = [
         FileResponse(file_type="img", path=res, title=res) for res in results
     ]
@@ -402,33 +397,33 @@ def bulkupload(
     if parameters["dropdown_database_name"] != "Create a new database":
         parameters["database_name"] = parameters["dropdown_database_name"]
 
-        new_database_name = parameters["database_name"]
+    new_database_name = parameters["database_name"]
 
-        # Convert database name to absolute path to database in resources directory
-        parameters["database_name"] = os.path.join(
-            "data", parameters["database_name"] + ".csv"
-        )
+    # Convert database name to absolute path to database in resources directory
+    parameters["database_name"] = os.path.join(
+        "data", parameters["database_name"] + ".csv"
+    )
 
-        # Check CUDNN compatability
-        check_cuDNN_version()
+    # Check CUDNN compatability
+    check_cuDNN_version()
 
-        # Get list of directory paths from input
-        input_directory_paths = [
-            item.path for item in inputs["directory_paths"].directories
-        ]
+    # Get list of directory paths from input
+    input_directory_paths = [
+        item.path for item in inputs["directory_paths"].directories
+    ]
 
-        # Call the model function
-        response = face_match_model.bulk_upload(
-            input_directory_paths[0], parameters["database_name"]
-        )
+    # Call the model function
+    response = face_match_model.bulk_upload(
+        input_directory_paths[0], parameters["database_name"]
+    )
 
-        if (
-            response.startswith("Successfully uploaded")
-            and response.split(" ")[2] != "0"
-        ):
-            # Some files were uploaded
-            if parameters["dropdown_database_name"] == "Create a new database":
-                # Add new database to available databases if database name is not already in available databases
-                if parameters["database_name"] not in available_databases:
-                    available_databases.append(new_database_name)
+    if (
+        response.startswith("Successfully uploaded")
+        and response.split(" ")[2] != "0"
+    ):
+        # Some files were uploaded
+        if parameters["dropdown_database_name"] == "Create a new database":
+            # Add new database to available databases if database name is not already in available databases
+            if parameters["database_name"] not in available_databases:
+                available_databases.append(new_database_name)
     return ResponseBody(root=TextResponse(value=response))

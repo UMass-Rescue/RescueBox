@@ -6,7 +6,7 @@ from typing import Callable, Generator, Optional
 from pydantic import BaseModel
 import typer
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from makefun import with_signature
 from rb.lib.stdout import Capturing  # type: ignore
 from rb.lib.stdout import capture_stdout_as_generator
@@ -43,10 +43,10 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
                 return ResponseBody(root=result)
             if isinstance(result, dict):  # or Ensure it's a valid dict model for desktop app metadata call to work
                 return result
-            if isinstance(result, list):  # or Ensure it's a valid str model for routes call
-                return result
-            if isinstance(result, str):  # or Ensure it's a valid str model for routes call
-                return ResponseBody(root=TextResponse(value=result))
+            if isinstance(result, list):  # or Ensure a list is returned as string for list_plugins and routes call
+                return Response(content=str(result).replace("'", '"'), media_type="application/json")
+            if isinstance(result, str):  # or Ensure it's a valid str model for other call
+                return ResponseBody(root=result)
             # this has an issue of nor sending back details to desktop ui the api caller ?
             raise ValueError(f"Invalid return type from Typer command: {type(result)}")
         except Exception as e:

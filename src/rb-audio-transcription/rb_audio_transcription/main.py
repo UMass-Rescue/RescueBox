@@ -97,9 +97,9 @@ def task_schema() -> Response:
     obj = TaskSchema(
         inputs=[
             InputSchema(
-                key="file_inputs",
-                label="Provide text inputs",
-                input_type=InputType.BATCHFILE,
+                key="dir_input",
+                label="Provide directory with inputs",
+                input_type=InputType.DIRECTORY,
             )
         ],
         parameters=[
