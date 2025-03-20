@@ -10,11 +10,13 @@ runtime_venvdir=os.environ['VIRTUAL_ENV'] + "/Lib/site-packages"
 
 # get data dependencies  : runtime_venvdir + whisper/assets/mel_filters.npz
 
-hiddenimports = ['torch','torchvision', 'functorch',  'modulefinder', 'timeit']
+hiddenimports = ['torch','torchvision', 'functorch',  'modulefinder', 'timeit', 'scipy']
 hiddenimports += ['fastapi', 'main', 'rb', 'rb-api', 'rb-lib', 'rb-doc-parser', 'rb-audio-transcription', 'rb-file-utils', 'makefun']
 hiddenimports += collect_submodules('fastapi')
+hiddenimports += collect_submodules('scipy')
 
 whisper_file = f'{runtime_venvdir}/whisper/assets'
+scipy = f'{runtime_venvdir}/scipy/_lib/array_api_compat'
 
 a = Analysis(
     ['src/rb-api/rb/api/main.py'],
@@ -23,7 +25,8 @@ a = Analysis(
     datas=[('src/rb-audio-transcription/rb_audio_transcription/app-info.md', 'audio'),
         ('src/rb-api/rb/api/static', 'static'), ('src/rb-api/rb/api/templates', 'templates'),
          ('src/rb-doc-parser/rb_doc_parser/chat_config.yml', '.'),
-        ('static/favicon.ico', 'static'),( whisper_file, 'whisper/assets')],
+        ('static/favicon.ico', 'static'),( whisper_file, 'whisper/assets'),
+        (scipy, 'scipy/_lib')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
