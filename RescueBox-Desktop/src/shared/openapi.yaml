@@ -1,0 +1,504 @@
+openapi: 3.1.0
+info:
+  title: FlaskML
+  version: 1.0.0
+  description: API for processing machine learning inputs and returning results.
+paths:
+  /api/app_metadata:
+    get:
+      summary: Get App Metadata
+      responses:
+        '200':
+          description: App metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppMetadata'
+
+  /api/routes:
+    get:
+      summary: Get Available Routes for Tasks
+      responses:
+        '200':
+          description: List of routes for available tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIRoutes'
+
+components:
+  schemas:
+    # Info Page models
+    AppMetadata:
+      type: object
+      required: [info, name, author, version]
+      properties:
+        info:
+          type: string
+          description: "Markdown content to render on the info page"
+        author:
+          type: string
+        version:
+          type: string
+        name:
+          type: string
+          example: "Face Match App"
+      example:
+        info: "# Welcome to the Face Match App\n\nThis app will help you to match faces in your images..."
+
+    # API Routes models
+    APIRoutes:
+      type: array
+      items:
+        oneOf:
+          - $ref: "#/components/schemas/SchemaAPIRoute"
+          - $ref: "#/components/schemas/NoSchemaAPIRoute"
+
+    SchemaAPIRoute:
+      type: object
+      required: [task_schema, run_task, payload_schema, sample_payload, short_title, order]
+      properties:
+        task_schema:
+          type: string
+          example: "/tasks/{name_of_task}/task_schema"
+        run_task:
+          type: string
+          example: "/tasks/{name_of_task}"
+        payload_schema:
+          type: string
+          example: "/tasks/{name_of_task}/payload_schema"
+        sample_payload:
+          type: string
+          example: "/tasks/{name_of_task}/sample_payload"
+        short_title:
+          type: string
+          example: "{A short title for the task}"
+        order:
+          type: integer
+          example: 1
+
+    NoSchemaAPIRoute:
+      type: object
+      required: [run_task]
+      properties:
+        run_task:
+          type: string
+          example: "/tasks/{name_of_task}"
+        payload_schema:
+          type: string
+          example: "/tasks/{name_of_task}/payload_schema"
+        sample_payload:
+          type: string
+          example: "/tasks/{name_of_task}/sample_payload"
+
+    # Concrete Input Schema Models
+    Input:
+      oneOf:
+        - $ref: "#/components/schemas/FileInput"
+        - $ref: "#/components/schemas/DirectoryInput"
+        - $ref: "#/components/schemas/TextInput"
+        - $ref: "#/components/schemas/BatchFileInput"
+        - $ref: "#/components/schemas/BatchTextInput"
+        - $ref: "#/components/schemas/BatchDirectoryInput"
+
+    FileInput:
+      type: object
+      required: [path]
+      properties:
+        path:
+          type: string
+
+    DirectoryInput:
+      type: object
+      required: [path]
+      properties:
+        path:
+          type: string
+
+    TextInput:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+
+    BatchFileInput:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileInput"
+
+    BatchTextInput:
+      type: object
+      required: [texts]
+      properties:
+        texts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TextInput"
+
+    BatchDirectoryInput:
+      type: object
+      required: [directories]
+      properties:
+        directories:
+          type: array
+          items:
+            $ref: "#/components/schemas/DirectoryInput"
+
+    # Input Schema Models
+    TaskSchema:
+      type: object
+      required: [inputs, parameters]
+      properties:
+        inputs:
+          type: array
+          items:
+            $ref: "#/components/schemas/InputSchema"
+
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParameterSchema"
+
+    InputSchema:
+      type: object
+      required: [key, label, subtitle, inputType]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+          default: ''
+        inputType:
+          oneOf:
+            - $ref: "#/components/schemas/InputType"
+            - $ref: "#/components/schemas/NewFileInputType"
+
+    InputType:
+      type: string
+      enum: ["file", "directory", "text", "textarea", "batchfile", "batchtext", "batchdirectory"]
+
+    NewFileInputType:
+      type: object
+      required: [defaultExtension, allowedExtensions, inputType]
+      properties:
+        defaultName:
+          type: string
+          example: "my_file"
+          nullable: true
+        defaultExtension:
+          type: string
+          example: ".db"
+        allowedExtensions:
+          oneOf:
+            - type: string
+              enum:
+                - "*"
+              default: "*"
+            - type: array
+              items:
+                type: string
+              example: [".db", ".sqlite", ".txt", ".csv"]
+        inputType:
+          type: string
+          enum: ["newfile"]
+          default: "newfile"
+
+    ParameterSchema:
+      type: object
+      required: [key, label, subtitle, value]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+          default: ''
+        value:
+          anyOf:
+            - $ref: '#/components/schemas/RangedFloatParameterDescriptor'
+            - $ref: '#/components/schemas/FloatParameterDescriptor'
+            - $ref: '#/components/schemas/EnumParameterDescriptor'
+            - $ref: '#/components/schemas/TextParameterDescriptor'
+            - $ref: '#/components/schemas/RangedIntParameterDescriptor'
+            - $ref: '#/components/schemas/IntParameterDescriptor'
+
+    ParameterType:
+      type: string
+      enum: ["ranged_float", "float", "enum", "text", "ranged_int", "int"]
+
+    RangedFloatParameterDescriptor:
+      type: object
+      required: [parameterType, range, default]
+      discriminator:
+        propertyName: parameterType
+      properties:
+        parameterType:
+          type: string
+          $ref: "#/components/schemas/ParameterType"
+          default: "ranged_float"
+        range:
+          $ref: "#/components/schemas/FloatRangeDescriptor"
+        default:
+          type: number
+
+    FloatParameterDescriptor:
+      type: object
+      required: [parameterType, default]
+      discriminator:
+        propertyName: parameterType
+      properties:
+        parameterType:
+          type: string
+          $ref: "#/components/schemas/ParameterType"
+          default: "float"
+        default:
+          type: number
+
+    EnumParameterDescriptor:
+      type: object
+      required: [parameterType, enumVals, default]
+      discriminator:
+        propertyName: parameterType
+      properties:
+        parameterType:
+          type: string
+          $ref: "#/components/schemas/ParameterType"
+          default: "enum"
+        enumVals:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              key:
+                type: string
+        messageWhenEmpty:
+          type: string
+          nullable: true
+        default:
+          type: string
+
+    TextParameterDescriptor:
+      type: object
+      required: [parameterType, default]
+      discriminator:
+        propertyName: parameterType
+      properties:
+        parameterType:
+          type: string
+          $ref: "#/components/schemas/ParameterType"
+          default: "text"
+        default:
+          type: string
+          nullable: true
+
+    RangedIntParameterDescriptor:
+      type: object
+      required: [parameterType, range, default]
+      discriminator:
+        propertyName: parameterType
+      properties:
+        parameterType:
+          type: string
+          $ref: "#/components/schemas/ParameterType"
+          default: "ranged_int"
+        range:
+          $ref: "#/components/schemas/IntRangeDescriptor"
+        default:
+          type: integer
+
+    IntParameterDescriptor:
+      type: object
+      required: [parameterType, default]
+      discriminator:
+        propertyName: parameterType
+      properties:
+        parameterType:
+          type: string
+          $ref: "#/components/schemas/ParameterType"
+          default: "int"
+        default:
+          type: integer
+          nullable: true
+
+    IntRangeDescriptor:
+      type: object
+      required: [min, max]
+      properties:
+        min:
+          type: integer
+        max:
+          type: integer
+    FloatRangeDescriptor:
+      type: object
+      required: [min, max]
+      properties:
+        min:
+          type: number
+        max:
+          type: number
+
+    # Request Models
+    RequestBody:
+      type: object
+      required: [inputs, parameters]
+      properties:
+        inputs:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/Input"
+        parameters:
+          type: object
+
+    # Response Models
+    ResponseBody:
+      oneOf:
+        - $ref: '#/components/schemas/FileResponse'
+        - $ref: '#/components/schemas/DirectoryResponse'
+        - $ref: '#/components/schemas/MarkdownResponse'
+        - $ref: '#/components/schemas/TextResponse'
+        - $ref: '#/components/schemas/BatchFileResponse'
+        - $ref: '#/components/schemas/BatchTextResponse'
+        - $ref: '#/components/schemas/BatchDirectoryResponse'
+
+    FileResponse:
+      type: object
+      required: [output_type, file_type, path]
+      discriminator:
+        propertyName: output_type
+      properties:
+        output_type:
+          type: string
+          enum:
+            - file
+          default: "file"
+        file_type:
+          type: string
+          enum: ["img", "csv", "json", "text", "audio", "video", "markdown"]
+        path:
+          type: string
+        title:
+          type: string
+          nullable: true
+        subtitle:
+          type: string
+          nullable: true
+
+    DirectoryResponse:
+      type: object
+      required: [output_type, path, title]
+      discriminator:
+        propertyName: output_type
+      properties:
+        output_type:
+          type: string
+          enum:
+            - directory
+          default: "directory"
+        path:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+
+    MarkdownResponse:
+      type: object
+      required: [output_type, value]
+      discriminator:
+        propertyName: output_type
+      properties:
+        output_type:
+          type: string
+          enum:
+            - markdown
+          default: "markdown"
+        value:
+          type: string
+        title:
+          type: string
+          nullable: true
+        subtitle:
+          type: string
+          nullable: true
+
+    TextResponse:
+      type: object
+      required: [output_type, value]
+      discriminator:
+        propertyName: output_type
+      properties:
+        output_type:
+          type: string
+          enum:
+            - text
+          default: "text"
+        value:
+          type: string
+        title:
+          type: string
+          nullable: true
+        subtitle:
+          type: string
+          nullable: true
+
+
+    BatchFileResponse:
+      type: object
+      required: [output_type, files]
+      discriminator:
+        propertyName: output_type
+      properties:
+        output_type:
+          type: string
+          enum:
+            - batchfile
+          default: "batchfile"
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileResponse"
+
+    BatchTextResponse:
+      type: object
+      required: [output_type, texts]
+      discriminator:
+        propertyName: output_type
+      properties:
+        output_type:
+          type: string
+          enum:
+            - batchtext
+          default: "batchtext"
+        texts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TextResponse"
+
+    BatchDirectoryResponse:
+      type: object
+      required: [output_type, directories]
+      discriminator:
+        propertyName: output_type
+      properties:
+        output_type:
+          type: string
+          enum:
+            - batchdirectory
+          default: "batchdirectory"
+        directories:
+          type: array
+          items:
+            $ref: "#/components/schemas/DirectoryResponse"

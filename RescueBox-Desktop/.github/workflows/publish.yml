@@ -1,0 +1,71 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  publish:
+    # To enable auto publishing to github, update your electron publisher
+    # config in package.json > "build" and remove the conditional below
+    if: ${{ github.repository_owner == 'UMass-Rescue' }}
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout git repo
+        uses: actions/checkout@v3
+
+      - name: Install Node and NPM
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: npm
+
+      # This is to ensure that disutils is installed, so node-gyp can recompile native sources
+      # https://github.com/UMass-Rescue/RescueBox-Desktop/pull/66
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install and build
+        run: |
+          npm install
+          npm run postinstall
+          npm run build
+
+      - name: Native dependencies
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            npm run rebuild
+          else
+            echo "Skipping, OS is not Windows"
+          fi
+        shell: bash
+
+      - name: Publish releases
+        env:
+          # The APPLE_* values are used for auto updates signing
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASS }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # CSC_LINK: ${{ secrets.CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # This is used for uploading release assets to github
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            npm exec electron-builder -- --publish always --win
+          elif [ "$RUNNER_OS" == "Linux" ]; then
+            npm exec electron-builder -- --publish always --linux
+          else
+            npm exec electron-builder -- --publish always --mac
+          fi
+        shell: bash
