@@ -12,10 +12,6 @@ from rb.api.models import (API_APPMETDATA, API_ROUTES, PLUGIN_SCHEMA_SUFFIX,
 from rb.lib.abstract_parser import AbstractParser
 from rb_audio_transcription.model import AudioTranscriptionModel
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 app = typer.Typer()

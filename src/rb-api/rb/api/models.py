@@ -5,9 +5,11 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import (Annotated, Any, Dict, List, Literal, Optional, TypedDict,
+                    Union)
 
-from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath, RootModel
+from pydantic import (BaseModel, ConfigDict, DirectoryPath, Field, FilePath,
+                      RootModel)
 
 API_APPMETDATA="app_metadata"
 API_ROUTES="routes"
@@ -33,6 +35,12 @@ class SchemaAPIRoute(BaseModel):
     sample_payload: Annotated[str, Field(examples=['/tasks/{name_of_task}/sample_payload'])]
     short_title: Annotated[str, Field(examples=['{A short title for the task}'])]
     order: Annotated[int, Field(examples=[1])]
+
+
+class FindFaceInputs(TypedDict):
+    """List of Files"""
+    image_paths: BatchFileInput
+
 
 
 class NoSchemaAPIRoute(BaseModel):
