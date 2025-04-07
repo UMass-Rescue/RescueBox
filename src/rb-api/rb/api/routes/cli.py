@@ -5,7 +5,7 @@ import time
 from typing import Callable, Generator, Optional
 
 import typer
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from makefun import with_signature
 from pydantic import BaseModel
@@ -56,9 +56,9 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
             ):  # or Ensure it's a valid dict model for desktop app metadata call to work
                 return result
             if isinstance(
-                result, list
+                result,  list
             ):  # or Ensure it's a valid str model for routes call
-                return result
+                return Response(content=str(result).replace("'", '"'), media_type="application/json")
             if isinstance(
                 result, str
             ):  # or Ensure it's a valid str model for routes call
