@@ -14,7 +14,7 @@ export function createModelId(
   appMetadata: AppMetadata,
   routes: APIRoutes,
 ): string {
-  const routesString = JSON.stringify(routes) + JSON.stringify(appMetadata);
+  const routesString = JSON.stringify(routes);
   return md5(routesString);
 }
 

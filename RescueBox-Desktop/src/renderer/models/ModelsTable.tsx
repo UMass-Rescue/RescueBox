@@ -33,10 +33,6 @@ function ModelsTable({
   serverStatuses: Record<string, ModelAppStatus>;
   mutateModels: KeyedMutator<MLModel[]>;
 }) {
-  async function handleRemoveButton(model: MLModel) {
-    await window.models.removeModelByUid({ modelUid: model.uid });
-    mutateModels();
-  }
 
   return (
     <div className="">
@@ -122,12 +118,6 @@ function ModelsTable({
                       </Tooltip>
                     )}
                   </TooltipProvider>
-                </TableCell>
-                <TableCell className="text-center py-2 px-2">
-                  <ModelRedButton
-                    model={model}
-                    handleClick={() => handleRemoveButton(model)}
-                  />
                 </TableCell>
               </TableRow>
             ))}

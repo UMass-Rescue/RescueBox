@@ -1,7 +1,33 @@
 import { ModelAppStatus, ModelServer } from 'src/shared/models';
 import useSWR, { SWRConfiguration } from 'swr';
+import { RegisterModelArgs } from 'src/main/handlers/registration';
 
 const JOBS_REFRESH_INTERVAL = 200;
+
+export function registerModelAppIp() {
+  const args: RegisterModelArgs = {
+    serverAddress: 'localhost',
+    serverPort: 8000,
+    modelUid: 'xxx',
+  };
+
+  const fetcher = () => window.registration.registerModelAppIp(args);
+  // eslint-disable-next-line no-constant-condition
+  // while (true) {
+  // eslint-disable-next-line no-useless-catch
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { data, error, isLoading, isValidating, mutate } = useSWR(
+    `register:register-model-app-ip`,
+    fetcher,
+  );
+  return {
+    data,
+    error,
+    isLoading,
+    isValidating,
+    mutate,
+  };
+}
 
 export function useServerStatuses(servers?: ModelServer[]) {
   const fetcher = () =>

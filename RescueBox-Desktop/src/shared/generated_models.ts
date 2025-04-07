@@ -1,13 +1,21 @@
 /* eslint-disable no-use-before-define */
 declare namespace Components {
   namespace Schemas {
-    export type APIRoutes = (SchemaAPIRoute | NoSchemaAPIRoute)[];
+    export type APIRoutes = SchemaAPIRoute[];
     /**
      * example:
      * {
      *   "info": "# Welcome to the Face Match App\n\nThis app will help you to match faces in your images..."
      * }
      */
+    export type ListPlugins = Plugin[];
+    export interface Plugin {
+      /**
+       * name of plugin used in rest api-path eg: face-match-image or text-summarizer
+       * example of rest api: /api/face-match-image/api_appmetadata
+       */
+      plugin_name: string;
+    }
     export interface AppMetadata {
       /**
        * Markdown content to render on the info page
@@ -16,8 +24,9 @@ declare namespace Components {
       author: string;
       version: string;
       /**
-       * example:
-       * Face Match App
+       * example: also see pluginName above
+       * "Face Match For Images" or
+       * "Text Summarizer"
        */
       name: string;
     }
@@ -249,6 +258,8 @@ declare namespace Components {
 }
 
 export type APIRoutes = Components.Schemas.APIRoutes;
+export type ListPlugins = Components.Schemas.ListPlugins;
+export type Plugin = Components.Schemas.Plugin;
 export type AppMetadata = Components.Schemas.AppMetadata;
 export type BatchDirectoryInput = Components.Schemas.BatchDirectoryInput;
 export type BatchDirectoryResponse = Components.Schemas.BatchDirectoryResponse;

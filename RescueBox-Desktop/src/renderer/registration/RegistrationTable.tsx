@@ -76,7 +76,6 @@ export default function RegistrationTable() {
               </TableHead>
               <TableHead className="w-1/5 text-gray-900">Port</TableHead>
               <TableHead className="text-gray-900">Status</TableHead>
-              <TableHead className="text-gray-900">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -99,12 +98,6 @@ export default function RegistrationTable() {
                     <div className="pl-4">
                       <ModelStatusIndicator modelUid={model.uid} />
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <ModelConnectionButton
-                      mutate={mutateServers}
-                      modelUid={model.uid}
-                    />
                   </TableCell>
                 </TableRow>
               ))}

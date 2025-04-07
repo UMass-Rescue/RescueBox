@@ -21,6 +21,8 @@ class ModelServerDb extends Model<
 
   declare isUserConnected: boolean;
 
+  declare pluginName: string;
+
   public static async getAllServers() {
     return ModelServerDb.findAll();
   }
@@ -37,6 +39,7 @@ class ModelServerDb extends Model<
     modelUid: string,
     serverAddress: string,
     serverPort: number,
+    pluginName: string,
   ) {
     const [model, wasCreated] = await ModelServerDb.findOrCreate({
       where: {
@@ -47,9 +50,10 @@ class ModelServerDb extends Model<
         serverAddress,
         serverPort,
         isUserConnected: true,
+        pluginName,
       },
     });
-    if (!wasCreated) {
+    if (wasCreated) {
       model.isUserConnected = true;
       await model.save();
     }
@@ -76,12 +80,14 @@ class ModelServerDb extends Model<
     modelUid: string,
     serverAddress: string,
     serverPort: number,
+    pluginName: string,
   ) {
     return ModelServerDb.update(
       {
         serverAddress,
         serverPort,
         isUserConnected: true,
+        pluginName,
       },
       {
         where: {
@@ -123,6 +129,10 @@ export const initModelServer = async (connection: Sequelize) => {
       isUserConnected: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
+      },
+      pluginName: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
     },
     {

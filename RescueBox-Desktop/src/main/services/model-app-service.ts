@@ -183,7 +183,7 @@ class ModelAppService {
       });
   }
 
-  public async pingHealth(): Promise<boolean> {
+  public async pingHealth(pluginName: string): Promise<boolean> {
     if (isDummyMode) {
       return new Promise((resolve) => {
         setTimeout(() => {
@@ -191,15 +191,18 @@ class ModelAppService {
         }, 1000);
       });
     }
+    const ANY = 'all';
     try {
       // Get the model data
       const modelInfo = await RegisterModelService.getAppMetadata(
         this.modelServer.serverAddress,
         this.modelServer.serverPort,
+        pluginName,
       );
       const apiRoutes = await RegisterModelService.getAPIRoutes(
         this.modelServer.serverAddress,
         this.modelServer.serverPort,
+        pluginName,
       );
       // Recreate the UID
       const uid = createModelId(modelInfo, apiRoutes);
