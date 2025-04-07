@@ -47,6 +47,7 @@ export default class RegisterModelService {
   public static  childprocess: ChildProcess;
   public static  async startServer() {
     log.info(`Starting server ${RegisterModelService.serverExe}`);
+    RegisterModelService.IS_SERVER_RUNNING = true;
     const options: any[] = [];
     const defaults = {
       cwd: RegisterModelService.serverPath,
@@ -69,7 +70,7 @@ export default class RegisterModelService {
 
   static async registerModel(serverAddress: string, serverPort: number): Promise<boolean>{
     let listPlugins: ListPlugins = [];
-    RegisterModelService.startServer();
+    // RegisterModelService.startServer();
     while (!RegisterModelService.IS_SERVER_RUNNING) {
       listPlugins = await RegisterModelService.getListPlugins(
         serverAddress,
@@ -91,12 +92,12 @@ export default class RegisterModelService {
       const plugins = listPlugins;
       const plugin = plugins[i];
       log.info(`Got plugin ${plugin}`);
-      const pluginName = plugin.plugin_name;
+      const pluginName = String(plugin);
       if (pluginName === 'fs' || pluginName === 'docs') {
         // eslint-disable-next-line no-continue
         continue;
       }
-      log.info(`Registering new plugin_name=${pluginName}`);
+      log.info(`Registering new plugin_name=${plugin}`);
       // eslint-disable-next-line no-await-in-loop
       db[i] = await RegisterModelService.registerEachPlugin(
         serverAddress,
@@ -112,7 +113,7 @@ export default class RegisterModelService {
     serverPort: number,
   ): Promise<ListPlugins> {
     log.info(
-      `Fetching app metadata from http://${serverAddress}:${serverPort}${API_LISTPLUGINS_SLUG}`,
+      `Fetching list plugins from http://${serverAddress}:${serverPort}${API_LISTPLUGINS_SLUG}`,
     );
 
     return fetch(
@@ -217,7 +218,7 @@ export default class RegisterModelService {
     serverPort: number,
     pluginName: string,
   ): Promise<AppMetadata> {
-    const APP_METADATA_SLUG = `/${pluginName}/app_metadata`;
+    const APP_METADATA_SLUG = `/${pluginName}/api/app_metadata`;
     log.info(
       `Fetching app metadata from http://${serverAddress}:${serverPort}${APP_METADATA_SLUG}`,
     );
@@ -262,7 +263,7 @@ export default class RegisterModelService {
         }, 1000);
       });
     }
-    const API_ROUTES_SLUG = `/${pluginName}/routes`;
+    const API_ROUTES_SLUG = `/${pluginName}/api/routes`;
     const url = `http://${serverAddress}:${serverPort}${API_ROUTES_SLUG}`;
     log.info(`Fetching API routes from ${url}`);
     const apiRoutes: APIRoutes = await fetch(url)

@@ -78,9 +78,9 @@ class MLService(object):
             logger.info(res)
             return res
 
-    def add_app_metadata(self, name: str, author: str, version: str, info: str):
+    def add_app_metadata(self, name: str, author: str, version: str, info: str, plugin_name: str):
         self._app_metadata = AppMetadata(
-            name=name, author=author, version=version, info=info
+            name=name, author=author, version=version, info=info,  plugin_name=self.plugin_name
         )
 
     def add_ml_service(

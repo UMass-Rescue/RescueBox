@@ -14,7 +14,7 @@ declare namespace Components {
        * name of plugin used in rest api-path eg: face-match-image or text-summarizer
        * example of rest api: /api/face-match-image/api_appmetadata
        */
-      plugin_name: string;
+      name: string;
     }
     export interface AppMetadata {
       /**
