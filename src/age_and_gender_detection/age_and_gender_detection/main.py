@@ -48,7 +48,7 @@ class Parameters(TypedDict):
 
 server = MLService(APP_NAME)
 server.add_app_metadata(
-    plugin_name= APP_NAME,
+    plugin_name=APP_NAME,
     name="Age and Gender Classifier",
     author="UMass Rescue",
     version="0.1.0",

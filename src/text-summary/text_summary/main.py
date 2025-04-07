@@ -57,7 +57,7 @@ def task_schema() -> TaskSchema:
 
 server = MLService(APP_NAME)
 server.add_app_metadata(
-    plugin_name= APP_NAME,
+    plugin_name=APP_NAME,
     name="Text Summarization",
     author="UMass Rescue",
     version="0.1.0",

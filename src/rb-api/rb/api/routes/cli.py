@@ -56,9 +56,11 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
             ):  # or Ensure it's a valid dict model for desktop app metadata call to work
                 return result
             if isinstance(
-                result,  list
+                result, list
             ):  # or Ensure it's a valid str model for routes call
-                return Response(content=str(result).replace("'", '"'), media_type="application/json")
+                return Response(
+                    content=str(result).replace("'", '"'), media_type="application/json"
+                )
             if isinstance(
                 result, str
             ):  # or Ensure it's a valid str model for routes call

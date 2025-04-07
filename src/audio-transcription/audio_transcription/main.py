@@ -26,7 +26,7 @@ logging.basicConfig(
 APP_NAME = "audio"
 ml_service = MLService(APP_NAME)
 ml_service.add_app_metadata(
-    plugin_name= APP_NAME,
+    plugin_name=APP_NAME,
     name="Audio Transcription",
     author="RescueBox Team",
     version="2.0.0",
