@@ -26,6 +26,9 @@ export enum ServerStatus {
   Failed = 'Failed',
 }
 
+const isDebug =
+process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+
 export default class RegisterModelService {
   // List Plugins call
 
@@ -45,9 +48,14 @@ export default class RegisterModelService {
   );
   public static serverExe = path.join(RegisterModelService.serverPath, 'rescuebox.exe',);
   public static  childprocess: ChildProcess;
+
   public static  async startServer() {
+    if (isDebug) {
+      RegisterModelService.IS_SERVER_RUNNING = true;
+      log.info(`Skip Starting server ${RegisterModelService.serverExe}`);
+      return;
+    }
     log.info(`Starting server ${RegisterModelService.serverExe}`);
-    RegisterModelService.IS_SERVER_RUNNING = true;
     const options: any[] = [];
     const defaults = {
       cwd: RegisterModelService.serverPath,
@@ -70,7 +78,7 @@ export default class RegisterModelService {
 
   static async registerModel(serverAddress: string, serverPort: number): Promise<boolean>{
     let listPlugins: ListPlugins = [];
-    // RegisterModelService.startServer();
+    RegisterModelService.startServer();
     while (!RegisterModelService.IS_SERVER_RUNNING) {
       listPlugins = await RegisterModelService.getListPlugins(
         serverAddress,
