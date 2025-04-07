@@ -49,6 +49,7 @@ class MLService(object):
         self.app = typer.Typer()
         self.endpoints: List[EndpointDetails] = []
         self._app_metadata: Optional[AppMetadata] = None
+        self.plugin_name = name
 
         @self.app.command(f"/{self.name}/api/routes")
         def list_routes():
