@@ -16,6 +16,7 @@ class TestTextSummary(RBAppTest):
             author="UMass Rescue",
             version="0.1.0",
             info="Summarize text and PDF files in a directory.",
+            plugin_name=APP_NAME,
         )
 
     def get_all_ml_services(self):

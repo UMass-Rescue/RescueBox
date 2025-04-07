@@ -24,6 +24,7 @@ class AppMetadata(BaseModel):
     author: str
     version: str
     name: Annotated[str, Field(examples=["Face Match App"])]
+    plugin_name: Annotated[str, Field(examples=["facematch"])]
 
 
 class SchemaAPIRoute(BaseModel):

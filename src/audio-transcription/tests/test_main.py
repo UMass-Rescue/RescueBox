@@ -12,6 +12,7 @@ class TestAudioTranscription(RBAppTest):
 
     def get_metadata(self):
         return AppMetadata(
+            plugin_name=APP_NAME,
             name="Audio Transcription",
             author="RescueBox Team",
             version="2.0.0",

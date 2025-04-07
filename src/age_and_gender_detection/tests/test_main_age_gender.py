@@ -50,6 +50,7 @@ class TestAgeGender(RBAppTest):
             author="UMass Rescue",
             version="0.1.0",
             info="Model to classify the age and gender of all faces in an image.",
+            plugin_name=APP_NAME,
         )
 
     def get_all_ml_services(self):
