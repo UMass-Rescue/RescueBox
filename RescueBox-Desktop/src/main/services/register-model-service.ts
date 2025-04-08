@@ -26,7 +26,7 @@ export enum ServerStatus {
   Failed = 'Failed',
 }
 
-const isDebug =
+const isDevelopment =
 process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 export default class RegisterModelService {
@@ -50,8 +50,7 @@ export default class RegisterModelService {
   public static  childprocess: ChildProcess;
 
   public static  async startServer() {
-    if (isDebug) {
-      RegisterModelService.IS_SERVER_RUNNING = true;
+    if (isDevelopment) {
       log.info(`Skip Starting server ${RegisterModelService.serverExe}`);
       return;
     }
@@ -88,6 +87,7 @@ export default class RegisterModelService {
       if (listPlugins.length > 0) {
         break;
       }
+      log.info(`waiting for fastapi rescuebox server to start on ${serverAddress}:${serverPort}`);
       const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
       await sleep(10000); // Wait for 10 seconds
     }
