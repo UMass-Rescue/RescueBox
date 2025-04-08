@@ -273,6 +273,28 @@
         }
       ]
     },
+    "win": {
+      "requestedExecutionLevel": "asInvoker",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "warningsAsErrors": false,
+      "differentialPackage": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "oneClick": false,
+      "allowElevation": true,
+      "installerIcon": "build/box.ico",
+      "uninstallerIcon": "build/box.ico",
+      "installerHeaderIcon": "build/box.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "RescueBox",
+      "perMachine": false,
+      "include": "build/installer.nsh"
+    },
     "linux": {
       "target": [
         "AppImage"
