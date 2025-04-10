@@ -3,6 +3,7 @@ import os
 import sys
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 from rb.api import routes
 
 app = FastAPI(
