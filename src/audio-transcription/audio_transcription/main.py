@@ -49,19 +49,21 @@ class AudioDirectory(DirectoryInput):
         path = Path(v)
 
         if not path.exists():
-            raise ValueError(f"validate Directory: '{v}' does not exist.")
+            raise ValueError(f"validate audio directory: '{v}' does not exist.")
         if not path.is_dir():
-            raise ValueError(f"validate Directory: Path '{v}' is not a directory.")
+            raise ValueError(
+                f"validate audio directory: Path '{v}' is not a directory."
+            )
 
         audio_files = list(path.glob("*"))
         if not audio_files:
-            raise ValueError("validate Directory: Directory is empty.")
+            raise ValueError(f"validate audio directory: Directory {v} is empty.")
 
         no_audio = [f.name for f in audio_files if f.suffix.lower() in AUDIO_EXTENSIONS]
 
         if len(no_audio) < 1:
             raise ValueError(
-                f"validate Directory: No-audio files found in directory: {no_audio}"
+                f"validate audio directory: No-audio files found in directory: {v}"
             )
 
         return v

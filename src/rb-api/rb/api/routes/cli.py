@@ -68,10 +68,11 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
             # this has an issue of nor sending back details to desktop ui the api caller ?
             raise ValueError(f"Invalid return type from Typer command: {type(result)}")
         except Exception as e:
-            logger.error("Error executing CLI command: %s", e)
+            # response handler for all plugin runtime errors
+            logger.error("Error: %s", e)
             raise HTTPException(  # pylint: disable=raise-missing-from
-                status_code=400,
-                detail={"error": f"Typer CLI aborted {e}", "stdout": stdout[-10:]},
+                status_code=500,
+                detail={"error": f"{e}"},
             )
 
 
