@@ -69,7 +69,7 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
             raise ValueError(f"Invalid return type from Typer command: {type(result)}")
         except Exception as e:
             # response handler for all plugin runtime errors
-            logger.error("Error: %s", e)
+            logger.error("Error: %s %s", e, stdout)
             raise HTTPException(  # pylint: disable=raise-missing-from
                 status_code=500,
                 detail={"error": f"{e}"},

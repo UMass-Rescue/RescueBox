@@ -1,10 +1,8 @@
 import multiprocessing
 import os
 import sys
-from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
 from rb.api import routes
 
 app = FastAPI(
