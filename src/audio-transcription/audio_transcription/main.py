@@ -3,6 +3,8 @@
 import logging
 from typing import TypedDict
 
+from pathlib import Path
+from pydantic import DirectoryPath, field_validator
 import typer
 from rb.api.models import (
     BatchTextResponse,
@@ -19,7 +21,7 @@ from rb.lib.ml_service import MLService
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
@@ -35,9 +37,40 @@ ml_service.add_app_metadata(
 
 model = AudioTranscriptionModel()
 
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac"}
+
+
+class AudioDirectory(DirectoryInput):
+    path: DirectoryPath
+
+    @field_validator("path")
+    @classmethod
+    def validate_directory(cls, v):
+        path = Path(v)
+
+        if not path.exists():
+            raise ValueError(f"validate audio directory: '{v}' does not exist.")
+        if not path.is_dir():
+            raise ValueError(
+                f"validate audio directory: Path '{v}' is not a directory."
+            )
+
+        audio_files = list(path.glob("*"))
+        if not audio_files:
+            raise ValueError(f"validate audio directory: Directory {v} is empty.")
+
+        no_audio = [f.name for f in audio_files if f.suffix.lower() in AUDIO_EXTENSIONS]
+
+        if len(no_audio) < 1:
+            raise ValueError(
+                f"validate audio directory: No-audio files found in directory: {v}"
+            )
+
+        return v
+
 
 class AudioInput(TypedDict):
-    input_dir: DirectoryInput
+    input_dir: AudioDirectory
 
 
 def task_schema() -> TaskSchema:
