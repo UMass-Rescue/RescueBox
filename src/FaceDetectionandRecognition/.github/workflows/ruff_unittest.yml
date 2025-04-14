@@ -1,0 +1,63 @@
+name: CI Pipeline
+
+# Trigger the workflow on both push and pull requests
+on: [push, pull_request]
+
+jobs:
+  # Ruff linter job
+  ruff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Ruff
+        uses: chartboost/ruff-action@v1
+
+  # Unit test job
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.12'  
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install gdown
+
+      - name: Create models directory
+        run: mkdir -p "${{ github.workspace }}/src/facematch/models"
+
+      - name: Install ONNX Models from Google Drive
+        run: |
+          gdown "1lmhJYiJJq9n_UzzMBT6AXjc6dG2XdvQx" --fuzzy -O src/facematch/models/arcface_model_new.onnx --continue
+          gdown "1dHQe81U5hhxJGKBeqzy3QUtp7NNs0H4R" --fuzzy -O src/facematch/models/retinaface_resnet50.onnx --continue
+          gdown "1oDt1i80rUew0UhtY3UiW9EIyd2WfJTZf" --fuzzy -O src/facematch/models/retinaface-resnet50.onnx --continue
+          gdown "1A7syAtoqUuwtpxBeRiYtRhr0d3H81weR" --fuzzy -O src/facematch/models/yolov8-face-detection.onnx --continue
+          gdown "1-euxKEtHGeTBOgjXJxuLHe_SFxS5AoNO" --fuzzy -O src/facematch/models/yolo11m.onnx --continue
+          gdown "10lnK9ljMPihm40A3IVVNk9rz9FiLHulU" --fuzzy -O src/facematch/models/yolov9.onnx --continue
+          gdown "1CVCmumM_6C7giGAXJUwHWT--DPFC9bpI" --fuzzy -O src/facematch/models/facenet512_model.onnx --continue
+
+      - name: Cache ONNX models
+        uses: actions/cache@v3
+        with:
+          path: src/facematch/models  # Caches all models in this directory
+          key: onnx-models-${{ hashFiles('src/facematch/models/*') }}
+
+      - name: Run unit tests
+        run: |
+          chroma run --path ./ &
+          sleep 5
+          python -m unittest discover -s test  
+
+      
