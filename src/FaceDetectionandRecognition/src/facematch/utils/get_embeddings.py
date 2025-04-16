@@ -5,7 +5,6 @@ import os
 import numpy as np
 import cv2
 import onnxruntime as ort
-from tensorflow.keras.preprocessing import image
 
 # project dependencies
 from src.facematch.utils.logger import log_info
@@ -47,14 +46,6 @@ def get_embedding(face_img, model_name, normalization: str = "base",):
         target_size = ort_session.get_inputs()[0].shape[1:3]
     log_info(f"target_size: {target_size}")
 
-    # factor_0 = target_size[0] / face_img.shape[0]
-    # factor_1 = target_size[1] / face_img.shape[1]
-    # factor = min(factor_0, factor_1)
-
-    # dsize = (
-    #   int(face_img.shape[1] * factor),
-    #   int(face_img.shape[0] * factor),
-    # )
     # Resize and pad the image to target_size
     if face_img.shape[0] > target_size[0] or face_img.shape[1] > target_size[1]:
         face_img = cv2.resize(face_img, target_size)
@@ -75,7 +66,7 @@ def get_embedding(face_img, model_name, normalization: str = "base",):
         face_img = cv2.resize(face_img, target_size)
     
     # normalizing the image pixels
-    img = image.img_to_array(face_img)
+    img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB).astype("float32")
     img = np.expand_dims(img, axis=0)
     img /= 255  # normalize input in [0, 1]
     

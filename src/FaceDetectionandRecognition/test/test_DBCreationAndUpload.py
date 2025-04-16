@@ -61,8 +61,10 @@ class TestUploadEmbeddingToDatabase(unittest.TestCase):
 
         upload_embedding_to_database(self.test_data, self.collection_name)
 
-        # Assert that the directory now exists
-        self.assertTrue(f"{self.collection_name}_{self.detector}_{self.model_name}" in self.client.list_collections())
+        # Assert that the collection now exists
+        collections = self.client.list_collections()
+        collection_names = [collection.name for collection in collections]
+        self.assertTrue(f"{self.collection_name}_{self.detector}_{self.model_name}" in collection_names)
 
     def tearDown(self):
         # Clean up the temporary collection

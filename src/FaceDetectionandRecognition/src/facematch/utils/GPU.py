@@ -1,25 +1,31 @@
 import os
-
-import tensorflow as tf
-
+import ctypes
 from src.facematch.utils.logger import log_warning
-
 
 def check_cuDNN_version():
     try:
-        # Get the current cuDNN versions
-        cudnn_version = tf.sysconfig.get_build_info()["cudnn_version"]
+        libcudnn = ctypes.CDLL("libcudnn.so")
+        # Check if the library is loaded correctly
+        if libcudnn is None:
+            raise OSError("cuDNN library not found.")
+        # Define the return type of the function
+        # This is a common pattern for C functions that return size_t
+        # ctypes.c_size_t is used to represent the size type in C which is typically an unsigned integer
+        libcudnn.cudnnGetVersion.restype = ctypes.c_size_t
+        version_num = libcudnn.cudnnGetVersion()
 
-        # Define the minimum required versions for compatibility
-        required_cudnn_version = "9.3.0"
+        # cuDNN versions are usually like 8302 -> 8.3.2, or 9300 -> 9.3.0
+        major = version_num // 1000
+        minor = (version_num % 1000) // 100
+        patch = version_num % 100
 
-        # Check compatibility
-        if cudnn_version < required_cudnn_version:
-            log_warning(
-                "Forcing CPU usage due to version mismatch. Requires cuDNN version 9.3.0 or above "
-            )
-            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU usage
+        cudnn_version_str = f"{major}.{minor}.{patch}"
+        required_version = (9, 3, 0)
 
-    except KeyError:
-        log_warning("No cuDNN found. Forcing CPU usage.")
+        if (major, minor, patch) < required_version:
+            log_warning(f"Forcing CPU usage due to version mismatch. Detected cuDNN {cudnn_version_str}, requires >= 9.3.0.")
+            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    except OSError:
+        log_warning("cuDNN not found. Forcing CPU usage.")
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"

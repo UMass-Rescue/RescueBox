@@ -48,43 +48,6 @@ pip install -r requirements.txt
 
 In the case that your visual studio build tools are out of date (error in one of the dependency installations), download installer from `https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022` and either update existing tools or modify installer to download necessary build tools (e.g. If C++ build tools are the issue, click desktop development with C++ and install).
 
-## Mac-specific user setup with conda/miniforge
-
-If miniforge is not installed on your machine, please install it as below:
-
-```
-curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh"
-chmod +x Miniforge3-MacOSX-arm64.sh
-./Miniforge3-MacOSX-arm64.sh
-```
-Then set up a conda environment:
-```
-conda create -n facematch-env python=3.10
-conda activate facematch-env
-```
-conda install the following:
-```
-conda install -c conda-forge numpy=1.24.3
-conda install -c conda-forge tensorflow=2.10.0
-conda install -c conda-forge pandas
-conda install -c pytorch faiss-cpu
-conda install -c conda-forge opencv
-conda install -c conda-forge scikit-learn
-conda install -c conda-forge onnxruntime
-```
-install the remaining dependencies:
-```
-pip install -r mac_requirements.txt
-```
-
-## Intel Mac x86_64 architecture specific user setup
-
-Currently it seems that for Macs with Intel CPUs, an older version of pytorch and torchvision are required. All previous MAC setup instructions can be followed, but the following must be done to ensure the correct versions of pytorch and torchvision:
-
-```
-conda install pytorch=2.1.2 torchvision=0.16.2 -c pytorch 
-```
-
 ---
 ## Download ONNX Models
 

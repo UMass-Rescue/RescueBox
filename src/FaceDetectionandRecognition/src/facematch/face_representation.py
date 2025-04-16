@@ -1,16 +1,15 @@
-
-import os
-import cv2
-import numpy as np
-import onnxruntime as ort
-import logging
-
 from src.facematch.utils.yolo_utils import (get_target_size, process_yolov8_output,
                                          visualize_detections, process_yolo_detections)
 
 from src.facematch.utils.retinaface_utils import (detect_with_retinaface,
                                             process_retinaface_detections_for_facenet512, process_retinaface_detections_for_arcface)
 from src.facematch.hash import sha256_image
+
+import os
+import cv2
+import numpy as np
+import onnxruntime as ort
+import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

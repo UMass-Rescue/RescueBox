@@ -5,7 +5,6 @@ import argparse
 from dotenv import load_dotenv
 
 import pandas as pd
-from sklearn.metrics import confusion_matrix
 
 
 parser = argparse.ArgumentParser(description="To parse text arguments")
@@ -32,25 +31,6 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
-
-def calculate_tpr_fpr(true_labels, predicted_labels):
-    # Calculate confusion matrix
-    cm = confusion_matrix(true_labels, predicted_labels)
-
-    # Extract values from confusion matrix
-    TP = cm[1, 1]  # True Positive
-    TN = cm[0, 0]  # True Negative
-    FP = cm[0, 1]  # False Positive
-    FN = cm[1, 0]  # False Negative
-
-    # Calculate TPR (True Positive Rate) and FPR (False Positive Rate)
-    tpr = TP / (TP + FN)  # TPR = TP / (TP + FN)
-    fpr = FP / (FP + TN)  # FPR = FP / (FP + TN)
-
-    #calculate TNR and FNR
-    tnr = TN / (TN + FP)
-    fnr = FN / (FN + TP)
-    return tpr, fpr, tnr, fnr
 
 
 # Extract ground truth names (base names without numeric suffixes)
@@ -177,8 +157,6 @@ for top_n, n in zip(top_n, N):
         data["predicted"] = data.apply(lambda row: check_match(row), axis=1)
 
         data["is_correct"] = data.apply(lambda row: is_correct_match(row, n), axis=1)
-
-        tpr, fpr, tnr, fnr = calculate_tpr_fpr(data["true_label"], data["is_correct"])
 
         # Calculate basic metrics
         accuracy = data["is_correct"].mean()
