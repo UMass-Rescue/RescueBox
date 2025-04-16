@@ -16,7 +16,6 @@ face-match = "src.facematch.face_match_server:app"
 
 [tool.poetry.dependencies]
 pandas="^2.2.3"
-flask-ml="^0.2.5"
 ruff="*"
 python-dotenv="*"
 onnxruntime="^1.21.0"
