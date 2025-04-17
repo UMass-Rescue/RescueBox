@@ -56,6 +56,14 @@ Link to folder containing ONNX models: https://drive.google.com/drive/folders/1V
 To get started, download `arcface_model_new.onnx`, and `yolov8-face-detection.onnx` from the google drive above and put them in a folder called `models` at `<PATH TO PROJECT>/src/facematch/models`
 
 ---
+
+## Setup .env file
+- set up .env in root directory of FaceMatch with the following variables
+    - DATABASE_DIRECTORY = path to directory of images to be uploaded to database
+    - QUERIES_DIRECTORY = path to directory of images to be queried
+    - CHROMA_HOST= the host for the chromaDB server
+    - CHROMA_PORT= portnumber for the chromaDB server
+
 # Usage
 
 **Sample dataset to test the model:** The images in the `\resources\sample_db` folder can be used as the database, `\resources\test_image.jpg` can be used as a single query image to test face find (single image), and `\resources\sample_queries` can be used as a set of queries to test face find bulk (multiple images).
