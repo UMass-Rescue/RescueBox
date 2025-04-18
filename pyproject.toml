@@ -22,11 +22,14 @@ onnxruntime = "1.21.0"
 opencv-python = ">=4.11.0.86,<5.0.0.0"
 ollama = ">=0.4.7,<0.5.0"
 pypdf2 = ">=3.0.1,<4.0.0"
+ffmpeg-python = "^0.2.0"
+pyannote-audio = "3.3.2"
 
 rb-lib = { path = "src/rb-lib", develop = true }
 
 file-utils = { path = "src/file-utils", develop = true }
 doc-parser = { path = "src/doc-parser", develop = true }
+Audio-Diarization = { path = "src/Audio-Diarization", develop = true }
 audio-transcription = { path = "src/audio-transcription", develop = true }
 age-and-gender-detection = { path = "src/age_and_gender_detection", develop = true }
 text-summary = {path = "src/text-summary", develop = true}
