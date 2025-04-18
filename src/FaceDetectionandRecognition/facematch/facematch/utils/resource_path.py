@@ -5,7 +5,7 @@ project_root = os.path.abspath(
     os.path.join(module_dir, os.pardir, os.pardir, os.pardir)
 )
 DATA_DIR = os.path.join(project_root, "resources")
-FACEMATCH_DIR = os.path.join(project_root, "src", "facematch")
+FACEMATCH_DIR = os.path.join(project_root, "facematch", "facematch")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 

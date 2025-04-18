@@ -32,10 +32,10 @@ parser.add_argument(
 args = parser.parse_args()
 
 # Check if collection exists
-collections = listCollectionsClient.request({},{})['texts']
-collections = [output['value'] for output in collections]
+collections = listCollectionsClient.request({}, {})["texts"]
+collections = [output["value"] for output in collections]
 
-if args.collection_name not in map(lambda c: c.split("_")[0],collections):
+if args.collection_name not in map(lambda c: c.split("_")[0], collections):
     print("Collection does not exist")
     exit()
 

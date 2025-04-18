@@ -9,10 +9,10 @@ authors = [
     "Anju S <asanthoshkum@umass.edu>",
     "Rigved Manoj <rmanoj@umass.edu>"
 ]
-packages = [{include = "src"}]
+packages = [{include = "facematch"}]
 
 [tool.poetry.scripts]
-face-match = "src.facematch.face_match_server:app"
+face-match = "facematch.facematch.face_match_server:app"
 
 [tool.poetry.dependencies]
 pandas="^2.2.3"

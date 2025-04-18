@@ -1,27 +1,42 @@
 import json
 import os
+import multiprocessing
 from pathlib import Path
 from typing import List, TypedDict, Tuple, Union
 import concurrent.futures
-from threading import Lock
+from functools import partial
 
 from flask_ml.flask_ml_server import MLServer, load_file_as_string
-from flask_ml.flask_ml_server.models import (BatchDirectoryInput,
-                                             BatchFileInput, BatchFileResponse,
-                                             EnumParameterDescriptor, EnumVal,
-                                             FileResponse,
-                                             FloatRangeDescriptor, InputSchema,
-                                             InputType, ParameterSchema,
-                                             RangedFloatParameterDescriptor,
-                                             ResponseBody, TaskSchema,
-                                             TextParameterDescriptor,
-                                             TextResponse)
+from flask_ml.flask_ml_server.models import (
+    BatchDirectoryInput,
+    BatchFileInput,
+    BatchFileResponse,
+    EnumParameterDescriptor,
+    EnumVal,
+    FileResponse,
+    FloatRangeDescriptor,
+    InputSchema,
+    InputType,
+    ParameterSchema,
+    RangedFloatParameterDescriptor,
+    ResponseBody,
+    TaskSchema,
+    TextParameterDescriptor,
+    TextResponse,
+)
 
-from src.facematch.interface import FaceMatchModel
-from src.facematch.utils.GPU import check_cuDNN_version
-from src.facematch.utils.logger import log_info
-from src.facematch.utils.resource_path import get_resource_path
+from facematch.facematch.interface import FaceMatchModel
+from facematch.facematch.utils.GPU import check_cuDNN_version
+from facematch.facematch.utils.logger import log_info
+from facematch.facematch.utils.resource_path import get_resource_path
 
+# Determine optimal number of workers based on CPU count
+# Usually optimal number is CPU count - 1 to leave one core for system processes
+# Note: This is not as good as using ThreadPoolExecutor, but it is a simple way to determine number of workers
+CPU_COUNT = multiprocessing.cpu_count()
+MAX_WORKERS = max(1, CPU_COUNT - 1)
+
+# Initialize server
 server = MLServer(__name__)
 
 # Add static location for app-info.md file
@@ -35,7 +50,7 @@ server.add_app_metadata(
     info=load_file_as_string(info_file_path),
 )
 
-# Initialize with "Create a new database" value used in frontend to take new file name entered by user
+# Initialize with "Create a new database" value used in frontend
 available_databases: List[str] = ["Create a new database"]
 
 # Load all available datasets under resources/data folder
@@ -50,17 +65,50 @@ with open(config_path, "r") as config_file:
     config = json.load(config_file)
 
 default_threshold = config["cosine-threshold"]
-# Number of concurrent workers for processing face matches
-MAX_WORKERS = 5 
-# Adjust based on ArcFace + yolov8 threshold=0.48
-# MAX_WORKERS = 4  652s
-# MAX_WORKERS = 5  638s
-# MAX_WORKERS = 6  642s
-# Create a lock for thread-safe operations
-db_lock = Lock()
+
+# Cache for model instances to avoid recreation in each process
+# Note: Each process will have its own model instance
+model_cache = {}
 
 
-# Frontend Task Schema defining inputs and paraneters that users can enter
+# Function to get or create a FaceMatchModel instance
+def get_model():
+    # Get current process ID
+    pid = os.getpid()
+
+    # Create a new model instance if it doesn't exist for this process
+    if pid not in model_cache:
+        log_info(f"Creating new model instance for process {pid}")
+        model_cache[pid] = FaceMatchModel()
+
+    return model_cache[pid]
+
+
+# Function to process a single face match that will run in a separate process
+def process_face_match(
+    image_path: str, similarity_threshold: float, database_path: str
+) -> Tuple[bool, Union[List[str], str]]:
+    try:
+        # Get model instance for this process
+        model = get_model()
+
+        # Log which process is handling this image
+        process_id = os.getpid()
+        log_info(f"Process {process_id} processing image: {image_path}")
+
+        # Run face matching
+        status, results = model.find_face(
+            image_path, similarity_threshold, database_path
+        )
+
+        return status, results
+    except Exception as e:
+        # Catch any exceptions that might occur during processing
+        log_info(f"Error in process {os.getpid()}: {str(e)}")
+        return False, f"Processing error: {str(e)}"
+
+
+# Frontend Task Schema defining inputs and parameters
 def get_ingest_query_image_task_schema() -> TaskSchema:
     return TaskSchema(
         inputs=[
@@ -95,7 +143,7 @@ def get_ingest_query_image_task_schema() -> TaskSchema:
     )
 
 
-# create an instance of the model
+# Create a shared model instance for the main process
 face_match_model = FaceMatchModel()
 
 
@@ -109,22 +157,6 @@ class FindFaceParameters(TypedDict):
     similarity_threshold: float
 
 
-# Function to process a single face match
-def process_face_match(
-    image_path: str, 
-    similarity_threshold: float, 
-    database_path: str
-) -> Tuple[bool, Union[List[str], str]]:
-    # Acquire lock when accessing the shared model (if necessary)
-    with db_lock:
-        return face_match_model.find_face(
-            image_path, 
-            similarity_threshold, 
-            database_path
-        )
-
-
-# Endpoint that is used to find matches to a query image
 @server.route(
     "/findface",
     order=1,
@@ -134,9 +166,11 @@ def process_face_match(
 def find_face_endpoint(
     inputs: FindFaceInputs, parameters: FindFaceParameters
 ) -> ResponseBody:
-
     # Get list of file paths from input
     input_file_paths = [item.path for item in inputs["image_paths"].files]
+
+    if not input_file_paths:
+        return ResponseBody(root=TextResponse(value="No input images provided"))
 
     # Convert database name to relative path to data directory in resources folder
     database_path = os.path.join("data", parameters["database_name"] + ".csv")
@@ -144,41 +178,67 @@ def find_face_endpoint(
     # Check CUDNN compatibility
     check_cuDNN_version()
 
-    # Process multiple images in parallel using ThreadPoolExecutor
+    # For small number of images (e.g., 1-2), it might be faster to just process sequentially
+    if len(input_file_paths) < 2:
+        log_info("Processing single image without multiprocessing")
+        status, results = face_match_model.find_face(
+            input_file_paths[0], parameters["similarity_threshold"], database_path
+        )
+
+        if not status:
+            return ResponseBody(root=TextResponse(value=results))
+
+        image_results = [
+            FileResponse(file_type="img", path=res, title=res) for res in results
+        ]
+
+        return ResponseBody(root=BatchFileResponse(files=image_results))
+
+    # Process multiple images in parallel using ProcessPoolExecutor
+    log_info(
+        f"Processing {len(input_file_paths)} images with {MAX_WORKERS} worker processes"
+    )
     all_results = []
-    all_statuses = []
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        # Create a list of futures for each image
+
+    # Create a partial function with fixed parameters
+    process_func = partial(
+        process_face_match,
+        similarity_threshold=parameters["similarity_threshold"],
+        database_path=database_path,
+    )
+
+    # Use ProcessPoolExecutor for true parallel processing
+    with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        # Submit all tasks to the executor
         future_to_image = {
-            executor.submit(
-                process_face_match, 
-                image_path, 
-                parameters["similarity_threshold"], 
-                database_path
-            ): image_path for image_path in input_file_paths
+            executor.submit(process_func, image_path): image_path
+            for image_path in input_file_paths
         }
-        
+
         # Process results as they become available
         for future in concurrent.futures.as_completed(future_to_image):
             image_path = future_to_image[future]
             try:
                 status, results = future.result()
-                all_statuses.append(status)
-                
+
                 # Log results for debugging
-                log_info(f"Image {image_path}: {status}")
-                log_info(results)
-                
+                log_info(f"Completed processing image {image_path}: {status}")
+
                 if status:
                     all_results.extend(results)
                 else:
                     # Return error message if any image processing fails
-                    return ResponseBody(root=TextResponse(value=f"Error processing {image_path}: {results}"))
-            
+                    return ResponseBody(
+                        root=TextResponse(
+                            value=f"Error processing {image_path}: {results}"
+                        )
+                    )
+
             except Exception as e:
-                log_info(f"Image {image_path} generated an exception: {e}")
-                return ResponseBody(root=TextResponse(value=f"Error processing {image_path}: {str(e)}"))
+                log_info(f"Exception for image {image_path}: {e}")
+                return ResponseBody(
+                    root=TextResponse(value=f"Error processing {image_path}: {str(e)}")
+                )
 
     # Create response object of images
     if not all_results:
@@ -191,7 +251,7 @@ def find_face_endpoint(
     return ResponseBody(root=BatchFileResponse(files=image_results))
 
 
-# Frontend Task Schema defining inputs and paraneters that users can enter
+# Frontend Task Schema defining inputs and parameters for users
 def get_ingest_images_task_schema() -> TaskSchema:
     return TaskSchema(
         inputs=[
@@ -235,7 +295,6 @@ class BulkUploadParameters(TypedDict):
     database_name: str
 
 
-# Endpoint to allow users to upload images to database
 @server.route(
     "/bulkupload",
     order=0,
@@ -257,7 +316,7 @@ def bulk_upload_endpoint(
         "data", parameters["database_name"] + ".csv"
     )
 
-    # Check CUDNN compatability
+    # Check CUDNN compatibility
     check_cuDNN_version()
 
     # Get list of directory paths from input
@@ -281,4 +340,5 @@ def bulk_upload_endpoint(
     return ResponseBody(root=TextResponse(value=response))
 
 
-server.run()
+if __name__ == "__main__":
+    server.run()

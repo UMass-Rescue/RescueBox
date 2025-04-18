@@ -88,7 +88,9 @@ def load_base64(uri: str) -> np.ndarray:
         or uri.startswith("data:image/jpg")
         or uri.startswith("data:image/png")
     ):
-        raise ValueError(f"input image can be jpg, jpeg or png, but it is {encoded_data_parts}")
+        raise ValueError(
+            f"input image can be jpg, jpeg or png, but it is {encoded_data_parts}"
+        )
 
     encoded_data = encoded_data_parts[1]
     nparr = np.fromstring(base64.b64decode(encoded_data), np.uint8)

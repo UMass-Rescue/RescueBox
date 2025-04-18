@@ -33,25 +33,11 @@ client = MLClient(IMAGE_MATCH_MODEL_URL)
 
 inputs = {
     "collection_name": Input(
-        root=TextInput.model_validate(
-            {
-                "text": args.collection_name
-            }
-        )
+        root=TextInput.model_validate({"text": args.collection_name})
     ),
-    "model_name": Input(
-        root=TextInput.model_validate(
-            {
-                "text": args.model_name
-            }
-        )
-    ),
+    "model_name": Input(root=TextInput.model_validate({"text": args.model_name})),
     "detector_backend": Input(
-        root=TextInput.model_validate(
-            {
-                "text": args.detector_backend
-            }
-        )
+        root=TextInput.model_validate({"text": args.detector_backend})
     ),
 }
 

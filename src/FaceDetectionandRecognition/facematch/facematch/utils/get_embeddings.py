@@ -7,10 +7,15 @@ import cv2
 import onnxruntime as ort
 
 # project dependencies
-from src.facematch.utils.logger import log_info
-from src.facematch.utils import preprocessing
+from facematch.facematch.utils.logger import log_info
+from facematch.facematch.utils import preprocessing
 
-def get_embedding(face_img, model_name, normalization: str = "base",):
+
+def get_embedding(
+    face_img,
+    model_name,
+    normalization: str = "base",
+):
     """Extract embedding using ArcFace ONNX model with NHWC format"""
     onnx_model_path = ""
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,19 +33,23 @@ def get_embedding(face_img, model_name, normalization: str = "base",):
     model = None
     if model_name == "SFace":
         try:
-            weight_file = os.path.join(models_dir, "face_recognition_sface_2021dec.onnx")
+            weight_file = os.path.join(
+                models_dir, "face_recognition_sface_2021dec.onnx"
+            )
             model = cv2.FaceRecognizerSF.create(
                 model=weight_file, config="", backend_id=0, target_id=0
             )
             log_info("SFace model loaded successfully!")
         except Exception as err:
-            log_info(f"Exception while calling opencv.FaceRecognizerSF module: {str(err)}")
+            log_info(
+                f"Exception while calling opencv.FaceRecognizerSF module: {str(err)}"
+            )
             raise ValueError(
                 "Exception while calling opencv.FaceRecognizerSF module."
                 + "This is an optional dependency."
                 + "You can install it as pip install opencv-contrib-python."
             ) from err
-    
+
     target_size = (112, 112)
     if model_name != "SFace":
         target_size = ort_session.get_inputs()[0].shape[1:3]
@@ -64,12 +73,12 @@ def get_embedding(face_img, model_name, normalization: str = "base",):
 
     if face_img.shape[0:2] != target_size:
         face_img = cv2.resize(face_img, target_size)
-    
+
     # normalizing the image pixels
     img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB).astype("float32")
     img = np.expand_dims(img, axis=0)
     img /= 255  # normalize input in [0, 1]
-    
+
     img = preprocessing.normalize_input(img=img, normalization=normalization)
 
     # embedding = model.find_embeddings(img)
@@ -88,7 +97,7 @@ def get_embedding(face_img, model_name, normalization: str = "base",):
             log_info(f"Embedding type: {type(embedding)}")
         except Exception as e:
             log_info(f"Failed to run inference: {str(e)}")
-    else: # Facenet512, ArcFace, GhostFaceNet
+    else:  # Facenet512, ArcFace, GhostFaceNet
         input_name = ort_session.get_inputs()[0].name
         log_info(f"Input name: {input_name}")
         try:
@@ -103,5 +112,5 @@ def get_embedding(face_img, model_name, normalization: str = "base",):
         # log_info(f"Embedding shape: {embedding.shape}")
     embedding_norm = np.linalg.norm(embedding)
     normalized_embedding = embedding / embedding_norm
-    
+
     return normalized_embedding

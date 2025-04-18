@@ -6,24 +6,35 @@ from dotenv import load_dotenv
 from typing import List, TypedDict
 
 from rb.lib.ml_service import MLService
-from rb.api.models import (TextInput, BatchTextResponse,
-                            BatchDirectoryInput, BatchFileInput,
-                            DirectoryInput, BatchFileResponse,
-                            EnumParameterDescriptor, EnumVal,
-                            FileResponse,
-                            FloatRangeDescriptor, InputSchema,
-                            InputType, ParameterSchema,
-                            RangedFloatParameterDescriptor,
-                            ResponseBody, TaskSchema,
-                            TextParameterDescriptor,
-                            TextResponse)
+from rb.api.models import (
+    TextInput,
+    BatchTextResponse,
+    BatchDirectoryInput,
+    BatchFileInput,
+    DirectoryInput,
+    BatchFileResponse,
+    EnumParameterDescriptor,
+    EnumVal,
+    FileResponse,
+    FloatRangeDescriptor,
+    InputSchema,
+    InputType,
+    ParameterSchema,
+    RangedFloatParameterDescriptor,
+    ResponseBody,
+    TaskSchema,
+    TextParameterDescriptor,
+    TextResponse,
+)
 
-from src.facematch.interface import FaceMatchModel
-from src.facematch.utils.GPU import check_cuDNN_version
-from src.facematch.utils.logger import log_info
+from facematch.facematch.interface import FaceMatchModel
+from facematch.facematch.utils.GPU import check_cuDNN_version
+from facematch.facematch.utils.logger import log_info
 
 load_dotenv()
-DBclient = chromadb.HttpClient(host=os.environ.get('CHROMA_HOST'), port=os.environ.get('CHROMA_PORT'))
+DBclient = chromadb.HttpClient(
+    host=os.environ.get("CHROMA_HOST"), port=os.environ.get("CHROMA_PORT")
+)
 
 APP_NAME = "face-match"
 server = MLService(APP_NAME)
@@ -37,7 +48,7 @@ with open(info_file_path, "r") as f:
 
 server.add_app_metadata(
     name="Face Recognition and Matching",
-    plugin_name="Face Match",
+    plugin_name=APP_NAME,
     author="FaceMatch Team",
     version="0.1.0",
     info=info,
@@ -47,7 +58,9 @@ server.add_app_metadata(
 available_collections: List[str] = ["Create a new collection"]
 
 # Load all available collections from chromaDB
-existing_collections = [collection.name.split('_')[0] for collection in DBclient.list_collections()]
+existing_collections = [
+    collection.name.split("_")[0] for collection in DBclient.list_collections()
+]
 available_collections.extend(existing_collections)
 
 # Read default similarity threshold from config file
@@ -63,7 +76,8 @@ default_threshold = config["cosine-threshold"]
 Face Find (single image)
 
 ******************************************************************************************************
-""" 
+"""
+
 
 # Frontend Task Schema defining inputs and parameters that users can enter
 def get_ingest_query_image_task_schema() -> TaskSchema:
@@ -107,8 +121,10 @@ face_match_model = FaceMatchModel()
 def face_find_cli_parser(image_paths):
     return image_paths
 
+
 def face_find_param_parser(collection_name, similarity_threshold):
     return collection_name, similarity_threshold
+
 
 # Inputs and parameters for the findface endpoint
 class FindFaceInputs(TypedDict):
@@ -150,14 +166,19 @@ def find_face_endpoint(
 
     return ResponseBody(root=BatchFileResponse(files=image_results))
 
+
 server.add_ml_service(
     rule="/findface",
     ml_function=find_face_endpoint,
-    inputs_cli_parser = typer.Argument(parser=face_find_cli_parser, help="Path to query image"),
-    parameters_cli_parser=typer.Argument(parser=face_find_param_parser, help="Collection name and similarity threshold"),
+    inputs_cli_parser=typer.Argument(
+        parser=face_find_cli_parser, help="Path to query image"
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=face_find_param_parser, help="Collection name and similarity threshold"
+    ),
     short_title="Find Face",
     order=0,
-    task_schema_func=get_ingest_query_image_task_schema
+    task_schema_func=get_ingest_query_image_task_schema,
 )
 
 """ 
@@ -166,7 +187,8 @@ server.add_ml_service(
 Bulk Face Find (multiple images)
 
 ******************************************************************************************************
-""" 
+"""
+
 
 # Frontend Task Schema defining inputs and parameters that users can enter
 def get_ingest_bulk_query_image_task_schema() -> TaskSchema:
@@ -202,11 +224,14 @@ def get_ingest_bulk_query_image_task_schema() -> TaskSchema:
         ],
     )
 
+
 def find_face_bulk_cli_parser(query_directory):
     return query_directory
 
+
 def find_face_bulk_param_parser(collection_name, similarity_threshold):
     return collection_name, similarity_threshold
+
 
 # Inputs and parameters for the findfacebulk endpoint
 class FindFaceBulkInputs(TypedDict):
@@ -236,14 +261,20 @@ def find_face_bulk_endpoint(
 
     return ResponseBody(root=TextResponse(value=str(results)))
 
+
 server.add_ml_service(
     rule="/findfacebulk",
     ml_function=find_face_bulk_endpoint,
     order=1,
     short_title="Face Find Bulk",
-    inputs_cli_parser=typer.Argument(parser=find_face_bulk_cli_parser, help="Directory of query images"),
-    parameters_cli_parser=typer.Argument(parser=find_face_bulk_param_parser, help="Collection name, and similarity threshold"),
-    task_schema_func=get_ingest_bulk_query_image_task_schema
+    inputs_cli_parser=typer.Argument(
+        parser=find_face_bulk_cli_parser, help="Directory of query images"
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=find_face_bulk_param_parser,
+        help="Collection name, and similarity threshold",
+    ),
+    task_schema_func=get_ingest_bulk_query_image_task_schema,
 )
 
 """ 
@@ -252,7 +283,8 @@ server.add_ml_service(
 Bulk Face Find Test (no similarity theshold filtering. Results include similarity scores)
 
 ******************************************************************************************************
-""" 
+"""
+
 
 def get_ingest_bulk_test_query_image_task_schema() -> TaskSchema:
     return TaskSchema(
@@ -279,18 +311,23 @@ def get_ingest_bulk_test_query_image_task_schema() -> TaskSchema:
         ],
     )
 
+
 def find_face_bulk_test_cli_parser(query_directory):
     return query_directory
 
+
 def find_face_bulk_test_param_parser(collection_name):
     return collection_name
+
 
 # Inputs and parameters for the findfacebulk endpoint
 class FindFaceBulkTestingInputs(TypedDict):
     query_directory: DirectoryInput
 
+
 class FindFaceBulkTestingParameters(TypedDict):
     collection_name: str
+
 
 # Endpoint that is used to find matches to a set of query images
 # Does not filter by the similarity theshold and returns all results with similarity scores, file paths and
@@ -307,20 +344,25 @@ def find_face_bulk_testing_endpoint(
         inputs["query_directory"].path,
         None,
         parameters["collection_name"],
-        similarity_filter=False
+        similarity_filter=False,
     )
     log_info(status)
 
     return ResponseBody(root=TextResponse(value=str(results)))
+
 
 server.add_ml_service(
     rule="/findfacebulktesting",
     ml_function=find_face_bulk_testing_endpoint,
     order=2,
     short_title="Face Find Bulk Test",
-    inputs_cli_parser=typer.Argument(parser=find_face_bulk_test_cli_parser, help="Directory of query images"),
-    parameters_cli_parser=typer.Argument(parser=find_face_bulk_test_param_parser, help="Collection name"),
-    task_schema_func=get_ingest_bulk_test_query_image_task_schema
+    inputs_cli_parser=typer.Argument(
+        parser=find_face_bulk_test_cli_parser, help="Directory of query images"
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=find_face_bulk_test_param_parser, help="Collection name"
+    ),
+    task_schema_func=get_ingest_bulk_test_query_image_task_schema,
 )
 
 """ 
@@ -329,7 +371,8 @@ server.add_ml_service(
 Face Find (single image)
 
 ******************************************************************************************************
-""" 
+"""
+
 
 # Frontend Task Schema defining inputs and parameters that users can enter
 def get_ingest_images_task_schema() -> TaskSchema:
@@ -352,7 +395,9 @@ def get_ingest_images_task_schema() -> TaskSchema:
                     ],
                     message_when_empty="No collections found",
                     default=(
-                        available_collections[0] if len(available_collections) > 0 else ""
+                        available_collections[0]
+                        if len(available_collections) > 0
+                        else ""
                     ),
                 ),
             ),
@@ -368,8 +413,10 @@ def get_ingest_images_task_schema() -> TaskSchema:
 def bulk_upload_cli_parser(directory_paths):
     return directory_paths
 
+
 def bulk_upload_param_parser(dropdown_collection_name, collection_name):
     return dropdown_collection_name, collection_name
+
 
 # Inputs and parameters for the bulkupload endpoint
 class BulkUploadInputs(TypedDict):
@@ -417,11 +464,15 @@ def bulk_upload_endpoint(
 server.add_ml_service(
     rule="/bulkupload",
     ml_function=bulk_upload_endpoint,
-    inputs_cli_parser=typer.Argument(parser=bulk_upload_cli_parser, help="Directory to images to upload"),
-    parameters_cli_parser=typer.Argument(parser=bulk_upload_param_parser, help="Collection name"),
+    inputs_cli_parser=typer.Argument(
+        parser=bulk_upload_cli_parser, help="Directory to images to upload"
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=bulk_upload_param_parser, help="Collection name"
+    ),
     short_title="Bulk Upload",
     order=3,
-    task_schema_func=get_ingest_images_task_schema
+    task_schema_func=get_ingest_images_task_schema,
 )
 
 """ 
@@ -430,7 +481,7 @@ server.add_ml_service(
 Delete Collection
 
 ******************************************************************************************************
-""" 
+"""
 
 
 # Frontend Task Schema defining inputs and parameters that users can enter
@@ -451,10 +502,11 @@ def delete_collection_task_schema() -> TaskSchema:
                 key="detector_backend",
                 label="Detector model of collection",
                 input_type=InputType.TEXT,
-            )
+            ),
         ],
         parameters=[],
     )
+
 
 def delete_collection_cli_parser(collection_name, model_name, detector_backend):
     return collection_name, model_name, detector_backend
@@ -468,10 +520,8 @@ class DeleteCollectionInputs(TypedDict):
 
 
 # Endpoint for deleting collections from ChromaDB
-def delete_collection_endpoint(
-    inputs: DeleteCollectionInputs
-) -> ResponseBody:
-    
+def delete_collection_endpoint(inputs: DeleteCollectionInputs) -> ResponseBody:
+
     responseValue = ""
 
     try:
@@ -479,21 +529,26 @@ def delete_collection_endpoint(
         model_name = inputs["model_name"].text.lower()
         detector_backend = inputs["detector_backend"].text.lower()
         DBclient.delete_collection(f"{collection_name}_{detector_backend}_{model_name}")
-        responseValue = f'Successfully deleted {collection_name}_{detector_backend}_{model_name}'
+        responseValue = (
+            f"Successfully deleted {collection_name}_{detector_backend}_{model_name}"
+        )
         log_info(responseValue)
     except Exception:
-        responseValue = f'Collection {collection_name}_{detector_backend}_{model_name} does not exist.'
-        log_info(responseValue)   
+        responseValue = f"Collection {collection_name}_{detector_backend}_{model_name} does not exist."
+        log_info(responseValue)
 
     return ResponseBody(root=TextResponse(value=responseValue))
+
 
 server.add_ml_service(
     rule="/deletecollection",
     ml_function=delete_collection_endpoint,
-    inputs_cli_parser=typer.Argument(parser=delete_collection_cli_parser, help="Collection, model and detector name"),
+    inputs_cli_parser=typer.Argument(
+        parser=delete_collection_cli_parser, help="Collection, model and detector name"
+    ),
     short_title="Delete Collection",
     order=4,
-    task_schema_func=delete_collection_task_schema
+    task_schema_func=delete_collection_task_schema,
 )
 
 """ 
@@ -502,13 +557,16 @@ server.add_ml_service(
 List Collections
 
 ******************************************************************************************************
-""" 
+"""
+
 
 def list_collections_task_schema() -> TaskSchema:
     return TaskSchema(inputs=[], parameters=[])
 
+
 def list_collections_cli_parser():
     return None
+
 
 # Inputs and parameters for the bulkupload endpoint
 class ListCollectionsInputs(TypedDict):
@@ -516,21 +574,24 @@ class ListCollectionsInputs(TypedDict):
 
 
 # Endpoint for listing all ChromaDB collections
-def list_collections_endpoint(
-    inputs: ListCollectionsInputs
-) -> ResponseBody:
-    
+def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
+
     responseValue = None
 
     try:
         responseValue = DBclient.list_collections()
         log_info(responseValue)
     except Exception:
-        responseValue = ['Failed to List Collections']
-        log_info(responseValue)        
-    
+        responseValue = ["Failed to List Collections"]
+        log_info(responseValue)
+
     collection_names = [collection.name for collection in responseValue]
-    return ResponseBody(root=BatchTextResponse(texts=[TextResponse(value=collection) for collection in collection_names]))
+    return ResponseBody(
+        root=BatchTextResponse(
+            texts=[TextResponse(value=collection) for collection in collection_names]
+        )
+    )
+
 
 server.add_ml_service(
     rule="/listcollection",
@@ -538,7 +599,7 @@ server.add_ml_service(
     inputs_cli_parser=typer.Argument(parser=list_collections_cli_parser, help="Empty"),
     short_title="List Collection",
     order=5,
-    task_schema_func=list_collections_task_schema
+    task_schema_func=list_collections_task_schema,
 )
 
 app = server.app

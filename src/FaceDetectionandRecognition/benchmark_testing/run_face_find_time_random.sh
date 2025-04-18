@@ -14,7 +14,7 @@ collection_name=$1
 export PYTHONPATH=$(pwd)/..
 
 # Start the Python server in the background
-python ../src/facematch/face_match_server.py &
+python ../facematch/facematch/face_match_server.py &
 server_pid=$!
 echo "Server started with PID $server_pid"
 
@@ -37,7 +37,7 @@ random_file="${files[random_index]}"
 start_time=$(date +%s)
 
 # Call client script to find match for random image
-result=$(python ../src/Sample_Client/sample_find_face_client.py --file_paths "$random_file" --collection_name "$collection_name")
+result=$(python ../facematch/Sample_Client/sample_find_face_client.py --file_paths "$random_file" --collection_name "$collection_name")
 
 # Sample file path
 # "<path to dataset folder>\\LFWdataset\\sample_queries\\image.jpg"

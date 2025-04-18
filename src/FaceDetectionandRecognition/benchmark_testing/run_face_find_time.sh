@@ -3,7 +3,7 @@
 export PYTHONPATH=$(pwd)/..
 
 # Start the Python server in the background
-python ../src/facematch/face_match_server.py &
+python ../facematch/facematch/face_match_server.py &
 server_pid=$!
 echo "Server started with PID $server_pid"
 
@@ -14,7 +14,7 @@ sleep 10
 start_time=$(date +%s)
 
 # Call client script to find match for an image (code currently only accepts one file_path at a time)
-python ../src/Sample_Client/sample_find_face_client.py --file_paths "../resources/LFWdataset/sample_queries/Al_Gore_0008.jpg" --collection_name "sample"
+python ../facematch/Sample_Client/sample_find_face_client.py --file_paths "../resources/LFWdataset/sample_queries/Al_Gore_0008.jpg" --collection_name "sample"
 
 # Sample file path
 # "<path to dataset folder>\\LFWdataset\\sample_queries\\image.jpg"

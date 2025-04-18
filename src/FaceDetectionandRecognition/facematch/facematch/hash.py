@@ -1,6 +1,7 @@
 import hashlib
 from PIL import Image
 
+
 def sha256_image(image_path, bbox):
     """
     Calculates the SHA256 hash of an image file.
@@ -23,5 +24,5 @@ def sha256_image(image_path, bbox):
         print(f"Error: File not found at {image_path}")
         return None
     except Exception as e:
-         print(f"An error occurred: {e}")
-         return None
+        print(f"An error occurred: {e}")
+        return None
