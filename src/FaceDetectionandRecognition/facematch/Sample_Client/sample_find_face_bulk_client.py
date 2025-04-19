@@ -14,7 +14,11 @@ parser = argparse.ArgumentParser(description="To parse text arguments")
 
 # Absolute path of query image
 parser.add_argument(
-    "--query_directory", required=True, metavar="directory", type=str, help="Path to images"
+    "--query_directory",
+    required=True,
+    metavar="directory",
+    type=str,
+    help="Path to images",
 )
 
 # Name of embedding collection from user
@@ -39,10 +43,10 @@ listCollectionsClient = MLClient(LIST_COLLECTIONS_URL)
 
 
 # Check if collection exists
-collections = listCollectionsClient.request({},{})['texts']
-collections = [output['value'] for output in collections]
+collections = listCollectionsClient.request({}, {})["texts"]
+collections = [output["value"] for output in collections]
 
-if args.collection_name not in map(lambda c: c.split("_")[0],collections):
+if args.collection_name not in map(lambda c: c.split("_")[0], collections):
     print("Collection does not exist")
     exit()
 
@@ -56,11 +60,7 @@ absolute_query_directory = os.path.abspath(args.query_directory)
 
 inputs = {
     "query_directory": Input(
-        root=DirectoryInput.model_validate(
-            {
-                "path": absolute_query_directory
-            }
-        )
+        root=DirectoryInput.model_validate({"path": absolute_query_directory})
     )
 }
 
@@ -68,10 +68,12 @@ inputs = {
 start_time = time.time()
 response = findFaceClient.request(inputs, parameters)
 try:
-    results = ast.literal_eval(response['value'])
+    results = ast.literal_eval(response["value"])
     for query_path, match_paths in results.items():
         query_name = os.path.basename(query_path)
-        match_paths = " ".join(list(map(lambda path: os.path.basename(path),match_paths)))
+        match_paths = " ".join(
+            list(map(lambda path: os.path.basename(path), match_paths))
+        )
         print(f"Query: {query_name}    Matches: {match_paths}")
 
 except Exception:

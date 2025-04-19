@@ -107,7 +107,7 @@ mkdir -p "$results_dir"
 
 # Configuration
 CHROMA_CMD="chroma run --path ../resources/data"
-PYTHON_CMD="python ../src/facematch/face_match_server.py"
+PYTHON_CMD="python ../facematch/facematch/face_match_server.py"
 CHROMA_TIMEOUT=60
 FACEMATCH_TIMEOUT=30
 CHROMA_STARTUP_MSG="Application startup complete"
@@ -149,8 +149,8 @@ start_server_and_wait() {
 chroma_pid=$(start_server_and_wait "chroma run --path ../resources/data"    "curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/v1 " "ChromaDB")
 
 # Start FaceMatch Server
-python ../src/facematch/face_match_server.py &
-server_pid=$(pgrep -f "python ../src/facematch/face_match_server.py")
+python ../facematch/facematch/face_match_server.py &
+server_pid=$(pgrep -f "python ../facematch/facematch/face_match_server.py")
 
 start_server_and_wait ":"     "curl -s -o /dev/null -w '%{http_code}'  http://127.0.0.1:5000/listcollections " "FaceMatch"
 
@@ -179,12 +179,12 @@ trap cleanup EXIT
 
 # Delete collection if exists
 if [ "$keep_collection" = "False" ]; then
-    python -m src.Sample_Client.sample_delete_collection_client --collection_name "$collection_name" --model_name "$MODEL_NAME" --detector_backend "$DETECTOR_NAME"
+    python -m facematch.Sample_Client.sample_delete_collection_client --collection_name "$collection_name" --model_name "$MODEL_NAME" --detector_backend "$DETECTOR_NAME"
 fi
 
 # Benchmark bulk upload
 start_time=$(date +%s)
-python -m src.Sample_Client.sample_bulk_upload_client --directory_paths "$database_directory" --collection_name "$collection_name"
+python -m facematch.Sample_Client.sample_bulk_upload_client --directory_paths "$database_directory" --collection_name "$collection_name"
 end_time=$(date +%s)
 total_time=$((end_time - start_time))
 echo "Bulk Upload Time: $total_time seconds"

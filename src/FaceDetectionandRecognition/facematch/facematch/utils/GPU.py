@@ -1,6 +1,7 @@
 import os
 import ctypes
-from src.facematch.utils.logger import log_warning
+from facematch.facematch.utils.logger import log_warning
+
 
 def check_cuDNN_version():
     try:
@@ -23,7 +24,9 @@ def check_cuDNN_version():
         required_version = (9, 3, 0)
 
         if (major, minor, patch) < required_version:
-            log_warning(f"Forcing CPU usage due to version mismatch. Detected cuDNN {cudnn_version_str}, requires >= 9.3.0.")
+            log_warning(
+                f"Forcing CPU usage due to version mismatch. Detected cuDNN {cudnn_version_str}, requires >= 9.3.0."
+            )
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
     except OSError:

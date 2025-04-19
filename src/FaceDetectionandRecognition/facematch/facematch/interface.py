@@ -1,10 +1,14 @@
 import json
 import os
 
-from src.facematch.database_functions import upload_embedding_to_database, query, query_bulk
-from src.facematch.face_representation import detect_faces_and_get_embeddings
-from src.facematch.utils.logger import log_info
-from src.facematch.utils.resource_path import get_config_path
+from facematch.facematch.database_functions import (
+    upload_embedding_to_database,
+    query,
+    query_bulk,
+)
+from facematch.facematch.face_representation import detect_faces_and_get_embeddings
+from facematch.facematch.utils.logger import log_info
+from facematch.facematch.utils.resource_path import get_config_path
 
 
 class FaceMatchModel:
@@ -101,9 +105,7 @@ class FaceMatchModel:
             return f"An error occurred: {str(e)}"
 
     # Function that takes in path to image and returns all images that have the same person.
-    def find_face(
-        self, image_file_path, threshold=None, collection_name=None
-    ):
+    def find_face(self, image_file_path, threshold=None, collection_name=None):
         try:
             # Get models from config file.
             config_path = get_config_path("model_config.json")
@@ -126,22 +128,27 @@ class FaceMatchModel:
                 matching_image_paths = []
                 # If image has a valid face, perform similarity check
                 if status:
-                    output = query(collection_name, embedding_outputs, n_results=10, threshold=threshold)
+                    output = query(
+                        collection_name,
+                        embedding_outputs,
+                        n_results=10,
+                        threshold=threshold,
+                    )
                     # for embedding_output in embedding_outputs:
-                        # if toggle_faiss:
-                        #     # Use Faiss
-                        #     output = cosine_similarity_search_faiss(
-                        #         embedding_output["embedding"],
-                        #         database_path,
-                        #         threshold=threshold,
-                        #     )
-                        # else:
-                        #     # Use linear similarity search
-                        #     output = cosine_similarity_search(
-                        #         embedding_output["embedding"],
-                        #         database_path,
-                        #         threshold=threshold,
-                        #     )
+                    # if toggle_faiss:
+                    #     # Use Faiss
+                    #     output = cosine_similarity_search_faiss(
+                    #         embedding_output["embedding"],
+                    #         database_path,
+                    #         threshold=threshold,
+                    #     )
+                    # else:
+                    #     # Use linear similarity search
+                    #     output = cosine_similarity_search(
+                    #         embedding_output["embedding"],
+                    #         database_path,
+                    #         threshold=threshold,
+                    #     )
                     matching_image_paths.extend(output)
                     return True, matching_image_paths
                 else:
@@ -150,10 +157,14 @@ class FaceMatchModel:
                 return False, "Error: Provided file is not of image type"
         except Exception as e:
             return False, f"An error occurred: {str(e)}"
-        
+
     # Function that takes in path to image and returns all images that have the same person.
     def find_face_bulk(
-        self, query_directory, threshold=None, collection_name=None, similarity_filter=True
+        self,
+        query_directory,
+        threshold=None,
+        collection_name=None,
+        similarity_filter=True,
     ):
         try:
             query_batch_size = 100
@@ -170,10 +181,10 @@ class FaceMatchModel:
             # Call face_recognition function and perform similarity check to find identical persons.
             all_embedding_outputs = []
             all_matching_image_paths = []
-            
+
             img_files = os.listdir(query_directory)
             img_files.sort()
-            for idx, filename in enumerate(img_files): 
+            for idx, filename in enumerate(img_files):
                 file_path = os.path.join(query_directory, filename)
                 if filename.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp")):
                     status, embedding_outputs = detect_faces_and_get_embeddings(
@@ -188,20 +199,33 @@ class FaceMatchModel:
                     all_embedding_outputs.append([])
 
                 num_embeddings = len(all_embedding_outputs)
-                
+
                 if num_embeddings % query_batch_size == 0 and num_embeddings != 0:
-                    matching_image_paths = query_bulk(collection_name, all_embedding_outputs, 10, threshold, similarity_filter)
+                    matching_image_paths = query_bulk(
+                        collection_name,
+                        all_embedding_outputs,
+                        10,
+                        threshold,
+                        similarity_filter,
+                    )
                     all_embedding_outputs = []
                     all_matching_image_paths.extend(matching_image_paths)
-                    log_info(f"Query: {img_files[idx - num_embeddings+1]}  Match: {matching_image_paths[0]}")
+                    log_info(
+                        f"Query: {img_files[idx - num_embeddings+1]}  Match: {matching_image_paths[0]}"
+                    )
 
             if len(all_embedding_outputs) != 0:
-                    matching_image_paths = query_bulk(collection_name, all_embedding_outputs, 10, threshold, similarity_filter)
-                    all_matching_image_paths.extend(matching_image_paths)
-            
+                matching_image_paths = query_bulk(
+                    collection_name,
+                    all_embedding_outputs,
+                    10,
+                    threshold,
+                    similarity_filter,
+                )
+                all_matching_image_paths.extend(matching_image_paths)
 
             results = dict(zip(img_files, all_matching_image_paths))
             return True, results
-            
+
         except Exception as e:
             return False, f"An error occurred: {str(e)}"

@@ -1,7 +1,7 @@
-from src.facematch.face_representation import detect_faces_and_get_embeddings
+from facematch.facematch.face_representation import detect_faces_and_get_embeddings
 import os
 
-path = "/Users/davidthibodeau/Desktop/CS596E/group_proj/FaceDetectionandRecognition/src/facematch/models/yolov8-face-detection.onnx"
+path = "/Users/davidthibodeau/Desktop/CS596E/group_proj/FaceDetectionandRecognition/facematch/facematch/models/yolov8-face-detection.onnx"
 print(f"Model exists: {os.path.exists(path)}")
 
 # Test with a single image
@@ -11,7 +11,7 @@ success, embeddings = detect_faces_and_get_embeddings(
     model_name="ArcFace",
     detector_backend="yolov8",
     face_confidence_threshold=0.7,
-    visualize=True
+    visualize=True,
 )
 
 if success:

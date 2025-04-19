@@ -28,5 +28,3 @@ for filename in os.listdir(input_dir):
         print(f"Resized and saved: {output_path}")
 
 print("All images have been resized and saved successfully.")
-
-
