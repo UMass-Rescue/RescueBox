@@ -172,3 +172,6 @@ rescuebox/pyvenv.cfg
 src/rb-api/rb/api/static/index/main.js
 **/*/.DS_Store
 src/FaceDetectionandRecognition/src/facematch/models
+
+/chroma
+/src/FaceDetectionandRecognition/facematch/facematch/models/
