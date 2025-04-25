@@ -176,4 +176,6 @@ src/rb-api/rb/api/static/index/main.js
 src/FaceDetectionandRecognition/facematch/facematch/models
 src/FaceDetectionandRecognition/benchmark_testing/benchmark-results
 src/FaceDetectionandRecognition/resources/data
+chroma
+test_chroma_data
 
