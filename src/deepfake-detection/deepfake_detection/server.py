@@ -2,10 +2,11 @@
 import argparse
 import csv
 import warnings
+import typer
 from typing import TypedDict
 from pathlib import Path
-from flask_ml.flask_ml_server import MLServer, load_file_as_string
-from flask_ml.flask_ml_server.models import (
+from rb.lib.ml_service import MLService
+from rb.api.models import (
     DirectoryInput,
     FileResponse,
     InputSchema,
@@ -23,7 +24,7 @@ from sim_data import defaultDataset
 from collections import defaultdict
 
 warnings.filterwarnings("ignore")
-
+APP_NAME = "deepfake-detection"
 
 # Configure UI Elements in RescueBox Desktop
 def create_transform_case_task_schema() -> TaskSchema:
@@ -51,13 +52,15 @@ class Parameters(TypedDict):
 
 
 # Create a server instance
-server = MLServer(__name__)
+server = MLService(APP_NAME)
+app = server.app
 
 server.add_app_metadata(
     name="Image DeepFake Detector",
     author="UMass Rescue",
     version="0.2.0",
-    info=load_file_as_string("img-app-info.md"),
+    info = "Detects deepfake images using various models. Supports BNext_M, BNext_S, Transformer, and TransformerDima models.",
+    plugin_name="DEEPFAKE_APP_NAME",
 )
 
 models = [
@@ -96,13 +99,21 @@ def run_models(models, dataset):
         results.append(model_results)
     return results
 
+def cli_parser(input_dataset, output_file) -> Inputs:
+    return {
+        "input_dataset": DirectoryInput(path=str(input_dataset)),
+        "output_file": DirectoryInput(path=str(output_file)),
+    }
 
-@server.route(
-    "/predict",
-    task_schema_func=create_transform_case_task_schema,
-    short_title="DeepFake Detection",
-    order=0,
-)
+def param_parser() -> Parameters:
+    return {}
+
+# @server.route(
+#     "/predict",
+#     task_schema_func=create_transform_case_task_schema,
+#     short_title="DeepFake Detection",
+#     order=0,
+# )
 def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     input_path = inputs["input_dataset"].path
     out = Path(inputs["output_file"].path)
@@ -165,11 +176,22 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
     return ResponseBody(FileResponse(path=str(out), file_type="csv"))
 
+server.add_ml_service(
+    rule="/predict",
+    ml_function=give_prediction,
+    inputs_cli_parser=typer.Argument(parser=cli_parser, help="Input and output directory paths"),
+    parameters_cli_parser=typer.Argument(parser=param_parser, help="Model parameters"),
+    short_title="DeepFake Detection",
+    order=0,
+    task_schema_func=create_transform_case_task_schema,
+)
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run a server.")
-    parser.add_argument(
-        "--port", type=int, help="Port number to run the server", default=5000
-    )
-    args = parser.parse_args()
-    server.run(port=args.port)
+    # parser = argparse.ArgumentParser(description="Run a server.")
+    # parser.add_argument(
+    #     "--port", type=int, help="Port number to run the server", default=5000
+    # )
+    # args = parser.parse_args()
+    # server.run(port=args.port)
+    app()

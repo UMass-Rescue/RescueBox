@@ -11,7 +11,6 @@ from process.utils import (
     ToDtype,
 )
 
-
 # Trained on COCOFake dataset
 class BNext_M_ModelONNX:
     def __init__(
