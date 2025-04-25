@@ -3,7 +3,9 @@ name = "deepfake-detection"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "lous-e",email = "mehtaomr@gmail.com"}
+    {name = "Ben Chou",email = "bchou@umass.edu"},
+    {name = "Matthew Maillet",email = "mcmaillet@umass.edu"},
+    {name = "Om Mehta",email = "omehta@umass.edu"}
 ]
 readme = "README.md"
 
