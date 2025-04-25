@@ -9,6 +9,7 @@ from rb.lib.ml_service import MLService
 from rb.api.models import (
     TextInput,
     BatchTextResponse,
+    Input,
     BatchDirectoryInput,
     BatchFileInput,
     DirectoryInput,
@@ -118,12 +119,19 @@ def get_ingest_query_image_task_schema() -> TaskSchema:
 face_match_model = FaceMatchModel()
 
 
-def face_find_cli_parser(image_paths):
-    return image_paths
+def face_find_cli_parser(inputs):
+    image_paths = inputs.split(",")
+    return {
+        "image_paths": BatchFileInput(files= [{"path": file_path} for file_path in image_paths])
+    }
 
 
-def face_find_param_parser(collection_name, similarity_threshold):
-    return collection_name, similarity_threshold
+def face_find_param_parser(params):
+    collection_name, similarity_threshold = params.split(",")
+    return {
+        "collection_name": collection_name, 
+        "similarity_threshold": float(similarity_threshold)
+    }
 
 
 # Inputs and parameters for the findface endpoint
@@ -142,11 +150,9 @@ def find_face_endpoint(
 ) -> ResponseBody:
 
     # Get list of file paths from input
-    input_file_paths = [item.path for item in inputs["image_paths"].files]
-
+    input_file_paths = [str(item.path) for item in inputs["image_paths"].files]
     # Check CUDNN compatability
     check_cuDNN_version()
-
     # Call model function to find matches
     status, results = face_match_model.find_face(
         input_file_paths[0],
@@ -225,12 +231,14 @@ def get_ingest_bulk_query_image_task_schema() -> TaskSchema:
     )
 
 
-def find_face_bulk_cli_parser(query_directory):
-    return query_directory
+def find_face_bulk_cli_parser(inputs):
+    query_directory = inputs
+    return {"query_directory": DirectoryInput(path=query_directory)}
 
 
-def find_face_bulk_param_parser(collection_name, similarity_threshold):
-    return collection_name, similarity_threshold
+def find_face_bulk_param_parser(inputs):
+    collection_name, similarity_threshold = inputs.split(",")
+    return {"collection_name": collection_name, "similarity_threshold": float(similarity_threshold)}
 
 
 # Inputs and parameters for the findfacebulk endpoint
@@ -312,12 +320,14 @@ def get_ingest_bulk_test_query_image_task_schema() -> TaskSchema:
     )
 
 
-def find_face_bulk_test_cli_parser(query_directory):
-    return query_directory
+def find_face_bulk_test_cli_parser(inputs):
+    query_directory = inputs
+    return {"query_directory": DirectoryInput(path=query_directory)}
 
 
-def find_face_bulk_test_param_parser(collection_name):
-    return collection_name
+def find_face_bulk_test_param_parser(inputs):
+    collection_name = inputs
+    return {"collection_name": collection_name}
 
 
 # Inputs and parameters for the findfacebulk endpoint
@@ -368,7 +378,7 @@ server.add_ml_service(
 """ 
 ******************************************************************************************************
 
-Face Find (single image)
+Bulk Upload
 
 ******************************************************************************************************
 """
@@ -410,12 +420,19 @@ def get_ingest_images_task_schema() -> TaskSchema:
     )
 
 
-def bulk_upload_cli_parser(directory_paths):
-    return directory_paths
+def bulk_upload_cli_parser(inputs):
+    directory_paths = inputs.split(',')
+    
+    return {
+        "directory_paths": BatchDirectoryInput(directories=[{"path": directory_path} for directory_path in directory_paths]) 
+    }
 
-
-def bulk_upload_param_parser(dropdown_collection_name, collection_name):
-    return dropdown_collection_name, collection_name
+def bulk_upload_param_parser(params):
+    dropdown_collection_name, collection_name= params.split(',')
+    return {
+        "dropdown_collection_name": dropdown_collection_name, 
+        "collection_name": collection_name
+    }
 
 
 # Inputs and parameters for the bulkupload endpoint
@@ -441,7 +458,6 @@ def bulk_upload_endpoint(
 
     # Check CUDNN compatability
     check_cuDNN_version()
-
     # Get list of directory paths from input
     input_directory_paths = [
         item.path for item in inputs["directory_paths"].directories
@@ -494,13 +510,13 @@ def delete_collection_task_schema() -> TaskSchema:
                 input_type=InputType.TEXT,
             ),
             InputSchema(
-                key="model_name",
-                label="Embedding model of collection",
+                key="detector_backend",
+                label="Detector model of collection",
                 input_type=InputType.TEXT,
             ),
             InputSchema(
-                key="detector_backend",
-                label="Detector model of collection",
+                key="model_name",
+                label="Embedding model of collection",
                 input_type=InputType.TEXT,
             ),
         ],
@@ -508,26 +524,27 @@ def delete_collection_task_schema() -> TaskSchema:
     )
 
 
-def delete_collection_cli_parser(collection_name, model_name, detector_backend):
-    return collection_name, model_name, detector_backend
-
+def delete_collection_cli_parser(parameters):
+    collection_name, detector_backend, model_name = parameters.lower().split(",")
+    return {
+        "collection_name": collection_name,
+        "model_name": model_name,
+        "detector_backend": detector_backend
+    }
 
 # Inputs and parameters for the bulkupload endpoint
 class DeleteCollectionInputs(TypedDict):
     collection_name: TextInput
-    model_name: TextInput
     detector_backend: TextInput
-
+    model_name: TextInput
 
 # Endpoint for deleting collections from ChromaDB
-def delete_collection_endpoint(inputs: DeleteCollectionInputs) -> ResponseBody:
-
+def delete_collection_endpoint(inputs: DeleteCollectionInputs, ) -> ResponseBody: # parameters: DeleteCollectionParameters
     responseValue = ""
-
+    collection_name = inputs["collection_name"]
+    model_name = inputs["model_name"]
+    detector_backend = inputs["detector_backend"]
     try:
-        collection_name = inputs["collection_name"].text
-        model_name = inputs["model_name"].text.lower()
-        detector_backend = inputs["detector_backend"].text.lower()
         DBclient.delete_collection(f"{collection_name}_{detector_backend}_{model_name}")
         responseValue = (
             f"Successfully deleted {collection_name}_{detector_backend}_{model_name}"
@@ -544,7 +561,7 @@ server.add_ml_service(
     rule="/deletecollection",
     ml_function=delete_collection_endpoint,
     inputs_cli_parser=typer.Argument(
-        parser=delete_collection_cli_parser, help="Collection, model and detector name"
+        parser=delete_collection_cli_parser, help="Collection name"
     ),
     short_title="Delete Collection",
     order=4,
@@ -564,8 +581,8 @@ def list_collections_task_schema() -> TaskSchema:
     return TaskSchema(inputs=[], parameters=[])
 
 
-def list_collections_cli_parser():
-    return None
+def list_collections_cli_parser(dummy_input):
+    return dummy_input
 
 
 # Inputs and parameters for the bulkupload endpoint
@@ -594,7 +611,7 @@ def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
 
 
 server.add_ml_service(
-    rule="/listcollection",
+    rule="/listcollections",
     ml_function=list_collections_endpoint,
     inputs_cli_parser=typer.Argument(parser=list_collections_cli_parser, help="Empty"),
     short_title="List Collection",
