@@ -10,7 +10,6 @@ class TransformerModelDimaONNX:
         self.model_path = Path(model_path)
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime
-            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
         )
         self.resolution = resolution
         self.valid_extensions = (".jpg", ".jpeg", ".png")
