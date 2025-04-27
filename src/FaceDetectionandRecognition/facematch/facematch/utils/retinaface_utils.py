@@ -4,7 +4,7 @@ import logging
 import os
 import onnxruntime as ort
 
-from facematch.facematch.utils.get_embeddings import get_embedding
+from facematch.facematch.utils.get_batch_embeddings import get_embedding
 
 
 logger = logging.getLogger(__name__)
@@ -500,6 +500,9 @@ def process_retinaface_detections(
 ):
 
     face_embeddings = []
+    detections = []
+    path_strs = []
+    regions = []
 
     for i, (box, score, landmark) in enumerate(zip(boxes, scores, landmarks)):
         try:
@@ -578,22 +581,38 @@ def process_retinaface_detections(
                 if isinstance(detection, np.ndarray):
                     cv2.imwrite(face_path, cv2.cvtColor(detection, cv2.COLOR_RGB2BGR))
 
-            embedding = get_embedding(detection, model_name)
-
-            if embedding is not None:
-
-                face_embeddings.append(
-                    {
-                        "image_path": path_str,
-                        "embedding": embedding,
-                        "bbox": [region["x"], region["y"], region["w"], region["h"]],
-                        "confidence": region["confidence"],
-                    }
-                )
+            detections.append(detection)
+            path_strs.append(path_str)
+            regions.append(region)
 
         except Exception as e:
             logger.error(f"Error processing face {i}: {str(e)}")
             continue
+
+    # Generate embedding
+    try:
+
+        embeddings = get_embedding(detections, model_name, "base")
+
+    except Exception as e:
+        logger.error(f"Error getting embedding for face {i}: {str(e)}")
+
+    for i in range(len(embeddings)):
+        if embeddings[i] is not None:
+
+            face_embeddings.append(
+                {
+                    "image_path": path_str,
+                    "embedding": embeddings[i],
+                    "bbox": [
+                        regions[i]["x"],
+                        regions[i]["y"],
+                        regions[i]["w"],
+                        regions[i]["h"],
+                    ],
+                    "confidence": regions[i]["confidence"],
+                }
+            )
 
     return face_embeddings
 
@@ -640,6 +659,9 @@ def process_retinaface_detections_for_facenet512(
 ):
 
     face_embeddings = []
+    detections = []
+    path_strs = []
+    regions = []
 
     for i, (box, score, landmark) in enumerate(zip(boxes, scores, landmarks)):
         try:
@@ -721,21 +743,38 @@ def process_retinaface_detections_for_facenet512(
                 if isinstance(detection, np.ndarray):
                     cv2.imwrite(face_path, cv2.cvtColor(detection, cv2.COLOR_RGB2BGR))
 
-            embedding = get_embedding(detection, model_name)
-
-            if embedding is not None:
-                face_embeddings.append(
-                    {
-                        "image_path": path_str,
-                        "embedding": embedding,
-                        "bbox": [region["x"], region["y"], region["w"], region["h"]],
-                        "confidence": region["confidence"],
-                    }
-                )
+            detections.append(detection)
+            path_strs.append(path_str)
+            regions.append(region)
 
         except Exception as e:
             logger.error(f"Error processing face {i}: {str(e)}")
             continue
+
+    # Generate embedding
+    try:
+
+        embeddings = get_embedding(detections, model_name, "base")
+
+    except Exception as e:
+        logger.error(f"Error getting embedding for face {i}: {str(e)}")
+
+    for i in range(len(embeddings)):
+        if embeddings[i] is not None:
+
+            face_embeddings.append(
+                {
+                    "image_path": path_str,
+                    "embedding": embeddings[i],
+                    "bbox": [
+                        regions[i]["x"],
+                        regions[i]["y"],
+                        regions[i]["w"],
+                        regions[i]["h"],
+                    ],
+                    "confidence": regions[i]["confidence"],
+                }
+            )
 
     return face_embeddings
 
@@ -864,6 +903,9 @@ def process_retinaface_detections_for_arcface(
 ):
 
     face_embeddings = []
+    detections = []
+    path_strs = []
+    regions = []
 
     for i, (box, score, landmark) in enumerate(zip(boxes, scores, landmarks)):
         try:
@@ -955,20 +997,37 @@ def process_retinaface_detections_for_arcface(
                 if isinstance(detection, np.ndarray):
                     cv2.imwrite(face_path, cv2.cvtColor(detection, cv2.COLOR_RGB2BGR))
 
-            embedding = get_embedding(detection, model_name)
-
-            if embedding is not None:
-                face_embeddings.append(
-                    {
-                        "image_path": path_str,
-                        "embedding": embedding,
-                        "bbox": [region["x"], region["y"], region["w"], region["h"]],
-                        "confidence": region["confidence"],
-                    }
-                )
+            detections.append(detection)
+            path_strs.append(path_str)
+            regions.append(region)
 
         except Exception as e:
             logger.error(f"Error processing face {i}: {str(e)}")
             continue
+
+    # Generate embedding
+    try:
+
+        embeddings = get_embedding(detections, model_name, "base")
+
+    except Exception as e:
+        logger.error(f"Error getting embedding for face {i}: {str(e)}")
+
+    for i in range(len(embeddings)):
+        if embeddings[i] is not None:
+
+            face_embeddings.append(
+                {
+                    "image_path": path_str,
+                    "embedding": embeddings[i],
+                    "bbox": [
+                        regions[i]["x"],
+                        regions[i]["y"],
+                        regions[i]["w"],
+                        regions[i]["h"],
+                    ],
+                    "confidence": regions[i]["confidence"],
+                }
+            )
 
     return face_embeddings

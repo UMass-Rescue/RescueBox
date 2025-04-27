@@ -17,6 +17,7 @@ def get_embedding(
     normalization: str = "base",
 ):
     """Extract embedding using ArcFace ONNX model with NHWC format"""
+    # face_imgs must be a single instance or a list
     onnx_model_path = ""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
@@ -55,11 +56,9 @@ def get_embedding(
         target_size = ort_session.get_inputs()[0].shape[1:3]
     log_info(f"target_size: {target_size}")
 
-    # Handle list of image paths or 4D numpy array
+    # Handle list of image paths
     if isinstance(face_imgs, list):
         images = face_imgs
-    elif isinstance(face_imgs, np.ndarray) and img_path.ndim == 4:
-        images = [face_imgs[i] for i in range(face_imgs.shape[0])]
     else:
         images = [face_imgs]
 
@@ -89,7 +88,7 @@ def get_embedding(
         img = np.expand_dims(img, axis=0)
         img /= 255  # normalize input in [0, 1]
 
-        img = preprocessing.normalize_input(img=img, normalization=model_name)
+        img = preprocessing.normalize_input(img=img, normalization=normalization)
         batch_images.append(img)
 
     batch_images = np.concatenate(batch_images, axis=0)

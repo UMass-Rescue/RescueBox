@@ -1,17 +1,16 @@
 import json
 import os
 
-from facematch.facematch.database_functions import (
-    upload_embedding_to_database,
-    query,
-    query_bulk,
-)
+from facematch.facematch.database_functions import Vector_Database
 from facematch.facematch.face_representation import detect_faces_and_get_embeddings
 from facematch.facematch.utils.logger import log_info
 from facematch.facematch.utils.resource_path import get_config_path
 
 
 class FaceMatchModel:
+    def __init__(self):
+        self.DB = Vector_Database()
+
     # Function that takes in path to directory of images to upload to database and returns a success or failure message.
     def bulk_upload(self, image_directory_path, collection_name=None):
         try:
@@ -71,7 +70,9 @@ class FaceMatchModel:
 
                     # Upload every 1000 files into database for more efficiency and security.
                     if total_files_uploaded % 1000 == 0 and total_files_uploaded != 0:
-                        upload_embedding_to_database(embedding_outputs, collection_name)
+                        self.DB.upload_embedding_to_database(
+                            embedding_outputs, collection_name
+                        )
                         embedding_outputs = []
                         log_info(
                             "Successfully uploaded "
@@ -83,7 +84,7 @@ class FaceMatchModel:
                         )
 
             if len(embedding_outputs) != 0:
-                upload_embedding_to_database(embedding_outputs, collection_name)
+                self.DB.upload_embedding_to_database(embedding_outputs, collection_name)
                 log_info(
                     "Successfully uploaded "
                     + str(total_files_uploaded)
@@ -128,7 +129,7 @@ class FaceMatchModel:
                 matching_image_paths = []
                 # If image has a valid face, perform similarity check
                 if status:
-                    output = query(
+                    output = self.DB.query(
                         collection_name,
                         embedding_outputs,
                         n_results=10,
@@ -201,7 +202,7 @@ class FaceMatchModel:
                 num_embeddings = len(all_embedding_outputs)
 
                 if num_embeddings % query_batch_size == 0 and num_embeddings != 0:
-                    matching_image_paths = query_bulk(
+                    matching_image_paths = self.DBquery_bulk(
                         collection_name,
                         all_embedding_outputs,
                         10,
@@ -215,7 +216,7 @@ class FaceMatchModel:
                     )
 
             if len(all_embedding_outputs) != 0:
-                matching_image_paths = query_bulk(
+                matching_image_paths = self.DB.query_bulk(
                     collection_name,
                     all_embedding_outputs,
                     10,

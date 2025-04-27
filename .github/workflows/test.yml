@@ -8,6 +8,8 @@ jobs:
   build:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    env:
+      IS_TESTING: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,6 +23,13 @@ jobs:
         run: |
           pip install poetry
           poetry install --with api --with dev
+      
+      - name: Install FaceMatch ONNX Models from Google Drive
+        run: |
+          pip install gdown
+          mkdir -p "${{ github.workspace }}/src/FaceDetectionandRecognition/facematch/facematch/models"
+          gdown "1oDt1i80rUew0UhtY3UiW9EIyd2WfJTZf" --fuzzy -O ./src/FaceDetectionandRecognition/facematch/facematch/models/retinaface-resnet50.onnx --continue
+          gdown "1CVCmumM_6C7giGAXJUwHWT--DPFC9bpI" --fuzzy -O ./src/FaceDetectionandRecognition/facematch/facematch/models/facenet512_model.onnx --continue
 
       - name: Run tests
         run: poetry run pytest

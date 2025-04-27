@@ -45,7 +45,7 @@ class TestFaceMatch(RBAppTest):
             ),
             (
                 5,
-                "listcollection",
+                "listcollections",
                 "List Collection",
                 fm_server.list_collections_task_schema(),
             ),
