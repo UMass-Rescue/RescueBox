@@ -8,8 +8,8 @@ class TransformerModelONNX:
     def __init__(
         self, model_path="onnx_models/transformer_model_deepfake.onnx", resolution=224
     ):
-        # Convert model_path to a Path object
-        self.model_path = Path(model_path)
+        print(Path.cwd())
+        self.model_path = Path(__file__).resolve().parent.parent / "onnx_models" / "transformer_model_deepfake.onnx"
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime
         )
