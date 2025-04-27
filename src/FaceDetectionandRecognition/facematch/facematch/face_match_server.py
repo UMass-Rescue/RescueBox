@@ -1,6 +1,5 @@
 import json
 import os
-import chromadb
 import typer
 from dotenv import load_dotenv
 from typing import List, TypedDict
@@ -9,7 +8,6 @@ from rb.lib.ml_service import MLService
 from rb.api.models import (
     TextInput,
     BatchTextResponse,
-    Input,
     BatchDirectoryInput,
     BatchFileInput,
     DirectoryInput,
@@ -31,11 +29,11 @@ from rb.api.models import (
 from facematch.facematch.interface import FaceMatchModel
 from facematch.facematch.utils.GPU import check_cuDNN_version
 from facematch.facematch.utils.logger import log_info
+from facematch.facematch.database_functions import Vector_Database
 
 load_dotenv()
-DBclient = chromadb.HttpClient(
-    host=os.environ.get("CHROMA_HOST"), port=os.environ.get("CHROMA_PORT")
-)
+
+DB = Vector_Database()
 
 APP_NAME = "face-match"
 server = MLService(APP_NAME)
@@ -60,7 +58,7 @@ available_collections: List[str] = ["Create a new collection"]
 
 # Load all available collections from chromaDB
 existing_collections = [
-    collection.name.split("_")[0] for collection in DBclient.list_collections()
+    collection.name.split("_")[0] for collection in DB.client.list_collections()
 ]
 available_collections.extend(existing_collections)
 
@@ -122,15 +120,17 @@ face_match_model = FaceMatchModel()
 def face_find_cli_parser(inputs):
     image_paths = inputs.split(",")
     return {
-        "image_paths": BatchFileInput(files= [{"path": file_path} for file_path in image_paths])
+        "image_paths": BatchFileInput(
+            files=[{"path": file_path} for file_path in image_paths]
+        )
     }
 
 
 def face_find_param_parser(params):
     collection_name, similarity_threshold = params.split(",")
     return {
-        "collection_name": collection_name, 
-        "similarity_threshold": float(similarity_threshold)
+        "collection_name": collection_name,
+        "similarity_threshold": float(similarity_threshold),
     }
 
 
@@ -238,7 +238,10 @@ def find_face_bulk_cli_parser(inputs):
 
 def find_face_bulk_param_parser(inputs):
     collection_name, similarity_threshold = inputs.split(",")
-    return {"collection_name": collection_name, "similarity_threshold": float(similarity_threshold)}
+    return {
+        "collection_name": collection_name,
+        "similarity_threshold": float(similarity_threshold),
+    }
 
 
 # Inputs and parameters for the findfacebulk endpoint
@@ -421,17 +424,20 @@ def get_ingest_images_task_schema() -> TaskSchema:
 
 
 def bulk_upload_cli_parser(inputs):
-    directory_paths = inputs.split(',')
-    
+    directory_paths = inputs.split(",")
+
     return {
-        "directory_paths": BatchDirectoryInput(directories=[{"path": directory_path} for directory_path in directory_paths]) 
+        "directory_paths": BatchDirectoryInput(
+            directories=[{"path": directory_path} for directory_path in directory_paths]
+        )
     }
 
+
 def bulk_upload_param_parser(params):
-    dropdown_collection_name, collection_name= params.split(',')
+    dropdown_collection_name, collection_name = params.split(",")
     return {
-        "dropdown_collection_name": dropdown_collection_name, 
-        "collection_name": collection_name
+        "dropdown_collection_name": dropdown_collection_name,
+        "collection_name": collection_name,
     }
 
 
@@ -529,8 +535,9 @@ def delete_collection_cli_parser(parameters):
     return {
         "collection_name": collection_name,
         "model_name": model_name,
-        "detector_backend": detector_backend
+        "detector_backend": detector_backend,
     }
+
 
 # Inputs and parameters for the bulkupload endpoint
 class DeleteCollectionInputs(TypedDict):
@@ -538,14 +545,19 @@ class DeleteCollectionInputs(TypedDict):
     detector_backend: TextInput
     model_name: TextInput
 
+
 # Endpoint for deleting collections from ChromaDB
-def delete_collection_endpoint(inputs: DeleteCollectionInputs, ) -> ResponseBody: # parameters: DeleteCollectionParameters
+def delete_collection_endpoint(
+    inputs: DeleteCollectionInputs,
+) -> ResponseBody:  # parameters: DeleteCollectionParameters
     responseValue = ""
     collection_name = inputs["collection_name"]
     model_name = inputs["model_name"]
     detector_backend = inputs["detector_backend"]
     try:
-        DBclient.delete_collection(f"{collection_name}_{detector_backend}_{model_name}")
+        DB.client.delete_collection(
+            f"{collection_name}_{detector_backend}_{model_name}"
+        )
         responseValue = (
             f"Successfully deleted {collection_name}_{detector_backend}_{model_name}"
         )
@@ -596,7 +608,7 @@ def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
     responseValue = None
 
     try:
-        responseValue = DBclient.list_collections()
+        responseValue = DB.client.list_collections()
         log_info(responseValue)
     except Exception:
         responseValue = ["Failed to List Collections"]
