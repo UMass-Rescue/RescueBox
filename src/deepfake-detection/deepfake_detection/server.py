@@ -13,6 +13,8 @@ from rb.api.models import (
     InputType,
     ResponseBody,
     TaskSchema,
+    ParameterSchema,
+    TextParameterDescriptor,
 )
 from process.bnext_M import BNext_M_ModelONNX
 from process.bnext_S import BNext_S_ModelONNX
@@ -24,7 +26,7 @@ from sim_data import defaultDataset
 from collections import defaultdict
 
 warnings.filterwarnings("ignore")
-APP_NAME = "deepfake-detection"
+APP_NAME = "deepfake_detection"
 
 # Configure UI Elements in RescueBox Desktop
 def create_transform_case_task_schema() -> TaskSchema:
@@ -38,7 +40,13 @@ def create_transform_case_task_schema() -> TaskSchema:
         label="Path to the output file",
         input_type=InputType.DIRECTORY,
     )
-    return TaskSchema(inputs=[input_schema, output_schema], parameters=[])
+    models_schema = ParameterSchema(
+        key="models",
+        label="Comma-separated list of models to use (e.g., 'BNext_M_ModelONNX,TransformerModelONNX'). Use 'all' to run all models.",
+        input_type=InputType.TEXT,
+        value=TextParameterDescriptor(default="all"),
+    )
+    return TaskSchema(inputs=[input_schema, output_schema], parameters=[models_schema])
 
 
 # Specify the input and output types for the task
@@ -48,20 +56,7 @@ class Inputs(TypedDict):
 
 
 class Parameters(TypedDict):
-    pass
-
-
-# Create a server instance
-server = MLService(APP_NAME)
-app = server.app
-
-server.add_app_metadata(
-    name="Image DeepFake Detector",
-    author="UMass Rescue",
-    version="0.2.0",
-    info = "Detects deepfake images using various models. Supports BNext_M, BNext_S, Transformer, and TransformerDima models.",
-    plugin_name="DEEPFAKE_APP_NAME",
-)
+    models: str
 
 models = [
     BNext_M_ModelONNX(),
@@ -99,14 +94,35 @@ def run_models(models, dataset):
         results.append(model_results)
     return results
 
-def cli_parser(input_dataset, output_file) -> Inputs:
+def cli_parser(input_dataset: str, output_file: str) -> Inputs:
+    input_dataset = Path(input_dataset)
+    output_file = Path(output_file)
+
+    # Ensure input dataset exists
+    if not input_dataset.exists():
+        raise ValueError("Input dataset directory does not exist.")
+
+    # Treat output_file as a directory if it doesn't have a file extension
+    if output_file.suffix == "":
+        output_dir = output_file
+    else:
+        output_dir = output_file.parent
+
+    # Ensure the output directory exists
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Input dataset: {input_dataset}")
+    print(f"Output directory: {output_dir}")
     return {
         "input_dataset": DirectoryInput(path=str(input_dataset)),
-        "output_file": DirectoryInput(path=str(output_file)),
+        "output_file": DirectoryInput(path=str(output_dir)),
     }
 
-def param_parser() -> Parameters:
-    return {}
+def param_parser(models: str = "all") -> Parameters:
+    return {
+        "models": models,
+    }
 
 # @server.route(
 #     "/predict",
@@ -117,13 +133,27 @@ def param_parser() -> Parameters:
 def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     input_path = inputs["input_dataset"].path
     out = Path(inputs["output_file"].path)
+    selected_models = parameters.get("models", "all").split(",")
+
+    # Filter models
+    if "all" in selected_models:
+        active_models = models
+    else:
+        model_map = {
+            "BNext_M_ModelONNX": BNext_M_ModelONNX,
+            "BNext_S_ModelONNX": BNext_S_ModelONNX,
+            "TransformerModelONNX": TransformerModelONNX,
+            "TransformerModelDimaONNX": TransformerModelDimaONNX,
+        }
+        active_models = [model_map[m]() for m in selected_models if m in model_map]
+
     # Need logic to verify that the random num is not already in the directory *******
-    random_num = randint(0, 999)
-    out = out / (f"predictions_{random_num}.csv")
+    out.mkdir(parents=True, exist_ok=True)
+    out = out / f"predictions_{randint(0, 999)}.csv"
 
     dataset = defaultDataset(dataset_path=input_path, resolution=224)
+    res_list = run_models(active_models, dataset)
 
-    res_list = run_models(models, dataset)
     # Prepare model data structure
     model_data = []
     for model_results in res_list:
@@ -176,16 +206,36 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
     return ResponseBody(FileResponse(path=str(out), file_type="csv"))
 
+# ----------------------------
+# Server Setup Below
+# ----------------------------
+
+# Create a server instance
+server = MLService(APP_NAME)
+app = server.app
+
+server.add_app_metadata(
+    name="Image DeepFake Detector",
+    author="UMass Rescue",
+    version="0.2.0",
+    info = "Detects deepfake images using various models. Supports BNext_M, BNext_S, Transformer, and TransformerDima models.",
+    plugin_name="DEEPFAKE_APP_NAME",
+)
+
+
 server.add_ml_service(
     rule="/predict",
     ml_function=give_prediction,
-    inputs_cli_parser=typer.Argument(parser=cli_parser, help="Input and output directory paths"),
-    parameters_cli_parser=typer.Argument(parser=param_parser, help="Model parameters"),
+    inputs_cli_parser=typer.Argument(
+        parser=cli_parser, help="Provide the input dataset directory and output file path."
+    ),
+    parameters_cli_parser=typer.Option(
+        parser=param_parser, help="Comma-separated list of models to use (e.g., 'BNext_M_ModelONNX,TransformerModelONNX')."
+    ),
     short_title="DeepFake Detection",
     order=0,
     task_schema_func=create_transform_case_task_schema,
 )
-
 
 if __name__ == "__main__":
     # parser = argparse.ArgumentParser(description="Run a server.")

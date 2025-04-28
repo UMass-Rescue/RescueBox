@@ -16,7 +16,7 @@ class BNext_S_ModelONNX:
     def __init__(
         self, model_path="onnx_models/bnext_S_coco_model.onnx", resolution=224
     ):
-        print(Path.cwd())
+        print("Loading BNext_S Model ONNX...")
         self.model_path = Path(__file__).resolve().parent.parent / "onnx_models" / "bnext_S_coco_model.onnx"
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime
