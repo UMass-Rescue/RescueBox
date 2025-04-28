@@ -458,9 +458,9 @@ def bulk_upload_endpoint(
     # If dropdown value chosen is Create a new collection, then add collection to available collections, otherwise set
     # collection to dropdown value
     if parameters["dropdown_collection_name"] != "Create a new collection":
-        parameters["collection_name"] = parameters["dropdown_collection_name"]
-
-    new_collection_name = parameters["collection_name"]
+        new_collection_name = parameters["dropdown_collection_name"]
+    else:
+        new_collection_name = parameters["collection_name"]
 
     # Check CUDNN compatability
     check_cuDNN_version()
@@ -471,14 +471,14 @@ def bulk_upload_endpoint(
     log_info(input_directory_paths[0])
     # Call the model function
     response = face_match_model.bulk_upload(
-        input_directory_paths[0], parameters["collection_name"]
+        input_directory_paths[0], new_collection_name
     )
 
     if response.startswith("Successfully uploaded") and response.split(" ")[2] != "0":
         # Some files were uploaded
         if parameters["dropdown_collection_name"] == "Create a new collection":
             # Add new collection to available collections if collection name is not already in available collections
-            if parameters["collection_name"] not in available_collections:
+            if new_collection_name not in available_collections:
                 available_collections.append(new_collection_name)
     return ResponseBody(root=TextResponse(value=response))
 
