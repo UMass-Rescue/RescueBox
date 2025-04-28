@@ -206,6 +206,19 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
     return ResponseBody(FileResponse(path=str(out), file_type="csv"))
 
+# Define a wrapper function for Typer integration for inputs
+def _cli_inputs_handler(
+    input_dataset: str = typer.Argument(..., help="Path to the input dataset directory."),
+    output_file: str = typer.Argument(..., help="Path to the output directory or file path.")
+):
+    """
+    This function is called by Typer with the parsed command-line arguments.
+    It then calls the original cli_parser to validate paths and return the Inputs dict.
+    """
+    # Call the original cli_parser to get the Inputs dictionary
+    # Note: We removed the -> Inputs annotation here to avoid potential Typer issues
+    return cli_parser(input_dataset, output_file)
+
 # ----------------------------
 # Server Setup Below
 # ----------------------------
@@ -226,9 +239,7 @@ server.add_app_metadata(
 server.add_ml_service(
     rule="/predict",
     ml_function=give_prediction,
-    inputs_cli_parser=typer.Argument(
-        parser=cli_parser, help="Provide the input dataset directory and output file path."
-    ),
+    inputs_cli_parser=_cli_inputs_handler,
     parameters_cli_parser=typer.Option(
         parser=param_parser, help="Comma-separated list of models to use (e.g., 'BNext_M_ModelONNX,TransformerModelONNX')."
     ),
