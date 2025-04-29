@@ -22,5 +22,14 @@ jobs:
           pip install poetry
           poetry install --with api --with dev
 
+      - name: Create required files
+        run: |
+          mkdir src/deepfake-detection/deepfake_detection/onnx_models
+          touch src/deepfake-detection/deepfake_detection/onnx_models/bnext_M_dffd_model.onnx
+          touch src/deepfake-detection/deepfake_detection/onnx_models/bnext_S_coco_model.onnx
+          touch src/deepfake-detection/deepfake_detection/onnx_models/dima_transformer.onnx
+          touch src/deepfake-detection/deepfake_detection/onnx_models/transformer_model_deepfake.onnx
+
+
       - name: Run tests
         run: poetry run pytest
