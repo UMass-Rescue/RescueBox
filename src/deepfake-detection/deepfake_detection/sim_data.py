@@ -17,7 +17,7 @@ class defaultDataset:
                 or image_path.lower().endswith(".png")
                 or image_path.lower().endswith(".jpeg")
             ):
-                self.images.append(dataset_path + "/" + image_path)
+                self.images.append(str(dataset_path / image_path))
 
     def __len__(self):
         return len(self.images)
@@ -31,7 +31,7 @@ class defaultDataset:
     def __getitem__(self, i):
         try:
             image, res = self.read_image(self.images[i])
-        except:
+        except Exception as e:
             print(f"Error reading image {self.images[i]}")
             return None
         sample = {

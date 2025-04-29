@@ -1,11 +1,10 @@
 import logging
-import json
 from pathlib import Path
-import pytest
 from unittest.mock import patch
 from deepfake_detection.server import app as cli_app, APP_NAME, task_schema
 from rb.api.models import AppMetadata, ResponseBody
 from rb.lib.common_tests import RBAppTest
+
 
 class TestDeepFakeServer(RBAppTest):
     def setup_method(self):
@@ -35,7 +34,11 @@ class TestDeepFakeServer(RBAppTest):
         run_models_mock.return_value = [
             [
                 {"model_name": "TestModel"},
-                {"image_path": str(dummy_image), "prediction": "fake", "confidence": 1.0},
+                {
+                    "image_path": str(dummy_image),
+                    "prediction": "fake",
+                    "confidence": 1.0,
+                },
             ]
         ]
         # Set up input/output directories
@@ -46,7 +49,9 @@ class TestDeepFakeServer(RBAppTest):
         output_dir.mkdir()
 
         predict_api = f"/{APP_NAME}/predict"
-        result = self.runner.invoke(cli_app, [predict_api, str(input_dir), str(output_dir)])
+        result = self.runner.invoke(
+            cli_app, [predict_api, str(input_dir), str(output_dir)]
+        )
         assert result.exit_code == 0, f"CLI failed: {result.output}"
 
         # Verify a CSV was created and contains our mock data
@@ -71,7 +76,11 @@ class TestDeepFakeServer(RBAppTest):
         run_models_mock.return_value = [
             [
                 {"model_name": "TestModel"},
-                {"image_path": str(dummy_image), "prediction": "fake", "confidence": 1.0},
+                {
+                    "image_path": str(dummy_image),
+                    "prediction": "fake",
+                    "confidence": 1.0,
+                },
             ]
         ]
         # Set up input/output directories
