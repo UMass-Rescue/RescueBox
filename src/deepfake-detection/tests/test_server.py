@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from unittest.mock import patch
-from deepfake_detection.server import app as cli_app, APP_NAME, task_schema
+from deepfake_detection.main import app as cli_app, APP_NAME, create_transform_case_task_schema as task_schema
 from rb.api.models import AppMetadata, ResponseBody
 from rb.lib.common_tests import RBAppTest
 
@@ -21,11 +21,11 @@ class TestDeepFakeServer(RBAppTest):
 
     def get_all_ml_services(self):
         return [
-            (0, "predict", "Image DeepFake Detector", task_schema()),
+            (0, "predict", "DeepFake Detection", task_schema()),
         ]
 
-    @patch("deepfake_detection.server.defaultDataset")
-    @patch("deepfake_detection.server.run_models")
+    @patch("deepfake_detection.main.defaultDataset")
+    @patch("deepfake_detection.main.run_models")
     def test_cli_predict(self, run_models_mock, defaultDataset_mock, caplog, tmp_path):
         caplog.set_level(logging.INFO)
         # Prepare a dummy image and mock predictions
@@ -49,8 +49,10 @@ class TestDeepFakeServer(RBAppTest):
         output_dir.mkdir()
 
         predict_api = f"/{APP_NAME}/predict"
+        inputs_str = f"{str(input_dir)},{str(output_dir)}"
+        parameters_str = "all"
         result = self.runner.invoke(
-            cli_app, [predict_api, str(input_dir), str(output_dir)]
+            cli_app, [predict_api, inputs_str, parameters_str]
         )
         assert result.exit_code == 0, f"CLI failed: {result.output}"
 
@@ -64,11 +66,13 @@ class TestDeepFakeServer(RBAppTest):
     def test_invalid_path(self):
         predict_api = f"/{APP_NAME}/predict"
         bad_dir = Path("nonexistent_dir")
-        result = self.runner.invoke(cli_app, [predict_api, str(bad_dir), str(bad_dir)])
+        inputs_str = f"{str(bad_dir)},{str(bad_dir)}"
+        parameters_str = "all"
+        result = self.runner.invoke(cli_app, [predict_api, inputs_str, parameters_str])
         assert result.exit_code != 0
 
-    @patch("deepfake_detection.server.defaultDataset")
-    @patch("deepfake_detection.server.run_models")
+    @patch("deepfake_detection.main.defaultDataset")
+    @patch("deepfake_detection.main.run_models")
     def test_api_predict(self, run_models_mock, defaultDataset_mock, tmp_path):
         # Prepare a dummy image and mock predictions
         dummy_image = tmp_path / "img1.jpg"
@@ -95,13 +99,16 @@ class TestDeepFakeServer(RBAppTest):
             "inputs": {
                 "input_dataset": {"path": str(input_dir)},
                 "output_file": {"path": str(output_dir)},
-            }
+            },
+            "parameters": {
+                "models": "all",
+            },
         }
         response = self.client.post(predict_api, json=payload)
         assert response.status_code == 200
         body = ResponseBody(**response.json())
         file_resp = body.root
-        assert file_resp.file_type == "csv"
+        assert file_resp.file_type.value == "csv"
         csv_path = Path(file_resp.path)
         assert csv_path.exists()
         content = csv_path.read_text()
