@@ -1,5 +1,4 @@
 # imports
-import argparse
 import csv
 import warnings
 import typer
@@ -82,7 +81,6 @@ def run_models(models, dataset):
             sample = dataset[i]
             image = sample["image"]
             image_path = sample["image_path"]
-            original_res = sample["original_res"]
 
             # Preprocess, predict, postprocess
             preprocessed_image = model.preprocess(image)

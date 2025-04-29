@@ -1,5 +1,4 @@
 from pathlib import Path
-from PIL import Image
 import onnxruntime as ort
 import numpy as np
 

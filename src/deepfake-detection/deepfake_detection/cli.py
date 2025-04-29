@@ -44,7 +44,6 @@ def run_models(models, dataset):
             # print(sample)
             image = sample["image"]
             image_path = sample["image_path"]
-            original_res = sample["original_res"]
 
             # Preprocess the image
             preprocessed_image = model.preprocess(image)
