@@ -1,5 +1,4 @@
 # imports
-import argparse
 import csv
 import warnings
 import typer
@@ -19,16 +18,28 @@ from rb.api.models import (
 from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 from deepfake_detection.process.bnext_S import BNext_S_ModelONNX
 from deepfake_detection.process.transformer import TransformerModelONNX
-from deepfake_detection.process.transformerDima_onnx_process import TransformerModelDimaONNX
+from deepfake_detection.process.transformerDima_onnx_process import (
+    TransformerModelDimaONNX,
+)
 from random import randint
 import os
 from deepfake_detection.sim_data import defaultDataset
 from collections import defaultdict
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
+logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore")
 APP_NAME = "deepfake_detection"
 
 print("start")
+
+
 # Configure UI Elements in RescueBox Desktop
 def create_transform_case_task_schema() -> TaskSchema:
     print("create_transform_case_task_schema called")
@@ -74,7 +85,6 @@ def run_models(models, dataset):
             sample = dataset[i]
             image = sample["image"]
             image_path = sample["image_path"]
-            original_res = sample["original_res"]
 
             # Preprocess, predict, postprocess
             preprocessed_image = model.preprocess(image)
@@ -118,6 +128,7 @@ def cli_parser(input: str) -> Inputs:
         "output_file": DirectoryInput(path=str(output_dir)),
     }
 
+
 def param_parser(models: str) -> Parameters:
     print("param_parser called")
     if models == "all":
@@ -138,10 +149,17 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     print("give_prediction called")
     input_path = inputs["input_dataset"].path
     out = Path(inputs["output_file"].path)
-    selected_models = parameters.get("models", "all").split(",")
+    selected_models = parameters.get("models", "all")
+    if selected_models == "all":
+        selected_models = "BNext_M_ModelONNX,BNext_S_ModelONNX,TransformerModelONNX,TransformerModelDimaONNX"
+    selected_models = selected_models.split(",")
+
+    logger.info(f"Input path: {input_path}")
+    logger.info(f"Output path: {out}")
+    logger.info(f"Parameters: {parameters}")
+    logger.info(f"Selected models: {selected_models}")
 
     # Filter models
-    print("a")
     model_map = {
         "BNext_M_ModelONNX": BNext_M_ModelONNX,
         "BNext_S_ModelONNX": BNext_S_ModelONNX,
@@ -149,31 +167,28 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         "TransformerModelDimaONNX": TransformerModelDimaONNX,
     }
     active_models = [model_map[m]() for m in selected_models if m in model_map]
-    print("a")
+    logger.info(f"Active models: {[m.__class__.__name__ for m in active_models]}")
     # Need logic to verify that the random num is not already in the directory *******
     out.mkdir(parents=True, exist_ok=True)
     out = out / f"predictions_{randint(0, 999)}.csv"
 
     dataset = defaultDataset(dataset_path=input_path, resolution=224)
     res_list = run_models(active_models, dataset)
-    print("a")
+    logger.info(f"Results list: {res_list}")
     # Prepare model data structure
     model_data = []
     for model_results in res_list:
         model_name = model_results[0]["model_name"]
         predictions = model_results[1:]
         model_data.append({"name": model_name, "predictions": predictions})
-    print("a")
     # Build CSV content
     csv_rows = []
     # Add model names header
     csv_rows.append(["Model:"] + [m["name"] for m in model_data] + ["Aggregate"])
-    print("a")
     # Loop over each image (driven by the first model's predictions)
     num_images = len(model_data[0]["predictions"])
-    print("lenmodeldatagood")
     for i in range(num_images):
-        print("a")
+
         # Extract the common image path (basename)
         path = os.path.basename(model_data[0]["predictions"][i]["image_path"])
 
@@ -205,7 +220,6 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             ["Confidence:"] + [f"{conf * 100:.0f}%" for conf in confs] + [agg_conf_pct]
         )
 
-    print("a")
     with open(out, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(csv_rows)
@@ -219,14 +233,13 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
 # Create a server instance
 server = MLService(APP_NAME)
-app = server.app
 
 server.add_app_metadata(
     name="Image DeepFake Detector",
     author="UMass Rescue",
     version="0.2.0",
     info="Detects deepfake images using various models. Supports BNext_M, BNext_S, Transformer, and TransformerDima models.",
-    plugin_name="DEEPFAKE_APP_NAME",
+    plugin_name=APP_NAME,
 )
 
 
@@ -246,7 +259,7 @@ server.add_ml_service(
     task_schema_func=create_transform_case_task_schema,
 )
 
-
+app = server.app
 if __name__ == "__main__":
     # parser = argparse.ArgumentParser(description="Run a server.")
     # parser.add_argument(

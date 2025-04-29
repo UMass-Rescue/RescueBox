@@ -32,7 +32,7 @@ class defaultDataset:
         try:
             image, res = self.read_image(self.images[i])
         except Exception as e:
-            print(f"Error reading image {self.images[i]}")
+            print(f"Error reading image {self.images[i]}. Error: {e}")
             return None
         sample = {
             "image_path": self.images[i],

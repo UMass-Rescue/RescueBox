@@ -22,5 +22,14 @@ jobs:
           pip install poetry
           poetry install --with api --with dev
 
+      - name: Create required files
+        run: |
+          pip install gdown
+          mkdir src/deepfake-detection/deepfake_detection/onnx_models
+          gdown "1tFHTXCGy0hWRFH2H9MP9MpaBJvyHbW0u" --fuzzy -O src/deepfake-detection/deepfake_detection/onnx_models/bnext_M_dffd_model.onnx --continue
+          gdown "1J1PjIFekJ0LEp3MxJ8ReOBmnqe5-4na6" --fuzzy -O src/deepfake-detection/deepfake_detection/onnx_models/bnext_S_coco_model.onnx --continue
+          gdown "1z1R8E8xXvIhIgRGSK0HWg3-T0n750b6l" --fuzzy -O src/deepfake-detection/deepfake_detection/onnx_models/dima_transformer.onnx --continue
+          gdown "1Ve2n-qq-zwfeBJLmeCV2XneHGb37Bgjq" --fuzzy -O src/deepfake-detection/deepfake_detection/onnx_models/transformer_model_deepfake.onnx --continue
+
       - name: Run tests
         run: poetry run pytest
