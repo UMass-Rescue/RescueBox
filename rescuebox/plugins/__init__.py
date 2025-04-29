@@ -30,7 +30,9 @@ plugins: list[RescueBoxPlugin] = [
     ),
     RescueBoxPlugin(age_gender_app, AGE_GENDER_APP_NAME, "Age and Gender Classifier"),
     RescueBoxPlugin(text_summary_app, TEXT_SUM_APP_NAME, "Text summarization library"),
-    RescueBoxPlugin(deepfake_detection_app, DEEPFAKE_APP_NAME, "Deepfake Image Detection"),
+    RescueBoxPlugin(
+        deepfake_detection_app, DEEPFAKE_APP_NAME, "Deepfake Image Detection"
+    ),
 ]
 
 # Ensure this module is importable

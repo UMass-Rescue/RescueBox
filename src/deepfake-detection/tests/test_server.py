@@ -1,7 +1,11 @@
 import logging
 from pathlib import Path
 from unittest.mock import patch
-from deepfake_detection.main import app as cli_app, APP_NAME, create_transform_case_task_schema as task_schema
+from deepfake_detection.main import (
+    app as cli_app,
+    APP_NAME,
+    create_transform_case_task_schema as task_schema,
+)
 from rb.api.models import AppMetadata, ResponseBody
 from rb.lib.common_tests import RBAppTest
 
@@ -51,9 +55,7 @@ class TestDeepFakeServer(RBAppTest):
         predict_api = f"/{APP_NAME}/predict"
         inputs_str = f"{str(input_dir)},{str(output_dir)}"
         parameters_str = "all"
-        result = self.runner.invoke(
-            cli_app, [predict_api, inputs_str, parameters_str]
-        )
+        result = self.runner.invoke(cli_app, [predict_api, inputs_str, parameters_str])
         assert result.exit_code == 0, f"CLI failed: {result.output}"
 
         # Verify a CSV was created and contains our mock data

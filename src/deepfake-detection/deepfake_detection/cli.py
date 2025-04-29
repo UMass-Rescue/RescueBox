@@ -3,7 +3,9 @@ from deepfake_detection.sim_data import defaultDataset
 from deepfake_detection.process.transformer import TransformerModelONNX
 from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 from deepfake_detection.process.bnext_S import BNext_S_ModelONNX
-from deepfake_detection.process.transformerDima_onnx_process import TransformerModelDimaONNX
+from deepfake_detection.process.transformerDima_onnx_process import (
+    TransformerModelDimaONNX,
+)
 from pathlib import Path
 import json
 import pandas as pd

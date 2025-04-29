@@ -18,7 +18,9 @@ from rb.api.models import (
 from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 from deepfake_detection.process.bnext_S import BNext_S_ModelONNX
 from deepfake_detection.process.transformer import TransformerModelONNX
-from deepfake_detection.process.transformerDima_onnx_process import TransformerModelDimaONNX
+from deepfake_detection.process.transformerDima_onnx_process import (
+    TransformerModelDimaONNX,
+)
 from random import randint
 import os
 from deepfake_detection.sim_data import defaultDataset
@@ -36,6 +38,8 @@ warnings.filterwarnings("ignore")
 APP_NAME = "deepfake_detection"
 
 print("start")
+
+
 # Configure UI Elements in RescueBox Desktop
 def create_transform_case_task_schema() -> TaskSchema:
     print("create_transform_case_task_schema called")
@@ -123,6 +127,7 @@ def cli_parser(input: str) -> Inputs:
         "input_dataset": DirectoryInput(path=str(input_dataset)),
         "output_file": DirectoryInput(path=str(output_dir)),
     }
+
 
 def param_parser(models: str) -> Parameters:
     print("param_parser called")
