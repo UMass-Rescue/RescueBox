@@ -6,7 +6,7 @@ from deepfake_detection.process.bnext_S import BNext_S_ModelONNX
 from deepfake_detection.process.transformerDima_onnx_process import (
     TransformerModelDimaONNX,
 )
-from process.resnet50 import Resnet50ModelONNX
+from deepfake_detection.process.resnet50 import Resnet50ModelONNX
 from pathlib import Path
 import json
 import pandas as pd
