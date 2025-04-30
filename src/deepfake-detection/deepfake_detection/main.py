@@ -21,7 +21,7 @@ from deepfake_detection.process.transformer import TransformerModelONNX
 from deepfake_detection.process.transformerDima_onnx_process import (
     TransformerModelDimaONNX,
 )
-from process.resnet50 import Resnet50ModelONNX
+from deepfake_detection.process.resnet50 import Resnet50ModelONNX
 from random import randint
 import os
 from deepfake_detection.sim_data import defaultDataset
