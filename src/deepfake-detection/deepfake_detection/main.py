@@ -21,6 +21,7 @@ from deepfake_detection.process.transformer import TransformerModelONNX
 from deepfake_detection.process.transformerDima_onnx_process import (
     TransformerModelDimaONNX,
 )
+from process.resnet50 import Resnet50ModelONNX
 from random import randint
 import os
 from deepfake_detection.sim_data import defaultDataset
@@ -132,7 +133,7 @@ def cli_parser(input: str) -> Inputs:
 def param_parser(models: str) -> Parameters:
     print("param_parser called")
     if models == "all":
-        models = "BNext_M_ModelONNX,BNext_S_ModelONNX,TransformerModelONNX,TransformerModelDimaONNX"
+        models = "BNext_M_ModelONNX,BNext_S_ModelONNX,TransformerModelONNX,TransformerModelDimaONNX, Resnet50ModelONNX"
 
     return {
         "models": models,
@@ -151,7 +152,7 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     out = Path(inputs["output_file"].path)
     selected_models = parameters.get("models", "all")
     if selected_models == "all":
-        selected_models = "BNext_M_ModelONNX,BNext_S_ModelONNX,TransformerModelONNX,TransformerModelDimaONNX"
+        selected_models = "BNext_M_ModelONNX,BNext_S_ModelONNX,TransformerModelONNX,TransformerModelDimaONNX, Resnet50ModelONNX"
     selected_models = selected_models.split(",")
 
     logger.info(f"Input path: {input_path}")
@@ -165,6 +166,7 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         "BNext_S_ModelONNX": BNext_S_ModelONNX,
         "TransformerModelONNX": TransformerModelONNX,
         "TransformerModelDimaONNX": TransformerModelDimaONNX,
+        "Resnet50ModelONNX": Resnet50ModelONNX,
     }
     active_models = [model_map[m]() for m in selected_models if m in model_map]
     logger.info(f"Active models: {[m.__class__.__name__ for m in active_models]}")
