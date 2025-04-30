@@ -6,6 +6,7 @@ from deepfake_detection.process.bnext_S import BNext_S_ModelONNX
 from deepfake_detection.process.transformerDima_onnx_process import (
     TransformerModelDimaONNX,
 )
+from process.resnet50 import Resnet50ModelONNX
 from pathlib import Path
 import json
 import pandas as pd
@@ -75,6 +76,7 @@ if __name__ == "__main__":
             BNext_S_ModelONNX,
             TransformerModelONNX,
             TransformerModelDimaONNX,
+            Resnet50ModelONNX,
         ]
     }
     input_path = Path("sample_input")
