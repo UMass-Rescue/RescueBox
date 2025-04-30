@@ -2,7 +2,7 @@ from PIL import Image
 import onnxruntime as ort
 import numpy as np
 from pathlib import Path
-from process.utils import (
+from deepfake_detection.process.utils import (
     Compose,
     InterpolationMode,
     Resize,

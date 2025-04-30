@@ -1,6 +1,7 @@
-from typing import Callable, Sequence, Any
-from PIL import Image
+from typing import Any, Callable, Sequence
+
 import numpy as np
+from PIL import Image
 
 
 class Compose:
@@ -72,3 +73,13 @@ class ToDtype:
             max_val = np.iinfo(orig_dtype).max
             arr = arr / max_val
         return arr
+    
+class Normalize:
+    def __init__(self, mean: Sequence[float], std: Sequence[float]):
+        self.mean = np.array(mean, dtype=np.float32).reshape((1, 1, 3))
+        self.std = np.array(std, dtype=np.float32).reshape((1, 1, 3))
+    def __call__(self, arr: np.ndarray) -> np.ndarray:
+        # Ensure array is float32 and in HWC format
+        if arr.ndim != 3 or arr.shape[2] != 3:
+            raise ValueError("Expected input of shape (H, W, 3)")
+        return (arr - self.mean) / self.std
