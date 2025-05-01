@@ -1,14 +1,14 @@
 """audio transcribe plugin"""
 
 import logging
-from typing import TypedDict
+from typing import List, TypedDict
 
-from pathlib import Path
-from pydantic import DirectoryPath, field_validator
+from pydantic import DirectoryPath
 import typer
 from rb.api.models import (
     BatchTextResponse,
     DirectoryInput,
+    FileFilterDirectory,
     InputSchema,
     InputType,
     ResponseBody,
@@ -40,33 +40,10 @@ model = AudioTranscriptionModel()
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac"}
 
 
-class AudioDirectory(DirectoryInput):
+class AudioDirectory(FileFilterDirectory):
+
     path: DirectoryPath
-
-    @field_validator("path")
-    @classmethod
-    def validate_directory(cls, v):
-        path = Path(v)
-
-        if not path.exists():
-            raise ValueError(f"validate audio directory: '{v}' does not exist.")
-        if not path.is_dir():
-            raise ValueError(
-                f"validate audio directory: Path '{v}' is not a directory."
-            )
-
-        audio_files = list(path.glob("*"))
-        if not audio_files:
-            raise ValueError(f"validate audio directory: Directory {v} is empty.")
-
-        no_audio = [f.name for f in audio_files if f.suffix.lower() in AUDIO_EXTENSIONS]
-
-        if len(no_audio) < 1:
-            raise ValueError(
-                f"validate audio directory: No-audio files found in directory: {v}"
-            )
-
-        return v
+    file_extensions: List[str] = AUDIO_EXTENSIONS
 
 
 class AudioInput(TypedDict):

@@ -5,9 +5,19 @@
 from __future__ import annotations
 
 from enum import Enum
+from pathlib import Path
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath, RootModel
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    DirectoryPath,
+    Field,
+    FilePath,
+    RootModel,
+    field_validator,
+    model_validator,
+)
 
 API_APPMETDATA = "app_metadata"
 API_ROUTES = "routes"
@@ -49,6 +59,42 @@ class DirectoryInput(BaseModel):
         populate_by_name=True,
     )
     path: DirectoryPath
+
+
+class FileFilterDirectory(DirectoryInput):
+    """Find files with file_extensions in path directory."""
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    path: str
+    file_extensions: List[str]
+
+    @field_validator("path")
+    @classmethod
+    def validate_directory(cls, v):
+        path = Path(v)
+
+        if not path.exists():
+            raise ValueError(f"validate directory: '{v}' does not exist.")
+        if not path.is_dir():
+            raise ValueError(f"validate directory: Path '{v}' is not a directory.")
+        return v
+
+    @model_validator(mode="after")
+    def file_filter(self) -> "FileFilterDirectory":
+        path_obj = Path(self.path)
+        files = list(path_obj.glob("*"))
+        if not files:
+            raise ValueError(f"validate directory: Directory {path_obj} is empty.")
+        number_of_matched_files = [
+            f.name for f in files if f.suffix.lower() in self.file_extensions
+        ]
+        if len(number_of_matched_files) < 1:
+            raise ValueError(
+                f"validate directory: No file extensions matching {self.file_extensions} found in directory: {path_obj}"
+            )
+        return self
 
 
 class TextInput(BaseModel):
