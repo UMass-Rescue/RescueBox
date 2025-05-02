@@ -1,10 +1,6 @@
 import cv2 as cv
-import os
 import logging
-import pandas as pd
-from src.utils.sqlAlchemy_manager import DBManager
 import numpy as np
-from src.utils.common import write_db, read_db
 
 logging.basicConfig(level=logging.INFO) # shows logs in the system
 

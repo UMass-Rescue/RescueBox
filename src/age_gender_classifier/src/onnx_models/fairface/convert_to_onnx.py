@@ -2,7 +2,6 @@ from transformers import ViTForImageClassification
 from transformers import ViTImageProcessor
 import torch
 from pathlib import Path
-import os
 
 # Load model and processor from HuggingFace
 model_name = "dima806/fairface_age_image_detection"

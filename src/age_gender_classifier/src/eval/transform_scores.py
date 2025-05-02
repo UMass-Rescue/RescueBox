@@ -34,7 +34,7 @@ def main(t_stamp: Optional[str] = None) -> pd.DataFrame:
 
     true_df = read_db(
         table_name="age_gender_labeled",
-        query=f"SELECT age AS true_label, img_name FROM age_gender_labeled"
+        query="SELECT age AS true_label, img_name FROM age_gender_labeled"
     )
 
     df_merged = pd.merge(df, true_df, left_on='imageId', right_on='img_name').drop("img_name", axis=1)

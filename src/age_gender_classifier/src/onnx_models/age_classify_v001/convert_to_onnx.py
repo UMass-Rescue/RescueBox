@@ -1,7 +1,5 @@
 import torch
 from transformers import ViTImageProcessor, ViTForImageClassification
-import onnx
-
 
 
 # Load model and image processor for selected model

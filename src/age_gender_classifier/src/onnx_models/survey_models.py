@@ -211,11 +211,12 @@ class SurveyModels:
         """Loop list of images, for each, run prediction and write results to db."""
         ids = list(range(len(images))) if ids is None else ids
         ct = 0
+        df = None
         for id, img in zip(ids, images):
             df1 = pd.DataFrame(self.predict(img, id))
             df2 = pd.DataFrame(self.predict_over_under(age_threshold, img, id))
             dfs = [df1, df2]
-            if ct > 0:
+            if ct > 0 and isinstance(df, pd.DataFrame):
                 dfs = [df] + dfs
             df = pd.concat(dfs, axis=0).reset_index(drop=True)
             ct += 1
