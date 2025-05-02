@@ -2,7 +2,6 @@ import torch
 from transformers import ViTImageProcessor, ViTForImageClassification
 
 
-
 # Load model and image processor for selected model
 
 # model_name = "nateraw/vit-age-classifier"

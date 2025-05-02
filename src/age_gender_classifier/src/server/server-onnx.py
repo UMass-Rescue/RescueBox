@@ -13,7 +13,7 @@ from flask_ml.flask_ml_server.models import (
     ResponseBody,
     TaskSchema,
     ParameterSchema,
-    IntParameterDescriptor
+    IntParameterDescriptor,
 )
 
 
@@ -30,13 +30,16 @@ def create_transform_case_task_schema() -> TaskSchema:
     param_schema = ParameterSchema(
         key="age_threshold",
         label="Age Threshold for Over/Under Prediction",
-        value=IntParameterDescriptor(default=20,)
+        value=IntParameterDescriptor(
+            default=20,
+        ),
     )
     return TaskSchema(inputs=[input_schema], parameters=[param_schema])
 
 
 class Inputs(TypedDict):
     """Specify the input and output types for the task"""
+
     input_dataset: DirectoryInput
 
 
@@ -65,12 +68,14 @@ def sentiment_detection(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     ids = [fpath.stem for fpath in input_path.iterdir() if fpath.is_file()]
 
     models = SurveyModels()
-    df_results = models.main_predict(files, age_threshold=parameters["age_threshold"], ids=ids)
+    df_results = models.main_predict(
+        files, age_threshold=parameters["age_threshold"], ids=ids
+    )
 
     return ResponseBody(
         TextResponse(
             value=json.dumps(df_results.T.to_dict(), indent=4),
-            title="Output for Age Classifier Models"
+            title="Output for Age Classifier Models",
         )
     )
 

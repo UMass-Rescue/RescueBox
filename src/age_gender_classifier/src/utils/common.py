@@ -9,9 +9,8 @@ db_uri = os.getenv("DB_CONN_STR")
 
 
 def read_db(
-        table_name: str="age_gender_labeled",
-        query: Optional[str]=None
-    ) -> pd.DataFrame:
+    table_name: str = "age_gender_labeled", query: Optional[str] = None
+) -> pd.DataFrame:
     """Read records from custom query into pandas DataFrame."""
     if query is None:
         logging.warning("No query provided. Returning None.")
@@ -23,13 +22,10 @@ def read_db(
     return df
 
 
-def write_db(
-        df: pd.DataFrame,
-        table_name: str="model_output"
-    ) -> None:
+def write_db(df: pd.DataFrame, table_name: str = "model_output") -> None:
     """Write pandas DataFrame of model output into DB."""
 
     db = DBManager(db_uri, table_name)
     db.create_table_if_not_exists()
-    df.to_sql(table_name, con=db.engine, if_exists='append', index=False)
+    df.to_sql(table_name, con=db.engine, if_exists="append", index=False)
     logging.info(f" Wrote {len(df)} records to DB table {table_name}")

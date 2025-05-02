@@ -8,7 +8,8 @@ from src.utils.preprocess import is_valid_image, is_damaged
 
 logging.basicConfig(level=logging.INFO)
 
-def read_csv_and_format(fileIn: str="age_gender.csv") -> pd.DataFrame:
+
+def read_csv_and_format(fileIn: str = "age_gender.csv") -> pd.DataFrame:
     "Read labeled data set and return DataFrame"
     path = Path(__file__).parent
     file = str(path / fileIn)
@@ -20,14 +21,16 @@ def read_csv_and_format(fileIn: str="age_gender.csv") -> pd.DataFrame:
 def transform_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     # cleaning pixels column for image preprocessing
     df = df[df["pixels"].apply(is_valid_image)].copy()
-    df["pixels_array"] = df["pixels"].apply(lambda x: np.array([int(p) for p in x.split()], dtype=np.uint8).reshape(48, 48))
+    df["pixels_array"] = df["pixels"].apply(
+        lambda x: np.array([int(p) for p in x.split()], dtype=np.uint8).reshape(48, 48)
+    )
     df = df[~df["pixels_array"].apply(is_damaged)]
     df = df.drop(columns=["pixels_array"])
     logging.info(" Completed raw pixel transformations")
     return df
 
 
-def clean_load_to_db(df: pd.DataFrame, table_name: str="age_gender_labeled") -> None:
+def clean_load_to_db(df: pd.DataFrame, table_name: str = "age_gender_labeled") -> None:
     """Connect to DB, create/truncate table, write df to table."""
     db_uri = os.getenv("DB_CONN_STR")
     db = DBManager(db_uri, table_name)

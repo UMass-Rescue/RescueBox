@@ -27,17 +27,19 @@ def main(t_stamp: Optional[str] = None) -> pd.DataFrame:
     else:
         pred_df = read_db(
             table_name="model_output",
-            query=f"SELECT * FROM model_output where created_at = '{t_stamp}' order by created_at"
+            query=f"SELECT * FROM model_output where created_at = '{t_stamp}' order by created_at",
         )
         df = flatten_json_scores(pred_df)
         df.to_csv(path / "temp_output.csv", index=False)
 
     true_df = read_db(
         table_name="age_gender_labeled",
-        query="SELECT age AS true_label, img_name FROM age_gender_labeled"
+        query="SELECT age AS true_label, img_name FROM age_gender_labeled",
     )
 
-    df_merged = pd.merge(df, true_df, left_on='imageId', right_on='img_name').drop("img_name", axis=1)
+    df_merged = pd.merge(df, true_df, left_on="imageId", right_on="img_name").drop(
+        "img_name", axis=1
+    )
     df_merged.to_csv(path / "temp_output_labeled.csv", index=False)
 
     return df_merged

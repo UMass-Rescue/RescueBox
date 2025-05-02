@@ -1,4 +1,13 @@
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, JSON, func
+from sqlalchemy import (
+    create_engine,
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    JSON,
+    func,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
@@ -26,16 +35,13 @@ class ModelOutput(Base):
     created_at = Column(DateTime, nullable=False, default=func.now())
 
 
-defined_tables = {
-    "age_gender_labeled": LabeledAges,
-    "model_output": ModelOutput
-}
+defined_tables = {"age_gender_labeled": LabeledAges, "model_output": ModelOutput}
 
 
 class DBManager:
     def __init__(self, db_url: str, table_name: str) -> None:
         """Initialize the database connection.
-        
+
         Args:
             db_url (str): The database connection URL.
             table_name (str): The table name to operate on.
@@ -50,10 +56,10 @@ class DBManager:
     def create_table_if_not_exists(self) -> None:
         """Create the users table if it does not exist."""
         Base.metadata.create_all(self.engine)
-    
+
     def insert_record(self, **kwargs) -> None:
         """Insert a new record into the specified table.
-        
+
         Args:
             kwargs: Column values for the table.
         """
@@ -70,7 +76,7 @@ class DBManager:
 
     def update_record(self, record_id: int, **kwargs) -> None:
         """Update an existing record in the specified table.
-        
+
         Args:
             record_id (int): The ID of the record to update.
             kwargs: Fields to update with new values.
@@ -88,10 +94,10 @@ class DBManager:
             logging.error(f"Error updating record: {e}")
         finally:
             session.close()
-    
+
     def delete_user(self, record_id: int) -> None:
         """Delete a record from the specified table by ID.
-        
+
         Args:
             record_id (int): The ID of the record to delete.
         """
