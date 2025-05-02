@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from rb.api.models import ResponseBody
@@ -55,3 +56,20 @@ class TestAudioTranscription(RBAppTest):
         assert response.status_code == 200
         body = ResponseBody(**response.json())
         assert body.root.texts and "Twinkle" in body.root.texts[0].value
+
+    def test_negative_api_transcribe_command(self):
+        """pass in valid directory but no audio files , expect 422 validation error"""
+        transcribe_api = f"/{APP_NAME}/transcribe"
+        full_path = Path.cwd() / "src" / "audio-transcription" / "tests" / "negative"
+        input_json = {
+            "inputs": {
+                "input_dir": {
+                    "path": str(full_path),
+                }
+            }
+        }
+        response = self.client.post(transcribe_api, json=input_json)
+        assert response.status_code == 422
+        resp = json.loads(json.dumps(response.json()))
+        print(f"Response: {resp["detail"]["error"]}")
+        assert resp and "No file extensions matching" in resp["detail"]["error"]
