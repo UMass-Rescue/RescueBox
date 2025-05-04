@@ -8,20 +8,24 @@ from dotenv import load_dotenv
 import ast
 import json
 
-from flask_ml.flask_ml_client import MLClient
-from flask_ml.flask_ml_server.models import DirectoryInput, Input
-
+# from flask_ml.flask_ml_client import MLClient
+from rb.api.models import DirectoryInput, Input, ResponseBody
+from fastapi.testclient import TestClient
+from rb.api.main import app
 
 def query_find_face_bulk(query_directory, collection_name):
     # Define the URL and set up client
-    IMAGE_MATCH_MODEL_URL = "http://127.0.0.1:5000/findfacebulktesting"
-    LIST_COLLECTIONS_URL = "http://127.0.0.1:5000/listcollections"
-    findFaceClient = MLClient(IMAGE_MATCH_MODEL_URL)
-    listCollectionsClient = MLClient(LIST_COLLECTIONS_URL)
+    # IMAGE_MATCH_MODEL_URL = "http://127.0.0.1:5000/findfacebulktesting"
+    # LIST_COLLECTIONS_URL = "http://127.0.0.1:5000/listcollections"
+    # findFaceClient = MLClient(IMAGE_MATCH_MODEL_URL)
+    # listCollectionsClient = MLClient(LIST_COLLECTIONS_URL)
+
+    client = TestClient(app)
 
     # Check if collection exists
-    collections = listCollectionsClient.request({}, {})["texts"]
-    collections = [output["value"] for output in collections]
+    response = client.post("/face-match/listcollections", json={"inputs": {}, "parameters": {}})
+    body = ResponseBody(**response.json())
+    collections = [text.value for text in body.root.texts]
 
     if collection_name not in map(lambda c: c.split("_")[0], collections):
         print("Collection does not exist")
@@ -35,15 +39,23 @@ def query_find_face_bulk(query_directory, collection_name):
     absolute_query_directory = os.path.abspath(query_directory)
 
     inputs = {
-        "query_directory": Input(
-            root=DirectoryInput.model_validate({"path": absolute_query_directory})
-        )
+        "query_directory": {"path": str(absolute_query_directory)}
+    }
+
+    # Input(
+    #         root=DirectoryInput.model_validate({"path": absolute_query_directory})
+    #     )
+
+    input_data = {
+        "inputs": inputs,
+        "parameters": parameters,
     }
 
     # Response from server
-    response = findFaceClient.request(inputs, parameters)
+    response = client.post("/face-match/findfacebulktesting", json=input_data)
     try:
-        response_data = ast.literal_eval(response["value"])
+        body = ResponseBody(**response.json())
+        response_data = ast.literal_eval(body.root.value)
         return response_data
 
     except Exception:
@@ -111,10 +123,17 @@ end_time = time.time()
 elapsed_time = end_time - start_time
 print(f"Time taken for face find bulk: {elapsed_time}")
 
-abs_results_path = os.path.abspath(args.results_path)
+abs_results_path = os.path.join(
+    os.getcwd(),
+    'src',
+    'FaceDetectionandRecognition',
+    'benchmark_testing',
+    'benchmark-results',
+    f"{detector_backend}-{model_name}-{args.results_name}"
+)
+
 times_csv_path = os.path.join(
     abs_results_path,
-    f"{detector_backend}-{model_name}-{args.results_name}",
     "times.csv",
 )
 
@@ -155,7 +174,6 @@ for st in similarity_thresholds:
 
     output_csv_path = os.path.join(
         abs_results_path,
-        f"{detector_backend}-{model_name}-{args.results_name}",
         "output-csv-dump",
         f"{detector_backend}_{model_name}_{st}.csv",
     )
@@ -164,11 +182,10 @@ for st in similarity_thresholds:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(["filename", "result"])
 
-    for query_path, match_paths in zip(results.keys(), top_img_paths):
-        query_name = os.path.basename(query_path)
-        match_paths = " ".join(
-            list(map(lambda path: os.path.basename(path), match_paths))
-        )
-        with open(output_csv_path, "a", newline="") as csvfile:
-            csvwriter = csv.writer(csvfile)
+        for query_path, match_paths in zip(results.keys(), top_img_paths):
+            query_name = os.path.basename(query_path)
+            match_paths = " ".join(
+                list(map(lambda path: os.path.basename(path), match_paths))
+            )
+
             csvwriter.writerow([query_name, match_paths])

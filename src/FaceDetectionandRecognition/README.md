@@ -150,7 +150,7 @@ python -m facematch.facematch.face_match_server
 
 - Install Rescue-Box from [link](https://github.com/UMass-Rescue/RescueBox-Desktop)
 
-- Open Rescue-Box-Desktop and resgiter the model by adding the server IP address and port number in which the server is running.
+- Open Rescue-Box-Desktop and register the model by adding the server IP address and port number in which the server is running.
 
 - Choose the model from list of available models under the **MODELS** tab.
 

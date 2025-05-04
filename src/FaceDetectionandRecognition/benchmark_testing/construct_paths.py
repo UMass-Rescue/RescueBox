@@ -34,9 +34,13 @@ if args.path_name == "model_config":
     )
     print(path)
 elif args.path_name == "times_csv":
-    abs_results_path = os.path.abspath(args.results_path)
+    # abs_results_path = os.path.abspath(args.results_path)
     path = os.path.join(
-        abs_results_path,
+        os.getcwd(),
+        'src',
+        'FaceDetectionandRecognition',
+        'benchmark_testing',
+        'benchmark-results',
         f"{args.detector}-{args.embedding}-{args.results_name}",
         "times.csv",
     )
@@ -45,5 +49,13 @@ elif args.path_name == "results_dir":
     abs_results_path = os.path.abspath(args.results_path)
     path = os.path.join(
         abs_results_path, f"{args.detector}-{args.embedding}-{args.results_name}"
+    )
+    print(path)
+elif args.path_name == "facematch_server":
+    path = os.path.join(
+        os.path.dirname(os.getcwd()),
+        "facematch",
+        "facematch",
+        "face_match_server.py"
     )
     print(path)

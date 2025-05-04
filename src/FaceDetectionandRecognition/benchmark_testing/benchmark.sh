@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Source environment variables
-source ../.env
-export PYTHONPATH="$(pwd)/.."
+source ../../../.env
+# export PYTHONPATH='$PYTHONPATH:./../../../'
 
 # *************************************************************************************
 #
@@ -49,7 +49,7 @@ queries_directory="$QUERIES_DIRECTORY"
 #
 #**************************************************************************************
 
-MODEL_CONFIG=$(python construct_paths.py --path_name model_config)
+MODEL_CONFIG=$(poetry run python construct_paths.py --path_name model_config)
 
 MODEL_NAME="ArcFace" # Default model name
 DETECTOR_NAME="yolov8" # Default detector name
@@ -76,7 +76,7 @@ fi
 
 
 # Results Directory
-results_dir=$(python construct_paths.py --path_name results_dir --detector "$DETECTOR_NAME" --embedding "$MODEL_NAME" --results_path "$top_results_dir" --results_name "$results_name")
+results_dir=$(poetry run python construct_paths.py --path_name results_dir --detector "$DETECTOR_NAME" --embedding "$MODEL_NAME" --results_path "$top_results_dir" --results_name "$results_name")
 
 # Skip if not a writable directory or is root
 if [ ! -d "$results_dir" ] || [ ! -w "$results_dir" ] || [ "$results_dir" = "/" ]; then
@@ -106,12 +106,12 @@ mkdir -p "$results_dir"
 #**************************************************************************************
 
 # Configuration
-CHROMA_CMD="chroma run --path ../resources/data"
-PYTHON_CMD="python ../facematch/facematch/face_match_server.py"
+CHROMA_CMD="poetry run chroma run --path ../resources/data"
+# PYTHON_CMD="python ../facematch/facematch/face_match_server.py"
 CHROMA_TIMEOUT=60
-FACEMATCH_TIMEOUT=30
+# FACEMATCH_TIMEOUT=30
 CHROMA_STARTUP_MSG="Application startup complete"
-FACEMATCH_STARTUP_MSG="Press CTRL+C to quit"
+# FACEMATCH_STARTUP_MSG="Press CTRL+C to quit"
 
 # Function to start a server and wait for it to be active
 start_server_and_wait() {
@@ -146,13 +146,13 @@ start_server_and_wait() {
 
 
 # Start ChromaDB Server
-chroma_pid=$(start_server_and_wait "chroma run --path ../resources/data"    "curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/v1 " "ChromaDB")
+chroma_pid=$(start_server_and_wait "poetry run chroma run --path ../resources/data --port $CHROMA_PORT"    "curl -s -o /dev/null -w '%{http_code}' http://localhost:$CHROMA_PORT/api/v1 " "ChromaDB")
 
-# Start FaceMatch Server
-python ../facematch/facematch/face_match_server.py &
-server_pid=$(pgrep -f "python ../facematch/facematch/face_match_server.py")
+# # Start FaceMatch Server
+# python ../facematch/facematch/face_match_server.py &
+# server_pid=$(pgrep -f "python ../facematch/facematch/face_match_server.py")
 
-start_server_and_wait ":"     "curl -s -o /dev/null -w '%{http_code}'  http://127.0.0.1:5000/listcollections " "FaceMatch"
+# start_server_and_wait ":"     "curl -s -o /dev/null -w '%{http_code}'  http://127.0.0.1:5000/listcollections " "FaceMatch"
 
 
 # Cleanup function
@@ -177,28 +177,32 @@ trap cleanup EXIT
 #**************************************************************************************
 
 
+SERVER_PATH=$(poetry run python construct_paths.py --path_name facematch_server)
+
+cd ../../../
+
 # Delete collection if exists
 if [ "$keep_collection" = "False" ]; then
-    python -m facematch.Sample_Client.sample_delete_collection_client --collection_name "$collection_name" --model_name "$MODEL_NAME" --detector_backend "$DETECTOR_NAME"
+    poetry run python $SERVER_PATH /face-match/deletecollection "$collection_name,$MODEL_NAME,$DETECTOR_NAME"
 fi
 
 # Benchmark bulk upload
 start_time=$(date +%s)
-python -m facematch.Sample_Client.sample_bulk_upload_client --directory_paths "$database_directory" --collection_name "$collection_name"
+poetry run python $SERVER_PATH /face-match/bulkupload "$database_directory," "Create a new collection,$collection_name"
 end_time=$(date +%s)
 total_time=$((end_time - start_time))
 echo "Bulk Upload Time: $total_time seconds"
 
 # Write results
-time_csv_path=$(python construct_paths.py --path_name times_csv --detector "$DETECTOR_NAME" --embedding "$MODEL_NAME" --results_path "$top_results_dir" --results_name "$results_name")
+time_csv_path=$(poetry run python src/FaceDetectionandRecognition/benchmark_testing/construct_paths.py --path_name times_csv --detector "$DETECTOR_NAME" --embedding "$MODEL_NAME" --results_path "$top_results_dir" --results_name "$results_name")
 echo "process,time" > "$time_csv_path"
 echo "bulk_upload,$total_time" >> "$time_csv_path"
 
 # Benchmark bulk face find
-python ./run_face_find_bulk_benchmark.py --query_directory "$queries_directory" --collection_name "$collection_name" --results_path "$top_results_dir" --results_name "$results_name"
+poetry run python src/FaceDetectionandRecognition/benchmark_testing/run_face_find_bulk_benchmark.py --query_directory "$queries_directory" --collection_name "$collection_name" --results_path "$top_results_dir" --results_name "$results_name"
 
 # Compute and save results
-python ./test_data_metrics_benchmark.py --results_path "$top_results_dir" --results_name "$results_name" --detector "$DETECTOR_NAME" --embedding "$MODEL_NAME"
+poetry run python src/FaceDetectionandRecognition/benchmark_testing/calc_data_metrics_benchmark.py --results_path "$top_results_dir" --results_name "$results_name" --detector "$DETECTOR_NAME" --embedding "$MODEL_NAME"
 
 
 read -rp "Press any key to exit..." -n1
