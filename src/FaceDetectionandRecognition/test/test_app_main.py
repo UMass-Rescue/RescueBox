@@ -238,14 +238,13 @@ class TestFaceMatch(RBAppTest):
         bulk_upload_api = f"/{APP_NAME}/bulkupload"
         input_data = {
             "inputs": {
-                "directory_paths": {"directories": [{"path": str(TEST_IMAGES_DIR)}]}
+                "directory_path": {"path": str(TEST_IMAGES_DIR)}
             },
             "parameters": {
                 "dropdown_collection_name": "Create a new collection",
                 "collection_name": self.__class__.test_collection_name,
             },
         }
-
         response = self.client.post(bulk_upload_api, json=input_data)
 
         assert response.status_code == 200
@@ -482,9 +481,8 @@ class TestFaceMatch(RBAppTest):
         # Test bulk_upload_cli_parser
         upload_input = str(TEST_IMAGES_DIR)
         parsed_upload = bulk_upload_cli_parser(upload_input)
-        assert "directory_paths" in parsed_upload
-        assert len(parsed_upload["directory_paths"].directories) == 1
-        assert str(parsed_upload["directory_paths"].directories[0].path) == upload_input
+        assert "directory_path" in parsed_upload
+        assert str(parsed_upload["directory_path"].path) == upload_input
 
         # Test bulk_upload_param_parser
         upload_param_str = "Create a new collection,test_collection"

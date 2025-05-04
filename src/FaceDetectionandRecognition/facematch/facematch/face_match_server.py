@@ -8,7 +8,7 @@ from rb.lib.ml_service import MLService
 from rb.api.models import (
     TextInput,
     BatchTextResponse,
-    BatchDirectoryInput,
+    FileFilterDirectory,
     BatchFileInput,
     DirectoryInput,
     BatchFileResponse,
@@ -25,6 +25,8 @@ from rb.api.models import (
     TextParameterDescriptor,
     TextResponse,
 )
+
+from pydantic import DirectoryPath
 
 from facematch.facematch.interface import FaceMatchModel
 from facematch.facematch.utils.GPU import check_cuDNN_version
@@ -52,6 +54,13 @@ server.add_app_metadata(
     version="0.1.0",
     info=info,
 )
+
+IMAGE_EXTENSIONS = {".jpg", ".png"}
+
+class ImageDirectory(FileFilterDirectory):
+    path: DirectoryPath
+    file_extensions: List[str] = IMAGE_EXTENSIONS
+
 
 # Initialize with "Create a new collection" value used in frontend to take new file name entered by user
 available_collections: List[str] = ["Create a new collection"]
@@ -246,7 +255,7 @@ def find_face_bulk_param_parser(inputs):
 
 # Inputs and parameters for the findfacebulk endpoint
 class FindFaceBulkInputs(TypedDict):
-    query_directory: DirectoryInput
+    query_directory: ImageDirectory
 
 
 class FindFaceBulkParameters(TypedDict):
@@ -392,9 +401,9 @@ def get_ingest_images_task_schema() -> TaskSchema:
     return TaskSchema(
         inputs=[
             InputSchema(
-                key="directory_paths",
+                key="directory_path",
                 label="Image Directory",
-                input_type=InputType.BATCHDIRECTORY,
+                input_type=InputType.DIRECTORY,
             )
         ],
         parameters=[
@@ -424,12 +433,9 @@ def get_ingest_images_task_schema() -> TaskSchema:
 
 
 def bulk_upload_cli_parser(inputs):
-    directory_paths = inputs.split(",")
-
+    directory_path = inputs
     return {
-        "directory_paths": BatchDirectoryInput(
-            directories=[{"path": directory_path} for directory_path in directory_paths]
-        )
+        "directory_path": DirectoryInput(path=directory_path)
     }
 
 
@@ -443,7 +449,7 @@ def bulk_upload_param_parser(params):
 
 # Inputs and parameters for the bulkupload endpoint
 class BulkUploadInputs(TypedDict):
-    directory_paths: BatchDirectoryInput
+    directory_path: DirectoryInput
 
 
 class BulkUploadParameters(TypedDict):
@@ -461,17 +467,14 @@ def bulk_upload_endpoint(
         new_collection_name = parameters["dropdown_collection_name"]
     else:
         new_collection_name = parameters["collection_name"]
-
     # Check CUDNN compatability
     check_cuDNN_version()
     # Get list of directory paths from input
-    input_directory_paths = [
-        item.path for item in inputs["directory_paths"].directories
-    ]
-    log_info(input_directory_paths[0])
+    input_directory_path = str(inputs["directory_path"].path)
+    log_info(input_directory_path)
     # Call the model function
     response = face_match_model.bulk_upload(
-        input_directory_paths[0], new_collection_name
+        input_directory_path, new_collection_name
     )
 
     if response.startswith("Successfully uploaded") and response.split(" ")[2] != "0":
