@@ -344,7 +344,7 @@ def find_face_bulk_test_param_parser(inputs):
 
 # Inputs and parameters for the findfacebulk endpoint
 class FindFaceBulkTestingInputs(TypedDict):
-    query_directory: DirectoryInput
+    query_directory: ImageDirectory
 
 
 class FindFaceBulkTestingParameters(TypedDict):
@@ -449,7 +449,7 @@ def bulk_upload_param_parser(params):
 
 # Inputs and parameters for the bulkupload endpoint
 class BulkUploadInputs(TypedDict):
-    directory_path: DirectoryInput
+    directory_path: ImageDirectory
 
 
 class BulkUploadParameters(TypedDict):
