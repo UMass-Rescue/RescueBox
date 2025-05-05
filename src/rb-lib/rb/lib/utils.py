@@ -72,8 +72,8 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
                     input_type_hint is FileInput
                 ), f"For key {key}, the input type is NewFileInputType, but the TypeDict hint is {input_type_hint}. Change to FileInput."
             case InputType.DIRECTORY:
-                assert (
-                    input_type_hint is DirectoryInput
+                assert issubclass(
+                    input_type_hint, DirectoryInput
                 ), f"For key {key}, the input type is InputType.DIRECTORY, but the TypeDict hint is {input_type_hint}. Change to DirectoryInput."
             case InputType.TEXT:
                 assert (

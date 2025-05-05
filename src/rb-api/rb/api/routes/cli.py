@@ -5,7 +5,7 @@ import time
 from typing import Callable, Generator, Optional
 
 import typer
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from makefun import with_signature
 from pydantic import BaseModel
@@ -68,10 +68,11 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
             # this has an issue of nor sending back details to desktop ui the api caller ?
             raise ValueError(f"Invalid return type from Typer command: {type(result)}")
         except Exception as e:
-            logger.error("Error executing CLI command: %s", e)
+            # response handler for all plugin runtime errors
+            logger.error("Error: %s %s", e, stdout)
             raise HTTPException(  # pylint: disable=raise-missing-from
-                status_code=400,
-                detail={"error": f"Typer CLI aborted {e}", "stdout": stdout[-10:]},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"error": f"{e}"},
             )
 
 

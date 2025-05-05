@@ -1,12 +1,14 @@
 """audio transcribe plugin"""
 
 import logging
-from typing import TypedDict
+from typing import List, TypedDict
 
+from pydantic import DirectoryPath
 import typer
 from rb.api.models import (
     BatchTextResponse,
     DirectoryInput,
+    FileFilterDirectory,
     InputSchema,
     InputType,
     ResponseBody,
@@ -19,7 +21,7 @@ from rb.lib.ml_service import MLService
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
@@ -35,9 +37,17 @@ ml_service.add_app_metadata(
 
 model = AudioTranscriptionModel()
 
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac"}
+
+
+class AudioDirectory(FileFilterDirectory):
+
+    path: DirectoryPath
+    file_extensions: List[str] = AUDIO_EXTENSIONS
+
 
 class AudioInput(TypedDict):
-    input_dir: DirectoryInput
+    input_dir: AudioDirectory
 
 
 def task_schema() -> TaskSchema:
