@@ -27,9 +27,9 @@ jobs:
       - name: Install FaceMatch ONNX Models from Google Drive
         run: |
           pip install gdown
-          mkdir -p "${{ github.workspace }}/src/FaceDetectionandRecognition/facematch/facematch/models"
-          gdown "1oDt1i80rUew0UhtY3UiW9EIyd2WfJTZf" --fuzzy -O ./src/FaceDetectionandRecognition/facematch/facematch/models/retinaface-resnet50.onnx --continue
-          gdown "1CVCmumM_6C7giGAXJUwHWT--DPFC9bpI" --fuzzy -O ./src/FaceDetectionandRecognition/facematch/facematch/models/facenet512_model.onnx --continue
+          mkdir -p "${{ github.workspace }}/src/face-detection-recognition/face_detection_recognition/models"
+          gdown "1oDt1i80rUew0UhtY3UiW9EIyd2WfJTZf" --fuzzy -O ./src/face-detection-recognition/face_detection_recognition/models/retinaface-resnet50.onnx --continue
+          gdown "1CVCmumM_6C7giGAXJUwHWT--DPFC9bpI" --fuzzy -O ./src/face-detection-recognition/face_detection_recognition/models/facenet512_model.onnx --continue
 
       - name: Run tests
         run: poetry run pytest

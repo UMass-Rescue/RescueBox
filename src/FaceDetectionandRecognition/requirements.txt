@@ -1,9 +1,0 @@
-pandas==2.2.3
-flask-ml==0.2.5
-ruff
-python-dotenv
-onnxruntime==1.21.0
-chromadb==1.0.4
-matplotlib==3.10.0
-opencv-python==4.11.0.86
-numpy==2.1.0
