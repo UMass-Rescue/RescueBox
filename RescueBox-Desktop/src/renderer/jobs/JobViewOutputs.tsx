@@ -69,7 +69,7 @@ function JobViewOutputs() {
   }
 
   const msg =  match(response).with({ output_type: 'text' }, (response) => {
-    if (response.value.includes('Input error')) {
+    if (response.value.includes('error')) {
       return true;
     }
   });
