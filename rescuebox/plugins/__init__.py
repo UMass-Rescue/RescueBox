@@ -6,8 +6,12 @@ from audio_transcription.main import (
     APP_NAME as AUDIO_APP_NAME,
 )  # type: ignore
 from text_summary.main import app as text_summary_app, APP_NAME as TEXT_SUM_APP_NAME  # type: ignore
-
+from deepfake_detection.main import app as deepfake_detection_app, APP_NAME as DEEPFAKE_APP_NAME  # type: ignore
 from age_and_gender_detection.main import app as age_gender_app, APP_NAME as AGE_GENDER_APP_NAME  # type: ignore
+from facematch.facematch.face_match_server import (
+    app as face_detection_app,
+    APP_NAME as FACE_MATCH_APP_NAME,
+)
 
 # Import plugin modules
 from doc_parser.main import app as doc_parser_app  # type: ignore
@@ -30,6 +34,12 @@ plugins: list[RescueBoxPlugin] = [
     ),
     RescueBoxPlugin(age_gender_app, AGE_GENDER_APP_NAME, "Age and Gender Classifier"),
     RescueBoxPlugin(text_summary_app, TEXT_SUM_APP_NAME, "Text summarization library"),
+    RescueBoxPlugin(
+        face_detection_app, FACE_MATCH_APP_NAME, "Face Detection and Recognition Tool"
+    ),
+    RescueBoxPlugin(
+        deepfake_detection_app, DEEPFAKE_APP_NAME, "Deepfake Image Detection"
+    ),
 ]
 
 # Ensure this module is importable

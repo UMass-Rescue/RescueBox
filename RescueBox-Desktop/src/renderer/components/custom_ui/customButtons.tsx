@@ -12,7 +12,7 @@ import DeleteIcon from '../icons/DeleteIcon';
 
 export function ViewButton({ job }: { job: Job }) {
   return (
-    <Link to={`/jobs/${job.uid}/details`} className="">
+    <Link to={`/jobs/${job.uid}/outputs`} className="">
       <Button
         variant="outline"
         className="px-8 hover:-translate-y-0.5 transition-all rounded-lg"
