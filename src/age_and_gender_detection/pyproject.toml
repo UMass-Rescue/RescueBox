@@ -1,20 +1,19 @@
-[project]
+[tool.poetry]
 name = "age_and_gender_detection"
 version = "0.1.0"
 description = "Age and Gender Classification"
-authors = [
-    {name = "Prasanna",email = "prasanna.lakkur@gmail.com"}
-]
-license = {text = "MIT License"}
-readme = "README.md"
-dependencies = [
-    "numpy",
-    "onnxruntime (==1.21.0)",
-    "opencv-python (>=4.11.0.86,<5.0.0.0)",
-    "flask-ml (>=0.2.5,<0.3.0)"
-]
+authors = ["Prasanna <prasanna.lakkur@gmail.com>"]
+packages = [{include = "age_and_gender_detection"}]
+
+[tool.poetry.scripts]
+age_and_gender_detection = "age_and_gender_detection.main:app"
+
+[tool.poetry.dependencies]
+numpy = "*"
+onnxruntime = "*"
+opencv-python = "*"
 
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

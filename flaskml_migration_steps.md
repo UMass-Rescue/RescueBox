@@ -82,6 +82,11 @@ poetry run python src/text-summary/text_summary/main.py /text_summarization/summ
 
 poetry run python src/text-summary/text_summary/main.py /text_summarization/summarize/task_schema
 ```
-16. Add tests for your app in src/<project_dir>/tests. You can use the tests in src/audio-transcription/tests as a reference.
+16. Add tests for your app in src/<project_dir>/tests. You can use the tests in src/audio-transcription/tests as a reference. Extend the rb.lib.common_tests.RBAppTest class to test your app. RBAppTest automatically tests the routes, app metadata, and task schema in both the command line and the API. Add additional tests to test the ML service in your app. Refer to the following files for examples to learn from:
+```
+src/audio-transcription/tests/test_main.py
+src/text-summary/tests/test_main_text_summary.py
+src/age_and_gender_detection/tests/test_main_age_gender.py
+```
 17. Make sure all the tests pass and the Github Actions workflow is successful. Refer to .github/workflows/ for the workflow files.
 18. Send your pull request for review. Someone from the team will review your code and provide feedback. The PR requires at least one approval from a team member before it can be merged.

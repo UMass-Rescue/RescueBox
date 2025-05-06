@@ -24,9 +24,12 @@ def ensure_model_exists(model: str) -> None:
         raise ValueError(
             f"Model '{model}' is not supported. Supported models are: {SUPPORTED_MODELS}"
         )
-    response = ollama.pull(model)
+    try:
+        response = ollama.pull(model)
+    except ollama.ResponseError as e:
+        raise ValueError(e.error)
     if response.status != "success":
-        raise RuntimeError(f"Failed to pull model '{model}': {response}")
+        raise ValueError(f"Failed to pull model '{model}': {response}")
 
 
 def summarize(model: str, text: str) -> str:

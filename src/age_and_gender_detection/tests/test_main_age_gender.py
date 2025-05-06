@@ -18,17 +18,19 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
+TEST_IMAGES_DIR = Path("src/age_and_gender_detection/test_images")
+
 EXPECTED_OUTPUT = {
-    "src/age_and_gender_detection/test_images/bella.jpg": [
+    str(TEST_IMAGES_DIR / "bella.jpg"): [
         {"box": [246, 257, 847, 858], "gender": "Female", "age": "(25-32)"}
     ],
-    "src/age_and_gender_detection/test_images/bruce.jpg": [
+    str(TEST_IMAGES_DIR / "bruce.jpg"): [
         {"box": [51, 122, 328, 399], "gender": "Male", "age": "(25-32)"}
     ],
-    "src/age_and_gender_detection/test_images/baby.jpg": [
+    str(TEST_IMAGES_DIR / "baby.jpg"): [
         {"box": [345, 217, 592, 464], "gender": "Female", "age": "(0-2)"}
     ],
-    "src/age_and_gender_detection/test_images/kid.jpg": [
+    str(TEST_IMAGES_DIR / "kid.jpg"): [
         {"box": [476, 143, 696, 364], "gender": "Male", "age": "(4-6)"}
     ],
 }
@@ -79,10 +81,13 @@ class TestAgeGender(RBAppTest):
             result = self.runner.invoke(self.cli_app, [age_gender_api, str(input_path)])
             assert result.exit_code == 0, f"Error: {result.output}"
             expected_files = [
-                "src/age_and_gender_detection/test_images/bella.jpg",
-                "src/age_and_gender_detection/test_images/bruce.jpg",
-                "src/age_and_gender_detection/test_images/baby.jpg",
-                "src/age_and_gender_detection/test_images/kid.jpg",
+                str(Path(s))
+                for s in [
+                    "src/age_and_gender_detection/test_images/bella.jpg",
+                    "src/age_and_gender_detection/test_images/bruce.jpg",
+                    "src/age_and_gender_detection/test_images/baby.jpg",
+                    "src/age_and_gender_detection/test_images/kid.jpg",
+                ]
             ]
             for expected_file in expected_files:
                 assert any(expected_file in message for message in caplog.messages)

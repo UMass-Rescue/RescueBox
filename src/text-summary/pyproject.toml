@@ -1,19 +1,18 @@
-[project]
+[tool.poetry]
 name = "text-summary"
 version = "0.1.0"
 description = "A project that helps summarize text."
-authors = [
-    {name = "Prasanna",email = "prasanna.lakkur@gmail.com"}
-]
-license = {text = "MIT"}
-readme = "README.md"
-dependencies = [
-    "ollama (>=0.4.7,<0.5.0)",
-    "pypdf2 (>=3.0.1,<4.0.0)",
-    "flask-ml (>=0.2.5,<0.3.0)"
-]
+authors = ["Prasanna <prasanna.lakkur@gmail.com>"]
+packages = [{include = "text_summary"}]
+
+[tool.poetry.scripts]
+text-summary = "text_summary.main:app"
+
+[tool.poetry.dependencies]
+ollama = "*"
+pypdf2 = "*"
 
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

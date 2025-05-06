@@ -30,7 +30,7 @@ def test_ensure_model_exists(mock_pull):
 
     # Test case where pull fails
     mock_pull.return_value = MagicMock(status="failure")
-    with pytest.raises(RuntimeError, match="Failed to pull model 'gemma3:1b':"):
+    with pytest.raises(ValueError, match="Failed to pull model 'gemma3:1b':"):
         ensure_model_exists("gemma3:1b")
 
 
