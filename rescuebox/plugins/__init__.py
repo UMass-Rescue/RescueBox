@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import typer
+
 from audio_transcription.main import (
     app as audio_transcription_app,
     APP_NAME as AUDIO_APP_NAME,
@@ -9,7 +10,8 @@ from text_summary.main import app as text_summary_app, APP_NAME as TEXT_SUM_APP_
 
 from age_and_gender_detection.main import app as age_gender_app, APP_NAME as AGE_GENDER_APP_NAME  # type: ignore
 
-from facematch.facematch.face_match_server import (
+
+from face_detection_recognition.face_match_server import (
     app as face_detection_app,
     APP_NAME as FACE_MATCH_APP_NAME,
 )
