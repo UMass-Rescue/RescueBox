@@ -93,22 +93,6 @@ function JobViewOutputs() {
                 </div>
               )}
       </div>
-      <div className="w-full flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <h1 className="font-bold text-sm xl:text-base">Start Time</h1>
-              <div className="p-2 border border-slate-400 bg-slate-200 rounded-lg w-full">
-                {job.startTime.toLocaleString('en-US', { timeZone: 'EST' })}
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              <h1 className="font-bold text-sm xl:text-base">End Time</h1>
-              <div className="p-2 border border-slate-400 bg-slate-200 rounded-lg w-full">
-                {job.endTime
-                  ? job.endTime.toLocaleString('en-US', { timeZone: 'EST' })
-                  : 'Pending'}
-              </div>
-            </div>
-      </div>
     </div>
   );
 }
