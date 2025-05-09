@@ -15,7 +15,6 @@ import json
 from collections import defaultdict
 from Audio_Diarization.utils import diarize_text
 import typer
-from typing import List
 
 # Load models 
 pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.0")
