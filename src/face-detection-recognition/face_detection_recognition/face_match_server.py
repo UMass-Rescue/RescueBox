@@ -427,7 +427,7 @@ def get_ingest_images_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="collection_name",
                 label="New Collection Name (Optional)",
-                value=TextParameterDescriptor(default="sample"),
+                value=TextParameterDescriptor(default="new-collection"),
             ),
         ],
     )
@@ -462,10 +462,26 @@ def bulk_upload_endpoint(
 ) -> ResponseBody:
     # If dropdown value chosen is Create a new collection, then add collection to available collections, otherwise set
     # collection to dropdown value
-    if parameters["dropdown_collection_name"] != "Create a new collection":
+    if parameters["collection_name"] in  [available_collections[0], "new-collection"]:
+        default_named_collections = list(filter(lambda name: "new-collection" in name, available_collections))
+        # map names to indices (i.e. number at the end of default collection name)
+        log_info(default_named_collections)
+        used_indices = list(map(lambda name: name.split('-')[-1] , default_named_collections))
+        # if any index == "collection", replace with index 0
+        log_info(used_indices)
+        used_indices = list(map(lambda index: 0 if index == "collection" else int(index), used_indices))
+        # gets the minimum unused index for differentiating unnamed collections
+        log_info(used_indices)
+        index = 0 if len(used_indices) == 0 else min(set(range(min(used_indices), max(used_indices)+2)) - set(used_indices))
+        log_info(index)
+        new_collection_name = f"new-collection{"" if index == 0 else f'-{index}'}"
+
+    elif parameters["dropdown_collection_name"] != available_collections[0]:
         new_collection_name = parameters["dropdown_collection_name"]
     else:
         new_collection_name = parameters["collection_name"]
+    # log_info("ERROR FOLLOWING THIS LINE **************************")
+    # log_info(new_collection_name)
     # Check CUDNN compatability
     check_cuDNN_version()
     # Get list of directory paths from input
@@ -476,7 +492,7 @@ def bulk_upload_endpoint(
 
     if response.startswith("Successfully uploaded") and response.split(" ")[2] != "0":
         # Some files were uploaded
-        if parameters["dropdown_collection_name"] == "Create a new collection":
+        if parameters["dropdown_collection_name"] == available_collections[0]:
             # Add new collection to available collections if collection name is not already in available collections
             if new_collection_name not in available_collections:
                 available_collections.append(new_collection_name)
