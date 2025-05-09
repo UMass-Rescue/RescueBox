@@ -1,0 +1,102 @@
+from pathlib import Path
+from PIL import Image
+import onnxruntime as ort
+import numpy as np
+
+
+class TransformerModelDimaONNX:
+    def __init__(self, model_path="onnx_models/dima_transformer.onnx", resolution=224):
+        # Convert model_path to a Path object
+        self.model_path = Path(model_path)
+        self.session = ort.InferenceSession(
+            str(self.model_path),  # Convert Path object to string for onnxruntime
+            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+        )
+        self.resolution = resolution
+        self.valid_extensions = (".jpg", ".jpeg", ".png")
+
+    #     self.inspect_model_inputs()  # Inspect model inputs during initialization
+
+    # def inspect_model_inputs(self):
+    #     # Print the input details of the ONNX model
+    #     print("Model Input Details:")
+    #     for input_meta in self.session.get_inputs():
+    #         print(f"Name: {input_meta.name}, Shape: {input_meta.shape}, Type: {input_meta.type}")
+
+    def apply_transforms(self, image):
+        # Resize the image to the required resolution
+        image = image.resize((self.resolution, self.resolution))
+        # Convert the image to a numpy array
+        image = np.array(image).astype(np.float32)
+        # Normalize the image
+        image = image / 255.0
+        # Reorder dimensions to (channels, height, width)
+        image = np.transpose(
+            image, (2, 0, 1)
+        )  # Convert from (height, width, channels) to (channels, height, width)
+        # Add a batch dimension
+        image = np.expand_dims(
+            image, axis=0
+        )  # Shape becomes (batch_size, channels, height, width)
+        return image
+
+    def predict(self, image):
+        # Get the prediction using the correct input key
+        results = self.session.run(
+            None, {"pixel_values": image}
+        )  # Use "pixel_values" as the input key
+        # Return the results
+        return results[0]
+
+    def preprocess(self, image):
+        # We don't preprocess anything for this model
+        # Resize the image to the required resolution
+        image = self.apply_transforms(image)
+        return image
+
+    def preprocess_images(self, images):
+        # We don't preprocess anything for this model
+        # Resize the images to the required resolution
+        for i in range(len(images)):
+            images[i] = self.apply_transforms(images[i])
+        return images
+
+    def postprocess(self, prediction_result):
+        # Process a single prediction result
+        # print("r", prediction_result)
+        # Check which label has the highest score
+        # -- Model automatically has max_score = prediction_result[0]
+        # -- If we notice that later a score below 50% is classified as the 'prediction'
+        #   replace the below code with this:
+        # prediction = prediction_result[0] if max(prediction_result[0]['score'], prediction_result[1]['score']) else prediction_result[1]
+        # print("--" * 20)
+        # print("Prediction result:", prediction_result)
+        # Apply softmax to normalize the prediction result
+        exp_scores = np.exp(prediction_result[0])  # Exponentiate the scores
+        probabilities = exp_scores / np.sum(exp_scores)
+        # Normalize by dividing by the sum of exponentiated scores
+
+        confidence = float(max(probabilities))
+        raw_label = "real" if probabilities[0] > probabilities[1] else "fake"
+        strength = (
+            "likely"
+            if confidence < 0.2 or confidence > 0.8
+            else "weakly" if confidence < 0.4 or confidence > 0.6 else "uncertain"
+        )
+
+        if strength == "uncertain":
+            label = "uncertain"
+        else:
+            label = f"{strength} {raw_label}"
+
+        prediction = {"prediction": label, "confidence": confidence}
+        # Return the processed result
+        return prediction
+
+    def postprocess_images(self, prediction_results):
+        # Process all prediction results
+        processed_results = []
+        for result in prediction_results:
+            processed_result = self.postprocess(result)
+            processed_results.append(processed_result)
+        return processed_results
