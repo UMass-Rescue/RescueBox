@@ -30,6 +30,7 @@ doc-parser = { path = "src/doc-parser", develop = true }
 audio-transcription = { path = "src/audio-transcription", develop = true }
 age-and-gender-detection = { path = "src/age_and_gender_detection", develop = true }
 text-summary = {path = "src/text-summary", develop = true}
+video-summarizer = {path = "src/video-summarizer", develop=true}
 
 # Don't add new packages here, add them appropriately in the list above
 beautifulsoup4 = "^4.13.3"
