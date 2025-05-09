@@ -1,8 +1,8 @@
-import RegisterModelButton from 'src/renderer/components/custom_ui/RegisterModelButton';
 import { useMLModels, useServers, useServerStatuses } from '../lib/hooks';
 import LoadingIcon from '../components/icons/LoadingIcon';
 import LoadingScreen from '../components/LoadingScreen';
 import ModelsTable from './ModelsTable';
+import ModelAppConnect from '../registration/ModelAppConnect';
 
 function Models() {
   // ML Models Hook
@@ -52,7 +52,7 @@ function Models() {
         <div className="font-bold text-xl md:text-2xl lg:text-4xl mb-5 flex flex-row gap-8 items-center">
           <div className="flex flex-row justify-between w-full">
             Available Models
-            {onModels.length === 0 && <RegisterModelButton replace={false} />}
+            {onModels.length === 0 && <ModelAppConnect />}
           </div>
           {statusIsValidating && (
             <LoadingIcon className="size-8 text-blue-600" />

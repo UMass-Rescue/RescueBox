@@ -57,11 +57,6 @@ function RootLayout() {
                 <LogsIcon className="fill-black group-[.is-active]:fill-blue-500" />
               </ImageTitleNavBar>
             </NavBarItem>
-            <NavBarItem path="/registration">
-              <ImageTitleNavBar path="/registration">
-                <RegistrationIcon className="group-[.is-active]:fill-blue-500" />
-              </ImageTitleNavBar>
-            </NavBarItem>
           </div>
         </div>
         <hr className="h-[0.75px] border-t-0 bg-gray-300 dark:bg-white/10" />

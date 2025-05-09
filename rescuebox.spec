@@ -32,7 +32,6 @@ whisper_data = f'{runtime_venvdir}/whisper/assets'
 
 hiddenimports += ['onnxruntime', 'opencv-python']
 
-age_detection_md_data = f'src/age_and_gender_detection/age_and_gender_detection/img-app-info.md'
 age_and_gender_detection_models_dir = f'src/age_and_gender_detection/models'
 model_face_detector = f'{age_and_gender_detection_models_dir}/version-RFB-640.onnx'
 model_age_classifier =  f'{age_and_gender_detection_models_dir}/age_googlenet.onnx'
@@ -144,7 +143,6 @@ a = Analysis(
     (src_model_facematch_yolov9, facematch_models)
     ],
     datas=[(audio_md_data, 'audio'), ( whisper_data, 'whisper/assets'),
-        (age_detection_md_data, 'age_and_gender_detection'),
         (deepfake_md_data, 'deepfake-detection/deepfake_detection'),
         (src_facematch_db_config, facematch_config),(facematch_md_data, 'facematch'),
         (src_facematch_model_config, facematch_config),
