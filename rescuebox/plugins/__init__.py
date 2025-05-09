@@ -6,7 +6,10 @@ from audio_transcription.main import (
     APP_NAME as AUDIO_APP_NAME,
 )  # type: ignore
 from text_summary.main import app as text_summary_app, APP_NAME as TEXT_SUM_APP_NAME  # type: ignore
-from Audio_Diarization.model_3endpoints import app as diarize_transcribe_app, APP_NAME as diarize_transcribe_app_name
+from Audio_Diarization.model_3endpoints import (
+    app as diarize_transcribe_app,
+    APP_NAME as diarize_transcribe_app_name,
+)
 from age_and_gender_detection.main import app as age_gender_app, APP_NAME as AGE_GENDER_APP_NAME  # type: ignore
 
 # Import plugin modules
@@ -28,7 +31,11 @@ plugins: list[RescueBoxPlugin] = [
     RescueBoxPlugin(
         audio_transcription_app, AUDIO_APP_NAME, "Audio transcription library"
     ),
-    RescueBoxPlugin(diarize_transcribe_app, diarize_transcribe_app_name, "Speaker Diarization + Transcription service"),
+    RescueBoxPlugin(
+        diarize_transcribe_app,
+        diarize_transcribe_app_name,
+        "Speaker Diarization + Transcription service",
+    ),
     RescueBoxPlugin(age_gender_app, AGE_GENDER_APP_NAME, "Age and Gender Classifier"),
     RescueBoxPlugin(text_summary_app, TEXT_SUM_APP_NAME, "Text summarization library"),
 ]
