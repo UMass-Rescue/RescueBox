@@ -2,18 +2,20 @@ from pathlib import Path
 from pyannote.core import Segment
 from pyannote.audio import Pipeline
 
+
 def load_pyannote_pipeline_from_pretrained(path_to_config: str | Path) -> Pipeline:
     path_to_config = Path(path_to_config)
     print(f"Loading pyannote pipeline from {path_to_config}...")
     pipeline = Pipeline.from_pretrained(path_to_config)
     return pipeline
 
+
 def get_text_with_timestamp(transcribe_res):
     timestamp_texts = []
-    for item in transcribe_res['segments']:
-        start = item['start']
-        end = item['end']
-        text = item['text']
+    for item in transcribe_res["segments"]:
+        start = item["start"]
+        end = item["end"]
+        text = item["text"]
         timestamp_texts.append((Segment(start, end), text))
     return timestamp_texts
 
@@ -27,14 +29,14 @@ def add_speaker_info_to_text(timestamp_texts, ann):
 
 
 def merge_cache(text_cache):
-    sentence = ''.join([item[-1] for item in text_cache])
+    sentence = "".join([item[-1] for item in text_cache])
     spk = text_cache[0][1]
     start = text_cache[0][0].start
     end = text_cache[-1][0].end
     return Segment(start, end), spk, sentence
 
 
-PUNC_SENT_END = ['.', '?', '!']
+PUNC_SENT_END = [".", "?", "!"]
 
 
 def merge_sentence(spk_text):
@@ -68,7 +70,7 @@ def diarize_text(transcribe_res, diarization_result):
 
 
 def write_to_txt(spk_sent, file):
-    with open(file, 'w') as fp:
+    with open(file, "w") as fp:
         for seg, spk, sentence in spk_sent:
-            line = f'{seg.start:.2f} {seg.end:.2f} {spk} {sentence}\n'
+            line = f"{seg.start:.2f} {seg.end:.2f} {spk} {sentence}\n"
             fp.write(line)

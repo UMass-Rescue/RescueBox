@@ -4,7 +4,7 @@ from pyannote.audio import Audio
 from utils import diarize_text, load_pyannote_pipeline_from_pretrained
 
 # Load the pre-trained speaker diarization pipeline and whisper model
-#pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.0")
+# pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.0")
 PATH_TO_CONFIG = "./models/pyannote_diarization_config.yaml"
 pipeline = load_pyannote_pipeline_from_pretrained(PATH_TO_CONFIG)
 asr_model = whisper.load_model("medium.en")
@@ -21,12 +21,12 @@ asr_result = asr_model.transcribe(audio_file)
 # for turn, _, speaker in diarization.itertracks(yield_label=True):
 #     print(f"Speaker {speaker} speaks from {turn.start:.1f}s to {turn.end:.1f}s")
 
-#Final result
+# Final result
 print("\n\nFINAL RESULT---------")
 final_result = diarize_text(asr_result, diarization)
 
 for seg, spk, sent in final_result:
-    line = f'{seg.start:.2f} {seg.end:.2f} {spk} {sent}'
+    line = f"{seg.start:.2f} {seg.end:.2f} {spk} {sent}"
     print(line)
 
 # Perform diarization on an excerpt (e.g., from 1.0s to 2.0s)

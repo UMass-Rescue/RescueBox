@@ -16,62 +16,70 @@ from collections import defaultdict
 from Audio_Diarization.utils import diarize_text
 import typer
 
-# Load models 
+# Load models
 pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.0")
 
-#To use local model
-#PATH_TO_CONFIG = "./models/pyannotediarizationconfig.yaml"
-#pipeline = load_pyannote_pipeline_from_pretrained(PATH_TO_CONFIG)
+# To use local model
+# PATH_TO_CONFIG = "./models/pyannotediarizationconfig.yaml"
+# pipeline = load_pyannote_pipeline_from_pretrained(PATH_TO_CONFIG)
 asr_model = whisper.load_model("medium.en")
+
 
 class DiarizationInputs(TypedDict):
     input_dir: DirectoryInput
     output_dir: DirectoryInput
 
+
 class DiarizationParameters(TypedDict):
     pass
+
 
 class AudioInputs(TypedDict):
     input_dir: DirectoryInput
     output_dir: DirectoryInput
 
+
 class AudioParameters(TypedDict):
     pass
+
 
 def create_task_schema() -> TaskSchema:
     input_schema = InputSchema(
         key="input_dir",
         label="Path to the directory containing audio files",
-        input_type=InputType.DIRECTORY
+        input_type=InputType.DIRECTORY,
     )
     output_schema = InputSchema(
         key="output_dir",
         label="Path to the output directory",
-        input_type=InputType.DIRECTORY
+        input_type=InputType.DIRECTORY,
     )
-    return TaskSchema(
-        inputs=[input_schema, output_schema],
-        parameters=[]
-    )
+    return TaskSchema(inputs=[input_schema, output_schema], parameters=[])
+
 
 def is_audio_file(file_path: Path) -> bool:
     audio_extensions = {".wav", ".mp3", ".flac", ".ogg"}
     return file_path.suffix.lower() in audio_extensions
 
+
 # Format functions for different endpoints
-def format_diarization_segments(segments: List[Dict[str, float]]) -> Dict[str, List[str]]:
+def format_diarization_segments(
+    segments: List[Dict[str, float]],
+) -> Dict[str, List[str]]:
     """Format speaker segments for diarization-only endpoint"""
     speaker_segments = defaultdict(list)
     for segment in segments:
         speaker = segment["speaker"]
         start = f'{segment["start"]:.2f}'
-        end = f'{segment["end"]:.2f}'   
-        speaker_segments[speaker].append(f'{start} - {end}')
+        end = f'{segment["end"]:.2f}'
+        speaker_segments[speaker].append(f"{start} - {end}")
     return dict(speaker_segments)
+
 
 def format_transcription_only(asr_result: Dict) -> Dict[str, str]:
     """Format transcription for transcription-only endpoint"""
     return {"transcription": asr_result["text"]}
+
 
 def format_combined_result(diarized_result) -> Dict[str, Dict[str, str]]:
     """Format combined diarization and transcription"""
@@ -89,6 +97,7 @@ def format_combined_result(diarized_result) -> Dict[str, Dict[str, str]]:
         output[speaker] = speaker_dict
     return output
 
+
 # Initialize server
 APP_NAME = "Audio_Diarization"
 ml_service = MLService(APP_NAME)
@@ -97,11 +106,12 @@ ml_service.add_app_metadata(
     name="Speaker Diarization + Transcription",
     author="Christina, Swetha, Nikita",
     version="2.0",
-    info="app-info.md"
+    info="app-info.md",
 )
 
 
-#@server.route("/diarize", order=0, task_schema_func=create_task_schema, short_title="Speaker Diarization")
+# @server.route("/diarize", order=0, task_schema_func=create_task_schema, short_title="Speaker Diarization")
+
 
 def cli_parser(arg: str) -> DiarizationInputs:
     parts = arg.strip().split()
@@ -109,11 +119,13 @@ def cli_parser(arg: str) -> DiarizationInputs:
         raise typer.BadParameter("Expected two arguments: <input_dir> <output_dir>")
     return {
         "input_dir": DirectoryInput(path=parts[0]),
-        "output_dir": DirectoryInput(path=parts[1])
+        "output_dir": DirectoryInput(path=parts[1]),
     }
+
 
 def param_parser(args):
     return {}
+
 
 def diarize_only(inputs: AudioInputs, parameters: AudioParameters) -> ResponseBody:
     input_path = Path(inputs["input_dir"].path)
@@ -122,18 +134,16 @@ def diarize_only(inputs: AudioInputs, parameters: AudioParameters) -> ResponseBo
     results = {}
 
     audio_files = [input_path] if input_path.is_file() else list(input_path.glob("*"))
-    
+
     for audio_file in audio_files:
         if is_audio_file(audio_file):
             try:
                 diarization = pipeline(str(audio_file))
                 segments = []
                 for turn, _, speaker in diarization.itertracks(yield_label=True):
-                    segments.append({
-                        "speaker": speaker,
-                        "start": turn.start,
-                        "end": turn.end
-                    })
+                    segments.append(
+                        {"speaker": speaker, "start": turn.start, "end": turn.end}
+                    )
                 results[audio_file.name] = format_diarization_segments(segments)
             except Exception as e:
                 results[audio_file.name] = f"Error: {str(e)}"
@@ -145,6 +155,7 @@ def diarize_only(inputs: AudioInputs, parameters: AudioParameters) -> ResponseBo
         json.dump(results, f, indent=4)
     return ResponseBody(FileResponse(path=str(output_file), file_type="json"))
 
+
 ml_service.add_ml_service(
     rule="/diarize",
     ml_function=diarize_only,
@@ -155,7 +166,8 @@ ml_service.add_ml_service(
     task_schema_func=create_task_schema,
 )
 
-#@server.route("/transcribe", order=1, task_schema_func=create_task_schema, short_title="Audio Transcription")
+
+# @server.route("/transcribe", order=1, task_schema_func=create_task_schema, short_title="Audio Transcription")
 def transcribe_only(inputs: AudioInputs, parameters: AudioParameters) -> ResponseBody:
     input_path = Path(inputs["input_dir"].path)
     output_path = Path(inputs["output_dir"].path)
@@ -163,7 +175,7 @@ def transcribe_only(inputs: AudioInputs, parameters: AudioParameters) -> Respons
     results = {}
 
     audio_files = [input_path] if input_path.is_file() else list(input_path.glob("*"))
-    
+
     for audio_file in audio_files:
         if is_audio_file(audio_file):
             try:
@@ -179,6 +191,7 @@ def transcribe_only(inputs: AudioInputs, parameters: AudioParameters) -> Respons
         json.dump(results, f, indent=2)
     return ResponseBody(FileResponse(path=str(output_file), file_type="json"))
 
+
 ml_service.add_ml_service(
     rule="/transcribe",
     ml_function=transcribe_only,
@@ -189,15 +202,18 @@ ml_service.add_ml_service(
     task_schema_func=create_task_schema,
 )
 
-#@server.route("/diarize-transcribe", order=2, task_schema_func=create_task_schema, short_title="Speaker Diarization + Transcription")
-def diarize_and_transcribe(inputs: AudioInputs, parameters: AudioParameters) -> ResponseBody:
+
+# @server.route("/diarize-transcribe", order=2, task_schema_func=create_task_schema, short_title="Speaker Diarization + Transcription")
+def diarize_and_transcribe(
+    inputs: AudioInputs, parameters: AudioParameters
+) -> ResponseBody:
     input_path = Path(inputs["input_dir"].path)
     output_path = Path(inputs["output_dir"].path)
     output_path.mkdir(parents=True, exist_ok=True)
     results = {}
 
     audio_files = [input_path] if input_path.is_file() else list(input_path.glob("*"))
-    
+
     for audio_file in audio_files:
         if is_audio_file(audio_file):
             try:
@@ -214,6 +230,7 @@ def diarize_and_transcribe(inputs: AudioInputs, parameters: AudioParameters) -> 
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
     return ResponseBody(FileResponse(path=str(output_file), file_type="json"))
+
 
 ml_service.add_ml_service(
     rule="/diarize_and_transcribe",

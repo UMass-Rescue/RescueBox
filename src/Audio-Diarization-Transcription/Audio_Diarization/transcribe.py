@@ -17,40 +17,52 @@ import json
 # Load ASR model
 asr_model = whisper.load_model("medium.en")
 
+
 class TranscriptionInputs(TypedDict):
     input_dir: DirectoryInput
     output_dir: DirectoryInput
 
+
 class TranscriptionParameters(TypedDict):
     pass
+
 
 def create_task_schema() -> TaskSchema:
     input_schema = InputSchema(
         key="input_dir",
         label="Path to the directory containing audio files",
-        input_type=InputType.DIRECTORY
+        input_type=InputType.DIRECTORY,
     )
     output_schema = InputSchema(
         key="output_dir",
         label="Path to the output directory",
-        input_type=InputType.DIRECTORY
+        input_type=InputType.DIRECTORY,
     )
     return TaskSchema(inputs=[input_schema, output_schema], parameters=[])
+
 
 def is_audio_file(file_path: Path) -> bool:
     audio_extensions = {".wav", ".mp3", ".flac", ".ogg"}
     return file_path.suffix.lower() in audio_extensions
+
 
 server = MLService(__name__)
 server.add_app_metadata(
     name="Audio Transcription",
     author="Christina, Swetha, Nikita",
     version="1.0",
-    info="app-info.md"
+    info="app-info.md",
 )
 
-@server.route("/transcribe", task_schema_func=create_task_schema, short_title="Audio Transcription")
-def transcribe(inputs: TranscriptionInputs, parameters: TranscriptionParameters) -> ResponseBody:
+
+@server.route(
+    "/transcribe",
+    task_schema_func=create_task_schema,
+    short_title="Audio Transcription",
+)
+def transcribe(
+    inputs: TranscriptionInputs, parameters: TranscriptionParameters
+) -> ResponseBody:
     input_path = Path(inputs["input_dir"].path)
     output_path = Path(inputs["output_dir"].path)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -75,6 +87,7 @@ def transcribe(inputs: TranscriptionInputs, parameters: TranscriptionParameters)
         json.dump(results, f, indent=2)
 
     return ResponseBody(FileResponse(path=str(output_file), file_type="json"))
+
 
 if __name__ == "__main__":
     server.run()
