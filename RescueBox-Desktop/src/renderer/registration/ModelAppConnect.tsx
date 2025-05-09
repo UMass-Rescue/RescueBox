@@ -1,23 +1,13 @@
 /* eslint-disable react/require-default-props */
 /* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable react/jsx-props-no-spreading */
-import { useForm, SubmitHandler } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
-import { mutate } from 'swr';
-import { useState } from 'react';
-import { ModelAppStatus } from 'src/shared/models';
-import { Button } from '../components/ui/button';
-import { Label } from '../components/ui/label';
-import { Input } from '../components/ui/input';
-import { registerModelAppIp, useMLModel, useModelInfo, useServer, useServers, useServerStatus, useServerStatuses } from '../lib/hooks';
-import LoadingIcon from '../components/icons/LoadingIcon';
-
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import { registerModelAppIp, useMLModels, useServers, useServerStatuses } from '../lib/hooks';
 import Modal from './Modal';
 import StatusComponent from '../jobs/sub-components/StatusComponent';
-import ModelDetails from '../models/ModelDetails';
 import RegisterModelButton from '../components/custom_ui/RegisterModelButton';
-import Models from '../models/Models';
-
+import LoadingScreen from '../components/LoadingScreen';
+import RegistrationTable from './RegistrationTable';
 
 
 
@@ -29,31 +19,37 @@ type InvalidServer = {
 function ModelAppConnect() {
   // Params from URL
   const { modelUid } = useParams();
-  if (!modelUid) throw new Error('modelUid is required');
+
 
   const navigate = useNavigate();
 
-   const {
-      data,
-      error: serverStatusError,
-      isLoading: serverIsLoading,
-      isValidating: serverStatusIsValidating,
-      mutate: mutateServers,
-    } = registerModelAppIp();
+  const {
+    data,
+    error: serverStatusError,
+    isLoading: serverIsLoading,
+    isValidating: serverStatusIsValidating,
+    mutate: mutateServers,
+  } = registerModelAppIp();
 
-  if (serverStatusError) {
-    return <p>Error: {serverStatusError.message}</p>;
-  }
-  // if (serverIsLoading) return <LoadingIcon />;
+  const {
+    models,
+    error: modelsError,
+    isValidating: modelsIsValidating,
+    mutate: mutateModels,
+  } = useMLModels();
 
+  // Servers Hook
+  const { servers, error, isValidating: serversIsValidating } = useServers();
+
+  // Server Statuses Hook
+  useServerStatuses(servers);
 
   const onClose = () => {
-    navigate('/registration', { replace: true });
   };
 
   let status = 'Running';
   if (data) {
-    status = 'Completed';
+     navigate('/registration', { replace: true });
   }
 
   return (
