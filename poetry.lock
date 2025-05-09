@@ -297,7 +297,7 @@ pyannote-audio = "*"
 
 [package.source]
 type = "directory"
-url = "src/Audio-Diarization"
+url = "src/Audio-Diarization-Transcription"
 
 [[package]]
 name = "audio-transcription"
