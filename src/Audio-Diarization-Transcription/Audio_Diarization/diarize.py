@@ -1,6 +1,6 @@
 from typing import TypedDict, Dict, List
 from pathlib import Path
-from rb.lib.ml_service import MLService, load_file_as_string
+from rb.lib.ml_service import MLService
 from rb.api.models import (
     DirectoryInput,
     FileResponse,
@@ -10,8 +10,6 @@ from rb.api.models import (
     TaskSchema,
 )
 from pyannote.audio import Pipeline
-from pyannote.core import Segment
-from pyannote.audio import Audio
 import json
 from collections import defaultdict
 

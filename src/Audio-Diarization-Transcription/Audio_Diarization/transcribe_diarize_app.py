@@ -12,11 +12,9 @@ from rb.api.models import (
 
 # Speaker Diarization and audio cropping
 from pyannote.audio import Pipeline
-from pyannote.core import Segment
-from pyannote.audio import Audio
 import whisper # Audio trancription
 import json # Outputs into JSON format
-from Audio_Diarization.utils import diarize_text, load_pyannote_pipeline_from_pretrained  # Custom helper that aligns Whisper transcription with diarization
+from Audio_Diarization.utils import diarize_text  # Custom helper that aligns Whisper transcription with diarization
 
 # Load models
 pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.0")

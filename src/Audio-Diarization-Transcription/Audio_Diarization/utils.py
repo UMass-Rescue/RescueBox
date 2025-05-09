@@ -1,5 +1,5 @@
 from pathlib import Path
-from pyannote.core import Segment, Annotation, Timeline
+from pyannote.core import Segment
 from pyannote.audio import Pipeline
 
 def load_pyannote_pipeline_from_pretrained(path_to_config: str | Path) -> Pipeline:

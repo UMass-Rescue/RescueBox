@@ -1,5 +1,5 @@
 # transcription_only.py
-from typing import TypedDict, Dict
+from typing import TypedDict
 from pathlib import Path
 from rb.lib.ml_service import MLService
 from rb.api.models import (

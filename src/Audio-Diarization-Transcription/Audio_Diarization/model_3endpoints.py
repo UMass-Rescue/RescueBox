@@ -9,12 +9,11 @@ from rb.api.models import (
     ResponseBody,
     TaskSchema,
 )
-from pyannote.audio import Pipeline, Audio
-from pyannote.core import Segment
+from pyannote.audio import Pipeline
 import whisper
 import json
 from collections import defaultdict
-from Audio_Diarization.utils import diarize_text, load_pyannote_pipeline_from_pretrained  
+from Audio_Diarization.utils import diarize_text
 import typer
 from typing import List
 

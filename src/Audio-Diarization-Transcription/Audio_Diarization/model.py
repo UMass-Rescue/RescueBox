@@ -1,6 +1,4 @@
 import whisper
-import numpy as np
-from pyannote.audio import Pipeline
 from pyannote.core import Segment
 from pyannote.audio import Audio
 from utils import diarize_text, load_pyannote_pipeline_from_pretrained

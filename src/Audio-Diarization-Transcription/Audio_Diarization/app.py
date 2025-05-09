@@ -1,6 +1,6 @@
 from typing import TypedDict, Dict, List
 from pathlib import Path
-from flask_ml.flask_ml_server import MLServer, load_file_as_string
+from flask_ml.flask_ml_server import MLServer
 from flask_ml.flask_ml_server.models import (
     DirectoryInput,
     FileResponse,
@@ -10,8 +10,6 @@ from flask_ml.flask_ml_server.models import (
     TaskSchema,
 )
 from pyannote.audio import Pipeline
-from pyannote.core import Segment
-from pyannote.audio import Audio
 import json
 from collections import defaultdict
 
