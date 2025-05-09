@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "Audio_Diarization"
+version = "0.1.0"
+description = ""
+authors = ["Nikitha <nikithamariu@umass.edu>",
+    "Christina <cejohn@umass.edu>",
+    "Swetha <swethamohan@umass.edu>",]
+packages = [{include = "Audio_Diarization"}]
+
+[tool.poetry.scripts]
+Audio-Diarization = "Audio_Diarization.transcribe_diarize_app:app"
+
+[tool.poetry.dependencies]
+cmake = "*"
+python = "^3.11"
+openai-whisper = "*"
+onnxruntime = "*"
+ffmpeg-python = "*"
+pyannote-audio = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
