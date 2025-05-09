@@ -462,17 +462,29 @@ def bulk_upload_endpoint(
 ) -> ResponseBody:
     # If dropdown value chosen is Create a new collection, then add collection to available collections, otherwise set
     # collection to dropdown value
-    if parameters["collection_name"] in  [available_collections[0], "new-collection"]:
-        default_named_collections = list(filter(lambda name: "new-collection" in name, available_collections))
+    if parameters["collection_name"] in [available_collections[0], "new-collection"]:
+        default_named_collections = list(
+            filter(lambda name: "new-collection" in name, available_collections)
+        )
         # map names to indices (i.e. number at the end of default collection name)
         log_info(default_named_collections)
-        used_indices = list(map(lambda name: name.split('-')[-1] , default_named_collections))
+        used_indices = list(
+            map(lambda name: name.split("-")[-1], default_named_collections)
+        )
         # if any index == "collection", replace with index 0
         log_info(used_indices)
-        used_indices = list(map(lambda index: 0 if index == "collection" else int(index), used_indices))
+        used_indices = list(
+            map(lambda index: 0 if index == "collection" else int(index), used_indices)
+        )
         # gets the minimum unused index for differentiating unnamed collections
         log_info(used_indices)
-        index = 0 if len(used_indices) == 0 else min(set(range(min(used_indices), max(used_indices)+2)) - set(used_indices))
+        index = (
+            0
+            if len(used_indices) == 0
+            else min(
+                set(range(min(used_indices), max(used_indices) + 2)) - set(used_indices)
+            )
+        )
         log_info(index)
         new_collection_name = f"new-collection{"" if index == 0 else f'-{index}'}"
 
