@@ -1,0 +1,79 @@
+{
+    "audio.wav": [
+        {
+            "speaker": "SPEAKER_03",
+            "start": 0.32,
+            "end": 2.06
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2.24,
+            "end": 4.0
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 4.4,
+            "end": 6.87
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 7.02,
+            "end": 8.15
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 8.5,
+            "end": 10.73
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 11.46,
+            "end": 13.62
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 13.77,
+            "end": 17.02
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 22.15,
+            "end": 24.84
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 27.64,
+            "end": 29.48
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 30.0,
+            "end": 31.54
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 33.68,
+            "end": 34.37
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 34.74,
+            "end": 36.35
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 36.73,
+            "end": 37.92
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 48.04,
+            "end": 50.47
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 52.53,
+            "end": 54.6
+        }
+    ]
+}
