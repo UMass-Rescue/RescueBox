@@ -31,25 +31,6 @@ function JobView() {
         <h1 className="text-2xl font-bold mb-4">{model.name}</h1>
         <div className="flex flex-col space-y-1">
           <NavLink
-            to={`/jobs/${jobId}/details`}
-            replace
-            className={({ isActive }) =>
-              isActive
-                ? cn(
-                    'text-md md:text-md lg:text-md xl:text-md',
-                    'bg-gray-200 p-2 font-semibold rounded',
-                    'p-2 rounded',
-                  )
-                : cn(
-                    'text-md md:text-md lg:text-md xl:text-md',
-                    'hover:bg-gray-200 p-2 rounded',
-                    'p-2 rounded',
-                  )
-            }
-          >
-            Details
-          </NavLink>
-          <NavLink
             to={`/jobs/${jobId}/outputs`}
             className={({ isActive }) =>
               isActive
@@ -66,6 +47,25 @@ function JobView() {
             }
           >
             Results
+          </NavLink>
+          <NavLink
+            to={`/jobs/${jobId}/details`}
+            replace
+            className={({ isActive }) =>
+              isActive
+                ? cn(
+                    'text-md md:text-md lg:text-md xl:text-md',
+                    'bg-gray-200 p-2 font-semibold rounded',
+                    'p-2 rounded',
+                  )
+                : cn(
+                    'text-md md:text-md lg:text-md xl:text-md',
+                    'hover:bg-gray-200 p-2 rounded',
+                    'p-2 rounded',
+                  )
+            }
+          >
+            Inputs
           </NavLink>
         </div>
       </div>

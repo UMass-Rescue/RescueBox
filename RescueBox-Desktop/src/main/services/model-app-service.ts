@@ -127,9 +127,10 @@ class ModelAppService {
               try {
                 const errorResponse = JSON.parse(responseData);
                 log.error('Error details:', errorResponse);
-                reject(new Error(errorResponse.error));
+                const errorMessage = errorResponse.detail.error.replace('Value error,', 'Input error,');
+                reject(new Error(errorMessage));
               } catch (parseError) {
-                log.error('Error parsing response body:', responseData);
+                log.error('Error:', responseData);
                 reject(
                   new Error(`Failed to parse response body ${responseData}`),
                 );
