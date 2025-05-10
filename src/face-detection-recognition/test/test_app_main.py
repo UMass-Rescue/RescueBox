@@ -360,13 +360,10 @@ class TestFaceMatch(RBAppTest):
 
     #     delete_collection_api = f"/{APP_NAME}/deletecollection"
 
-    #     input_data = {
-    #         "inputs": {
-    #             "collection_name": {"text": self.__class__.test_collection_name},
-    #             "detector_backend": {"text": TEST_DETECTOR_BACKEND},
-    #             "model_name": {"text": TEST_MODEL_NAME},
-    #         }
-    #     }
+    #   input_data = { "inputs": {},"parameters": { "collection_name": self.__class__.test_collection_name,
+    #       }
+    #   }
+
 
     #     response = self.client.post(delete_collection_api, json=input_data)
 
@@ -404,27 +401,23 @@ class TestFaceMatch(RBAppTest):
     #     print(f"CLI exit code: {cli_result.exit_code}")
     #     print(f"CLI output: {cli_result.output}")
 
-    #     # DIRECT: Test delete with non-existent collection by direct function call
-    #     print("\n===== Testing Delete Collection =====")
-    #     from face_detection_recognition.face_match_server import (
-    #         delete_collection_endpoint,
-    #     )
 
-    #     test_input = {
-    #         "collection_name": {"text": "nonexistent"},
-    #         "model_name": {"text": "facenet512"},
-    #         "detector_backend": {"text": "retinaface"},
-    #     }
+    #   # DIRECT: Test delete with non-existent collection by direct function call
+        # print("\n===== Testing Delete Collection =====")
+        # from face_detection_recognition.face_match_server import delete_collection_endpoint
 
-    #     direct_result = delete_collection_endpoint(test_input)
-    #     print(f"Direct function result: {direct_result.root.value}")
+        # test_params = {
+        #     "collection_name": "nonexistent",
+        # }
 
-    #     cli_delete_result = self.runner.invoke(
-    #         self.cli_app,
-    #         [f"/{APP_NAME}/deletecollection", "nonexistent,retinaface,facenet512"],
-    #     )
-    #     print(f"CLI delete exit code: {cli_delete_result.exit_code}")
-    #     print(f"CLI delete output: {cli_delete_result.output}")
+        # direct_result = delete_collection_endpoint(inputs = {}, parameters = test_params)
+        # print(f"Direct function result: {direct_result.root.value}")
+        # cli_delete_result = self.runner.invoke(
+        #     self.cli_app,
+        #     [f"/{APP_NAME}/deletecollection", "", "nonexistent"],
+        # )
+        # print(f"CLI delete exit code: {cli_delete_result.exit_code}")
+        # print(f"CLI delete output: {cli_delete_result.output}")
 
     #     # Assert that direct call works as expected (contains error message)
     #     assert "does not exist" in direct_result.root.value
@@ -447,7 +440,7 @@ class TestFaceMatch(RBAppTest):
             find_face_bulk_param_parser,
             bulk_upload_cli_parser,
             bulk_upload_param_parser,
-            delete_collection_cli_parser,
+            delete_collection_parameter_parser,
             list_collections_cli_parser,
         )
 
@@ -495,15 +488,13 @@ class TestFaceMatch(RBAppTest):
 
         # Test delete_collection_cli_parser
         delete_param_str = (
-            f"{self.__class__.test_collection_name},retinaface,facenet512"
+            f"{self.__class__.test_collection_name}"
         )
-        parsed_delete_params = delete_collection_cli_parser(delete_param_str)
+        parsed_delete_params = delete_collection_parameter_parser(delete_param_str)
         assert (
             parsed_delete_params["collection_name"]
             == self.__class__.test_collection_name.lower()
         )
-        assert parsed_delete_params["detector_backend"] == "retinaface"
-        assert parsed_delete_params["model_name"] == "facenet512"
 
         # Test list_collections_cli_parser (simple passthrough function)
         dummy_input = ""
