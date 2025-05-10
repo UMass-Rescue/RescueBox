@@ -34,8 +34,8 @@ try:
     from rb.api.models import (
         ResponseBody,
         TextResponse,
-        BatchTextResponse,
-        BatchFileResponse,
+        # BatchTextResponse,
+        # BatchFileResponse,
     )
     from rb.lib.common_tests import RBAppTest
 
@@ -102,12 +102,12 @@ class TestFaceMatch(RBAppTest):
     def get_all_ml_services(self):
         """Return all ML services for testing"""
         from face_detection_recognition.face_match_server import (
-            get_ingest_query_image_task_schema,
+            # get_ingest_query_image_task_schema,
             get_ingest_bulk_query_image_task_schema,
-            get_ingest_bulk_test_query_image_task_schema,
+            # get_ingest_bulk_test_query_image_task_schema,
             get_ingest_images_task_schema,
-            delete_collection_task_schema,
-            list_collections_task_schema,
+            # delete_collection_task_schema,
+            # list_collections_task_schema,
         )
 
         return [
