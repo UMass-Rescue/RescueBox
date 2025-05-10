@@ -189,6 +189,7 @@ class FaceMatchModel:
             img_files.sort()
             for idx, filename in enumerate(img_files):
                 file_path = os.path.join(query_directory, filename)
+                log_info(f"Processing file: {file_path}")
                 if filename.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp")):
                     status, embedding_outputs = detect_faces_and_get_embeddings(
                         file_path,
@@ -196,10 +197,10 @@ class FaceMatchModel:
                         detector_backend,
                         face_confidence_threshold,
                     )
-                if status:
-                    all_embedding_outputs.append(embedding_outputs)
-                else:
-                    all_embedding_outputs.append([])
+                    if status:
+                        all_embedding_outputs.append(embedding_outputs)
+                    else:
+                        all_embedding_outputs.append([])
 
                 num_embeddings = len(all_embedding_outputs)
 
