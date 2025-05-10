@@ -462,31 +462,28 @@ def bulk_upload_endpoint(
 ) -> ResponseBody:
     # If dropdown value chosen is Create a new collection, then add collection to available collections, otherwise set
     # collection to dropdown value
-    if parameters["collection_name"] in [available_collections[0], "new-collection"]:
+    if parameters["dropdown_collection_name"] == available_collections[0] and parameters["collection_name"] in available_collections:
+        collection_name = "new-collection" if parameters["collection_name"] == available_collections[0]  else parameters["collection_name"]
         default_named_collections = list(
-            filter(lambda name: "new-collection" in name, available_collections)
+            filter(lambda name: collection_name in name, available_collections)
         )
         # map names to indices (i.e. number at the end of default collection name)
-        log_info(default_named_collections)
         used_indices = list(
-            map(lambda name: name.split("-")[-1], default_named_collections)
+            map(lambda name: name.split(f"{collection_name}-")[-1], default_named_collections)
         )
         # if any index == "collection", replace with index 0
-        log_info(used_indices)
         used_indices = list(
-            map(lambda index: 0 if index == "collection" else int(index), used_indices)
+            map(lambda index: 0 if not index.isdigit() else int(index), used_indices)
         )
         # gets the minimum unused index for differentiating unnamed collections
-        log_info(used_indices)
         index = (
             0
             if len(used_indices) == 0
             else min(
-                set(range(min(used_indices), max(used_indices) + 2)) - set(used_indices)
+                set(range(0, max(used_indices) + 2)) - set(used_indices)
             )
         )
-        log_info(index)
-        new_collection_name = f"new-collection{"" if index == 0 else f'-{index}'}"
+        new_collection_name = f"{collection_name}{"" if index == 0 else f'-{index}'}"
 
     elif parameters["dropdown_collection_name"] != available_collections[0]:
         new_collection_name = parameters["dropdown_collection_name"]
@@ -532,81 +529,87 @@ Delete Collection
 
 ******************************************************************************************************
 """
-
-
 # Frontend Task Schema defining inputs and parameters that users can enter
 def delete_collection_task_schema() -> TaskSchema:
     return TaskSchema(
         inputs=[
-            InputSchema(
+
+        ],
+        parameters=[
+            ParameterSchema(
                 key="collection_name",
-                label="Name of collection to delete",
-                input_type=InputType.TEXT,
-            ),
-            InputSchema(
-                key="detector_backend",
-                label="Detector model of collection",
-                input_type=InputType.TEXT,
-            ),
-            InputSchema(
-                key="model_name",
-                label="Embedding model of collection",
-                input_type=InputType.TEXT,
+                label="Collection Name",
+                value=EnumParameterDescriptor(
+                    enum_vals=[
+                        EnumVal(key=collection_name, label=collection_name)
+                        for collection_name in available_collections[1:]
+                    ],
+                    message_when_empty="No collections found",
+                    default=(available_collections[0]),
+                ),
             ),
         ],
-        parameters=[],
     )
 
 
-def delete_collection_cli_parser(parameters):
-    collection_name, detector_backend, model_name = parameters.lower().split(",")
+def delete_collection_cli_parser(input):
+    return {}
+
+def delete_collection_parameter_parser(parameter):
+    collection_name = parameter
     return {
         "collection_name": collection_name,
-        "model_name": model_name,
-        "detector_backend": detector_backend,
     }
 
 
 # Inputs and parameters for the bulkupload endpoint
 class DeleteCollectionInputs(TypedDict):
-    collection_name: TextInput
-    detector_backend: TextInput
-    model_name: TextInput
+    pass
+
+
+class DeleteCollectionParameters(TypedDict):
+    collection_name: str
 
 
 # Endpoint for deleting collections from ChromaDB
 def delete_collection_endpoint(
     inputs: DeleteCollectionInputs,
-) -> ResponseBody:  # parameters: DeleteCollectionParameters
+    parameters: DeleteCollectionParameters
+) -> ResponseBody:
     responseValue = ""
-    collection_name = inputs["collection_name"]
-    model_name = inputs["model_name"]
-    detector_backend = inputs["detector_backend"]
+    collection_name = parameters["collection_name"]
+    model_name = config["model_name"].lower()
+    detector_backend = config["detector_backend"].lower()
+    full_collection_name = f"{collection_name}_{detector_backend}_{model_name}"
     try:
         DB.client.delete_collection(
-            f"{collection_name}_{detector_backend}_{model_name}"
+            full_collection_name
         )
         responseValue = (
             f"Successfully deleted {collection_name}_{detector_backend}_{model_name}"
         )
+        available_collections.remove(collection_name)
         log_info(responseValue)
     except Exception:
-        responseValue = f"Collection {collection_name}_{detector_backend}_{model_name} does not exist."
+        responseValue = f"Collection {full_collection_name} does not exist."
         log_info(responseValue)
 
     return ResponseBody(root=TextResponse(value=responseValue))
 
 
-# server.add_ml_service(
-#     rule="/deletecollection",
-#     ml_function=delete_collection_endpoint,
-#     inputs_cli_parser=typer.Argument(
-#         parser=delete_collection_cli_parser, help="Collection name"
-#     ),
-#     short_title="Delete Collection",
-#     order=4,
-#     task_schema_func=delete_collection_task_schema,
-# )
+server.add_ml_service(
+    rule="/deletecollection",
+    ml_function=delete_collection_endpoint,
+    inputs_cli_parser=typer.Argument(
+        parser=delete_collection_cli_parser, help="Collection name"
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=delete_collection_parameter_parser, help="Full Collection name"
+    ),
+    short_title="Delete Collection",
+    order=4,
+    task_schema_func=delete_collection_task_schema,
+)
 
 """ 
 ******************************************************************************************************
