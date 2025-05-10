@@ -171,3 +171,6 @@ rescuebox/lib/
 rescuebox/pyvenv.cfg
 src/rb-api/rb/api/static/index/main.js
 **/*/.DS_Store
+src/age_gender_classifier/**/*.db
+src/age_gender_classifier/**/*.csv
+src/age_gender_classifier/**/*.onnx
