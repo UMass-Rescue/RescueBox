@@ -18,35 +18,35 @@ class TestFaceMatch(RBAppTest):
 
     def get_all_ml_services(self):
         return [
-            (
-                0,
-                "findface",
-                "Find Face",
-                fm_server.get_ingest_query_image_task_schema(),
-            ),
+            # (
+            #     0,
+            #     "findface",
+            #     "Find Face",
+            #     fm_server.get_ingest_query_image_task_schema(),
+            # ),
             (
                 1,
                 "findfacebulk",
                 "Face Find Bulk",
                 fm_server.get_ingest_bulk_query_image_task_schema(),
             ),
-            (
-                2,
-                "findfacebulktesting",
-                "Face Find Bulk Test",
-                fm_server.get_ingest_bulk_test_query_image_task_schema(),
-            ),
+            # (
+            #     2,
+            #     "findfacebulktesting",
+            #     "Face Find Bulk Test",
+            #     fm_server.get_ingest_bulk_test_query_image_task_schema(),
+            # ),
             (3, "bulkupload", "Bulk Upload", fm_server.get_ingest_images_task_schema()),
-            (
-                4,
-                "deletecollection",
-                "Delete Collection",
-                fm_server.delete_collection_task_schema(),
-            ),
-            (
-                5,
-                "listcollections",
-                "List Collection",
-                fm_server.list_collections_task_schema(),
-            ),
+            # (
+            #     4,
+            #     "deletecollection",
+            #     "Delete Collection",
+            #     fm_server.delete_collection_task_schema(),
+            # ),
+            # (
+            #     5,
+            #     "listcollections",
+            #     "List Collection",
+            #     fm_server.list_collections_task_schema(),
+            # ),
         ]

@@ -183,19 +183,19 @@ def find_face_endpoint(
     return ResponseBody(root=BatchFileResponse(files=image_results))
 
 
-server.add_ml_service(
-    rule="/findface",
-    ml_function=find_face_endpoint,
-    inputs_cli_parser=typer.Argument(
-        parser=face_find_cli_parser, help="Path to query image"
-    ),
-    parameters_cli_parser=typer.Argument(
-        parser=face_find_param_parser, help="Collection name and similarity threshold"
-    ),
-    short_title="Find Face",
-    order=0,
-    task_schema_func=get_ingest_query_image_task_schema,
-)
+# server.add_ml_service(
+#     rule="/findface",
+#     ml_function=find_face_endpoint,
+#     inputs_cli_parser=typer.Argument(
+#         parser=face_find_cli_parser, help="Path to query image"
+#     ),
+#     parameters_cli_parser=typer.Argument(
+#         parser=face_find_param_parser, help="Collection name and similarity threshold"
+#     ),
+#     short_title="Find Face",
+#     order=0,
+#     task_schema_func=get_ingest_query_image_task_schema,
+# )
 
 """ 
 ******************************************************************************************************
@@ -374,19 +374,19 @@ def find_face_bulk_testing_endpoint(
     return ResponseBody(root=TextResponse(value=str(results)))
 
 
-server.add_ml_service(
-    rule="/findfacebulktesting",
-    ml_function=find_face_bulk_testing_endpoint,
-    order=2,
-    short_title="Face Find Bulk Test",
-    inputs_cli_parser=typer.Argument(
-        parser=find_face_bulk_test_cli_parser, help="Directory of query images"
-    ),
-    parameters_cli_parser=typer.Argument(
-        parser=find_face_bulk_test_param_parser, help="Collection name"
-    ),
-    task_schema_func=get_ingest_bulk_test_query_image_task_schema,
-)
+# server.add_ml_service(
+#     rule="/findfacebulktesting",
+#     ml_function=find_face_bulk_testing_endpoint,
+#     order=2,
+#     short_title="Face Find Bulk Test",
+#     inputs_cli_parser=typer.Argument(
+#         parser=find_face_bulk_test_cli_parser, help="Directory of query images"
+#     ),
+#     parameters_cli_parser=typer.Argument(
+#         parser=find_face_bulk_test_param_parser, help="Collection name"
+#     ),
+#     task_schema_func=get_ingest_bulk_test_query_image_task_schema,
+# )
 
 """ 
 ******************************************************************************************************
@@ -597,16 +597,16 @@ def delete_collection_endpoint(
     return ResponseBody(root=TextResponse(value=responseValue))
 
 
-server.add_ml_service(
-    rule="/deletecollection",
-    ml_function=delete_collection_endpoint,
-    inputs_cli_parser=typer.Argument(
-        parser=delete_collection_cli_parser, help="Collection name"
-    ),
-    short_title="Delete Collection",
-    order=4,
-    task_schema_func=delete_collection_task_schema,
-)
+# server.add_ml_service(
+#     rule="/deletecollection",
+#     ml_function=delete_collection_endpoint,
+#     inputs_cli_parser=typer.Argument(
+#         parser=delete_collection_cli_parser, help="Collection name"
+#     ),
+#     short_title="Delete Collection",
+#     order=4,
+#     task_schema_func=delete_collection_task_schema,
+# )
 
 """ 
 ******************************************************************************************************
@@ -650,14 +650,14 @@ def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
     )
 
 
-server.add_ml_service(
-    rule="/listcollections",
-    ml_function=list_collections_endpoint,
-    inputs_cli_parser=typer.Argument(parser=list_collections_cli_parser, help="Empty"),
-    short_title="List Collection",
-    order=5,
-    task_schema_func=list_collections_task_schema,
-)
+# server.add_ml_service(
+#     rule="/listcollections",
+#     ml_function=list_collections_endpoint,
+#     inputs_cli_parser=typer.Argument(parser=list_collections_cli_parser, help="Empty"),
+#     short_title="List Collection",
+#     order=5,
+#     task_schema_func=list_collections_task_schema,
+# )
 
 app = server.app
 if __name__ == "__main__":
