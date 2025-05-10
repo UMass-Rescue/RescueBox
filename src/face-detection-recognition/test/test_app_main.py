@@ -106,7 +106,7 @@ class TestFaceMatch(RBAppTest):
             get_ingest_bulk_query_image_task_schema,
             # get_ingest_bulk_test_query_image_task_schema,
             get_ingest_images_task_schema,
-            # delete_collection_task_schema,
+            delete_collection_task_schema,
             # list_collections_task_schema,
         )
 
@@ -125,12 +125,12 @@ class TestFaceMatch(RBAppTest):
             #     get_ingest_bulk_test_query_image_task_schema(),
             # ),
             (3, "bulkupload", "Bulk Upload", get_ingest_images_task_schema()),
-            # (
-            #     4,
-            #     "deletecollection",
-            #     "Delete Collection",
-            #     delete_collection_task_schema(),
-            # ),
+            (
+                4,
+                "deletecollection",
+                "Delete Collection",
+                delete_collection_task_schema(),
+            ),
             # (5, "listcollections", "List Collection", list_collections_task_schema()),
         ]
 
@@ -161,12 +161,12 @@ class TestFaceMatch(RBAppTest):
                 "short_title": "Bulk Upload",
                 "order": 3,
             },
-            # {
-            #     "task_schema": f"/{APP_NAME}/deletecollection/task_schema",
-            #     "run_task": f"/{APP_NAME}/deletecollection",
-            #     "short_title": "Delete Collection",
-            #     "order": 4,
-            # },
+            {
+                "task_schema": f"/{APP_NAME}/deletecollection/task_schema",
+                "run_task": f"/{APP_NAME}/deletecollection",
+                "short_title": "Delete Collection",
+                "order": 4,
+            },
             # {
             #     "task_schema": f"/{APP_NAME}/listcollections/task_schema",
             #     "run_task": f"/{APP_NAME}/listcollections",
@@ -348,42 +348,44 @@ class TestFaceMatch(RBAppTest):
     #     assert isinstance(body.root, TextResponse)
     #     print(f"Find face bulk testing result: {body.root.value}...")
 
-    # def test_08_delete_collection_endpoint(self):
-    #     """Test the delete_collection endpoint to clean up our test collection"""
-    #     # Check if our collection exists before trying to delete
-    #     collections = DB.client.list_collections()
-    #     collection_names = [col.name for col in collections]
-    #     if self.__class__.full_collection_name not in collection_names:
-    #         pytest.skip(
-    #             f"Test collection {self.__class__.full_collection_name} not available to delete"
-    #         )
+    def test_08_delete_collection_endpoint(self):
+        """Test the delete_collection endpoint to clean up our test collection"""
+        # Check if our collection exists before trying to delete
+        collections = DB.client.list_collections()
+        collection_names = [col.name for col in collections]
+        if self.__class__.full_collection_name not in collection_names:
+            pytest.skip(
+                f"Test collection {self.__class__.full_collection_name} not available to delete"
+            )
 
-    #     delete_collection_api = f"/{APP_NAME}/deletecollection"
+        delete_collection_api = f"/{APP_NAME}/deletecollection"
 
-    #   input_data = { "inputs": {},"parameters": { "collection_name": self.__class__.test_collection_name,
-    #       }
-    #   }
+        input_data = {
+            "inputs": {},
+            "parameters": {
+                "collection_name": self.__class__.test_collection_name,
+            },
+        }
 
+        response = self.client.post(delete_collection_api, json=input_data)
 
-    #     response = self.client.post(delete_collection_api, json=input_data)
+        assert response.status_code == 200
+        body = ResponseBody(**response.json())
+        assert isinstance(body.root, TextResponse)
 
-    #     assert response.status_code == 200
-    #     body = ResponseBody(**response.json())
-    #     assert isinstance(body.root, TextResponse)
+        assert (
+            "Successfully deleted" in body.root.value
+            or "does not exist" in body.root.value
+        ), f"Unexpected response: {body.root.value}"
+        print(f"Delete collection result: {body.root.value}")
 
-    #     assert (
-    #         "Successfully deleted" in body.root.value
-    #         or "does not exist" in body.root.value
-    #     ), f"Unexpected response: {body.root.value}"
-    #     print(f"Delete collection result: {body.root.value}")
-
-    #     # Only verify collection is gone if it was successfully deleted
-    #     if "Successfully deleted" in body.root.value:
-    #         collections = DB.client.list_collections()
-    #         collection_names = [col.name for col in collections]
-    #         assert (
-    #             self.__class__.full_collection_name not in collection_names
-    #         ), "Collection was not deleted"
+        # Only verify collection is gone if it was successfully deleted
+        if "Successfully deleted" in body.root.value:
+            collections = DB.client.list_collections()
+            collection_names = [col.name for col in collections]
+            assert (
+                self.__class__.full_collection_name not in collection_names
+            ), "Collection was not deleted"
 
     # def test_09_direct_vs_cli_commands(self):
     #     """Compare direct function calls with CLI commands"""
@@ -401,23 +403,22 @@ class TestFaceMatch(RBAppTest):
     #     print(f"CLI exit code: {cli_result.exit_code}")
     #     print(f"CLI output: {cli_result.output}")
 
-
     #   # DIRECT: Test delete with non-existent collection by direct function call
-        # print("\n===== Testing Delete Collection =====")
-        # from face_detection_recognition.face_match_server import delete_collection_endpoint
+    # print("\n===== Testing Delete Collection =====")
+    # from face_detection_recognition.face_match_server import delete_collection_endpoint
 
-        # test_params = {
-        #     "collection_name": "nonexistent",
-        # }
+    # test_params = {
+    #     "collection_name": "nonexistent",
+    # }
 
-        # direct_result = delete_collection_endpoint(inputs = {}, parameters = test_params)
-        # print(f"Direct function result: {direct_result.root.value}")
-        # cli_delete_result = self.runner.invoke(
-        #     self.cli_app,
-        #     [f"/{APP_NAME}/deletecollection", "", "nonexistent"],
-        # )
-        # print(f"CLI delete exit code: {cli_delete_result.exit_code}")
-        # print(f"CLI delete output: {cli_delete_result.output}")
+    # direct_result = delete_collection_endpoint(inputs = {}, parameters = test_params)
+    # print(f"Direct function result: {direct_result.root.value}")
+    # cli_delete_result = self.runner.invoke(
+    #     self.cli_app,
+    #     [f"/{APP_NAME}/deletecollection", "", "nonexistent"],
+    # )
+    # print(f"CLI delete exit code: {cli_delete_result.exit_code}")
+    # print(f"CLI delete output: {cli_delete_result.output}")
 
     #     # Assert that direct call works as expected (contains error message)
     #     assert "does not exist" in direct_result.root.value
@@ -487,9 +488,7 @@ class TestFaceMatch(RBAppTest):
         assert parsed_upload_params["collection_name"] == "test_collection"
 
         # Test delete_collection_cli_parser
-        delete_param_str = (
-            f"{self.__class__.test_collection_name}"
-        )
+        delete_param_str = f"{self.__class__.test_collection_name}"
         parsed_delete_params = delete_collection_parameter_parser(delete_param_str)
         assert (
             parsed_delete_params["collection_name"]

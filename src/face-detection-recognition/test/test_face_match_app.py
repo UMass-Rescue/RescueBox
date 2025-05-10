@@ -37,12 +37,12 @@ class TestFaceMatch(RBAppTest):
             #     fm_server.get_ingest_bulk_test_query_image_task_schema(),
             # ),
             (3, "bulkupload", "Bulk Upload", fm_server.get_ingest_images_task_schema()),
-            # (
-            #     4,
-            #     "deletecollection",
-            #     "Delete Collection",
-            #     fm_server.delete_collection_task_schema(),
-            # ),
+            (
+                4,
+                "deletecollection",
+                "Delete Collection",
+                fm_server.delete_collection_task_schema(),
+            ),
             # (
             #     5,
             #     "listcollections",

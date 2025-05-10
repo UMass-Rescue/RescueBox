@@ -6,7 +6,6 @@ from typing import List, TypedDict
 
 from rb.lib.ml_service import MLService
 from rb.api.models import (
-    TextInput,
     BatchTextResponse,
     FileFilterDirectory,
     BatchFileInput,
@@ -462,14 +461,24 @@ def bulk_upload_endpoint(
 ) -> ResponseBody:
     # If dropdown value chosen is Create a new collection, then add collection to available collections, otherwise set
     # collection to dropdown value
-    if parameters["dropdown_collection_name"] == available_collections[0] and parameters["collection_name"] in available_collections:
-        collection_name = "new-collection" if parameters["collection_name"] == available_collections[0]  else parameters["collection_name"]
+    if (
+        parameters["dropdown_collection_name"] == available_collections[0]
+        and parameters["collection_name"] in available_collections
+    ):
+        collection_name = (
+            "new-collection"
+            if parameters["collection_name"] == available_collections[0]
+            else parameters["collection_name"]
+        )
         default_named_collections = list(
             filter(lambda name: collection_name in name, available_collections)
         )
         # map names to indices (i.e. number at the end of default collection name)
         used_indices = list(
-            map(lambda name: name.split(f"{collection_name}-")[-1], default_named_collections)
+            map(
+                lambda name: name.split(f"{collection_name}-")[-1],
+                default_named_collections,
+            )
         )
         # if any index == "collection", replace with index 0
         used_indices = list(
@@ -479,9 +488,7 @@ def bulk_upload_endpoint(
         index = (
             0
             if len(used_indices) == 0
-            else min(
-                set(range(0, max(used_indices) + 2)) - set(used_indices)
-            )
+            else min(set(range(0, max(used_indices) + 2)) - set(used_indices))
         )
         new_collection_name = f"{collection_name}{"" if index == 0 else f'-{index}'}"
 
@@ -529,12 +536,12 @@ Delete Collection
 
 ******************************************************************************************************
 """
+
+
 # Frontend Task Schema defining inputs and parameters that users can enter
 def delete_collection_task_schema() -> TaskSchema:
     return TaskSchema(
-        inputs=[
-
-        ],
+        inputs=[],
         parameters=[
             ParameterSchema(
                 key="collection_name",
@@ -555,6 +562,7 @@ def delete_collection_task_schema() -> TaskSchema:
 def delete_collection_cli_parser(input):
     return {}
 
+
 def delete_collection_parameter_parser(parameter):
     collection_name = parameter
     return {
@@ -573,8 +581,7 @@ class DeleteCollectionParameters(TypedDict):
 
 # Endpoint for deleting collections from ChromaDB
 def delete_collection_endpoint(
-    inputs: DeleteCollectionInputs,
-    parameters: DeleteCollectionParameters
+    inputs: DeleteCollectionInputs, parameters: DeleteCollectionParameters
 ) -> ResponseBody:
     responseValue = ""
     collection_name = parameters["collection_name"]
@@ -582,9 +589,7 @@ def delete_collection_endpoint(
     detector_backend = config["detector_backend"].lower()
     full_collection_name = f"{collection_name}_{detector_backend}_{model_name}"
     try:
-        DB.client.delete_collection(
-            full_collection_name
-        )
+        DB.client.delete_collection(full_collection_name)
         responseValue = (
             f"Successfully deleted {collection_name}_{detector_backend}_{model_name}"
         )
