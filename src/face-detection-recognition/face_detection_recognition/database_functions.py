@@ -32,9 +32,7 @@ class Vector_Database:
         if testing == "true":
             self.client = chromadb.EphemeralClient()
         else:
-            self.client = chromadb.HttpClient(
-                host=os.environ.get("CHROMA_HOST"), port=os.environ.get("CHROMA_PORT")
-            )
+            self.client = chromadb.PersistentClient(path="../resources/data")
 
     def get_collection(self, collection):
         return self.client.get_or_create_collection(
