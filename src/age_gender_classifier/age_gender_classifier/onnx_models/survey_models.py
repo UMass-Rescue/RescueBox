@@ -8,13 +8,13 @@ from datetime import datetime
 from typing import List, Optional
 import logging
 import pandas as pd
-from src.onnx_models.age_classify_v001.model import predict as predict_age_classifier
-from src.onnx_models.vit_age_classifier.model import (
+from age_gender_classifier.onnx_models.age_classify_v001.model import predict as predict_age_classifier
+from age_gender_classifier.onnx_models.vit_age_classifier.model import (
     predict as predict_vit_age_classifier,
 )
-from src.onnx_models.fairface.model import predict as predict_fairface_classifier
+from age_gender_classifier.onnx_models.fairface.model import predict as predict_fairface_classifier
 
-from src.utils.common import write_db, read_db
+from age_gender_classifier.utils.common import write_db, read_db
 
 logging.basicConfig(level=logging.INFO)
 

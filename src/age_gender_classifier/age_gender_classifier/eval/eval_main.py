@@ -1,6 +1,6 @@
 import pandas as pd
-from src.eval.analyze_labeled_data_raw import main as raw_main
-from src.eval.score_labeled_data import main as run_evaluation
+from age_gender_classifier.eval.analyze_labeled_data_raw import main as raw_main
+from age_gender_classifier.eval.score_labeled_data import main as run_evaluation
 from eval.transform_scores import main as transform_outputs
 
 

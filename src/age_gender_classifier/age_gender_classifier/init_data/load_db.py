@@ -3,8 +3,8 @@ import numpy as np
 from pathlib import Path
 import logging
 import pandas as pd
-from src.utils.sqlAlchemy_manager import DBManager
-from src.utils.preprocess import is_valid_image, is_damaged
+from age_gender_classifier.utils.sqlAlchemy_manager import DBManager
+from age_gender_classifier.utils.preprocess import is_valid_image, is_damaged
 
 logging.basicConfig(level=logging.INFO)
 

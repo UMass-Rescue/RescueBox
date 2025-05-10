@@ -3,7 +3,7 @@ import os
 import numpy as np
 import cv2 as cv
 from PIL import Image
-from src.utils.preprocess import enhance_image
+from age_gender_classifier.utils.preprocess import enhance_image
 
 
 # Preprocessing function

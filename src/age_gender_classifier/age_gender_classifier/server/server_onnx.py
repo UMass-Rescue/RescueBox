@@ -1,11 +1,12 @@
 from typing import TypedDict
 from pathlib import Path
 import json
+import logging
 
-from src.onnx_models.survey_models import SurveyModels
+from age_gender_classifier.onnx_models.survey_models import SurveyModels
 
-from flask_ml.flask_ml_server import MLServer, load_file_as_string
-from flask_ml.flask_ml_server.models import (
+from rb.lib.ml_service import MLService
+from rb.api.models import (
     DirectoryInput,
     TextResponse,
     InputSchema,
@@ -15,6 +16,9 @@ from flask_ml.flask_ml_server.models import (
     ParameterSchema,
     IntParameterDescriptor,
 )
+import typer
+
+logging.basicConfig(level=logging.INFO)
 
 
 def create_transform_case_task_schema() -> TaskSchema:
@@ -47,18 +51,19 @@ class Parameters(TypedDict):
     age_threshold: int
 
 
-server = MLServer(__name__)
+APP_NAME = "age-classifier"
+server = MLService(APP_NAME)
 
 server.add_app_metadata(
-    name="Age Classifier",
+    name=APP_NAME,
     author="UMass Rescue",
-    version="0.2.0",
-    info=load_file_as_string("img-app-info.md"),
+    version="0.1.0",
+    info="Model to classify ages from images.",
+    plugin_name=APP_NAME,
 )
 
 
-@server.route("/ageclassifier", task_schema_func=create_transform_case_task_schema)
-def sentiment_detection(inputs: Inputs, parameters: Parameters) -> ResponseBody:
+def age_classifier(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """
     In Flask-ML, an inference function takes two arguments: inputs and parameters.
     The types of inputs and parameters must be Python TypedDict types.
@@ -80,5 +85,39 @@ def sentiment_detection(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     )
 
 
+def cli_parser(path: str):
+    image_directory = path
+    try:
+        logging.info(f"Parsing CLI input path: {image_directory}")
+        image_directory = Path(image_directory)
+        if not image_directory.exists():
+            raise ValueError(f"Directory {image_directory} does not exist.")
+        if not image_directory.is_dir():
+            raise ValueError(f"Path {image_directory} is not a directory.")
+        inputs = Inputs(input_dataset=DirectoryInput(path=image_directory))
+        return inputs
+    except Exception as e:
+        logging.error(f"Error parsing CLI input: {e}")
+        return typer.Abort()
+
+
+def parameters_cli_parse(age_threshold: str) -> Parameters:
+    return Parameters(age_threshold=int(age_threshold))
+
+
+server.add_ml_service(
+    rule="/age_classifier",
+    ml_function=age_classifier,
+    inputs_cli_parser=typer.Argument(parser=cli_parser, help="Image directory path"),
+    parameters_cli_parser=typer.Argument(
+        parser=parameters_cli_parse, help="Age threshhold"
+    ),
+    short_title="Age and Gender Classifier",
+    order=0,
+    task_schema_func=create_transform_case_task_schema,
+)
+
+
+app = server.app
 if __name__ == "__main__":
-    server.run(port=5000)
+    app()

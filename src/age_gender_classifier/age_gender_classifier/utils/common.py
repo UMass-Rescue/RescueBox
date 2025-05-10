@@ -2,10 +2,10 @@ import os
 from typing import Optional
 import logging
 import pandas as pd
-from src.utils.sqlAlchemy_manager import DBManager
+from age_gender_classifier.utils.sqlAlchemy_manager import DBManager
 
 logging.basicConfig(level=logging.INFO)
-db_uri = os.getenv("DB_CONN_STR")
+db_uri = os.getenv("DB_CONN_STR", "sqlite:///age_classifier.db")
 
 
 def read_db(

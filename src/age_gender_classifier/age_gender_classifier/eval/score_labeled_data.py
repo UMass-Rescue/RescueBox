@@ -3,8 +3,8 @@ from typing import Tuple
 import logging
 import pandas as pd
 
-from src.utils.common import read_db
-from src.onnx_models.survey_models import SurveyModels
+from age_gender_classifier.utils.common import read_db
+from age_gender_classifier.onnx_models.survey_models import SurveyModels
 
 logging.basicConfig(level=logging.INFO)
 path = Path(__file__).parent

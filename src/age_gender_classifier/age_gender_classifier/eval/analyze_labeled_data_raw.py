@@ -4,7 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from src.utils.common import read_db
+from age_gender_classifier.utils.common import read_db
 
 logging.basicConfig(level=logging.INFO)
 path = Path(__file__).parent

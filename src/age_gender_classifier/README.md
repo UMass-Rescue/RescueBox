@@ -48,7 +48,7 @@ To install or remove packages, respectively, use `poetry add` and `poetry remove
 
 **Get the ONNX models**
 
-In order to run survey_models.py you must download the onnx model files from this GoogleDrive [link](https://drive.google.com/drive/folders/1IgG6w6lJ9cd8Qlckd7HwdBUjWCd_-gxN), then copy them in their respective directories.
+In order to run survey_models.py you must download the onnx model files from either this GoogleDrive [link](https://drive.google.com/drive/folders/1IgG6w6lJ9cd8Qlckd7HwdBUjWCd_-gxN), or this GoogleDrive [link](https://drive.google.com/drive/folders/1e01jA5WXsukK_NwNnNx4iL50jRCMZQXF), then copy them in their respective directories.
 
     cp ~/Downloads/v001_model.onnx src/onnx_models/age_classify_v001/v001_model.onnx 
     cp ~/Downloads/vit_model.onnx src/onnx_models/vit_age_classifier/vit_model.onnx

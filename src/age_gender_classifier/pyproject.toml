@@ -9,7 +9,6 @@ authors = [
 ]
 readme = "README.md"
 
-requires-python = ">=3.11"
 dependencies = [
     "torch",
     "numpy",
@@ -23,7 +22,7 @@ dependencies = [
 
 [tool.poetry]
 packages = [
-    { include = "server", from = "src" }
+    { include = "age_gender_classifier"}
 ]
 
 [build-system]

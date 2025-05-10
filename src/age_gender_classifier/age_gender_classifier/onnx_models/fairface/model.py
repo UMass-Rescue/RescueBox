@@ -3,7 +3,7 @@ import os
 import numpy as np
 import cv2 as cv
 from PIL import Image
-from src.utils.preprocess import enhance_image
+from age_gender_classifier.utils.preprocess import enhance_image
 
 
 # Preprocessing function
@@ -54,23 +54,28 @@ def postprocess_output(logits):
     return predicted_classes, probabilities
 
 
-# Mapping from classification ids to age ranges (updated based on model's id2label)
+# Mapping from classification ids to age ranges (based on fairface config)
 id2label = {
     0: "0-2",
-    1: "10-19",
-    2: "20-29",
-    3: "3-9",
+    1: "3-9",
+    2: "10-19",
+    3: "20-29",
     4: "30-39",
     5: "40-49",
     6: "50-59",
     7: "60-69",
-    8: "70-79",
+    8: "more than 70",
 }
 
 
 # Run inference
 def predict(image_input, onnx_path):
-    # Load ONNX model
+    """
+    Load ONNX model and predict age group from an image.
+
+    Returns:
+        (label: str, confidence: float)
+    """
     session = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
     input_tensor = preprocess_image(image_input)
     outputs = session.run(["logits"], {"pixel_values": input_tensor})[0]
