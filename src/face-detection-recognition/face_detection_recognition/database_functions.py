@@ -29,14 +29,39 @@ load_dotenv()
 class Vector_Database:
     def __init__(self):
         testing = os.environ.get("IS_TESTING")
+        self.single_indicator = "S"
+        self.ensemble_indicator = "E"
         if testing == "true":
             self.client = chromadb.EphemeralClient()
         else:
             self.client = chromadb.PersistentClient(path="../resources/data")
 
+    def create_full_collection_name(self, base_name, detector, model, isEnsemble):
+        return f"{base_name}_{detector.lower()[0:2]}{model.lower()[0:2]}{self.ensemble_indicator if isEnsemble else self.single_indicator}"
+
+    def get_available_collections(self, isEnsemble=False):
+        existing_collections = [
+            collection.name for collection in self.client.list_collections()
+        ]
+        collections = list(
+            filter(
+                lambda name: name.split("_")[-1]
+                == (self.ensemble_indicator if isEnsemble else self.single_indicator),
+                existing_collections,
+            )
+        )
+        collections = list(
+            map(lambda name: "_".join(name.split("_")[:-1]), collections)
+        )
+
+        if isEnsemble:
+            collections = list(set(collections))
+
+        return collections
+
     def get_collection(self, collection):
         return self.client.get_or_create_collection(
-            name=f"{collection}_{detector_backend.lower()}_{model_name.lower()}",
+            name=collection,
             metadata={
                 "image_path": "Original path of the uploaded image",
                 "hnsw:space": space,

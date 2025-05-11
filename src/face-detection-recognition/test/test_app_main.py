@@ -67,9 +67,7 @@ class TestFaceMatch(RBAppTest):
 
         # Generate a unique test collection name
         cls.test_collection_name = f"test_collection_{uuid.uuid4().hex[:8]}"
-        cls.full_collection_name = (
-            f"{cls.test_collection_name}_{TEST_DETECTOR_BACKEND}_{TEST_MODEL_NAME}"
-        )
+        cls.full_collection_name = f"{cls.test_collection_name}_{TEST_DETECTOR_BACKEND[0:2].lower()}{TEST_MODEL_NAME[0:2].lower()}S"
 
         print("=" * 80)
         print("Test setup complete. Using CPU mode for testing with ONNX Runtime.")
@@ -108,6 +106,8 @@ class TestFaceMatch(RBAppTest):
             get_ingest_images_task_schema,
             delete_collection_task_schema,
             # list_collections_task_schema,
+            # get_multi_pipeline_face_find_bulk_task_schema,
+            # get_multi_pipeline_ingest_images_task_schema,
         )
 
         return [
@@ -125,6 +125,18 @@ class TestFaceMatch(RBAppTest):
             #     get_ingest_bulk_test_query_image_task_schema(),
             # ),
             (3, "bulkupload", "Bulk Upload", get_ingest_images_task_schema()),
+            # (
+            #     6,
+            #     "multi_pipeline_bulkupload",
+            #     "Multi-Pipeline Bulk Upload",
+            #     get_multi_pipeline_ingest_images_task_schema()
+            # ),
+            # (
+            #     7,
+            #     "multi_pipeline_findfacebulk",
+            #     "Multi-Pipeline Find Face Bulk",
+            #     get_multi_pipeline_face_find_bulk_task_schema()
+            # ),
             (
                 4,
                 "deletecollection",
@@ -161,6 +173,18 @@ class TestFaceMatch(RBAppTest):
                 "short_title": "Bulk Upload",
                 "order": 3,
             },
+            # {
+            #     "task_schema": f"/{APP_NAME}/multi_pipeline_bulkupload/task_schema",
+            #     "run_task": f"/{APP_NAME}/multi_pipeline_bulkupload",
+            #     "short_title": "Multi-Pipeline Bulk Upload",
+            #     "order": 6
+            # },
+            # {
+            #     "task_schema": f"/{APP_NAME}/multi_pipeline_findfacebulk/task_schema",
+            #     "run_task":  f"/{APP_NAME}/multi_pipeline_findfacebulk",
+            #     "short_title": "Multi-Pipeline Find Face Bulk",
+            #     "order": 7,
+            # },
             {
                 "task_schema": f"/{APP_NAME}/deletecollection/task_schema",
                 "run_task": f"/{APP_NAME}/deletecollection",
@@ -189,6 +213,8 @@ class TestFaceMatch(RBAppTest):
             get_ingest_bulk_query_image_task_schema,
             get_ingest_images_task_schema,
             delete_collection_task_schema,
+            get_multi_pipeline_face_find_bulk_task_schema,
+            get_multi_pipeline_ingest_images_task_schema,
             list_collections_task_schema,
         )
 
@@ -197,6 +223,8 @@ class TestFaceMatch(RBAppTest):
             get_ingest_query_image_task_schema(),
             get_ingest_bulk_query_image_task_schema(),
             get_ingest_images_task_schema(),
+            get_multi_pipeline_face_find_bulk_task_schema(),
+            get_multi_pipeline_ingest_images_task_schema(),
             delete_collection_task_schema(),
             list_collections_task_schema(),
         ]
