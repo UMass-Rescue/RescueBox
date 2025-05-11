@@ -4,6 +4,7 @@ from rb.api.models import AppMetadata, ResponseBody, TextResponse
 from pathlib import Path
 from unittest.mock import patch
 import json
+import pandas as pd
 
 class TestAgeClassifier(RBAppTest):
     def setup_method(self):
@@ -26,19 +27,19 @@ class TestAgeClassifier(RBAppTest):
 
 
 
-    # TODO: Test API end point : self.client.post(summarize_api, json=input_json)
-    # @patch("text_summary.summarize.ensure_model_exists")
-    # @patch("age_gender_classifier.server.server_onnx.age_classifier", return_value={"result": "success"})
-    @patch(
-        "age_gender_classifier.server.server_onnx.age_classifier",
-        return_value=ResponseBody(
-            TextResponse(
-                value=json.dumps({"result": "success"}),
-                title="Mocked Result"
-            )
-        )
-    )
+    # @patch(
+    #     "age_gender_classifier.server.server_onnx.age_classifier",
+    #     return_value=ResponseBody(
+    #         TextResponse(
+    #             value=json.dumps({"result": "success"}),
+    #             title="Mocked Result"
+    #         )
+    #     )
+    # )
+    @patch("age_gender_classifier.onnx_models.survey_models.SurveyModels.main_predict")
     def test_api_age_classifier(self, age_class_mock):
+        age_class_mock.return_value = pd.DataFrame()
+        
         age_class_api = f"/{APP_NAME}/age_classifier"
         full_path = Path.cwd() / "src" / "age_gender_classifier" / "age_gender_classifier" / "onnx_models" / "test_images"
         input_json = {
