@@ -36,10 +36,11 @@ class TestAgeClassifier(RBAppTest):
     #         )
     #     )
     # )
+    @patch("age_gender_classifier.onnx_models.survey_models.SurveyModels.__init__", return_value=None)
     @patch("age_gender_classifier.onnx_models.survey_models.SurveyModels.main_predict")
-    def test_api_age_classifier(self, age_class_mock):
+    def test_api_age_classifier(self, age_class_mock, init_mock):
         age_class_mock.return_value = pd.DataFrame()
-        
+
         age_class_api = f"/{APP_NAME}/age_classifier"
         full_path = Path.cwd() / "src" / "age_gender_classifier" / "age_gender_classifier" / "onnx_models" / "test_images"
         input_json = {

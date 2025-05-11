@@ -8,11 +8,11 @@ from datetime import datetime
 from typing import List, Optional
 import logging
 import pandas as pd
-from src.onnx_models.age_classify_v001.model import predict as predict_age_classifier
-from src.onnx_models.vit_age_classifier.model import predict as predict_vit_age_classifier
-from src.onnx_models.fairface.model import predict as predict_fairface_classifier
+from age_gender_classifier.onnx_models.age_classify_v001.model import predict as predict_age_classifier
+from age_gender_classifier.onnx_models.vit_age_classifier.model import predict as predict_vit_age_classifier
+from age_gender_classifier.onnx_models.fairface.model import predict as predict_fairface_classifier
 import joblib
-from src.utils.common import write_db, read_db
+from age_gender_classifier.utils.common import write_db, read_db
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,7 +28,7 @@ _INT_TO_LABEL = {v: k for k, v in _LABEL_MAP.items()}
 def _fix(label: str) -> str:
     return "more than 70" if label == "70-79" else label
 
-_XGB = joblib.load("src/onnx_models/xgboost_model.pkl")
+# _XGB = joblib.load("src/age_gender_classifier/age_gender_classifier/onnx_models/xgboost_model.pkl")
 
 
 def label_to_binary(label, threshold):
@@ -61,6 +61,7 @@ class SurveyModels:
         self.model2_path = str(self.base_path / "vit_age_classifier/vit_model.onnx")
         self.model3_path = str(self.base_path / "fairface/fairface_age.onnx")
         self.now = datetime.now().isoformat()
+        self._XGB = joblib.load("src/age_gender_classifier/age_gender_classifier/onnx_models/xgboost_model.pkl")
 
         # Check if model files exist
         if not os.path.exists(self.model1_path):
@@ -131,11 +132,11 @@ class SurveyModels:
             'fairface_classifier_label'   : _LABEL_MAP[_fix(pred["scores"][2]["label"])],
             'fairface_classifier_confidence': float(pred["scores"][2]["confidence"])
         }
-        ens_idx       = _XGB.predict(pd.DataFrame([features]))[0]
+        ens_idx       = self._XGB.predict(pd.DataFrame([features]))[0]
         ens_label     = _INT_TO_LABEL[ens_idx]
         ensemble_over = label_to_binary(ens_label, age)
 
-        binary_results["xgb_ensemble"] = (ensemble_over, "1.0")
+        # binary_results["xgb_ensemble"] = (ensemble_over, "1.0")
 
         majority_vote = ensemble_over
 
