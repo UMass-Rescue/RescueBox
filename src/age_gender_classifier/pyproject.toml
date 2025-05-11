@@ -18,6 +18,8 @@ dependencies = [
     "sqlalchemy",
     "seaborn",
     "onnxruntime",
+    "joblib",
+    "xgboost"
 ]
 
 [tool.poetry]

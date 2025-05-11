@@ -8,25 +8,37 @@ from datetime import datetime
 from typing import List, Optional
 import logging
 import pandas as pd
-from age_gender_classifier.onnx_models.age_classify_v001.model import predict as predict_age_classifier
-from age_gender_classifier.onnx_models.vit_age_classifier.model import (
-    predict as predict_vit_age_classifier,
-)
-from age_gender_classifier.onnx_models.fairface.model import predict as predict_fairface_classifier
-
-from age_gender_classifier.utils.common import write_db, read_db
+from src.onnx_models.age_classify_v001.model import predict as predict_age_classifier
+from src.onnx_models.vit_age_classifier.model import predict as predict_vit_age_classifier
+from src.onnx_models.fairface.model import predict as predict_fairface_classifier
+import joblib
+from src.utils.common import write_db, read_db
 
 logging.basicConfig(level=logging.INFO)
+
+# integer codes XGBoost model was trained on
+_LABEL_MAP = {
+    "0-2": 0, "3-9": 1, "10-19": 2, "20-29": 3,
+    "30-39": 4, "40-49": 5, "50-59": 6, "60-69": 7,
+    "more than 70": 8,
+    "70-79": 8
+}
+_INT_TO_LABEL = {v: k for k, v in _LABEL_MAP.items()}
+
+def _fix(label: str) -> str:
+    return "more than 70" if label == "70-79" else label
+
+_XGB = joblib.load("src/onnx_models/xgboost_model.pkl")
 
 
 def label_to_binary(label, threshold):
     """
     Convert the age range label to a binary value based on a threshold.
-
+    
     Args:
         label (str): Age range label (e.g., "10-19", "20-29", "more than 70").
         threshold (int): The age threshold (e.g., 20 or 30).
-
+    
     Returns:
         bool: True if the lower bound of the age range is >= threshold, else False.
     """
@@ -35,7 +47,7 @@ def label_to_binary(label, threshold):
         age_lower = 70
     else:
         try:
-            parts = label.split("-")
+            parts = label.split('-')
             age_lower = int(parts[0])
         except Exception:
             age_lower = 0
@@ -70,44 +82,22 @@ class SurveyModels:
                   e.g., {"age_classify_v001": (label, confidence), "vit_age_classifier": (label, confidence)}
         """
         # Run the first model
-        model1_label, model1_confidence = predict_age_classifier(
-            image_path, self.model1_path
-        )
-
+        model1_label, model1_confidence = predict_age_classifier(image_path, self.model1_path)
+        
         # Run the second model
-        model2_label, model2_confidence = predict_vit_age_classifier(
-            image_path, self.model2_path
-        )
-
+        model2_label, model2_confidence = predict_vit_age_classifier(image_path, self.model2_path)
+        
         # Run the third model
-        model3_label, model3_confidence = predict_fairface_classifier(
-            image_path, self.model3_path
-        )
-
-        return {
-            "model_name": [
-                "age_classify_v001",
-                "vit_age_classifier",
-                "fairface_classifier",
-            ],
+        model3_label, model3_confidence = predict_fairface_classifier(image_path, self.model3_path)
+        
+        return  {
+            "model_name": ["age_classify_v001", "vit_age_classifier", "fairface_classifier"],
             "scores": [
-                {
-                    "label": model1_label,
-                    "confidence": str(model1_confidence),
-                    "imageId": imgId,
-                },
-                {
-                    "label": model2_label,
-                    "confidence": str(model2_confidence),
-                    "imageId": imgId,
-                },
-                {
-                    "label": model3_label,
-                    "confidence": str(model3_confidence),
-                    "imageId": imgId,
-                },
+                {"label": model1_label, "confidence": str(model1_confidence), "imageId": imgId},
+                {"label": model2_label, "confidence": str(model2_confidence), "imageId": imgId},
+                {"label": model3_label, "confidence": str(model3_confidence), "imageId": imgId},
             ],
-            "created_at": [self.now] * 3,
+            "created_at": [self.now] * 3
         }
 
     def predict_over_under(self, age, image_path, imgId):
@@ -128,50 +118,47 @@ class SurveyModels:
         """
         allowed_ages = {3, 10, 20, 30, 40, 50, 60, 70}
         if age not in allowed_ages:
-            raise ValueError(
-                f"Invalid age threshold: {age}. Allowed values are {sorted(allowed_ages)}."
-            )
-
+            raise ValueError(f"Invalid age threshold: {age}. Allowed values are {sorted(allowed_ages)}.")
+        
         pred = self.predict(image_path, imgId)
         binary_results = {}
 
-        # Count votes for each binary outcome
-        vote_counts = {True: 0, False: 0}
+        features = {
+            'age_classify_v001_label'     : _LABEL_MAP[_fix(pred["scores"][0]["label"])],
+            'age_classify_v001_confidence': float(pred["scores"][0]["confidence"]),
+            'vit_age_classifier_label'    : _LABEL_MAP[_fix(pred["scores"][1]["label"])],
+            'vit_age_classifier_confidence': float(pred["scores"][1]["confidence"]),
+            'fairface_classifier_label'   : _LABEL_MAP[_fix(pred["scores"][2]["label"])],
+            'fairface_classifier_confidence': float(pred["scores"][2]["confidence"])
+        }
+        ens_idx       = _XGB.predict(pd.DataFrame([features]))[0]
+        ens_label     = _INT_TO_LABEL[ens_idx]
+        ensemble_over = label_to_binary(ens_label, age)
 
-        for n in range(len(pred["model_name"])):
-            model_name = pred["model_name"][n]
-            label = pred["scores"][n]["label"]
-            conf = pred["scores"][n]["confidence"]
-            is_over = label_to_binary(label, age)
+        binary_results["xgb_ensemble"] = (ensemble_over, "1.0")
 
-            binary_results[model_name] = (is_over, conf)
-            vote_counts[is_over] += 1
-
-        # Majority vote for whether the picture is over the threshold
-        majority_vote = True if vote_counts[True] >= 2 else False
+        majority_vote = ensemble_over
 
         return {
             "model_name": ["predict_over_under"],
-            "scores": [
-                {
-                    "majority_vote": majority_vote,
-                    "binary_results": binary_results,
-                    "imageId": imgId,
-                }
-            ],
-            "created_at": [self.now],
+            "scores": [{
+                "majority_vote": majority_vote,
+                "binary_results": binary_results,
+                "imageId": imgId
+            }],
+            "created_at": [self.now]
         }
-
+        
     def _predict_eval_results(self, age: int, image_path: str, imgId) -> dict:
         """
         Run the age prediction models once and return both the raw predictions (individual labels)
         and the binary over/under vote result (using majority vote) for the specified age threshold.
-
+        
         Args:
             age (int): The age threshold to convert the predictions to binary.
             image_path (str): Path to the input image.
             imgId: An identifier for the image.
-
+        
         Returns:
             dict: A dictionary with keys:
                 - 'raw_predictions': Output of the original predict() method.
@@ -199,20 +186,19 @@ class SurveyModels:
 
         # Majority vote for whether the picture is over the threshold
         majority_vote = True if vote_counts[True] >= 2 else False
+
         # Combine both results into one output dictionary
         return {
             "raw_predictions": raw_predictions,
             "binary_vote": {
                 "majority_vote": majority_vote,
                 "binary_results": binary_results,
-                "imageId": imgId,
+                "imageId": imgId
             },
-            "created_at": raw_predictions["created_at"][0],
+            "created_at": raw_predictions["created_at"]
         }
 
-    def main_predict_eval(
-        self, images: List, age_threshold: int = 40, ids: Optional[List] = None
-    ) -> pd.DataFrame:
+    def main_predict_eval(self, images: List, age_threshold: int = 40, ids: Optional[List] = None) -> pd.DataFrame:
         """
         Loop over a list of images and, for each, run the combined evaluation (raw predictions plus binary vote)
         in one pass. Returns a DataFrame with one row per image containing columns:
@@ -220,47 +206,43 @@ class SurveyModels:
           - raw_predictions (as a JSON string)
           - binary_vote (as a JSON string)
           - created_at timestamp
-
+        
         This avoids running separate/redundant predict and predict_over_under calls
         """
         ids = list(range(len(images))) if ids is None else ids
         results = []
         for imgId, img in zip(ids, images):
-            combined_result = self._predict_eval_results(age_threshold, img, imgId)[
-                "raw_predictions"
-            ]
-            results.append(pd.DataFrame(combined_result))
-
-        df = pd.concat(results, axis=0).reset_index(drop=True)
-        df["scores"] = df["scores"].apply(lambda x: json.dumps(x))
-
+            combined_result = self._predict_eval_results(age_threshold, img, imgId)
+            row = {
+                "imageId": imgId,
+                "raw_predictions": json.dumps(combined_result["raw_predictions"]),
+                "binary_vote": json.dumps(combined_result["binary_vote"]),
+                "created_at": combined_result["created_at"][0] if isinstance(combined_result["created_at"], list) else combined_result["created_at"]
+            }
+            results.append(row)
+        
+        df = pd.DataFrame(results)
         write_db(df, "model_output")
-        logging.info(
-            f"Successfully completed combined evaluation for {len(images)} images."
-        )
+        logging.info(f"Successfully completed combined evaluation for {len(images)} images.")
         return df
 
-    def main_predict(
-        self, images: List, age_threshold: int = 40, ids: Optional[List] = None
-    ) -> pd.DataFrame:
+
+    def main_predict(self, images: List, age_threshold: int=40, ids: Optional[List]=None) -> pd.DataFrame:
         """Loop list of images, for each, run prediction and write results to db."""
         ids = list(range(len(images))) if ids is None else ids
         ct = 0
-        df = None
         for id, img in zip(ids, images):
             df1 = pd.DataFrame(self.predict(img, id))
             df2 = pd.DataFrame(self.predict_over_under(age_threshold, img, id))
             dfs = [df1, df2]
-            if ct > 0 and isinstance(df, pd.DataFrame):
+            if ct > 0:
                 dfs = [df] + dfs
             df = pd.concat(dfs, axis=0).reset_index(drop=True)
             ct += 1
 
         df["scores"] = df["scores"].apply(lambda x: json.dumps(x))
         write_db(df, "model_output")
-        logging.info(
-            f" Successfully completed {len(df)} predictions for {len(images)} images."
-        )
+        logging.info(f" Successfully completed {len(df)} predictions for {len(images)} images.")
         return df
 
 
@@ -270,7 +252,7 @@ if __name__ == "__main__":
         print("Usage: python survey_models.py <image_path> <age_threshold>")
         print("Allowed age thresholds: 3, 10, 20, 30, 40, 50, 60, 70")
         sys.exit(1)
-
+    
     image_path = sys.argv[1]
 
     try:
@@ -281,9 +263,7 @@ if __name__ == "__main__":
 
     allowed_ages = {3, 10, 20, 30, 40, 50, 60, 70}
     if age_threshold not in allowed_ages:
-        print(
-            f"Error: Invalid age threshold {age_threshold}. Allowed values: {sorted(allowed_ages)}"
-        )
+        print(f"Error: Invalid age threshold {age_threshold}. Allowed values: {sorted(allowed_ages)}")
         sys.exit(1)
 
     try:
@@ -291,17 +271,17 @@ if __name__ == "__main__":
     except FileNotFoundError as e:
         print(e)
         sys.exit(1)
-
+    
     # Full Model Predictions
     # predictions = survey.predict(image_path)
-
+    
     # print("\nModel Predictions:")
     # print(predictions)
     # for x in predictions.items():
     #     print(x)
     # for model_name, (label, confidence) in predictions.items():
     #     print(f"{model_name}: {label} (confidence: {confidence:.2f})")
-
+    
     # Over/Under Prediction for the specified age
     # binary_result, conf_result = survey.predict_over_under(age_threshold, image_path)
     # chose_model = survey.predict_over_under(age_threshold, image_path)
@@ -309,7 +289,7 @@ if __name__ == "__main__":
     # print(f"\nOver/Under {age_threshold}: {'Over' if binary_result else 'Under'} {age_threshold} (confidence: {conf_result:.2f})")
     df = survey.main_predict([image_path], age_threshold=40)
     df2 = read_db("model_output", "SELECT * FROM model_output")
-
+    
     # logging.info("Current run", df)
     # logging.info("Read DB", df2.head())
     # python src/onnx_models/survey_models.py src/onnx_models/test_images/lebron.jpg 40
