@@ -16,7 +16,7 @@ from collections import defaultdict
 from Audio_Diarization.utils import diarize_text
 import typer
 import csv
-from typing import Union, List, Dict, Optional
+from typing import List, Dict, Optional
 import sqlite3
 
 # Load models
