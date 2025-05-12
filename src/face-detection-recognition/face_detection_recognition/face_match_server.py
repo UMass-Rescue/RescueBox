@@ -283,11 +283,18 @@ def find_face_bulk_endpoint(
     # Check CUDNN compatability
     check_cuDNN_version()
 
+    full_collection_name = DB.create_full_collection_name(
+        parameters["collection_name"],
+        config["detector_backend"],
+        config["model_name"],
+        False,
+    )
+
     # Call model function to find matches
     status, results = face_match_model.find_face_bulk(
         inputs["query_directory"].path,
         parameters["similarity_threshold"],
-        parameters["collection_name"],
+        full_collection_name,
     )
     log_info(status)
 
@@ -509,7 +516,8 @@ def bulk_upload_endpoint(
             if len(used_indices) == 0
             else min(set(range(0, max(used_indices) + 2)) - set(used_indices))
         )
-        base_collection_name = f"{collection_name}{"" if index == 0 else f'-{index}'}"
+        index_str = "" if index == 0 else f"-{index}"
+        base_collection_name = f"{collection_name}{index_str}"
 
     elif parameters["dropdown_collection_name"] != available_collections[0]:
         base_collection_name = parameters["dropdown_collection_name"]
@@ -693,7 +701,8 @@ def multi_pipeline_bulk_upload_endpoint(
             if len(used_indices) == 0
             else min(set(range(0, max(used_indices) + 2)) - set(used_indices))
         )
-        base_collection_name = f"{collection_name}{"" if index == 0 else f'-{index}'}"
+        index_str = "" if index == 0 else f"-{index}"
+        base_collection_name = f"{collection_name}{index_str}"
 
     elif (
         parameters["dropdown_collection_name"]
