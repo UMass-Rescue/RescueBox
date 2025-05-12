@@ -119,7 +119,7 @@ def mount_task(inputs: UFDRInputs, parameters: UFDRParameters) -> ResponseBody:
         msg = f"Mounted at {mount_path}"
     except Exception as e:
         msg = f"Mount failed: {e}"
-
+    print(msg)
     return ResponseBody(root=TextResponse(value=msg, title="Mount Result"))
 
 
