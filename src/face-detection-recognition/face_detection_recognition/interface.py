@@ -205,7 +205,7 @@ class FaceMatchModel:
                 num_embeddings = len(all_embedding_outputs)
 
                 if num_embeddings % query_batch_size == 0 and num_embeddings != 0:
-                    matching_image_paths = self.DBquery_bulk(
+                    matching_image_paths = self.DB.query_bulk(
                         collection_name,
                         all_embedding_outputs,
                         10,
