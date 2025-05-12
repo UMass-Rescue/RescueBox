@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 import os
@@ -20,6 +19,7 @@ log = logging.getLogger(__name__)
 
 DEFAULT_UID = 1000
 DEFAULT_GID = 1000
+
 
 class UFDRMount(LoggingMixIn, Operations):
 
@@ -45,9 +45,11 @@ class UFDRMount(LoggingMixIn, Operations):
             if self.zip_offset < 0:
                 raise RuntimeError("No ZIP signature found in UFDR file.")
 
-            self.xml_data = head[:self.zip_offset]
+            self.xml_data = head[: self.zip_offset]
 
-            log.info(f"Found ZIP at offset {self.zip_offset}. Metadata size: {len(self.xml_data)}")
+            log.info(
+                f"Found ZIP at offset {self.zip_offset}. Metadata size: {len(self.xml_data)}"
+            )
 
             f.seek(self.zip_offset)
 
@@ -75,7 +77,9 @@ class UFDRMount(LoggingMixIn, Operations):
                     "is_metadata": True,
                 }
 
-        log.info(f"Parsed {len(self.files_info)} files and {len(self.dirs)} directories in UFDR")
+        log.info(
+            f"Parsed {len(self.files_info)} files and {len(self.dirs)} directories in UFDR"
+        )
 
     def _ensure_parents(self, path):
         parts = path.strip("/").split("/")
@@ -108,13 +112,13 @@ class UFDRMount(LoggingMixIn, Operations):
 
         for d in self.dirs:
             if d.startswith(prefix) and d != path:
-                suffix = d[len(prefix):]
+                suffix = d[len(prefix) :]
                 if "/" not in suffix:
                     entries.append(suffix)
 
         for fpath in self.files_info:
             if fpath.startswith(prefix) and fpath != path:
-                suffix = fpath[len(prefix):]
+                suffix = fpath[len(prefix) :]
                 if "/" not in suffix:
                     entries.append(suffix)
 
@@ -124,7 +128,7 @@ class UFDRMount(LoggingMixIn, Operations):
         log.debug(f"read({path}, size={size}, offset={offset})")
 
         if path in self.files_info and self.files_info[path].get("is_metadata"):
-            return self.xml_data[offset:offset + size]
+            return self.xml_data[offset : offset + size]
 
         if path in self.files_info and self.files_info[path]["filename"] is not None:
             return self._read_from_zip(path, size, offset)
@@ -177,12 +181,16 @@ class UFDRMount(LoggingMixIn, Operations):
             "st_ctime": now,
         }
 
+
 def handle_exit(signum, frame):
     print("\nReceived signal, exiting...")
     # Try to unmount if it's still running (best effort)
     if platform.system() == "Windows":
-        print("Unmount manually if needed (Windows does not support auto-unmount via signal).")
+        print(
+            "Unmount manually if needed (Windows does not support auto-unmount via signal)."
+        )
     sys.exit(0)
+
 
 def main():
     signal.signal(signal.SIGINT, handle_exit)
@@ -207,6 +215,7 @@ def main():
     print("Press Ctrl+C to unmount and exit.")
 
     FUSE(UFDRMount(ufdr_file), mount_point, foreground=True, ro=True, allow_other=False)
+
 
 if __name__ == "__main__":
     main()

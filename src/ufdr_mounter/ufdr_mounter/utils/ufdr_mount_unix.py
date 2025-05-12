@@ -24,7 +24,9 @@ def handle_exit(signum, frame):
         print(f"\nUnmounting {MOUNT_DIR}...")
         try:
             if platform.system() == "Darwin":
-                subprocess.run(["diskutil", "unmount", MOUNT_DIR], check=False, timeout=5)
+                subprocess.run(
+                    ["diskutil", "unmount", MOUNT_DIR], check=False, timeout=5
+                )
             elif platform.system() == "Linux":
                 subprocess.run(["fusermount", "-u", MOUNT_DIR], check=False)
             else:
@@ -57,7 +59,7 @@ class UFDRMount(LoggingMixIn, Operations):
         self.zip_offset = -1
         self.xml_data = b""
         self.files_info = {}  # path -> dict of metadata
-        self.dirs = set()     # set of directory paths
+        self.dirs = set()  # set of directory paths
 
         # ensure we parse the .ufdr structure
         self._parse_ufdr()
@@ -80,10 +82,12 @@ class UFDRMount(LoggingMixIn, Operations):
             # The bytes before the ZIP is 'metadata.xml'
             self.xml_data = head[: self.zip_offset]
 
-            log.info(f"Found ZIP at offset {self.zip_offset}. Metadata size: {len(self.xml_data)}")
+            log.info(
+                f"Found ZIP at offset {self.zip_offset}. Metadata size: {len(self.xml_data)}"
+            )
             f.seek(self.zip_offset)
 
-            # read the ZIP 
+            # read the ZIP
             with zipfile.ZipFile(f, "r") as z:
                 all_items = z.infolist()
                 log.info(f"ZIP has {len(all_items)} entries")
@@ -114,7 +118,9 @@ class UFDRMount(LoggingMixIn, Operations):
                     "is_metadata": True,
                 }
 
-        log.info(f"Parsed {len(self.files_info)} files and {len(self.dirs)} directories in UFDR")
+        log.info(
+            f"Parsed {len(self.files_info)} files and {len(self.dirs)} directories in UFDR"
+        )
 
     def _ensure_parents(self, path):
         """Given '/folder/subfolder/file.txt', register '/folder' and '/folder/subfolder' as dirs."""
@@ -145,7 +151,7 @@ class UFDRMount(LoggingMixIn, Operations):
             size = self.files_info[path]["size"]
             return self._make_file_stat(size)
 
-        # If there's some fallback? 
+        # If there's some fallback?
         raise FuseOSError(errno.ENOENT)
 
     def readdir(self, path, fh):
@@ -184,7 +190,7 @@ class UFDRMount(LoggingMixIn, Operations):
         """
         Return the requested slice of data from either:
          - The 'metadata.xml' chunk
-         - The ZIP content 
+         - The ZIP content
         """
         log.debug(f"read({path}, size={size}, offset={offset})")
 
@@ -225,6 +231,7 @@ class UFDRMount(LoggingMixIn, Operations):
         Returns a dict of typical st_ fields for a read-only file.
         """
         import time
+
         # set time to now
         now = int(time.time())
         return {
@@ -244,6 +251,7 @@ class UFDRMount(LoggingMixIn, Operations):
         Returns a dict of typical st_ fields for a directory.
         """
         import time
+
         now = int(time.time())
         return {
             "st_mode": 0o040555,  # directory, read/execute
@@ -277,9 +285,10 @@ def main():
     print("Press Ctrl+C to unmount and exit.")
 
     # FUSE in foreground
-    fuse = FUSE(UFDRMount(ufdr_file), MOUNT_DIR, foreground=True, ro=True, allow_other=True)
+    fuse = FUSE(
+        UFDRMount(ufdr_file), MOUNT_DIR, foreground=True, ro=True, allow_other=True
+    )
 
 
 if __name__ == "__main__":
     main()
-

@@ -23,7 +23,6 @@ opencv-python = ">=4.11.0.86,<5.0.0.0"
 ollama = ">=0.4.7,<0.5.0"
 pypdf2 = ">=3.0.1,<4.0.0"
 fusepy = ">=3.0.1,<4.0.0"
-flask-ml = ">=0.2.5,<0.3.0"
 
 rb-lib = { path = "src/rb-lib", develop = true }
 
