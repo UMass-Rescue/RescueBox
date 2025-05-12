@@ -11,12 +11,11 @@ from rb.api.models import (
 )
 from pyannote.audio import Pipeline
 import whisper
-import json
 from collections import defaultdict
 from Audio_Diarization.utils import diarize_text
 import typer
 import csv
-from typing import List, Dict, Optional
+from typing import Optional
 import sqlite3
 
 # Load models
