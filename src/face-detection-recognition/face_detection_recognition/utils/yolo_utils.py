@@ -5,6 +5,8 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib
 
+from face_detection_recognition.hash import sha256_image
+
 matplotlib.use("Agg")
 
 from face_detection_recognition.utils.get_batch_embeddings import get_embedding
@@ -457,20 +459,19 @@ def prepare_for_embedding(face, model_name, normalization):
 
 
 def process_yolo_detections(
-    img,
-    boxes,
-    scores,
-    landmarks,
+    imgs,
+    all_boxes,
+    all_scores,
+    all_landmarks,
     align=True,
     target_size=None,
     normalization=True,
     visualize=False,
-    image_path=None,
+    image_paths=None,
     model_name="ArcFace",
-    model_onnx_path=None,
-    path_str=None,
     face_confidence_threshold=0.02,
     detector_backend="yolov8",
+    separate_detections=False,
 ):
     """Process YOLO face detections and generate embeddings."""
     face_embeddings = []
@@ -478,63 +479,74 @@ def process_yolo_detections(
     path_strs = []
     regions = []
 
-    if len(boxes) == 0:
-        return face_embeddings
+    detections_per_image = []
+    for boxes, scores, landmarks, image_path, img in zip(
+        all_boxes, all_scores, all_landmarks, image_paths, imgs
+    ):
 
-    valid_faces = sum(1 for score in scores if score >= face_confidence_threshold)
-    if valid_faces == 0:
-        return face_embeddings
+        detections_per_image.append(len(boxes))
 
-    # Process each detected face
-    for i, (box, score) in enumerate(zip(boxes, scores)):
-        if score < face_confidence_threshold:
+        if len(boxes) == 0:
             continue
 
-        landmark = landmarks[i] if landmarks and i < len(landmarks) else None
-
-        face, region = extract_face(img, box, landmark, detector_backend)
-
-        if face is None or face.size == 0:
+        valid_faces = sum(1 for score in scores if score >= face_confidence_threshold)
+        if valid_faces == 0:
             continue
 
-        region["confidence"] = float(score)
-
-        # Align face if landmarks available
-        if align and region["left_eye"] is not None and region["right_eye"] is not None:
-            face = align_face(face, img, region)
-
-        if model_name == "Facenet512":
-            face = crop_face_for_facenet_embedding(face)
-            face_normalized = normalize_face(
-                face, target_size, model_name, normalization
-            )
-            if face_normalized is None:
+        # Process each detected face
+        for i, (box, score) in enumerate(zip(boxes, scores)):
+            if score < face_confidence_threshold:
                 continue
 
-            detection = prepare_for_embedding(
-                face_normalized, model_name, normalization
-            )
-            if detection is None:
+            landmark = landmarks[i] if landmarks and i < len(landmarks) else None
+
+            face, region = extract_face(img, box, landmark, detector_backend)
+
+            if face is None or face.size == 0:
                 continue
 
-        elif model_name == "ArcFace":
-            face = crop_face_for_embedding(face)
-            face_resized = cv2.resize(face, target_size)
-            detection = np.clip(face_resized, 0, 255).astype(np.uint8)
+            region["confidence"] = float(score)
 
-        # Visualize processed faces
-        if visualize and isinstance(image_path, str):
-            debug_dir = "debug_faces"
-            os.makedirs(debug_dir, exist_ok=True)
-            face_path = os.path.join(
-                debug_dir, f"{os.path.basename(image_path)}_face_{i}.jpg"
-            )
-            if isinstance(detection, np.ndarray):
-                cv2.imwrite(face_path, cv2.cvtColor(detection, cv2.COLOR_RGB2BGR))
+            # Align face if landmarks available
+            if (
+                align
+                and region["left_eye"] is not None
+                and region["right_eye"] is not None
+            ):
+                face = align_face(face, img, region)
 
-        detections.append(detection)
-        path_strs.append(path_str)
-        regions.append(region)
+            if model_name == "Facenet512":
+                face = crop_face_for_facenet_embedding(face)
+                face_normalized = normalize_face(
+                    face, target_size, model_name, normalization
+                )
+                if face_normalized is None:
+                    continue
+
+                detection = prepare_for_embedding(
+                    face_normalized, model_name, normalization
+                )
+                if detection is None:
+                    continue
+
+            elif model_name == "ArcFace":
+                face = crop_face_for_embedding(face)
+                face_resized = cv2.resize(face, target_size)
+                detection = np.clip(face_resized, 0, 255).astype(np.uint8)
+
+            # Visualize processed faces
+            if visualize and isinstance(image_path, str):
+                debug_dir = "debug_faces"
+                os.makedirs(debug_dir, exist_ok=True)
+                face_path = os.path.join(
+                    debug_dir, f"{os.path.basename(image_path)}_face_{i}.jpg"
+                )
+                if isinstance(detection, np.ndarray):
+                    cv2.imwrite(face_path, cv2.cvtColor(detection, cv2.COLOR_RGB2BGR))
+
+            detections.append(detection)
+            path_strs.append(image_path)
+            regions.append(region)
 
     # Generate embedding
     try:
@@ -544,21 +556,33 @@ def process_yolo_detections(
     except Exception as e:
         logger.error(f"Error getting embedding for face {i}: {str(e)}")
 
-    for i in range(len(embeddings)):
-        if embeddings[i] is not None:
+    i = 0
+    for num_detections in detections_per_image:
+        cur_img_face_embeddings = []
+        for _ in range(num_detections):
+            if embeddings[i] is not None:
+                bbox = [
+                    regions[i]["x"],
+                    regions[i]["y"],
+                    regions[i]["w"],
+                    regions[i]["h"],
+                ]
+                image = sha256_image(path_strs[i], bbox)
+                cur_img_face_embeddings.append(
+                    {
+                        "image_path": path_strs[i],
+                        "embedding": embeddings[i],
+                        "bbox": bbox,
+                        "confidence": regions[i]["confidence"],
+                        "sha256_image": image,
+                        "model_name": model_name,
+                    }
+                )
+            i += 1
 
-            face_embeddings.append(
-                {
-                    "image_path": path_str,
-                    "embedding": embeddings[i],
-                    "bbox": [
-                        regions[i]["x"],
-                        regions[i]["y"],
-                        regions[i]["w"],
-                        regions[i]["h"],
-                    ],
-                    "confidence": regions[i]["confidence"],
-                }
-            )
+        if separate_detections:
+            face_embeddings.append(cur_img_face_embeddings)
+        else:
+            face_embeddings.extend(cur_img_face_embeddings)
 
     return face_embeddings

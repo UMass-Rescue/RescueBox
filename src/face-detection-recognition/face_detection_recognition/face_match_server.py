@@ -523,8 +523,7 @@ def bulk_upload_endpoint(
         base_collection_name = parameters["dropdown_collection_name"]
     else:
         base_collection_name = parameters["collection_name"]
-    # log_info("ERROR FOLLOWING THIS LINE **************************")
-    # log_info(new_collection_name)
+
     # Check CUDNN compatability
     check_cuDNN_version()
     # Get list of directory paths from input

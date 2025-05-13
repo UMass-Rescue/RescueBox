@@ -5,6 +5,7 @@ import os
 import onnxruntime as ort
 
 from face_detection_recognition.utils.get_batch_embeddings import get_embedding
+from face_detection_recognition.hash import sha256_image
 
 
 logger = logging.getLogger(__name__)
@@ -644,18 +645,16 @@ def crop_face_for_facenet512(face_img):
 
 
 def process_retinaface_detections_for_facenet512(
-    img,
+    imgs,
     align,
     target_size,
-    normalization,
     visualize,
-    image_path,
+    image_paths,
     model_name,
-    model_onnx_path,
-    path_str,
-    boxes,
-    scores,
-    landmarks,
+    all_boxes,
+    all_scores,
+    all_landmarks,
+    separate_detections,  # boolean whether or not to separate detections per img in output
 ):
 
     face_embeddings = []
@@ -663,93 +662,100 @@ def process_retinaface_detections_for_facenet512(
     path_strs = []
     regions = []
 
-    for i, (box, score, landmark) in enumerate(zip(boxes, scores, landmarks)):
-        try:
-            # Get initial box coordinates
-            x1, y1, x2, y2 = map(int, box)
+    detections_per_image = []
+    for boxes, scores, landmarks, image_path, img in zip(
+        all_boxes, all_scores, all_landmarks, image_paths, imgs
+    ):
+        detections_per_image.append(len(boxes))
+        for i, (box, score, landmark) in enumerate(zip(boxes, scores, landmarks)):
+            try:
+                # Get initial box coordinates
+                x1, y1, x2, y2 = map(int, box)
 
-            # Calculate the center of the face
-            center_x = (x1 + x2) // 2
-            center_y = (y1 + y2) // 2
+                # Calculate the center of the face
+                center_x = (x1 + x2) // 2
+                center_y = (y1 + y2) // 2
 
-            height = y2 - y1
-            width = x2 - x1
+                height = y2 - y1
+                width = x2 - x1
 
-            # take the larger dimension (and add 10% padding)
-            side_length = int(max(height, width) * 1.1)
+                # take the larger dimension (and add 10% padding)
+                side_length = int(max(height, width) * 1.1)
 
-            # new coordinates based on center
-            new_x1 = center_x - side_length // 2
-            new_y1 = center_y - side_length // 2
-            new_x2 = center_x + side_length // 2
-            new_y2 = center_y + side_length // 2
+                # new coordinates based on center
+                new_x1 = center_x - side_length // 2
+                new_y1 = center_y - side_length // 2
+                new_x2 = center_x + side_length // 2
+                new_y2 = center_y + side_length // 2
 
-            new_x1 = max(0, new_x1)
-            new_y1 = max(0, new_y1)
-            new_x2 = min(img.shape[1], new_x2)
-            new_y2 = min(img.shape[0], new_y2)
+                new_x1 = max(0, new_x1)
+                new_y1 = max(0, new_y1)
+                new_x2 = min(img.shape[1], new_x2)
+                new_y2 = min(img.shape[0], new_y2)
 
-            x1, y1, x2, y2 = new_x1, new_y1, new_x2, new_y2
+                x1, y1, x2, y2 = new_x1, new_y1, new_x2, new_y2
 
-            if x2 <= x1 or y2 <= y1:
+                if x2 <= x1 or y2 <= y1:
+                    continue
+
+                face = img[y1:y2, x1:x2].copy()
+
+                region = {
+                    "x": x1,
+                    "y": y1,
+                    "w": x2 - x1,
+                    "h": y2 - y1,
+                    "confidence": float(score),
+                }
+
+                # Add eye landmarks if available
+                if landmark and len(landmark) >= 2:
+                    region["left_eye"] = tuple(map(int, landmark[0]))
+                    region["right_eye"] = tuple(map(int, landmark[1]))
+                else:
+                    region["left_eye"] = None
+                    region["right_eye"] = None
+
+                # Simple alignment if landmarks available
+                if (
+                    align
+                    and region["left_eye"] is not None
+                    and region["right_eye"] is not None
+                ):
+                    aligned_face = simple_align_face(face, region)
+                    if aligned_face is not None and aligned_face.size > 0:
+                        face = aligned_face
+
+                # resize directly to target size
+                if face.shape[0] > 0 and face.shape[1] > 0:
+                    face_resized = cv2.resize(face, target_size)
+                else:
+                    continue
+
+                face_normalized = face_resized.astype(np.float32)
+                face_normalized = (face_normalized - 127.5) / 128.0
+
+                # prepare for embedding
+                detection = ((face_normalized * 128.0) + 127.5).astype(np.uint8)
+
+                if visualize and isinstance(image_path, str):
+                    debug_dir = "debug_faces"
+                    os.makedirs(debug_dir, exist_ok=True)
+                    face_path = os.path.join(
+                        debug_dir, f"{os.path.basename(image_path)}_face_{i}.jpg"
+                    )
+                    if isinstance(detection, np.ndarray):
+                        cv2.imwrite(
+                            face_path, cv2.cvtColor(detection, cv2.COLOR_RGB2BGR)
+                        )
+
+                detections.append(detection)
+                path_strs.append(image_path)
+                regions.append(region)
+
+            except Exception as e:
+                logger.error(f"Error processing face {i}: {str(e)}")
                 continue
-
-            face = img[y1:y2, x1:x2].copy()
-
-            region = {
-                "x": x1,
-                "y": y1,
-                "w": x2 - x1,
-                "h": y2 - y1,
-                "confidence": float(score),
-            }
-
-            # Add eye landmarks if available
-            if landmark and len(landmark) >= 2:
-                region["left_eye"] = tuple(map(int, landmark[0]))
-                region["right_eye"] = tuple(map(int, landmark[1]))
-            else:
-                region["left_eye"] = None
-                region["right_eye"] = None
-
-            # Simple alignment if landmarks available
-            if (
-                align
-                and region["left_eye"] is not None
-                and region["right_eye"] is not None
-            ):
-                aligned_face = simple_align_face(face, region)
-                if aligned_face is not None and aligned_face.size > 0:
-                    face = aligned_face
-
-            # resize directly to target size
-            if face.shape[0] > 0 and face.shape[1] > 0:
-                face_resized = cv2.resize(face, target_size)
-            else:
-                continue
-
-            face_normalized = face_resized.astype(np.float32)
-            face_normalized = (face_normalized - 127.5) / 128.0
-
-            # prepare for embedding
-            detection = ((face_normalized * 128.0) + 127.5).astype(np.uint8)
-
-            if visualize and isinstance(image_path, str):
-                debug_dir = "debug_faces"
-                os.makedirs(debug_dir, exist_ok=True)
-                face_path = os.path.join(
-                    debug_dir, f"{os.path.basename(image_path)}_face_{i}.jpg"
-                )
-                if isinstance(detection, np.ndarray):
-                    cv2.imwrite(face_path, cv2.cvtColor(detection, cv2.COLOR_RGB2BGR))
-
-            detections.append(detection)
-            path_strs.append(path_str)
-            regions.append(region)
-
-        except Exception as e:
-            logger.error(f"Error processing face {i}: {str(e)}")
-            continue
 
     # Generate embedding
     try:
@@ -759,22 +765,34 @@ def process_retinaface_detections_for_facenet512(
     except Exception as e:
         logger.error(f"Error getting embedding for face {i}: {str(e)}")
 
-    for i in range(len(embeddings)):
-        if embeddings[i] is not None:
+    i = 0
+    for num_detections in detections_per_image:
+        cur_img_face_embeddings = []
+        for _ in range(num_detections):
+            if embeddings[i] is not None:
+                bbox = [
+                    regions[i]["x"],
+                    regions[i]["y"],
+                    regions[i]["w"],
+                    regions[i]["h"],
+                ]
+                image = sha256_image(path_strs[i], bbox)
+                cur_img_face_embeddings.append(
+                    {
+                        "image_path": path_strs[i],
+                        "embedding": embeddings[i],
+                        "bbox": bbox,
+                        "confidence": regions[i]["confidence"],
+                        "sha256_image": image,
+                        "model_name": model_name,
+                    }
+                )
+            i += 1
 
-            face_embeddings.append(
-                {
-                    "image_path": path_str,
-                    "embedding": embeddings[i],
-                    "bbox": [
-                        regions[i]["x"],
-                        regions[i]["y"],
-                        regions[i]["w"],
-                        regions[i]["h"],
-                    ],
-                    "confidence": regions[i]["confidence"],
-                }
-            )
+        if separate_detections:
+            face_embeddings.append(cur_img_face_embeddings)
+        else:
+            face_embeddings.extend(cur_img_face_embeddings)
 
     return face_embeddings
 
@@ -888,122 +906,127 @@ def crop_face_for_arcface(face_img):
 
 
 def process_retinaface_detections_for_arcface(
-    img,
+    imgs,
     align,
     target_size,
     normalization,
     visualize,
-    image_path,
+    image_paths,
     model_name,
-    model_onnx_path,
-    path_str,
-    boxes,
-    scores,
-    landmarks,
+    all_boxes,
+    all_scores,
+    all_landmarks,
+    separate_detections,  # boolean whether or not to separate detections per img in output
 ):
 
     face_embeddings = []
     detections = []
     path_strs = []
     regions = []
-
-    for i, (box, score, landmark) in enumerate(zip(boxes, scores, landmarks)):
-        try:
-            # Determine bounding box - use landmarks if available for better box
-            if landmark and len(landmark) >= 5:
-                # Use a larger scale factor for ArcFace to include more context
-                scale_factor = 3.0
-                improved_box = create_square_bounds_from_landmarks(
-                    landmark, img.shape, scale_factor=scale_factor
-                )
-                if improved_box:
-                    x1, y1, x2, y2 = improved_box
+    detections_per_image = []
+    for boxes, scores, landmarks, image_path, img in zip(
+        all_boxes, all_scores, all_landmarks, image_paths, imgs
+    ):
+        detections_per_image.append(len(boxes))
+        for i, (box, score, landmark) in enumerate(zip(boxes, scores, landmarks)):
+            try:
+                # Determine bounding box - use landmarks if available for better box
+                if landmark and len(landmark) >= 5:
+                    # Use a larger scale factor for ArcFace to include more context
+                    scale_factor = 3.0
+                    improved_box = create_square_bounds_from_landmarks(
+                        landmark, img.shape, scale_factor=scale_factor
+                    )
+                    if improved_box:
+                        x1, y1, x2, y2 = improved_box
+                    else:
+                        x1, y1, x2, y2 = map(int, box)
                 else:
+                    # If no landmarks, use the original box but ensure it's square
                     x1, y1, x2, y2 = map(int, box)
-            else:
-                # If no landmarks, use the original box but ensure it's square
-                x1, y1, x2, y2 = map(int, box)
-                width = x2 - x1
-                height = y2 - y1
+                    width = x2 - x1
+                    height = y2 - y1
 
-                if width < height:
-                    # expand width
-                    center_x = (x1 + x2) // 2
-                    half_height = height // 2
-                    x1 = center_x - half_height
-                    x2 = center_x + half_height
-                elif height < width:
-                    # expand height
-                    center_y = (y1 + y2) // 2
-                    half_width = width // 2
-                    y1 = center_y - half_width
-                    y2 = center_y + half_width
+                    if width < height:
+                        # expand width
+                        center_x = (x1 + x2) // 2
+                        half_height = height // 2
+                        x1 = center_x - half_height
+                        x2 = center_x + half_height
+                    elif height < width:
+                        # expand height
+                        center_y = (y1 + y2) // 2
+                        half_width = width // 2
+                        y1 = center_y - half_width
+                        y2 = center_y + half_width
 
-            x1 = max(0, x1)
-            y1 = max(0, y1)
-            x2 = min(img.shape[1], x2)
-            y2 = min(img.shape[0], y2)
+                x1 = max(0, x1)
+                y1 = max(0, y1)
+                x2 = min(img.shape[1], x2)
+                y2 = min(img.shape[0], y2)
 
-            if x2 <= x1 or y2 <= y1:
-                continue
+                if x2 <= x1 or y2 <= y1:
+                    continue
 
-            face = img[y1:y2, x1:x2].copy()
+                face = img[y1:y2, x1:x2].copy()
 
-            region = {
-                "x": x1,
-                "y": y1,
-                "w": x2 - x1,
-                "h": y2 - y1,
-                "confidence": float(score),
-            }
+                region = {
+                    "x": x1,
+                    "y": y1,
+                    "w": x2 - x1,
+                    "h": y2 - y1,
+                    "confidence": float(score),
+                }
 
-            # Set landmarks for alignment
-            if landmark and len(landmark) >= 2:
-                region["left_eye"] = tuple(map(int, landmark[0]))
-                region["right_eye"] = tuple(map(int, landmark[1]))
-            else:
-                region["left_eye"] = None
-                region["right_eye"] = None
+                # Set landmarks for alignment
+                if landmark and len(landmark) >= 2:
+                    region["left_eye"] = tuple(map(int, landmark[0]))
+                    region["right_eye"] = tuple(map(int, landmark[1]))
+                else:
+                    region["left_eye"] = None
+                    region["right_eye"] = None
 
-            if (
-                align
-                and region["left_eye"] is not None
-                and region["right_eye"] is not None
-            ):
-                aligned_face = optimize_arcface_alignment(face, img, region)
-                if aligned_face is not None and aligned_face.size > 0:
-                    face = aligned_face
+                if (
+                    align
+                    and region["left_eye"] is not None
+                    and region["right_eye"] is not None
+                ):
+                    aligned_face = optimize_arcface_alignment(face, img, region)
+                    if aligned_face is not None and aligned_face.size > 0:
+                        face = aligned_face
 
-            face = crop_face_for_arcface(face)
+                face = crop_face_for_arcface(face)
 
-            face_normalized = normalize_face(
-                face, target_size, model_name, normalization
-            )
-            if face_normalized is None:
-                continue
-
-            detection = prepare_for_embedding(
-                face_normalized, model_name, normalization
-            )
-            if detection is None:
-                continue
-
-            if visualize and isinstance(image_path, str):
-                debug_dir = "debug_faces"
-                os.makedirs(debug_dir, exist_ok=True)
-                face_path = os.path.join(
-                    debug_dir, f"{os.path.basename(image_path)}_face_{i}.jpg"
+                face_normalized = normalize_face(
+                    face, target_size, model_name, normalization
                 )
-                if isinstance(detection, np.ndarray):
-                    cv2.imwrite(face_path, cv2.cvtColor(detection, cv2.COLOR_RGB2BGR))
+                if face_normalized is None:
+                    continue
 
-            detections.append(detection)
-            path_strs.append(path_str)
-            regions.append(region)
+                detection = prepare_for_embedding(
+                    face_normalized, model_name, normalization
+                )
+                if detection is None:
+                    continue
 
-        except Exception as e:
-            logger.error(f"Error processing face {i}: {str(e)}")
-            continue
+                if visualize and isinstance(image_path, str):
+                    debug_dir = "debug_faces"
+                    os.makedirs(debug_dir, exist_ok=True)
+                    face_path = os.path.join(
+                        debug_dir, f"{os.path.basename(image_path)}_face_{i}.jpg"
+                    )
+                    if isinstance(detection, np.ndarray):
+                        cv2.imwrite(
+                            face_path, cv2.cvtColor(detection, cv2.COLOR_RGB2BGR)
+                        )
+
+                detections.append(detection)
+                path_strs.append(image_path)
+                regions.append(region)
+
+            except Exception as e:
+                logger.error(f"Error processing face {i}: {str(e)}")
+                continue
 
     # Generate embedding
     try:
@@ -1013,21 +1036,33 @@ def process_retinaface_detections_for_arcface(
     except Exception as e:
         logger.error(f"Error getting embedding for face {i}: {str(e)}")
 
-    for i in range(len(embeddings)):
-        if embeddings[i] is not None:
+    i = 0
+    for num_detections in detections_per_image:
+        cur_img_face_embeddings = []
+        for _ in range(num_detections):
+            if embeddings[i] is not None:
+                bbox = [
+                    regions[i]["x"],
+                    regions[i]["y"],
+                    regions[i]["w"],
+                    regions[i]["h"],
+                ]
+                image = sha256_image(path_strs[i], bbox)
+                cur_img_face_embeddings.append(
+                    {
+                        "image_path": path_strs[i],
+                        "embedding": embeddings[i],
+                        "bbox": bbox,
+                        "confidence": regions[i]["confidence"],
+                        "sha256_image": image,
+                        "model_name": model_name,
+                    }
+                )
+            i += 1
 
-            face_embeddings.append(
-                {
-                    "image_path": path_str,
-                    "embedding": embeddings[i],
-                    "bbox": [
-                        regions[i]["x"],
-                        regions[i]["y"],
-                        regions[i]["w"],
-                        regions[i]["h"],
-                    ],
-                    "confidence": regions[i]["confidence"],
-                }
-            )
+        if separate_detections:
+            face_embeddings.append(cur_img_face_embeddings)
+        else:
+            face_embeddings.extend(cur_img_face_embeddings)
 
     return face_embeddings
