@@ -39,10 +39,6 @@ class TestAgeClassifier(RBAppTest):
         }
         response = self.client.post(age_class_api, json=input_json)
         body = response.json()
-
-        input_files = [
-            f for f in full_path.glob("*") if f.suffix in [".jpg", ".png"]
-        ]
         results = json.loads(body["value"])
 
         assert response.status_code == 200
