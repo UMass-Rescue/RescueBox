@@ -55,7 +55,7 @@ class Vector_Database:
         ]
         collections = list(
             filter(
-                lambda name: name.split("_")[-1]
+                lambda name: name.split("_")[-1][-1]
                 == (self.ensemble_indicator if isEnsemble else self.single_indicator),
                 existing_collections,
             )
