@@ -5,6 +5,7 @@ from Audio_Diarization.model_3endpoints import (
     diarize_only,
     transcribe_only,
     diarize_and_transcribe,
+    AudioTranscriptionDB,
     AudioInputs,
     AudioParameters,
 )
@@ -107,3 +108,30 @@ def test_diarize_and_transcribe(
         output_csv = Path(response.root.path)
         assert output_csv.exists()
         assert output_csv.name == "diarize_and_transcribe_output.csv"
+
+
+def test_audio_transcription_db(tmp_path):
+    # Use a temporary SQLite database
+    db_path = tmp_path / "test_transcriptions.db"
+
+    # Open DB in a context manager
+    with AudioTranscriptionDB(str(db_path)) as db:
+        # Add a mock transcription entry
+        row_id = db.add_transcription(
+            audio_file="test.wav",
+            speaker_id="Speaker 1",
+            transcription="Hello world",
+            segment_duration=1.23,
+        )
+
+        assert isinstance(row_id, int)
+
+        # Fetch inserted data
+        results = db.get_transcriptions("test.wav")
+        assert len(results) == 1
+
+        row = results[0]
+        assert row["audio_file"] == "test.wav"
+        assert row["speaker_id"] == "Speaker 1"
+        assert row["transcription"] == "Hello world"
+        assert abs(row["segment_duration"] - 1.23) < 1e-5
