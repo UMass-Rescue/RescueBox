@@ -1,68 +1,92 @@
+import pytest
 from pathlib import Path
-from unittest.mock import patch
-
-from rb.lib.common_tests import RBAppTest
-from rb.api.models import AppMetadata
+from unittest import mock
 from Audio_Diarization.model_3endpoints import (
-    app as cli_app,
-    APP_NAME,
-    create_task_schema,
+    diarize_only,
+    transcribe_only,
+    diarize_and_transcribe,
+    AudioInputs,
+    AudioParameters,
 )
+from rb.api.models import DirectoryInput
 
 
-class TestAudioDiarization(RBAppTest):
-    def setUp_method(self):
-        self.set_app(cli_app, APP_NAME)
+@pytest.fixture
+def temp_dirs(tmp_path):
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+    return input_dir, output_dir
 
-    def get_metadata(self):
-        return AppMetadata(
-            plugin_name=APP_NAME,
-            name="Speaker Diarization + Transcription",
-            author="Christina, Swetha, Nikita",
-            version="2.0",
-            info="app-info.md",
-        )
 
-    def get_all_ml_services(self):
-        return [
-            (0, "diarize", "Diarization Only", create_task_schema()),
-            (1, "transcribe", "Transcription Only", create_task_schema()),
-            (
-                2,
-                "diarize_and_transcribe",
-                "Diarization and Trancription",
-                create_task_schema(),
-            ),
+@pytest.fixture
+def dummy_audio_file(temp_dirs):
+    input_dir, _ = temp_dirs
+    dummy_audio = input_dir / "test.wav"
+    dummy_audio.write_bytes(b"dummy audio content")
+    return dummy_audio
+
+
+@pytest.fixture
+def mock_pipeline():
+    with mock.patch("model_3endpoints.pipeline") as mocked_pipeline:
+        mocked_pipeline.return_value.itertracks.return_value = [
+            (mock.Mock(start=0.0, end=1.0), None, "Speaker 1")
         ]
+        yield mocked_pipeline
 
-    @patch(
-        "Audio_Diarization.model_3endpoints.diarize_only", return_value="Mocked summary"
+
+@pytest.fixture
+def mock_asr_model():
+    with mock.patch("model_3endpoints.asr_model") as mocked_asr:
+        mocked_asr.transcribe.return_value = {
+            "text": "This is a test transcription.",
+            "segments": [{"end": 1.0}],
+        }
+        yield mocked_asr
+
+
+def make_inputs(input_dir, output_dir):
+    return AudioInputs(
+        input_dir=DirectoryInput(path=str(input_dir)),
+        output_dir=DirectoryInput(path=str(output_dir)),
     )
-    def test_diarize_only_command(self, summarize_mock, ensure_model_exists_mock):
-        diarize_api = f"/{APP_NAME}/Audio_Diarization/model_3endpoints"
-        full_path = (
-            Path.cwd()
-            / "src"
-            / "Audio-Diarization-Transcription"
-            / "Audio_Diarization"
-            / "input"
-        )
-        output_path = (
-            Path.cwd()
-            / "src"
-            / "Audio-Diarization-Transcription"
-            / "Audio_Diarization"
-            / "output"
-        )
-        input_str = f"{str(full_path)},{str(output_path)}"
-        parameter_str = " "
-        result = self.runner.invoke(
-            self.cli_app, [diarize_api, input_str, parameter_str]
-        )
-        assert result.exit_code == 0, f"Error: {result.output}"
-        output_files = list(output_path.glob("*.csv"))
-        assert len(output_files) == 1
-        for file in output_files:
-            with open(file, "r") as f:
-                content = f.read()
-                assert "Mocked summary" == content
+
+
+def test_diarize_only(temp_dirs, dummy_audio_file, mock_pipeline):
+    input_dir, output_dir = temp_dirs
+    inputs = make_inputs(input_dir, output_dir)
+    parameters = AudioParameters()
+
+    response = diarize_only(inputs, parameters)
+
+    output_csv = Path(response.file.path)
+    assert output_csv.exists()
+    assert output_csv.name == "diarize_output.csv"
+
+
+def test_transcribe_only(temp_dirs, dummy_audio_file, mock_asr_model):
+    input_dir, output_dir = temp_dirs
+    inputs = make_inputs(input_dir, output_dir)
+    parameters = AudioParameters()
+
+    response = transcribe_only(inputs, parameters)
+
+    output_csv = Path(response.file.path)
+    assert output_csv.exists()
+    assert output_csv.name == "transcribe_output.csv"
+
+
+def test_diarize_and_transcribe(
+    temp_dirs, dummy_audio_file, mock_pipeline, mock_asr_model
+):
+    input_dir, output_dir = temp_dirs
+    inputs = make_inputs(input_dir, output_dir)
+    parameters = AudioParameters()
+
+    response = diarize_and_transcribe(inputs, parameters)
+
+    output_csv = Path(response.file.path)
+    assert output_csv.exists()
+    assert output_csv.name == "diarize_and_transcribe_output.csv"
