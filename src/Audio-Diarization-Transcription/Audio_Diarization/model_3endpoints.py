@@ -26,8 +26,12 @@ pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.0")
 # pipeline = load_pyannote_pipeline_from_pretrained(PATH_TO_CONFIG)
 asr_model = whisper.load_model("medium.en")
 
+
 class AudioTranscriptionDB:
-    def __init__(self, db_path: str = r"src\Audio-Diarization-Transcription\Audio_Diarization\audio_transcriptions.db"):
+    def __init__(
+        self,
+        db_path: str = r"src\Audio-Diarization-Transcription\Audio_Diarization\audio_transcriptions.db",
+    ):
         """Initialize a simple database for audio transcription results"""
         self.conn = sqlite3.connect(db_path)
         self._create_table()
@@ -35,7 +39,8 @@ class AudioTranscriptionDB:
     def _create_table(self) -> None:
         """Create a single table for all transcription results"""
         cursor = self.conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         CREATE TABLE IF NOT EXISTS transcriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             audio_file TEXT NOT NULL,
@@ -44,11 +49,16 @@ class AudioTranscriptionDB:
             segment_duration REAL,
             processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-        """)
-        
+        """
+        )
+
         # Create indexes for faster queries
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_audio_file ON transcriptions(audio_file)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_speaker_id ON transcriptions(speaker_id)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_audio_file ON transcriptions(audio_file)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_speaker_id ON transcriptions(speaker_id)"
+        )
         self.conn.commit()
 
     def add_transcription(
@@ -56,36 +66,44 @@ class AudioTranscriptionDB:
         audio_file: str,
         speaker_id: Optional[str] = None,
         transcription: Optional[str] = None,
-        segment_duration: Optional[float] = None
+        segment_duration: Optional[float] = None,
     ) -> int:
         """Add a transcription result to the database"""
         cursor = self.conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         INSERT INTO transcriptions (
             audio_file, speaker_id, transcription, segment_duration
         ) VALUES (?, ?, ?, ?)
-        """, (audio_file, speaker_id, transcription, segment_duration))
+        """,
+            (audio_file, speaker_id, transcription, segment_duration),
+        )
         self.conn.commit()
         return cursor.lastrowid
 
     def get_transcriptions(self, audio_file: Optional[str] = None) -> List[Dict]:
         """Get all transcriptions, optionally filtered by audio file"""
         cursor = self.conn.cursor()
-        
+
         if audio_file:
-            cursor.execute("""
+            cursor.execute(
+                """
             SELECT audio_file, speaker_id, transcription, segment_duration, processed_at
             FROM transcriptions
             WHERE audio_file = ?
             ORDER BY processed_at
-            """, (audio_file,))
+            """,
+                (audio_file,),
+            )
         else:
-            cursor.execute("""
+            cursor.execute(
+                """
             SELECT audio_file, speaker_id, transcription, segment_duration, processed_at
             FROM transcriptions
             ORDER BY processed_at
-            """)
-        
+            """
+            )
+
         columns = [desc[0] for desc in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
@@ -98,6 +116,7 @@ class AudioTranscriptionDB:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
 
 class DiarizationInputs(TypedDict):
     input_dir: DirectoryInput
@@ -171,10 +190,11 @@ def format_combined_result(diarized_result) -> Dict[str, Dict[str, str]]:
         output[speaker] = speaker_dict
     return output
 
+
 def process_audio(
     inputs: AudioInputs,
     parameters: AudioParameters,
-    mode: str = "diarize_and_transcribe" # Common for all
+    mode: str = "diarize_and_transcribe",  # Common for all
 ) -> None:
     input_path = Path(inputs["input_dir"].path)
     audio_files = [input_path] if input_path.is_file() else list(input_path.glob("*"))
@@ -203,14 +223,18 @@ def process_audio(
                         db.add_transcription(
                             audio_file=audio_file_str,
                             speaker_id=speaker,
-                            segment_duration=turn.end - turn.start
+                            segment_duration=turn.end - turn.start,
                         )
 
                 elif mode == "transcribe":
                     db.add_transcription(
                         audio_file=audio_file_str,
                         transcription=asr_result["text"],
-                        segment_duration=asr_result["segments"][-1]["end"] if asr_result["segments"] else 0
+                        segment_duration=(
+                            asr_result["segments"][-1]["end"]
+                            if asr_result["segments"]
+                            else 0
+                        ),
                     )
 
                 elif mode == "diarize_and_transcribe":
@@ -220,39 +244,39 @@ def process_audio(
                             audio_file=audio_file_str,
                             speaker_id=spk,
                             transcription=sent,
-                            segment_duration=seg.end - seg.start
+                            segment_duration=seg.end - seg.start,
                         )
 
             except Exception as e:
                 print(f"Error processing {audio_file.name}: {str(e)}")
                 continue
 
-def save_as_csv(data: dict, csv_path: Path):
-    with open(csv_path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        
-        first_item = next(iter(data.values())) 
-        if "transcription" in first_item:
-            writer.writerow(['Audio File', 'Transcription'])
-            for audio_file, content in data.items():
-                writer.writerow([audio_file, content['transcription']])
-                
 
-        elif isinstance(first_item, dict) and any(isinstance(v, dict) for v in first_item.values()):
-            writer.writerow(['Audio File', 'Speaker', 'Time Range', 'Text'])
+def save_as_csv(data: dict, csv_path: Path):
+    with open(csv_path, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+
+        first_item = next(iter(data.values()))
+        if "transcription" in first_item:
+            writer.writerow(["Audio File", "Transcription"])
+            for audio_file, content in data.items():
+                writer.writerow([audio_file, content["transcription"]])
+
+        elif isinstance(first_item, dict) and any(
+            isinstance(v, dict) for v in first_item.values()
+        ):
+            writer.writerow(["Audio File", "Speaker", "Time Range", "Text"])
 
             for audio_file, speakers in data.items():
                 for speaker, segments in speakers.items():
                     for time_range, text in segments.items():
                         writer.writerow([audio_file, speaker, time_range, text])
         else:
-            writer.writerow(['Audio File', 'Speaker', 'Time Range'])
+            writer.writerow(["Audio File", "Speaker", "Time Range"])
             for audio_file, speakers in data.items():
                 for speaker, segments in speakers.items():
                     for segment in segments:
                         writer.writerow([audio_file, speaker, segment])
-
-
 
 
 # Initialize server
