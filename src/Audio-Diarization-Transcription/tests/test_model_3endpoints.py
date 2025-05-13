@@ -31,6 +31,7 @@ def dummy_audio_file(temp_dirs):
 @pytest.fixture
 def mock_pipeline():
     with mock.patch("Audio_Diarization.model_3endpoints.pipeline") as mocked_pipeline:
+        mocked_pipeline.return_value.return_value = mock.Mock()
         mocked_pipeline.return_value.itertracks.return_value = [
             (mock.Mock(start=0.0, end=1.0), None, "Speaker 1")
         ]
@@ -47,6 +48,12 @@ def mock_asr_model():
         yield mocked_asr
 
 
+@pytest.fixture(autouse=True)
+def mock_process_audio():
+    with mock.patch("Audio_Diarization.model_3endpoints.process_audio") as mocked:
+        yield mocked
+
+
 def make_inputs(input_dir, output_dir):
     return AudioInputs(
         input_dir=DirectoryInput(path=str(input_dir)),
@@ -61,7 +68,7 @@ def test_diarize_only(temp_dirs, dummy_audio_file, mock_pipeline):
 
     response = diarize_only(inputs, parameters)
 
-    output_csv = Path(response.file.path)
+    output_csv = Path(response.root.path)
     assert output_csv.exists()
     assert output_csv.name == "diarize_output.csv"
 
@@ -73,20 +80,30 @@ def test_transcribe_only(temp_dirs, dummy_audio_file, mock_asr_model):
 
     response = transcribe_only(inputs, parameters)
 
-    output_csv = Path(response.file.path)
+    output_csv = Path(response.root.path)
     assert output_csv.exists()
     assert output_csv.name == "transcribe_output.csv"
 
 
 def test_diarize_and_transcribe(
-    temp_dirs, dummy_audio_file, mock_pipeline, mock_asr_model
+    temp_dirs,
+    dummy_audio_file,
+    mock_pipeline,
+    mock_asr_model,
 ):
-    input_dir, output_dir = temp_dirs
-    inputs = make_inputs(input_dir, output_dir)
-    parameters = AudioParameters()
+    with mock.patch(
+        "Audio_Diarization.model_3endpoints.diarize_text"
+    ) as mock_diarize_text:
+        mock_diarize_text.return_value = [
+            (mock.Mock(start=0.0, end=1.0), "Speaker 1", "Hello world")
+        ]
 
-    response = diarize_and_transcribe(inputs, parameters)
+        input_dir, output_dir = temp_dirs
+        inputs = make_inputs(input_dir, output_dir)
+        parameters = AudioParameters()
 
-    output_csv = Path(response.file.path)
-    assert output_csv.exists()
-    assert output_csv.name == "diarize_and_transcribe_output.csv"
+        response = diarize_and_transcribe(inputs, parameters)
+
+        output_csv = Path(response.root.path)
+        assert output_csv.exists()
+        assert output_csv.name == "diarize_and_transcribe_output.csv"
