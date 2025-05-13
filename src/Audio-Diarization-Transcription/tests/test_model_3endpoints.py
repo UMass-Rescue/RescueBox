@@ -30,7 +30,7 @@ def dummy_audio_file(temp_dirs):
 
 @pytest.fixture
 def mock_pipeline():
-    with mock.patch("model_3endpoints.pipeline") as mocked_pipeline:
+    with mock.patch("Audio_Diarization.model_3endpoints.pipeline") as mocked_pipeline:
         mocked_pipeline.return_value.itertracks.return_value = [
             (mock.Mock(start=0.0, end=1.0), None, "Speaker 1")
         ]
@@ -39,7 +39,7 @@ def mock_pipeline():
 
 @pytest.fixture
 def mock_asr_model():
-    with mock.patch("model_3endpoints.asr_model") as mocked_asr:
+    with mock.patch("Audio_Diarization.model_3endpoints.asr_model") as mocked_asr:
         mocked_asr.transcribe.return_value = {
             "text": "This is a test transcription.",
             "segments": [{"end": 1.0}],
