@@ -91,52 +91,6 @@ After you've setup RB and started the RB frontend and server:
 
 ---
 
-# Metrics and Testing
-
-**DISCLAIMER**: The following results are from a previous version of the FaceMatch project. New final evaluation results are still being gathered as performance and accuracy improvements are being explored and implemented. The below results do not reflect the current state of the project.
-
-We conduct a series of experiments to evaluate the performance and accuracy of FaceMatch. The experiments are conducted on a dataset of 1,680 images of people from the Labelled Faces in the Wild (LFW) dataset. 
-
-We evaluate FaceMatch using the following metrics:
-
-## Accuracy Testing:
-
-_In this type of testing, all test images have a corresponding match in the database. If match is returned, it is True, otherwise False._
-
-1. **Upload Time**: The time taken to upload images to the database.
-2. **Search Time per Image**: The time taken to find matches for a single image.
-3. **Faiss Accuracy (Top-n)**: The percentage of images in the database that have at least one match within the top-n results using FAISS search algorithm.  Atleast one match in top-n is considered a positive match, meaning that the person of interest is identified within the image.
-
-
-### Metrics
-| Face Recognition Model | Number of Faces in Database | Upload Time (in seconds) | Search Time per Image (in seconds) | Top-n | Faiss Accuracy |
-|-------------------------|-----------------------------|---------------------------|------------------------------------|-------|----------------|
-| ArcFace                | 1680                        | 242                       | < 1.5                              | 10    | 93.2           |
-| FaceNet                | 1680                        | 463                       | < 2                                | 10    | 94             |
-| VGGFace                | 1680                        | 650                       | < 3                                | 10    | 90             |
-
-
-## Precision and Recall Testing (with ROC curve):
-
-_In this type of testing, half the test images have a corresponding match in the database, the other half does not.
-This helps measure True Positive, False Positive, True Negative and False Negative._
-
-### Metrics
-| Face Recognition Model | Number of Faces in Database | Threshold | Accuracy | Precision | Recall |
-|------------------------|-----------------------------|-----------|----------|-----------|--------|
-| ArcFace                | 840                         | 0.48      | 77       | 79        | 73     |
-| FaceNet                | 840                         | 0.63      | 75       | 75        | 75     |
-
-### ROC Curve
-![Alt Text](ROC_Curve.png)
-
-The above metrics were calculated using the following system configuration:
-
-- **OS**: Windows 11 Pro 64-bit
-- **Processor**: AMD Ryzen 7 7735HS with Radeon Graphics (16 CPUs), ~3.2 GHz
-- **RAM**: 32 GB
-
-## Testing
 
 Check out [Testing README](./benchmark_testing/README.md) for complete details on dataset and testing.
 
@@ -145,6 +99,53 @@ Check out this [document](https://docs.google.com/document/d/1CpN__oPgmAvY65s-tW
 ---
 
 # For Developers
+
+## Benchmark Testing
+
+This repository contains scripts and tools to benchmark the performance and accuracy of the face recognition system. The scripts automate testing tasks such as dataset preparation, bulk uploads, response time measurements, and accuracy evaluations.
+
+---
+
+## Dataset
+
+The LFW dataset for testing can be found at [LFW Dataset](https://drive.google.com/file/d/1N8Ym1zqoW875tVIjePWwaxHTN70p6-av/view?usp=share_link). sample_database (840 images) and sample_queries (1680 images) are the preconfigured testing image directories. 
+
+The VGGFace dataset for testing can be found at [VGGFace Dataset](https://drive.google.com/file/d/1YIswaMR87oN9taA97p2dMIzNXUzWZcGe/view?usp=share_link). database (250 images) and queries (500 images) are the preconfigured testing image directories. 
+
+---
+
+## Single file run benchmark code
+- *IMPORTANT FOR FUTURE WORK*: The /findfacebulktesting and /listcollections endpoints as they are currently implemented need to exist and be uncommented for this script to work.
+- set up .env in root directory with the following variables
+    - DATABASE_DIRECTORY = path to directory of images to be uploaded to database
+    - QUERIES_DIRECTORY = path to directory of images to be queried
+- set detector and embedding model in model_config.json, and DB settings in db_config.json (or leave as whatevers there currently)
+- cd benchmark_testing
+- run `bash benchmark.sh` for default benchmarking
+- run `bash benchmark.sh -h` for options
+
+---
+
+## Other Benchmarking Files
+- **`run_face_find_time.sh`**  
+  Starts the server and tests the face recognition function by running a single query image against the database, measuring the time taken to return results.
+
+- **`run_face_find_random.sh`**  
+Starts the server and tests the face recognition function by running a single random query image against the database, measuring the time taken to return results.
+
+- **`edgecase_testing.py`**
+  A script to test edge cases of a face recognition system allowing us to find reasons for failure. It visualizes detected faces by drawing bounding boxes on images and verifies the similarity between two images, providing the distance and the metric used for comparison. 
+---
+
+## Folder Structure
+- **`test_data_setup.py`**  
+  Prepares the test dataset by randomly selecting one image per person for upload and one image for testing. The input directory should be a recursive directory such that each directory contains different images of the same person. It outputs two directories:
+    - `sample_database directory`: Contains images to be uploaded to the database.
+    - `sample_queries directory`: Contains query images used for face recognition accuracy testing.
+
+Note: One such pair of sample database and queries directories have already been created for testing (available in the dataset download mentioned above).
+
+---
 
 _Run all below commands from root directory of project._
 
@@ -160,4 +161,14 @@ poetry run pytest ./src/FaceDetectionandRecognition/test/test_app_main.py -v --c
 poetry run pytest ./src/FaceDetectionandRecognition/test/test_app_main.py::TestFaceMatch::<test function name found in test_app_main.py> -v --capture=no
 ```
 
+
+## Other important notes from previous developers (written 5/14/25)
+The multipipeline ensemble method endpoints /multi_pipeline_bulkupload  /multi_pipeline_findfacebulk are currently commented out in face_match_server.py. They can be found by using command-F on the endpoint routes listed here and uncommented to try out. The same goes for /listcollections.
+
+As mentioned before, /deletecollection and /listcollections are both required to be uncommented in face_match_server.py to run the benchmark.sh script in the benchmark_testing directory.
+
+The bulkfacefind improved RB output is on the branch FaceMatch_Bulk_Find_Frontend and is up to date with the current state of the project
+
+The ensemble method uploads to 4 collections for every user defined collection. These collection names are handled separately than the single pipeline collections 
+(ones created by using /bulkupload). The vision for the multipipeline ensemble approach is to have these two workflows merged into one upload endpoint and one facefind endpoint, where every image uploaded goes to all of the pipeline collections, and the user has the option to select whether they wish to query against all four pipelines using the ensemble approach (slower but more accurate) or simply use one pipeline (faster but less accurate).
 
