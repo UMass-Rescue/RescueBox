@@ -1,0 +1,32 @@
+[project]
+name = "age-classifier"
+version = "0.1.0"
+description = "UMass Rescue Box: Age and Gender Classification"
+authors = [
+    {name = "James Bardowski",email = "jbardowski@umass.edu"},
+    {name = "Juhi Manish Jain",email = "juhimanishja@umass.edu"},
+    {name = "Jacob Sweet",email = "jdsweet@umass.edu"}
+]
+readme = "README.md"
+
+dependencies = [
+    "torch",
+    "numpy",
+    "pandas",
+    "requests",
+    "opencv-python",
+    "sqlalchemy",
+    "seaborn",
+    "onnxruntime",
+    "joblib",
+    "xgboost"
+]
+
+[tool.poetry]
+packages = [
+    { include = "age_gender_classifier"}
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
