@@ -191,7 +191,7 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     out = Path(inputs["output_file"].path)
     selected_models = parameters.get("models", "all")
     if selected_models == "all":
-        selected_models = "BNext_M_ModelONNX,BNext_S_ModelONNX,TransformerModelONNX,TransformerModelDimaONNX, Resnet50ModelONNX"
+        selected_models = "BNext_M_ModelONNX,BNext_S_ModelONNX,TransformerModelONNX,TransformerModelDimaONNX,Resnet50ModelONNX"
     selected_models = selected_models.split(",")
 
     logger.info(f"Input path: {input_path}")

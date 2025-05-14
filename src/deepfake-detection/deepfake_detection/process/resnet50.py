@@ -17,9 +17,12 @@ from deepfake_detection.process.facedetector import faceDetector
 # Trained on COCOFake dataset
 class Resnet50ModelONNX:
     def __init__(self, model_path="onnx_models/resnet50_fakes.onnx", resolution=224):
-        print("Loading Transformer Model ONNX...")
-        # Convert model_path to a Path object
-        self.model_path = Path(model_path)
+        print("Loading Resnet Model ONNX...")
+        self.model_path = (
+            Path(__file__).resolve().parent.parent
+            / "onnx_models"
+            / "resnet50_fakes.onnx"
+        )
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime
         )
