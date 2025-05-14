@@ -66,9 +66,6 @@ python eval.py -h
 
 ### Download and run RescueBox Desktop from the following link: [Rescue Box Desktop](https://github.com/UMass-Rescue/RescueBox-Desktop/releases)
 
-#### Open the RescueBox Desktop application and register the model
-![RescueBox Desktop](images/register_model.png)
-
 #### Run the model
 ![RescueBox Desktop](images/run_model.png)
 ![RescueBox Desktop](images/select_inputs.png)
