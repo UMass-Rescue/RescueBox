@@ -9,7 +9,6 @@ from rb.api.models import (
     ResponseBody,
     TaskSchema,
 )
-from pyannote.audio import Pipeline
 import whisper
 from collections import defaultdict
 from Audio_Diarization.utils import diarize_text, load_pyannote_pipeline_from_pretrained
