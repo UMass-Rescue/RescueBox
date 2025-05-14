@@ -4,6 +4,7 @@ from rb.api.models import AppMetadata, TaskSchema
 from typer.testing import CliRunner
 from fastapi.testclient import TestClient
 from rb.api.main import app as api_app
+import json
 
 
 class RBAppTest(ABC):
@@ -85,8 +86,8 @@ class RBAppTest(ABC):
             )
             assert result.exit_code == 0
             for key, value in expected_metadata.items():
-                assert any(str(key) in message for message in caplog.messages)
-                assert any(str(value) in message for message in caplog.messages)
+                assert any(json.dumps(key) in message for message in caplog.messages)
+                assert any(json.dumps(value) in message for message in caplog.messages)
 
     def test_schema_command(self, caplog):
         with caplog.at_level("INFO"):

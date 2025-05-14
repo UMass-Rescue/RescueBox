@@ -16,6 +16,7 @@ from rb.lib.utils import (
     ensure_ml_func_hinting_and_task_schemas_are_valid,
     ensure_ml_func_parameters_are_typed_dict,
 )
+import json
 
 logger = getLogger(__name__)
 
@@ -76,7 +77,7 @@ class MLService(object):
             if self._app_metadata is None:
                 return {"error": "App metadata not set"}
             res = self._app_metadata.model_dump(mode="json")
-            logger.info(res)
+            logger.info(json.dumps(res))
             return res
 
     def add_app_metadata(

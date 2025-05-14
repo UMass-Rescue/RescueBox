@@ -1,0 +1,7 @@
+{
+  "collection_name": "sample",
+  "hnsw:space": "cosine",
+  "hnsw:construction_ef": 750,
+  "hnsw:search_ef": 750,
+  "hnsw:M": 256
+}

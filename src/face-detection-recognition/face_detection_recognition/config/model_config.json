@@ -1,0 +1,8 @@
+{
+  "_comment": "The cosine threshold value was determined experimentally with database of 1680 images by the FaceMatch team and can be adjusted if needed based on further testing.",
+  "model_name": "Facenet512",
+  "detector_backend": "retinaface",
+  "euclidian-threshold": 17,
+  "cosine-threshold": 0.45,
+  "face_confidence_threshold": 0.7
+}

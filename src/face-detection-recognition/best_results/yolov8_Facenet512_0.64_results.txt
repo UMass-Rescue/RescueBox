@@ -1,0 +1,1681 @@
+Filename, Expected Match, Found Match (Top-top_5), Correct Match?, Matched Names
+Aaron_Peirsol_0004.jpg, Yes, No, NO, 
+Aaron_Sorkin_0001.jpg, Yes, Yes, YES, Aaron_Sorkin_0002.jpg
+Abdel_Nasser_Assidi_0001.jpg, Yes, Yes, YES, Abdel_Nasser_Assidi_0002.jpg
+Abdoulaye_Wade_0004.jpg, Yes, No, NO, 
+Abdullah_0002.jpg, Yes, Yes, YES, Abdullah_0003.jpg
+Abdullah_Gul_0014.jpg, Yes, Yes, YES, Abdullah_Gul_0006.jpg
+Abdullah_al-Attiyah_0001.jpg, Yes, Yes, YES, Abdullah_al-Attiyah_0002.jpg
+Abdullatif_Sener_0002.jpg, Yes, Yes, YES, Abdullatif_Sener_0001.jpg
+Abel_Pacheco_0003.jpg, Yes, Yes, YES, Abel_Pacheco_0004.jpg
+Abid_Hamid_Mahmud_Al-Tikriti_0001.jpg, Yes, No, NO, 
+Adam_Sandler_0001.jpg, Yes, Yes, YES, Adam_Sandler_0003.jpg
+Adam_Scott_0001.jpg, Yes, No, NO, 
+Adel_Al-Jubeir_0003.jpg, Yes, Yes, YES, Adel_Al-Jubeir_0001.jpg
+Adolfo_Aguilar_Zinser_0002.jpg, Yes, Yes, YES, Adolfo_Aguilar_Zinser_0003.jpg
+Adolfo_Rodriguez_Saa_0001.jpg, Yes, Yes, YES, Adolfo_Rodriguez_Saa_0002.jpg, Bill_Belichick_0002.jpg
+Adrian_McPherson_0002.jpg, Yes, Yes, YES, Adrian_McPherson_0001.jpg
+Adrian_Nastase_0001.jpg, Yes, Yes, YES, Adrian_Nastase_0002.jpg
+Adrien_Brody_0002.jpg, Yes, Yes, YES, Adrien_Brody_0008.jpg
+Ahmad_Masood_0001.jpg, Yes, Yes, YES, Ahmad_Masood_0002.jpg
+Ahmed_Chalabi_0003.jpg, Yes, Yes, YES, Ahmed_Chalabi_0001.jpg
+Ahmet_Necdet_Sezer_0002.jpg, Yes, Yes, YES, Ahmet_Necdet_Sezer_0001.jpg
+Ai_Sugiyama_0001.jpg, Yes, Yes, YES, Ai_Sugiyama_0004.jpg, Candie_Kung_0003.jpg
+Aicha_El_Ouafi_0001.jpg, Yes, Yes, YES, Aicha_El_Ouafi_0003.jpg, Begum_Khaleda_Zia_0001.jpg
+Aitor_Gonzalez_0001.jpg, Yes, Yes, YES, Aitor_Gonzalez_0002.jpg
+Akbar_Hashemi_Rafsanjani_0003.jpg, Yes, Yes, YES, Akbar_Hashemi_Rafsanjani_0001.jpg
+Akhmed_Zakayev_0001.jpg, Yes, Yes, YES, Akhmed_Zakayev_0003.jpg
+Al_Davis_0001.jpg, Yes, Yes, YES, Al_Davis_0002.jpg
+Al_Gore_0008.jpg, Yes, No, NO, 
+Al_Pacino_0003.jpg, Yes, Yes, YES, Al_Pacino_0001.jpg
+Al_Sharpton_0005.jpg, Yes, Yes, YES, Al_Sharpton_0002.jpg
+Alan_Ball_0001.jpg, Yes, Yes, YES, Alan_Ball_0002.jpg
+Alan_Greenspan_0005.jpg, Yes, Yes, YES, Alan_Greenspan_0004.jpg
+Alan_Mulally_0002.jpg, Yes, Yes, YES, Alan_Mulally_0001.jpg
+Alastair_Campbell_0005.jpg, Yes, Yes, YES, Alastair_Campbell_0001.jpg
+Albert_Costa_0002.jpg, Yes, No, NO, 
+Alberto_Fujimori_0001.jpg, Yes, Yes, YES, Alberto_Fujimori_0002.jpg, Chen_Shui-bian_0005.jpg, Annette_Lu_0002.jpg
+Alberto_Ruiz_Gallardon_0001.jpg, Yes, No, NO, 
+Albrecht_Mentz_0001.jpg, Yes, Yes, YES, Albrecht_Mentz_0002.jpg
+Aldo_Paredes_0001.jpg, Yes, No, NO, 
+Alec_Baldwin_0004.jpg, Yes, Yes, YES, Alec_Baldwin_0001.jpg
+Alejandro_Atchugarry_0001.jpg, Yes, Yes, YES, Alejandro_Atchugarry_0002.jpg
+Alejandro_Avila_0002.jpg, Yes, No, NO, 
+Alejandro_Toledo_0039.jpg, Yes, Yes, YES, Alejandro_Toledo_0028.jpg
+Aleksander_Kwasniewski_0002.jpg, Yes, Yes, YES, Aleksander_Kwasniewski_0001.jpg
+Alex_Barros_0001.jpg, Yes, No, NO, 
+Alex_Penelas_0001.jpg, Yes, Yes, YES, Alex_Penelas_0002.jpg
+Alex_Sink_0003.jpg, Yes, Yes, YES, Alex_Sink_0002.jpg
+Alexander_Downer_0003.jpg, Yes, Yes, YES, Alexander_Downer_0002.jpg
+Alexander_Losyukov_0002.jpg, Yes, Yes, YES, Alexander_Losyukov_0004.jpg
+Alexander_Rumyantsev_0002.jpg, Yes, Yes, YES, Alexander_Rumyantsev_0001.jpg
+Alexandra_Stevenson_0001.jpg, Yes, Yes, YES, Alexandra_Stevenson_0002.jpg
+Alexandra_Vodjanikova_0001.jpg, Yes, Yes, YES, Alexandra_Vodjanikova_0002.jpg
+Ali_Abbas_0002.jpg, Yes, Yes, YES, Ali_Abbas_0001.jpg
+Ali_Khamenei_0003.jpg, Yes, No, NO, 
+Ali_Naimi_0002.jpg, Yes, Yes, YES, Ali_Naimi_0006.jpg
+Alice_Fisher_0002.jpg, Yes, Yes, YES, Alice_Fisher_0001.jpg
+Alicia_Silverstone_0002.jpg, Yes, No, NO, 
+Alimzhan_Tokhtakhounov_0002.jpg, Yes, Yes, YES, Alimzhan_Tokhtakhounov_0001.jpg
+Alison_Lohman_0001.jpg, Yes, Yes, YES, Alison_Lohman_0002.jpg
+Allen_Iverson_0001.jpg, Yes, Yes, YES, Allen_Iverson_0002.jpg
+Allison_Janney_0001.jpg, Yes, Yes, YES, Allison_Janney_0002.jpg
+Allyson_Felix_0005.jpg, Yes, Yes, YES, Allyson_Felix_0003.jpg
+Alvaro_Noboa_0003.jpg, Yes, Yes, YES, Alvaro_Noboa_0001.jpg
+Alvaro_Silva_Calderon_0002.jpg, Yes, Yes, NO, Alan_Greenspan_0004.jpg
+Alvaro_Uribe_0024.jpg, Yes, Yes, YES, Alvaro_Uribe_0001.jpg
+Amanda_Beard_0001.jpg, Yes, Yes, YES, Amanda_Beard_0002.jpg
+Amanda_Bynes_0002.jpg, Yes, Yes, YES, Amanda_Bynes_0003.jpg
+Amanda_Coetzer_0001.jpg, Yes, Yes, YES, Amanda_Coetzer_0002.jpg
+Amber_Tamblyn_0002.jpg, Yes, Yes, YES, Amber_Tamblyn_0001.jpg
+Amelia_Vega_0005.jpg, Yes, Yes, YES, Amelia_Vega_0004.jpg
+Amelie_Mauresmo_0011.jpg, Yes, Yes, YES, Amelie_Mauresmo_0017.jpg
+Amer_al-Saadi_0004.jpg, Yes, Yes, YES, Amer_al-Saadi_0003.jpg
+Amram_Mitzna_0001.jpg, Yes, Yes, YES, Amram_Mitzna_0002.jpg
+Ana_Guevara_0004.jpg, Yes, No, NO, 
+Ana_Palacio_0006.jpg, Yes, No, NO, 
+Anastasia_Myskina_0003.jpg, Yes, No, NO, 
+Anders_Ebbeson_0003.jpg, Yes, Yes, YES, Anders_Ebbeson_0002.jpg
+Anders_Fogh_Rasmussen_0001.jpg, Yes, Yes, YES, Anders_Fogh_Rasmussen_0003.jpg
+Andre_Agassi_0026.jpg, Yes, Yes, YES, Andre_Agassi_0022.jpg
+Andrei_Mikhnevich_0001.jpg, Yes, Yes, YES, Andrei_Mikhnevich_0002.jpg
+Andrew_Bunner_0002.jpg, Yes, Yes, YES, Andrew_Bunner_0001.jpg
+Andrew_Cuomo_0001.jpg, Yes, Yes, YES, Andrew_Cuomo_0002.jpg
+Andrew_Niccol_0002.jpg, Yes, Yes, YES, Andrew_Niccol_0001.jpg
+Andrew_Weissmann_0001.jpg, Yes, Yes, YES, Andrew_Weissmann_0003.jpg, Charles_Mathews_0001.jpg
+Andy_Hebb_0002.jpg, Yes, Yes, YES, Andy_Hebb_0001.jpg
+Andy_Roddick_0007.jpg, Yes, No, NO, 
+Angela_Bassett_0001.jpg, Yes, Yes, YES, Angela_Bassett_0006.jpg
+Angela_Lansbury_0001.jpg, Yes, Yes, YES, Angela_Lansbury_0002.jpg
+Angela_Merkel_0003.jpg, Yes, Yes, YES, Angela_Merkel_0001.jpg
+Angelina_Jolie_0007.jpg, Yes, No, NO, 
+Angelo_Reyes_0001.jpg, Yes, Yes, YES, Angelo_Reyes_0004.jpg, GL_Peiris_0003.jpg
+Anibal_Ibarra_0001.jpg, Yes, No, NO, 
+Ann_Veneman_0002.jpg, Yes, Yes, YES, Ann_Veneman_0003.jpg
+Anna_Kournikova_0006.jpg, Yes, No, NO, 
+Anna_Nicole_Smith_0001.jpg, Yes, No, NO, 
+Anne_Krueger_0001.jpg, Yes, Yes, YES, Anne_Krueger_0003.jpg
+Anne_McLellan_0003.jpg, Yes, Yes, YES, Anne_McLellan_0001.jpg, Ann_Veneman_0003.jpg
+Anneli_Jaatteenmaki_0001.jpg, Yes, Yes, YES, Anneli_Jaatteenmaki_0002.jpg
+Annette_Bening_0002.jpg, Yes, Yes, YES, Annette_Bening_0001.jpg
+Annette_Lu_0001.jpg, Yes, Yes, YES, Annette_Lu_0002.jpg
+Anthony_Fauci_0001.jpg, Yes, Yes, YES, Anthony_Fauci_0002.jpg
+Anthony_Hopkins_0001.jpg, Yes, Yes, YES, Anthony_Hopkins_0002.jpg
+Anthony_LaPaglia_0002.jpg, Yes, Yes, YES, Anthony_LaPaglia_0001.jpg
+Antonio_Banderas_0005.jpg, Yes, No, NO, 
+Antonio_Palocci_0004.jpg, Yes, Yes, YES, Antonio_Palocci_0002.jpg
+Antonio_Trillanes_0001.jpg, Yes, Yes, YES, Antonio_Trillanes_0002.jpg
+Antony_Leung_0004.jpg, Yes, Yes, YES, Antony_Leung_0002.jpg, Chang_Dae-whan_0001.jpg, Jong_Thae_Hwa_0001.jpg, Chen_Shui-bian_0005.jpg, Jeong_Se-hyun_0001.jpg
+Anwar_Ibrahim_0001.jpg, Yes, Yes, YES, Anwar_Ibrahim_0002.jpg, Dalai_Lama_0001.jpg, Johnson_Panjaitan_0001.jpg
+Arantxa_Sanchez-Vicario_0001.jpg, Yes, Yes, YES, Arantxa_Sanchez-Vicario_0002.jpg
+Ari_Fleischer_0008.jpg, Yes, Yes, YES, Ari_Fleischer_0009.jpg
+Arianna_Huffington_0004.jpg, Yes, Yes, YES, Arianna_Huffington_0003.jpg
+Ariel_Sharon_0025.jpg, Yes, Yes, YES, Ariel_Sharon_0071.jpg, George_Brumley_0001.jpg
+Arlen_Specter_0001.jpg, Yes, Yes, YES, Arlen_Specter_0003.jpg
+Arminio_Fraga_0004.jpg, Yes, Yes, YES, Arminio_Fraga_0005.jpg
+Arnaud_Clement_0001.jpg, Yes, No, NO, 
+Arnold_Palmer_0002.jpg, Yes, Yes, YES, Arnold_Palmer_0003.jpg
+Arnold_Schwarzenegger_0017.jpg, Yes, No, NO, 
+Arnoldo_Aleman_0002.jpg, Yes, Yes, YES, Arnoldo_Aleman_0003.jpg
+Aron_Ralston_0002.jpg, Yes, Yes, NO, Joan_Claybrook_0002.jpg
+Arsinee_Khanjian_0002.jpg, Yes, Yes, YES, Arsinee_Khanjian_0001.jpg
+Art_Hoffmann_0002.jpg, Yes, Yes, YES, Art_Hoffmann_0001.jpg
+Art_Howe_0003.jpg, Yes, Yes, YES, Art_Howe_0002.jpg
+Arturo_Gatti_0003.jpg, Yes, Yes, YES, Arturo_Gatti_0002.jpg, Joe_Gatti_0002.jpg
+Arye_Mekel_0001.jpg, Yes, Yes, YES, Arye_Mekel_0002.jpg
+Asa_Hutchinson_0001.jpg, Yes, Yes, YES, Asa_Hutchinson_0002.jpg
+Ashanti_0004.jpg, Yes, No, NO, 
+Ashton_Kutcher_0001.jpg, Yes, Yes, YES, Ashton_Kutcher_0003.jpg
+Atal_Bihari_Vajpayee_0013.jpg, Yes, Yes, YES, Atal_Bihari_Vajpayee_0004.jpg, Inam-ul-Haq_0002.jpg
+Augustin_Calleri_0003.jpg, Yes, No, NO, 
+Augusto_Pinochet_0002.jpg, Yes, Yes, YES, Augusto_Pinochet_0001.jpg
+Augusto_Roa_Bastos_0002.jpg, Yes, Yes, YES, Augusto_Roa_Bastos_0001.jpg
+Aung_San_Suu_Kyi_0002.jpg, Yes, No, NO, 
+Azra_Akin_0002.jpg, Yes, Yes, YES, Azra_Akin_0003.jpg
+Barbara_Brezigar_0001.jpg, Yes, No, NO, 
+Barbara_Walters_0004.jpg, Yes, No, NO, 
+Barbra_Streisand_0003.jpg, Yes, Yes, YES, Barbra_Streisand_0001.jpg
+Barrett_Jackman_0001.jpg, Yes, Yes, YES, Barrett_Jackman_0002.jpg
+Barry_Alvarez_0001.jpg, Yes, Yes, YES, Barry_Alvarez_0002.jpg, John_Negroponte_0021.jpg
+Barry_Zito_0001.jpg, Yes, No, NO, 
+Bashar_Assad_0002.jpg, Yes, Yes, YES, Bashar_Assad_0004.jpg
+Begum_Khaleda_Zia_0002.jpg, Yes, No, NO, 
+Ben_Affleck_0002.jpg, Yes, Yes, YES, Ben_Affleck_0007.jpg
+Ben_Curtis_0001.jpg, Yes, Yes, YES, Ben_Curtis_0002.jpg
+Ben_Glisan_0002.jpg, Yes, Yes, YES, Ben_Glisan_0001.jpg
+Ben_Howland_0001.jpg, Yes, Yes, YES, Ben_Howland_0003.jpg
+Benazir_Bhutto_0004.jpg, Yes, Yes, YES, Benazir_Bhutto_0003.jpg
+Benjamin_Netanyahu_0003.jpg, Yes, Yes, YES, Benjamin_Netanyahu_0002.jpg
+Bernard_Landry_0004.jpg, Yes, No, NO, 
+Bernard_Law_0003.jpg, Yes, Yes, YES, Bernard_Law_0001.jpg
+Bernard_Lord_0002.jpg, Yes, Yes, YES, Bernard_Lord_0001.jpg
+Bernardo_Segura_0002.jpg, Yes, Yes, YES, Bernardo_Segura_0001.jpg
+Bertie_Ahern_0002.jpg, Yes, No, NO, 
+Bertrand_Bonello_0001.jpg, Yes, Yes, YES, Bertrand_Bonello_0002.jpg
+Beth_Jones_0002.jpg, Yes, No, NO, 
+Betsy_Smith_0001.jpg, Yes, Yes, YES, Betsy_Smith_0002.jpg
+Bijan_Darvish_0002.jpg, Yes, No, NO, 
+Bijan_Namdar_Zangeneh_0001.jpg, Yes, Yes, YES, Bijan_Namdar_Zangeneh_0002.jpg
+Biljana_Plavsic_0003.jpg, Yes, Yes, YES, Biljana_Plavsic_0002.jpg
+Bill_Belichick_0001.jpg, Yes, Yes, YES, Bill_Belichick_0002.jpg
+Bill_Callahan_0002.jpg, Yes, Yes, YES, Bill_Callahan_0003.jpg
+Bill_Clinton_0015.jpg, Yes, Yes, YES, Bill_Clinton_0005.jpg
+Bill_Frist_0001.jpg, Yes, Yes, YES, Bill_Frist_0003.jpg
+Bill_Gates_0008.jpg, Yes, Yes, YES, Bill_Gates_0016.jpg
+Bill_Graham_0004.jpg, Yes, Yes, YES, Bill_Graham_0006.jpg
+Bill_McBride_0009.jpg, Yes, No, NO, 
+Bill_Nelson_0001.jpg, Yes, Yes, YES, Bill_Nelson_0002.jpg
+Bill_Parcells_0001.jpg, Yes, Yes, YES, Bill_Parcells_0002.jpg
+Bill_Paxton_0003.jpg, Yes, Yes, YES, Bill_Paxton_0004.jpg
+Bill_Simon_0003.jpg, Yes, Yes, YES, Bill_Simon_0004.jpg
+Bill_Sizemore_0001.jpg, Yes, Yes, YES, Bill_Sizemore_0002.jpg
+Billy_Crystal_0003.jpg, Yes, No, NO, 
+Billy_Graham_0002.jpg, Yes, Yes, YES, Billy_Graham_0001.jpg
+Billy_Sollie_0001.jpg, Yes, Yes, YES, Billy_Sollie_0002.jpg
+Binyamin_Ben-Eliezer_0007.jpg, Yes, Yes, YES, Binyamin_Ben-Eliezer_0005.jpg
+Blythe_Danner_0002.jpg, Yes, Yes, YES, Blythe_Danner_0001.jpg
+Blythe_Hartley_0002.jpg, Yes, Yes, YES, Blythe_Hartley_0001.jpg
+Bo_Pelini_0002.jpg, Yes, Yes, YES, Bo_Pelini_0001.jpg
+Bo_Ryan_0001.jpg, Yes, Yes, YES, Bo_Ryan_0002.jpg
+Bob_Beauprez_0001.jpg, Yes, Yes, YES, Bob_Beauprez_0002.jpg, Alejandro_Atchugarry_0002.jpg
+Bob_Colvin_0002.jpg, Yes, Yes, YES, Bob_Colvin_0001.jpg
+Bob_Dole_0003.jpg, Yes, Yes, YES, Bob_Dole_0001.jpg
+Bob_Geldof_0001.jpg, Yes, Yes, YES, Bob_Geldof_0002.jpg
+Bob_Graham_0001.jpg, Yes, Yes, YES, Bob_Graham_0004.jpg
+Bob_Hope_0003.jpg, Yes, Yes, YES, Bob_Hope_0008.jpg, John_McEnroe_0001.jpg
+Bob_Huggins_0004.jpg, Yes, No, NO, 
+Bob_Stoops_0002.jpg, Yes, Yes, YES, Bob_Stoops_0007.jpg
+Bobby_Goldwater_0002.jpg, Yes, Yes, YES, Bobby_Goldwater_0001.jpg, Fayssal_Mekdad_0004.jpg
+Bobby_Robson_0002.jpg, Yes, Yes, YES, Bobby_Robson_0001.jpg
+Bode_Miller_0001.jpg, Yes, Yes, YES, Bode_Miller_0002.jpg
+Bono_0001.jpg, Yes, No, NO, 
+Boris_Becker_0003.jpg, Yes, Yes, YES, Boris_Becker_0004.jpg
+Boris_Berezovsky_0001.jpg, Yes, Yes, YES, Boris_Berezovsky_0002.jpg
+Boris_Yeltsin_0001.jpg, Yes, Yes, YES, Boris_Yeltsin_0002.jpg
+Brad_Garrett_0002.jpg, Yes, Yes, YES, Brad_Garrett_0003.jpg
+Brad_Johnson_0002.jpg, Yes, No, NO, 
+Branko_Crvenkovski_0001.jpg, Yes, Yes, YES, Branko_Crvenkovski_0002.jpg
+Brendan_Hansen_0002.jpg, Yes, No, NO, 
+Brian_Cowen_0001.jpg, Yes, Yes, YES, Brian_Cowen_0002.jpg
+Brian_Griese_0001.jpg, Yes, Yes, YES, Brian_Griese_0002.jpg
+Brian_Heidik_0001.jpg, Yes, No, NO, 
+Brian_Mulroney_0002.jpg, Yes, Yes, YES, Brian_Mulroney_0001.jpg
+Brian_Wells_0002.jpg, Yes, Yes, YES, Brian_Wells_0001.jpg
+Bridget_Fonda_0002.jpg, Yes, Yes, YES, Bridget_Fonda_0003.jpg
+Bridgette_Wilson-Sampras_0002.jpg, Yes, Yes, YES, Bridgette_Wilson-Sampras_0003.jpg
+Brigitte_Boisselier_0001.jpg, Yes, Yes, YES, Brigitte_Boisselier_0002.jpg
+Britney_Spears_0001.jpg, Yes, Yes, YES, Britney_Spears_0009.jpg
+Brooke_Shields_0002.jpg, Yes, Yes, YES, Brooke_Shields_0001.jpg
+Bruce_Springsteen_0002.jpg, Yes, Yes, YES, Bruce_Springsteen_0003.jpg
+Bruce_Van_De_Velde_0002.jpg, Yes, Yes, YES, Bruce_Van_De_Velde_0001.jpg
+Bruce_Weber_0002.jpg, Yes, Yes, YES, Bruce_Weber_0001.jpg
+Bud_Selig_0003.jpg, Yes, No, NO, 
+Bulent_Ecevit_0002.jpg, Yes, Yes, YES, Bulent_Ecevit_0004.jpg, Carlos_Mesa_0002.jpg
+Butch_Davis_0002.jpg, Yes, Yes, YES, Butch_Davis_0001.jpg
+Byron_Scott_0001.jpg, Yes, Yes, YES, Byron_Scott_0002.jpg
+Calista_Flockhart_0006.jpg, Yes, Yes, YES, Calista_Flockhart_0002.jpg
+Cameron_Diaz_0006.jpg, Yes, Yes, YES, Cameron_Diaz_0004.jpg
+Camilla_Parker_Bowles_0002.jpg, Yes, Yes, YES, Camilla_Parker_Bowles_0001.jpg
+Candice_Bergen_0003.jpg, Yes, No, NO, 
+Candie_Kung_0002.jpg, Yes, Yes, YES, Candie_Kung_0003.jpg
+Carl_Reiner_0001.jpg, Yes, Yes, YES, Carl_Reiner_0002.jpg
+Carla_Del_Ponte_0003.jpg, Yes, Yes, YES, Carla_Del_Ponte_0001.jpg
+Carla_Myers_0001.jpg, Yes, Yes, YES, Carla_Myers_0002.jpg
+Carlo_Ancelotti_0001.jpg, Yes, Yes, YES, Carlo_Ancelotti_0003.jpg
+Carlos_Bianchi_0002.jpg, Yes, Yes, YES, Carlos_Bianchi_0001.jpg
+Carlos_Ghosn_0002.jpg, Yes, Yes, YES, Carlos_Ghosn_0001.jpg, Ben_Howland_0003.jpg, John_McEnroe_0001.jpg
+Carlos_Manuel_Pruneda_0003.jpg, Yes, Yes, YES, Carlos_Manuel_Pruneda_0002.jpg
+Carlos_Menem_0001.jpg, Yes, Yes, YES, Carlos_Menem_0013.jpg, Dick_Clark_0001.jpg
+Carlos_Mesa_0001.jpg, Yes, Yes, YES, Carlos_Mesa_0002.jpg
+Carlos_Moya_0018.jpg, Yes, No, NO, 
+Carlos_Ortega_0003.jpg, Yes, Yes, YES, Carlos_Ortega_0002.jpg
+Carlos_Quintanilla_Schmidt_0001.jpg, Yes, Yes, YES, Carlos_Quintanilla_Schmidt_0002.jpg
+Carlos_Ruiz_0001.jpg, Yes, No, NO, 
+Carlos_Vives_0002.jpg, Yes, No, NO, 
+Carly_Fiorina_0001.jpg, Yes, Yes, NO, Biljana_Plavsic_0002.jpg
+Carmen_Electra_0002.jpg, Yes, Yes, YES, Carmen_Electra_0006.jpg
+Carol_Burnett_0002.jpg, Yes, Yes, YES, Carol_Burnett_0001.jpg
+Carol_Moseley_Braun_0001.jpg, Yes, Yes, YES, Carol_Moseley_Braun_0002.jpg
+Carolina_Kluft_0003.jpg, Yes, Yes, NO, Claire_Hentzen_0002.jpg
+Carolina_Moraes_0002.jpg, Yes, Yes, YES, Carolina_Moraes_0001.jpg
+Caroline_Kennedy_0002.jpg, Yes, Yes, YES, Caroline_Kennedy_0003.jpg
+Carolyn_Dawn_Johnson_0003.jpg, Yes, Yes, YES, Carolyn_Dawn_Johnson_0002.jpg
+Carrie-Anne_Moss_0001.jpg, Yes, No, NO, 
+Carson_Daly_0002.jpg, Yes, Yes, YES, Carson_Daly_0001.jpg
+Carson_Palmer_0003.jpg, Yes, No, NO, 
+Cate_Blanchett_0002.jpg, Yes, Yes, YES, Cate_Blanchett_0004.jpg
+Catherine_Deneuve_0001.jpg, Yes, Yes, YES, Catherine_Deneuve_0002.jpg
+Catherine_Zeta-Jones_0002.jpg, Yes, Yes, YES, Catherine_Zeta-Jones_0004.jpg
+Cathy_Freeman_0002.jpg, Yes, Yes, YES, Cathy_Freeman_0001.jpg
+Cecilia_Bolocco_0002.jpg, Yes, No, NO, 
+Celine_Dion_0008.jpg, Yes, No, NO, 
+Celso_Amorim_0002.jpg, Yes, Yes, NO, John_Bolton_0008.jpg
+Cesar_Gaviria_0002.jpg, Yes, Yes, YES, Cesar_Gaviria_0007.jpg
+Cesar_Maia_0002.jpg, Yes, Yes, YES, Cesar_Maia_0001.jpg
+Chakib_Khelil_0001.jpg, Yes, Yes, YES, Chakib_Khelil_0002.jpg
+Chan_Gailey_0002.jpg, Yes, No, NO, 
+Chanda_Rubin_0002.jpg, Yes, Yes, YES, Chanda_Rubin_0005.jpg
+Chang_Dae-whan_0002.jpg, Yes, Yes, YES, Chang_Dae-whan_0001.jpg, Annette_Lu_0002.jpg, Jia_Qinglin_0001.jpg, Choi_Sung-hong_0004.jpg, Hu_Jintao_0013.jpg
+Charles_Bronson_0001.jpg, Yes, No, NO, 
+Charles_Grassley_0002.jpg, Yes, Yes, YES, Charles_Grassley_0001.jpg
+Charles_Kartman_0002.jpg, Yes, Yes, YES, Charles_Kartman_0001.jpg
+Charles_Mathews_0002.jpg, Yes, Yes, YES, Charles_Mathews_0001.jpg
+Charles_Moose_0003.jpg, Yes, Yes, YES, Doug_Duncan_0002.jpg, Charles_Moose_0001.jpg
+Charles_Schumer_0001.jpg, Yes, Yes, YES, Boris_Berezovsky_0002.jpg, Guillermo_Ortiz_0001.jpg, Charles_Schumer_0002.jpg
+Charles_Taylor_0004.jpg, Yes, Yes, YES, Charles_Taylor_0002.jpg
+Charlie_Zaa_0001.jpg, Yes, Yes, YES, Charlie_Zaa_0002.jpg
+Charlotte_Rampling_0001.jpg, Yes, Yes, YES, Charlotte_Rampling_0002.jpg, Jennifer_Keller_0001.jpg
+Charlton_Heston_0001.jpg, Yes, No, NO, 
+Chen_Liang_Yu_0001.jpg, Yes, Yes, YES, Chen_Liang_Yu_0002.jpg, Hichiro_Naemura_0001.jpg
+Chen_Shui-bian_0001.jpg, Yes, Yes, YES, Chen_Shui-bian_0005.jpg, Jeong_Se-hyun_0001.jpg, Chen_Shui-bian_0005.jpg, Gary_Locke_0001.jpg
+Cherie_Blair_0003.jpg, Yes, Yes, YES, Cherie_Blair_0002.jpg
+Chick_Hearn_0003.jpg, Yes, Yes, YES, Chick_Hearn_0001.jpg, Binyamin_Ben-Eliezer_0005.jpg
+Chita_Rivera_0001.jpg, Yes, Yes, NO, Hamzah_Haz_0002.jpg, Charles_Mathews_0001.jpg, Geraldine_Chaplin_0001.jpg, Diana_Munz_0003.jpg, Abdullah_al-Attiyah_0002.jpg
+Choi_Sung-hong_0005.jpg, Yes, Yes, YES, Choi_Sung-hong_0004.jpg
+Chok_Tong_Goh_0002.jpg, Yes, Yes, YES, Chok_Tong_Goh_0001.jpg, Jorge_Batlle_0003.jpg
+Chris_Bell_0002.jpg, Yes, Yes, YES, Chris_Bell_0001.jpg
+Chris_Byrd_0002.jpg, Yes, No, NO, 
+Chris_Cooper_0001.jpg, Yes, Yes, YES, Chris_Cooper_0002.jpg
+Chris_Rock_0002.jpg, Yes, Yes, YES, Chris_Rock_0001.jpg
+Chris_Tucker_0001.jpg, Yes, Yes, YES, Chris_Tucker_0002.jpg
+Christian_Fittipaldi_0001.jpg, Yes, No, NO, 
+Christian_Longo_0002.jpg, Yes, Yes, YES, Christian_Longo_0003.jpg
+Christian_Wulff_0001.jpg, Yes, Yes, YES, Christian_Wulff_0002.jpg
+Christina_Aguilera_0003.jpg, Yes, No, NO, 
+Christine_Baumgartner_0001.jpg, Yes, No, NO, 
+Christine_Ebersole_0001.jpg, Yes, No, NO, 
+Christine_Gregoire_0004.jpg, Yes, Yes, YES, Christine_Gregoire_0003.jpg
+Christine_Todd_Whitman_0006.jpg, Yes, Yes, YES, Christine_Todd_Whitman_0002.jpg
+Christopher_Patten_0002.jpg, Yes, Yes, YES, Christopher_Patten_0001.jpg
+Christopher_Reeve_0003.jpg, Yes, Yes, YES, Christopher_Reeve_0002.jpg
+Christopher_Walken_0002.jpg, Yes, Yes, YES, Christopher_Walken_0004.jpg
+Chuck_Amato_0002.jpg, Yes, Yes, YES, Chuck_Amato_0001.jpg
+Chuck_Yeager_0001.jpg, Yes, Yes, YES, Chuck_Yeager_0002.jpg
+Chung_Mong-hun_0001.jpg, Yes, Yes, YES, Chung_Mong-hun_0002.jpg
+Chung_Mong-joon_0001.jpg, Yes, Yes, YES, Chung_Mong-joon_0002.jpg
+Cindy_Crawford_0001.jpg, Yes, Yes, YES, Cindy_Crawford_0002.jpg
+Cindy_Margolis_0002.jpg, Yes, Yes, YES, Cindy_Margolis_0001.jpg
+Ciro_Gomes_0003.jpg, Yes, Yes, YES, Ciro_Gomes_0001.jpg
+Claire_Danes_0001.jpg, Yes, No, NO, 
+Claire_Hentzen_0001.jpg, Yes, Yes, YES, Claire_Hentzen_0002.jpg
+Claire_Leger_0002.jpg, Yes, Yes, YES, Claire_Leger_0001.jpg
+Clara_Harris_0004.jpg, Yes, Yes, YES, Clara_Harris_0003.jpg
+Clare_Short_0001.jpg, Yes, Yes, YES, Clare_Short_0002.jpg
+Claudia_Pechstein_0001.jpg, Yes, No, NO, 
+Claudia_Schiffer_0002.jpg, Yes, No, NO, 
+Clay_Aiken_0002.jpg, Yes, Yes, YES, Clay_Aiken_0006.jpg
+Clint_Eastwood_0001.jpg, Yes, Yes, YES, Clint_Eastwood_0002.jpg
+Colin_Farrell_0002.jpg, Yes, Yes, YES, Colin_Farrell_0008.jpg
+Colin_Jackson_0002.jpg, Yes, Yes, YES, Colin_Jackson_0001.jpg
+Colin_Montgomerie_0002.jpg, Yes, Yes, YES, Colin_Montgomerie_0003.jpg
+Colin_Powell_0043.jpg, Yes, Yes, YES, Colin_Powell_0066.jpg, Chok_Tong_Goh_0001.jpg, GL_Peiris_0003.jpg
+Conan_OBrien_0001.jpg, Yes, Yes, YES, Conan_OBrien_0003.jpg
+Conchita_Martinez_0003.jpg, Yes, Yes, YES, Conchita_Martinez_0002.jpg
+Condoleezza_Rice_0004.jpg, Yes, Yes, YES, Condoleezza_Rice_0008.jpg
+Constance_Marie_0002.jpg, Yes, Yes, YES, Constance_Marie_0003.jpg
+Coretta_Scott_King_0003.jpg, Yes, Yes, YES, Coretta_Scott_King_0002.jpg
+Corinne_Coman_0002.jpg, Yes, Yes, YES, Corinne_Coman_0001.jpg
+Costas_Simitis_0001.jpg, Yes, Yes, YES, Costas_Simitis_0004.jpg
+Courtney_Love_0002.jpg, Yes, No, NO, 
+Cristina_Fernandez_0001.jpg, Yes, No, NO, 
+Cristina_Saralegui_0002.jpg, Yes, Yes, YES, Cristina_Saralegui_0001.jpg
+Cruz_Bustamante_0004.jpg, Yes, Yes, YES, Cruz_Bustamante_0001.jpg
+Cyndi_Thompson_0001.jpg, Yes, Yes, YES, Cyndi_Thompson_0002.jpg
+Dai_Bachtiar_0002.jpg, Yes, Yes, YES, Dai_Bachtiar_0001.jpg
+Daisy_Fuentes_0004.jpg, Yes, Yes, YES, Daisy_Fuentes_0002.jpg
+Dalai_Lama_0002.jpg, Yes, Yes, YES, Dalai_Lama_0001.jpg
+Dale_Earnhardt_Jr_0002.jpg, Yes, No, NO, 
+Damon_van_Dam_0002.jpg, Yes, Yes, YES, Damon_van_Dam_0001.jpg
+Dan_Morales_0002.jpg, Yes, Yes, YES, Dan_Morales_0001.jpg
+Dan_Wheldon_0002.jpg, Yes, No, NO, 
+Daniel_Day-Lewis_0002.jpg, Yes, Yes, YES, Daniel_Day-Lewis_0001.jpg
+Daniel_Radcliffe_0001.jpg, Yes, Yes, YES, Daniel_Radcliffe_0003.jpg
+Daniela_Hantuchova_0001.jpg, Yes, Yes, YES, Daniela_Hantuchova_0002.jpg
+Darrell_Issa_0001.jpg, Yes, Yes, YES, Darrell_Issa_0002.jpg
+Darrell_Porter_0002.jpg, Yes, No, NO, 
+Darren_Clarke_0002.jpg, Yes, No, NO, 
+Daryl_Hannah_0002.jpg, Yes, Yes, YES, Daryl_Hannah_0001.jpg
+Dave_Campo_0003.jpg, Yes, Yes, YES, Dave_Campo_0002.jpg
+David_Anderson_0005.jpg, Yes, Yes, YES, David_Anderson_0003.jpg
+David_Beckham_0003.jpg, Yes, No, NO, 
+David_Bell_0002.jpg, Yes, Yes, YES, David_Bell_0001.jpg
+David_Caraway_0001.jpg, Yes, Yes, YES, David_Caraway_0002.jpg
+David_Caruso_0001.jpg, Yes, Yes, YES, David_Caruso_0002.jpg, Bill_Nelson_0002.jpg
+David_Coulthard_0002.jpg, Yes, Yes, YES, David_Coulthard_0001.jpg
+David_Dodge_0002.jpg, Yes, No, NO, 
+David_Heyman_0001.jpg, Yes, Yes, YES, David_Heyman_0002.jpg
+David_Heymann_0002.jpg, Yes, No, NO, 
+David_Hyde_Pierce_0002.jpg, Yes, Yes, YES, David_Hyde_Pierce_0001.jpg, Harvey_Weinstein_0002.jpg
+David_Kelley_0001.jpg, Yes, Yes, YES, David_Kelley_0002.jpg, Harrison_Ford_0002.jpg, Bill_Nelson_0002.jpg
+David_Leahy_0002.jpg, Yes, Yes, YES, John_Banko_0002.jpg, David_Leahy_0001.jpg
+David_Myers_0001.jpg, Yes, Yes, YES, David_Myers_0002.jpg
+David_Nalbandian_0007.jpg, Yes, Yes, YES, David_Nalbandian_0001.jpg
+David_Spade_0001.jpg, Yes, No, NO, 
+David_Stern_0001.jpg, Yes, Yes, YES, David_Stern_0002.jpg
+David_Trimble_0005.jpg, Yes, Yes, YES, David_Trimble_0002.jpg
+David_Wells_0007.jpg, Yes, Yes, YES, David_Wells_0005.jpg
+David_Wolf_0001.jpg, Yes, No, NO, 
+Dean_Barkley_0002.jpg, Yes, Yes, YES, Dean_Barkley_0003.jpg
+Debbie_Reynolds_0001.jpg, Yes, Yes, YES, Debbie_Reynolds_0003.jpg
+Debra_Brown_0002.jpg, Yes, Yes, YES, Debra_Brown_0001.jpg
+Debra_Messing_0001.jpg, Yes, No, NO, 
+Demetrius_Ferraciu_0001.jpg, Yes, No, NO, 
+Demi_Moore_0001.jpg, Yes, Yes, YES, Demi_Moore_0002.jpg
+Denise_Johnson_0002.jpg, Yes, No, NO, 
+Dennis_Erickson_0002.jpg, Yes, Yes, YES, Dennis_Erickson_0001.jpg
+Dennis_Hastert_0002.jpg, Yes, No, NO, 
+Dennis_Kozlowski_0002.jpg, Yes, Yes, YES, Dennis_Kozlowski_0001.jpg
+Dennis_Kucinich_0002.jpg, Yes, Yes, YES, Dennis_Kucinich_0003.jpg
+Dennis_Powell_0001.jpg, Yes, No, NO, 
+Denzel_Washington_0005.jpg, Yes, Yes, YES, Denzel_Washington_0001.jpg
+Derek_Jeter_0001.jpg, Yes, No, NO, 
+Derek_Lowe_0001.jpg, Yes, No, NO, 
+Desiree_Lemosi_0001.jpg, Yes, No, NO, 
+Dexter_Jackson_0001.jpg, Yes, Yes, YES, Dexter_Jackson_0002.jpg
+Diana_Krall_0005.jpg, Yes, Yes, YES, Diana_Krall_0001.jpg
+Diana_Munz_0002.jpg, Yes, Yes, YES, Diana_Munz_0003.jpg
+Diana_Taurasi_0002.jpg, Yes, Yes, YES, Diana_Taurasi_0001.jpg
+Diane_Green_0002.jpg, Yes, Yes, YES, Diane_Green_0001.jpg, Jean-Marc_de_La_Sabliere_0002.jpg
+Dianne_Feinstein_0003.jpg, Yes, Yes, YES, Dianne_Feinstein_0002.jpg
+Dick_Cheney_0007.jpg, Yes, Yes, YES, Dick_Cheney_0001.jpg
+Dick_Clark_0003.jpg, Yes, Yes, YES, Dick_Clark_0001.jpg
+Dick_Latessa_0001.jpg, Yes, No, NO, 
+Dick_Vermeil_0002.jpg, Yes, No, NO, 
+Dino_de_Laurentis_0002.jpg, Yes, No, NO, 
+Dolly_Parton_0001.jpg, Yes, Yes, YES, Dolly_Parton_0002.jpg
+Dolma_Tsering_0001.jpg, Yes, Yes, YES, Dolma_Tsering_0002.jpg
+Dominik_Garcia-Lorido_0002.jpg, Yes, Yes, YES, Dominik_Garcia-Lorido_0001.jpg
+Dominique_de_Villepin_0005.jpg, Yes, Yes, YES, Dominique_de_Villepin_0014.jpg
+Don_Nickles_0002.jpg, Yes, Yes, YES, Don_Nickles_0001.jpg
+Don_Siegelman_0004.jpg, Yes, Yes, YES, Don_Siegelman_0001.jpg
+Donald_Evans_0002.jpg, Yes, Yes, YES, Donald_Evans_0001.jpg
+Donald_Fehr_0002.jpg, Yes, Yes, YES, Donald_Fehr_0004.jpg
+Donald_Pettit_0003.jpg, Yes, Yes, YES, Donald_Pettit_0001.jpg
+Donald_Rumsfeld_0060.jpg, Yes, Yes, YES, Donald_Rumsfeld_0030.jpg
+Donatella_Versace_0001.jpg, Yes, Yes, YES, Donatella_Versace_0002.jpg
+Donna_Shalala_0001.jpg, Yes, Yes, YES, Donna_Shalala_0002.jpg
+Doris_Roberts_0001.jpg, Yes, Yes, YES, Doris_Roberts_0002.jpg
+Doris_Schroeder_0002.jpg, Yes, No, NO, 
+Dorthy_Moxley_0002.jpg, Yes, Yes, YES, Dorthy_Moxley_0001.jpg
+Doug_Collins_0001.jpg, Yes, Yes, YES, Doug_Collins_0002.jpg, Dennis_Kucinich_0003.jpg
+Doug_Duncan_0001.jpg, Yes, Yes, YES, Doug_Duncan_0002.jpg
+Doug_Melvin_0002.jpg, Yes, Yes, YES, Doug_Melvin_0003.jpg
+Drew_Barrymore_0001.jpg, Yes, No, NO, 
+Duane_Lee_Chapman_0002.jpg, Yes, Yes, YES, Duane_Lee_Chapman_0001.jpg
+Dwayne_Johnson_0002.jpg, Yes, Yes, YES, Dwayne_Johnson_0001.jpg
+Ed_Rosenthal_0002.jpg, Yes, Yes, YES, Ed_Rosenthal_0001.jpg, Dave_Campo_0002.jpg
+Ed_Smart_0001.jpg, Yes, Yes, YES, Ed_Smart_0002.jpg
+Eddie_Sutton_0002.jpg, Yes, Yes, YES, Eddie_Sutton_0001.jpg
+Eddy_Merckx_0002.jpg, Yes, Yes, YES, Eddy_Merckx_0001.jpg
+Edie_Falco_0001.jpg, Yes, No, NO, 
+Edmund_Hillary_0003.jpg, Yes, Yes, YES, Edmund_Hillary_0001.jpg
+Edmund_Stoiber_0006.jpg, Yes, Yes, YES, Edmund_Stoiber_0002.jpg
+Eduard_Shevardnadze_0003.jpg, Yes, Yes, YES, Eduard_Shevardnadze_0005.jpg
+Eduardo_Duhalde_0013.jpg, Yes, Yes, YES, Eduardo_Duhalde_0010.jpg
+Edward_James_Olmos_0002.jpg, Yes, Yes, YES, Edward_James_Olmos_0001.jpg
+Edward_Kennedy_0002.jpg, Yes, Yes, YES, Edward_Kennedy_0003.jpg
+Edward_Lu_0005.jpg, Yes, Yes, YES, Edward_Lu_0003.jpg
+Edward_Norton_0001.jpg, Yes, Yes, YES, Edward_Norton_0002.jpg
+Edward_Said_0001.jpg, Yes, No, NO, 
+Edwin_Edwards_0002.jpg, Yes, Yes, YES, Edwin_Edwards_0003.jpg
+Edwina_Currie_0004.jpg, Yes, Yes, YES, Edwina_Currie_0001.jpg
+Eileen_Coparropa_0001.jpg, Yes, Yes, YES, Eileen_Coparropa_0002.jpg
+Elena_Bovina_0003.jpg, Yes, No, NO, 
+Eliane_Karp_0001.jpg, Yes, Yes, YES, Eliane_Karp_0003.jpg
+Elijah_Wood_0002.jpg, Yes, Yes, YES, Elijah_Wood_0003.jpg
+Elin_Nordegren_0001.jpg, Yes, Yes, YES, Elin_Nordegren_0002.jpg
+Elinor_Caplan_0002.jpg, Yes, Yes, YES, Elinor_Caplan_0001.jpg, Anne_Krueger_0003.jpg, Claire_Leger_0001.jpg
+Elisabeth_Schumacher_0001.jpg, Yes, No, NO, 
+Elizabeth_Dole_0002.jpg, Yes, Yes, YES, Elizabeth_Dole_0003.jpg
+Elizabeth_Hurley_0002.jpg, Yes, Yes, YES, Elizabeth_Hurley_0004.jpg
+Elizabeth_Shue_0002.jpg, Yes, Yes, YES, Elizabeth_Shue_0001.jpg
+Elizabeth_Smart_0004.jpg, Yes, No, NO, 
+Elizabeth_Taylor_0002.jpg, Yes, No, NO, 
+Ellen_DeGeneres_0001.jpg, Yes, Yes, YES, Ellen_DeGeneres_0002.jpg
+Ellen_Engleman_0002.jpg, Yes, Yes, YES, Ellen_Engleman_0001.jpg
+Elsa_Zylberstein_0005.jpg, Yes, Yes, YES, Elsa_Zylberstein_0004.jpg
+Elton_John_0002.jpg, Yes, Yes, YES, Elton_John_0006.jpg
+Elvis_Presley_0002.jpg, Yes, Yes, YES, Elvis_Presley_0001.jpg
+Emanuel_Ginobili_0005.jpg, Yes, Yes, YES, Emanuel_Ginobili_0002.jpg
+Emile_Lahoud_0001.jpg, Yes, No, NO, 
+Emily_Robison_0001.jpg, Yes, Yes, YES, Emily_Robison_0002.jpg
+Emma_Thompson_0002.jpg, Yes, Yes, YES, Emma_Thompson_0003.jpg
+Emma_Watson_0001.jpg, Yes, Yes, YES, Emma_Watson_0003.jpg
+Emmanuelle_Beart_0001.jpg, Yes, Yes, YES, Emmanuelle_Beart_0003.jpg
+Emmit_Smith_0001.jpg, Yes, Yes, YES, Emmit_Smith_0002.jpg
+Enrique_Bolanos_0005.jpg, Yes, Yes, NO, Chok_Tong_Goh_0001.jpg
+Eric_Clapton_0001.jpg, Yes, Yes, YES, Eric_Clapton_0002.jpg
+Eric_Hinske_0001.jpg, Yes, No, NO, 
+Eric_Robert_Rudolph_0001.jpg, Yes, No, NO, 
+Eric_Rosser_0002.jpg, Yes, Yes, YES, Eric_Rosser_0001.jpg
+Erik_Morales_0002.jpg, Yes, Yes, YES, Erik_Morales_0001.jpg
+Erika_Christensen_0002.jpg, Yes, Yes, YES, Erika_Christensen_0001.jpg
+Erika_Harold_0001.jpg, Yes, Yes, YES, Erika_Harold_0004.jpg
+Erin_Runnion_0004.jpg, Yes, Yes, YES, Erin_Runnion_0003.jpg
+Ernesto_Zedillo_0002.jpg, Yes, Yes, YES, Ernesto_Zedillo_0001.jpg, Emily_Robison_0002.jpg
+Ernie_Els_0001.jpg, Yes, Yes, YES, Ernie_Els_0003.jpg
+Ernie_Eves_0001.jpg, Yes, Yes, YES, Ernie_Eves_0002.jpg
+Ernie_Fletcher_0001.jpg, Yes, Yes, YES, Ernie_Fletcher_0002.jpg
+Ethan_Hawke_0001.jpg, Yes, Yes, YES, Ethan_Hawke_0003.jpg
+Eunice_Barber_0001.jpg, Yes, Yes, YES, Eunice_Barber_0002.jpg
+Eva_Dimas_0002.jpg, Yes, Yes, YES, Eva_Dimas_0001.jpg
+Evan_Rachel_Wood_0001.jpg, Yes, Yes, YES, Evan_Rachel_Wood_0002.jpg
+Evander_Holyfield_0002.jpg, Yes, Yes, YES, Evander_Holyfield_0001.jpg
+Eve_Pelletier_0002.jpg, Yes, Yes, YES, Eve_Pelletier_0001.jpg
+Fabiola_Zuluaga_0002.jpg, Yes, Yes, YES, Fabiola_Zuluaga_0001.jpg
+Fabrice_Santoro_0002.jpg, Yes, Yes, YES, Fabrice_Santoro_0001.jpg
+Farouk_al-Sharaa_0002.jpg, Yes, Yes, YES, Farouk_al-Sharaa_0003.jpg
+Faye_Dunaway_0003.jpg, Yes, Yes, YES, Faye_Dunaway_0001.jpg
+Fayssal_Mekdad_0003.jpg, Yes, Yes, YES, Fayssal_Mekdad_0004.jpg, Demi_Moore_0002.jpg, Gregory_Hines_0001.jpg, Charles_Mathews_0001.jpg
+Federico_Trillo_0003.jpg, Yes, No, NO, 
+Felipe_Perez_Roque_0002.jpg, Yes, Yes, YES, Felipe_Perez_Roque_0004.jpg
+Felix_Mantilla_0001.jpg, Yes, No, NO, 
+Ferenc_Madl_0001.jpg, Yes, Yes, YES, Ferenc_Madl_0002.jpg
+Fernando_Gonzalez_0004.jpg, Yes, No, NO, 
+Fernando_Henrique_Cardoso_0001.jpg, Yes, Yes, YES, Fernando_Henrique_Cardoso_0004.jpg
+Fernando_Vargas_0004.jpg, Yes, No, NO, 
+Fidel_Castro_0009.jpg, Yes, Yes, YES, Fidel_Castro_0012.jpg, Bridgette_Wilson-Sampras_0003.jpg
+Filippo_Inzaghi_0003.jpg, Yes, No, NO, 
+Flavia_Delaroli_0002.jpg, Yes, No, NO, 
+Flor_Montulo_0002.jpg, Yes, Yes, NO, Diana_Munz_0003.jpg, Geraldine_Chaplin_0001.jpg, Gregory_Hines_0001.jpg
+Fran_Drescher_0002.jpg, Yes, Yes, YES, Fran_Drescher_0001.jpg
+Frances_Fisher_0002.jpg, Yes, Yes, YES, Frances_Fisher_0001.jpg
+Francis_Ford_Coppola_0002.jpg, Yes, Yes, YES, Francis_Ford_Coppola_0001.jpg
+Francis_George_0002.jpg, Yes, Yes, YES, Francis_George_0001.jpg
+Francis_Mer_0002.jpg, Yes, Yes, YES, Francis_Mer_0001.jpg
+Francisco_Flores_0002.jpg, Yes, Yes, YES, Francisco_Flores_0004.jpg
+Franco_Dragone_0001.jpg, Yes, No, NO, 
+Frank_Cassell_0002.jpg, Yes, Yes, YES, Glafcos_Clerides_0004.jpg, Frank_Cassell_0001.jpg
+Frank_Dunham_Jr_0002.jpg, Yes, Yes, YES, Frank_Dunham_Jr_0001.jpg
+Frank_Griswold_0001.jpg, Yes, Yes, YES, Frank_Griswold_0002.jpg
+Frank_Lautenberg_0002.jpg, Yes, Yes, YES, Frank_Lautenberg_0001.jpg, Chris_Rock_0001.jpg
+Frank_Solich_0001.jpg, Yes, Yes, YES, Frank_Solich_0004.jpg
+Frank_Stallone_0002.jpg, Yes, Yes, YES, Frank_Stallone_0001.jpg, Jorge_Valdano_0001.jpg
+Franko_Simatovic_0001.jpg, Yes, Yes, NO, Abel_Pacheco_0004.jpg
+Franz_Beckenbauer_0001.jpg, Yes, No, NO, 
+Franz_Fischler_0004.jpg, Yes, Yes, YES, Franz_Fischler_0003.jpg
+Franz_Muentefering_0003.jpg, Yes, Yes, YES, Franz_Muentefering_0002.jpg
+Fred_Eckhard_0001.jpg, Yes, Yes, YES, Fred_Eckhard_0002.jpg
+Fred_Funk_0001.jpg, Yes, Yes, YES, Fred_Funk_0002.jpg, Alastair_Campbell_0001.jpg
+Fred_Thompson_0003.jpg, Yes, Yes, YES, Fred_Thompson_0002.jpg
+Freddy_Garcia_0002.jpg, Yes, No, NO, 
+Fujio_Cho_0002.jpg, Yes, Yes, YES, Fujio_Cho_0003.jpg
+GL_Peiris_0001.jpg, Yes, Yes, YES, GL_Peiris_0003.jpg
+Gabriel_Batistuta_0002.jpg, Yes, No, NO, 
+Gabriel_Valdes_0001.jpg, Yes, No, NO, 
+Gao_Qiang_0002.jpg, Yes, Yes, YES, Gao_Qiang_0001.jpg
+Garry_Kasparov_0001.jpg, Yes, Yes, YES, Garry_Kasparov_0002.jpg
+Garry_Trudeau_0002.jpg, Yes, No, NO, 
+Gary_Bergeron_0002.jpg, Yes, Yes, YES, Gary_Bergeron_0001.jpg
+Gary_Carter_0002.jpg, Yes, No, NO, 
+Gary_Doer_0001.jpg, Yes, Yes, YES, Gary_Doer_0002.jpg
+Gary_Forsee_0002.jpg, Yes, Yes, YES, Gary_Forsee_0001.jpg
+Gary_Locke_0002.jpg, Yes, Yes, YES, Gary_Locke_0001.jpg, Jia_Qinglin_0001.jpg
+Gary_Williams_0001.jpg, Yes, Yes, YES, Gary_Williams_0002.jpg
+Gary_Winnick_0001.jpg, Yes, Yes, YES, Gary_Winnick_0002.jpg
+Gene_Robinson_0005.jpg, Yes, Yes, NO, George_Brumley_0001.jpg
+Geno_Auriemma_0001.jpg, Yes, Yes, YES, Geno_Auriemma_0002.jpg
+Geoff_Hoon_0004.jpg, Yes, Yes, YES, Geoff_Hoon_0002.jpg, Gary_Doer_0002.jpg, Asa_Hutchinson_0002.jpg
+George_Brumley_0002.jpg, Yes, Yes, YES, John_Negroponte_0021.jpg, George_Brumley_0001.jpg, Guillermo_Ortiz_0001.jpg, Dick_Cheney_0001.jpg
+George_Clooney_0002.jpg, Yes, No, NO, 
+George_Foreman_0002.jpg, Yes, Yes, YES, George_Foreman_0001.jpg
+George_Galloway_0003.jpg, Yes, Yes, YES, George_Galloway_0002.jpg
+George_HW_Bush_0011.jpg, Yes, Yes, YES, George_HW_Bush_0005.jpg
+George_Karl_0002.jpg, Yes, Yes, YES, George_Karl_0001.jpg, James_Morris_0002.jpg
+George_Lopez_0003.jpg, Yes, Yes, YES, George_Lopez_0001.jpg
+George_P_Bush_0002.jpg, Yes, Yes, YES, George_P_Bush_0001.jpg
+George_Papandreou_0002.jpg, Yes, No, NO, 
+George_Pataki_0001.jpg, Yes, Yes, YES, George_Pataki_0004.jpg
+George_Robertson_0004.jpg, Yes, Yes, YES, George_Robertson_0017.jpg
+George_Roy_Hill_0001.jpg, Yes, Yes, YES, George_Roy_Hill_0002.jpg
+George_Ryan_0004.jpg, Yes, Yes, YES, George_Ryan_0002.jpg
+George_Tenet_0001.jpg, Yes, Yes, YES, George_Tenet_0002.jpg
+George_Voinovich_0003.jpg, Yes, Yes, YES, George_Voinovich_0002.jpg, Geraldine_Chaplin_0001.jpg, Bridgette_Wilson-Sampras_0003.jpg, Abdullah_al-Attiyah_0002.jpg
+George_W_Bush_0197.jpg, Yes, Yes, YES, George_W_Bush_0039.jpg, Chok_Tong_Goh_0001.jpg
+Georgi_Parvanov_0001.jpg, Yes, No, NO, 
+Geraldine_Chaplin_0003.jpg, Yes, Yes, YES, Geraldine_Chaplin_0001.jpg, Carol_Burnett_0001.jpg
+Gerard_Depardieu_0002.jpg, Yes, Yes, YES, Gerard_Depardieu_0001.jpg
+Gerardo_Gambala_0001.jpg, Yes, Yes, YES, Gerardo_Gambala_0002.jpg
+Gerhard_Schroeder_0068.jpg, Yes, Yes, YES, Gerhard_Schroeder_0058.jpg
+Gerry_Adams_0001.jpg, Yes, Yes, YES, Gerry_Adams_0002.jpg
+Gerry_Parsky_0001.jpg, Yes, Yes, YES, Gerry_Parsky_0002.jpg
+Gian_Marco_0003.jpg, Yes, No, NO, 
+Gianna_Angelopoulos-Daskalaki_0001.jpg, Yes, Yes, YES, Gianna_Angelopoulos-Daskalaki_0003.jpg
+Gil_de_Ferran_0001.jpg, Yes, No, NO, 
+Gilberto_Rodriguez_Orejuela_0003.jpg, Yes, Yes, YES, Gilberto_Rodriguez_Orejuela_0004.jpg
+Gillian_Anderson_0001.jpg, Yes, No, NO, 
+Gisele_Bundchen_0001.jpg, Yes, Yes, YES, Gisele_Bundchen_0002.jpg
+Giuseppe_Gibilisco_0002.jpg, Yes, No, NO, 
+Glafcos_Clerides_0001.jpg, Yes, Yes, YES, Glafcos_Clerides_0004.jpg, Ferenc_Madl_0002.jpg
+Gloria_Allred_0002.jpg, Yes, Yes, YES, Gloria_Allred_0001.jpg
+Gloria_Macapagal_Arroyo_0018.jpg, Yes, Yes, YES, Gloria_Macapagal_Arroyo_0007.jpg
+Gloria_Trevi_0001.jpg, Yes, Yes, YES, Gloria_Trevi_0004.jpg
+Goh_Kun_0002.jpg, Yes, Yes, YES, Goh_Kun_0001.jpg, Alberto_Fujimori_0002.jpg
+Goldie_Hawn_0007.jpg, Yes, Yes, YES, Goldie_Hawn_0005.jpg
+Gonzalo_Sanchez_de_Lozada_0006.jpg, Yes, Yes, YES, Gonzalo_Sanchez_de_Lozada_0007.jpg, Fernando_Henrique_Cardoso_0004.jpg
+Goran_Persson_0001.jpg, Yes, Yes, YES, Goran_Persson_0002.jpg
+Gordon_Brown_0006.jpg, Yes, Yes, YES, Gordon_Brown_0008.jpg
+Gordon_Campbell_0001.jpg, Yes, Yes, YES, Gordon_Campbell_0002.jpg
+Grady_Irvin_Jr_0002.jpg, Yes, Yes, YES, Grady_Irvin_Jr_0001.jpg, James_Butts_0001.jpg
+Grant_Hackett_0002.jpg, Yes, Yes, YES, Grant_Hackett_0005.jpg
+Gray_Davis_0014.jpg, Yes, Yes, YES, Gray_Davis_0017.jpg, Gary_Forsee_0001.jpg
+Greg_Gilbert_0001.jpg, Yes, Yes, YES, Greg_Gilbert_0002.jpg
+Greg_Ostertag_0002.jpg, Yes, No, NO, 
+Greg_Owen_0002.jpg, Yes, Yes, YES, Greg_Owen_0001.jpg
+Greg_Rusedski_0001.jpg, Yes, Yes, YES, Greg_Rusedski_0002.jpg
+Gregg_Popovich_0001.jpg, Yes, Yes, YES, Gregg_Popovich_0004.jpg
+Gregory_Geoffroy_0001.jpg, Yes, Yes, YES, Gregory_Geoffroy_0002.jpg
+Gregory_Hines_0002.jpg, Yes, Yes, YES, Gregory_Hines_0001.jpg
+Gro_Harlem_Brundtland_0001.jpg, Yes, Yes, YES, Gro_Harlem_Brundtland_0002.jpg, Hamzah_Haz_0002.jpg
+Guido_Westerwelle_0002.jpg, Yes, Yes, YES, Guido_Westerwelle_0001.jpg
+Guillaume_Soro_0001.jpg, Yes, Yes, YES, Guillaume_Soro_0002.jpg, Jean-Marc_de_La_Sabliere_0002.jpg
+Guillermo_Canas_0004.jpg, Yes, No, NO, 
+Guillermo_Coria_0022.jpg, Yes, Yes, YES, Guillermo_Coria_0009.jpg
+Guillermo_Ortiz_0002.jpg, Yes, Yes, YES, Guillermo_Ortiz_0001.jpg
+Gunter_Pleuger_0004.jpg, Yes, Yes, YES, Gunter_Pleuger_0002.jpg
+Gus_Van_Sant_0002.jpg, Yes, Yes, YES, Gus_Van_Sant_0001.jpg
+Gustavo_Kuerten_0003.jpg, Yes, Yes, YES, Gustavo_Kuerten_0002.jpg
+Guy_Hemmings_0001.jpg, Yes, Yes, YES, Guy_Hemmings_0002.jpg
+Guy_Ritchie_0002.jpg, Yes, Yes, YES, Guy_Ritchie_0001.jpg
+Gwendal_Peizerat_0002.jpg, Yes, Yes, YES, Gwendal_Peizerat_0003.jpg
+Gwyneth_Paltrow_0006.jpg, Yes, No, NO, 
+Habib_Rizieq_0003.jpg, Yes, Yes, YES, Habib_Rizieq_0004.jpg, Hamzah_Haz_0002.jpg, Charles_Mathews_0001.jpg, Dalai_Lama_0001.jpg
+Hal_Gehman_0004.jpg, Yes, Yes, YES, Hal_Gehman_0001.jpg
+Hal_Sutton_0001.jpg, Yes, Yes, YES, Hal_Sutton_0002.jpg
+Halle_Berry_0013.jpg, Yes, Yes, YES, Halle_Berry_0005.jpg
+Hamid_Karzai_0013.jpg, Yes, Yes, YES, Hamid_Karzai_0004.jpg
+Hamzah_Haz_0001.jpg, Yes, Yes, YES, Hamzah_Haz_0002.jpg, Flor_Montulo_0001.jpg
+Hanan_Ashrawi_0002.jpg, Yes, Yes, YES, Hanan_Ashrawi_0001.jpg
+Hannah_Stockbauer_0002.jpg, Yes, Yes, YES, Hannah_Stockbauer_0001.jpg
+Hans_Blix_0001.jpg, Yes, Yes, YES, Hans_Blix_0021.jpg
+Hans_Eichel_0001.jpg, Yes, Yes, YES, Hans_Eichel_0002.jpg
+Harbhajan_Singh_0001.jpg, Yes, Yes, YES, Harbhajan_Singh_0002.jpg
+Harrison_Ford_0011.jpg, Yes, Yes, YES, Harrison_Ford_0002.jpg
+Harry_Belafonte_0002.jpg, Yes, Yes, YES, Harry_Belafonte_0001.jpg, Bo_Ryan_0002.jpg
+Harry_Kalas_0001.jpg, Yes, No, NO, 
+Harry_Schmidt_0003.jpg, Yes, Yes, YES, Harry_Schmidt_0002.jpg
+Harvey_Weinstein_0001.jpg, Yes, Yes, YES, Harvey_Weinstein_0002.jpg
+Hashim_Thaci_0002.jpg, Yes, Yes, YES, Hashim_Thaci_0001.jpg
+Hassan_Nasrallah_0001.jpg, Yes, Yes, YES, Hassan_Nasrallah_0002.jpg, Intisar_Ajouri_0002.jpg
+Hassan_Wirajuda_0001.jpg, Yes, Yes, YES, Hassan_Wirajuda_0002.jpg
+Hayley_Tullett_0001.jpg, Yes, Yes, YES, Hayley_Tullett_0002.jpg
+Heath_Ledger_0002.jpg, Yes, No, NO, 
+Heather_Mills_0003.jpg, Yes, Yes, YES, Heather_Mills_0004.jpg
+Hector_Babenco_0003.jpg, Yes, Yes, YES, Hector_Babenco_0001.jpg, Jeanne_Moreau_0001.jpg, Charles_Mathews_0001.jpg, Boris_Becker_0004.jpg
+Hee-Won_Han_0003.jpg, Yes, Yes, YES, Hee-Won_Han_0002.jpg
+Heidi_Fleiss_0003.jpg, Yes, No, NO, 
+Heidi_Klum_0002.jpg, Yes, No, NO, 
+Heinz_Feldmann_0003.jpg, Yes, Yes, YES, Heinz_Feldmann_0002.jpg
+Heizo_Takenaka_0004.jpg, Yes, Yes, YES, Heizo_Takenaka_0008.jpg
+Helen_Clark_0003.jpg, Yes, Yes, YES, Helen_Clark_0001.jpg
+Henrique_Meirelles_0002.jpg, Yes, Yes, YES, Henrique_Meirelles_0001.jpg, John_Howard_0009.jpg
+Herb_Sendek_0001.jpg, Yes, Yes, YES, Herb_Sendek_0002.jpg
+Hermann_Maier_0002.jpg, Yes, No, NO, 
+Herta_Daeubler-Gmelin_0001.jpg, Yes, Yes, YES, Herta_Daeubler-Gmelin_0002.jpg
+Hichiro_Naemura_0002.jpg, Yes, Yes, YES, Hichiro_Naemura_0001.jpg
+Hideki_Matsui_0002.jpg, Yes, Yes, YES, Hideki_Matsui_0001.jpg, Chung_Mong-joon_0002.jpg, Jackie_Chan_0008.jpg, Jong_Thae_Hwa_0001.jpg
+Hilary_Duff_0002.jpg, Yes, Yes, YES, Hilary_Duff_0003.jpg
+Hillary_Clinton_0013.jpg, Yes, Yes, YES, Hillary_Clinton_0002.jpg, Habib_Rizieq_0004.jpg
+Hilmi_Ozkok_0001.jpg, Yes, Yes, YES, Hilmi_Ozkok_0002.jpg
+Hipolito_Mejia_0003.jpg, Yes, Yes, YES, Hipolito_Mejia_0004.jpg
+Hisao_Oguchi_0002.jpg, Yes, Yes, YES, Hisao_Oguchi_0001.jpg
+Hitomi_Soga_0005.jpg, Yes, Yes, YES, Hitomi_Soga_0002.jpg
+Holly_Hunter_0001.jpg, Yes, Yes, YES, Holly_Hunter_0007.jpg
+Hootie_Johnson_0002.jpg, Yes, No, NO, 
+Horst_Koehler_0002.jpg, Yes, No, NO, 
+Hosni_Mubarak_0007.jpg, Yes, No, NO, 
+Howard_Dean_0005.jpg, Yes, Yes, YES, Howard_Dean_0004.jpg
+Howard_Schultz_0002.jpg, Yes, Yes, YES, Howard_Schultz_0001.jpg
+Howard_Smith_0002.jpg, Yes, Yes, YES, Howard_Smith_0001.jpg
+Hu_Jintao_0006.jpg, Yes, Yes, YES, Hu_Jintao_0013.jpg, Alberto_Fujimori_0002.jpg
+Hugh_Grant_0001.jpg, Yes, Yes, YES, Hugh_Grant_0004.jpg
+Hugo_Chavez_0046.jpg, Yes, Yes, YES, Hugo_Chavez_0042.jpg
+Hun_Sen_0002.jpg, Yes, Yes, YES, Hun_Sen_0003.jpg, Chen_Shui-bian_0005.jpg
+Iain_Duncan_Smith_0003.jpg, Yes, Yes, YES, Iain_Duncan_Smith_0004.jpg
+Ian_McKellen_0002.jpg, Yes, Yes, YES, Ian_McKellen_0003.jpg
+Ian_Thorpe_0004.jpg, Yes, No, NO, 
+Iban_Mayo_0001.jpg, Yes, No, NO, 
+Ibrahim_Jaafari_0001.jpg, Yes, Yes, YES, Ibrahim_Jaafari_0002.jpg, Jong_Thae_Hwa_0001.jpg
+Igor_Ivanov_0015.jpg, Yes, Yes, YES, Igor_Ivanov_0011.jpg
+Ilan_Ramon_0003.jpg, Yes, Yes, YES, Ilan_Ramon_0002.jpg
+Imad_Moustapha_0001.jpg, Yes, Yes, YES, Imad_Moustapha_0002.jpg
+Inam-ul-Haq_0001.jpg, Yes, Yes, YES, Inam-ul-Haq_0002.jpg
+Inocencio_Arias_0002.jpg, Yes, Yes, YES, Inocencio_Arias_0001.jpg
+Intisar_Ajouri_0001.jpg, Yes, Yes, YES, Intisar_Ajouri_0002.jpg
+Isabella_Rossellini_0001.jpg, Yes, Yes, YES, Isabella_Rossellini_0002.jpg
+Isabelle_Huppert_0001.jpg, Yes, Yes, YES, Isabelle_Huppert_0002.jpg
+Isaiah_Washington_0001.jpg, Yes, No, NO, 
+Ishaq_Shahryar_0002.jpg, Yes, Yes, YES, Ishaq_Shahryar_0001.jpg
+Ismail_Merchant_0002.jpg, Yes, Yes, YES, Ismail_Merchant_0001.jpg
+Iva_Majoli_0002.jpg, Yes, Yes, YES, Iva_Majoli_0001.jpg
+JJ_Redick_0001.jpg, Yes, No, NO, 
+JK_Rowling_0005.jpg, Yes, Yes, YES, JK_Rowling_0004.jpg
+Jack_Grubman_0002.jpg, Yes, Yes, YES, Jack_Grubman_0001.jpg
+Jack_Nicholson_0003.jpg, Yes, No, NO, 
+Jack_Straw_0007.jpg, Yes, Yes, YES, Jack_Straw_0017.jpg
+Jackie_Chan_0005.jpg, Yes, Yes, YES, Jackie_Chan_0008.jpg, Hamzah_Haz_0002.jpg, Charles_Mathews_0001.jpg, Geraldine_Chaplin_0001.jpg, Demi_Moore_0002.jpg
+Jacqueline_Obradors_0001.jpg, Yes, Yes, YES, Jacqueline_Obradors_0002.jpg
+Jacques_Chirac_0052.jpg, Yes, Yes, YES, Jacques_Chirac_0030.jpg
+Jacques_Rogge_0006.jpg, Yes, No, NO, 
+Jada_Pinkett_Smith_0002.jpg, Yes, Yes, YES, Jada_Pinkett_Smith_0001.jpg
+Jake_Gyllenhaal_0005.jpg, Yes, Yes, YES, Jake_Gyllenhaal_0003.jpg
+James_Blake_0008.jpg, Yes, No, NO, 
+James_Butts_0002.jpg, Yes, Yes, YES, James_Butts_0001.jpg
+James_Caan_0002.jpg, Yes, Yes, YES, James_Caan_0003.jpg
+James_Cameron_0001.jpg, Yes, Yes, YES, James_Cameron_0002.jpg
+James_Cunningham_0003.jpg, Yes, Yes, YES, James_Cunningham_0001.jpg
+James_Franco_0002.jpg, Yes, Yes, YES, James_Franco_0001.jpg
+James_Gandolfini_0001.jpg, Yes, No, NO, 
+James_Ivory_0001.jpg, Yes, Yes, YES, James_Ivory_0002.jpg, Iain_Duncan_Smith_0004.jpg
+James_Jones_0001.jpg, Yes, No, NO, 
+James_Kelly_0009.jpg, Yes, Yes, YES, James_Kelly_0001.jpg
+James_Kopp_0003.jpg, Yes, Yes, YES, James_Kopp_0004.jpg
+James_Maguire_0001.jpg, Yes, Yes, YES, James_Maguire_0002.jpg
+James_McGreevey_0001.jpg, Yes, Yes, YES, James_McGreevey_0003.jpg
+James_Morris_0001.jpg, Yes, Yes, YES, James_Morris_0002.jpg
+James_Parker_0001.jpg, Yes, Yes, YES, James_Parker_0002.jpg
+James_Schultz_0002.jpg, Yes, Yes, YES, James_Schultz_0001.jpg
+James_Smith_0001.jpg, Yes, Yes, YES, James_Smith_0002.jpg, Jay_Garner_0001.jpg
+James_Traficant_0002.jpg, Yes, Yes, YES, James_Traficant_0001.jpg
+James_Wolfensohn_0003.jpg, Yes, Yes, YES, James_Wolfensohn_0001.jpg
+Jamie_Villafane_0001.jpg, Yes, Yes, YES, Jamie_Villafane_0002.jpg
+Jamling_Norgay_0001.jpg, Yes, Yes, YES, Jamling_Norgay_0002.jpg
+Jan-Michael_Gambill_0001.jpg, Yes, No, NO, 
+Jan_Ullrich_0002.jpg, Yes, Yes, YES, Jan_Ullrich_0004.jpg
+Jane_Fonda_0002.jpg, Yes, No, NO, 
+Jane_Kaczmarek_0001.jpg, Yes, Yes, YES, Jane_Kaczmarek_0002.jpg
+Jane_Pauley_0002.jpg, Yes, Yes, YES, Jane_Pauley_0001.jpg
+Janet_Napolitano_0004.jpg, Yes, Yes, YES, Janet_Napolitano_0002.jpg
+Janet_Thorpe_0001.jpg, Yes, Yes, YES, Janet_Thorpe_0002.jpg
+Janica_Kostelic_0002.jpg, Yes, No, NO, 
+Jason_Alexander_0001.jpg, Yes, Yes, YES, Jason_Alexander_0002.jpg
+Jason_Jennings_0001.jpg, Yes, Yes, YES, Jason_Jennings_0002.jpg
+Jason_Kidd_0008.jpg, Yes, Yes, YES, Jason_Kidd_0003.jpg
+Jason_Lezak_0001.jpg, Yes, Yes, YES, Jason_Lezak_0002.jpg
+Javier_Solana_0005.jpg, Yes, Yes, YES, Javier_Solana_0002.jpg
+Javier_Weber_0001.jpg, Yes, No, NO, 
+Jay_Garner_0006.jpg, Yes, Yes, YES, Jay_Garner_0001.jpg
+Jay_Leno_0002.jpg, Yes, Yes, YES, Jay_Leno_0001.jpg
+Jay_Rasulo_0001.jpg, Yes, Yes, YES, Jay_Rasulo_0002.jpg
+Jayson_Williams_0003.jpg, Yes, Yes, YES, Jayson_Williams_0001.jpg
+Jean-Claude_Braquet_0002.jpg, Yes, Yes, YES, Jean-Claude_Braquet_0001.jpg, Ian_McKellen_0003.jpg
+Jean-Claude_Juncker_0001.jpg, Yes, Yes, YES, Jean-Claude_Juncker_0002.jpg, Jerry_Falwell_0002.jpg
+Jean-Claude_Trichet_0002.jpg, Yes, Yes, YES, Jean-Claude_Trichet_0001.jpg
+Jean-David_Levitte_0006.jpg, Yes, Yes, YES, Jean-David_Levitte_0007.jpg, Ernie_Fletcher_0002.jpg
+Jean-Francois_Pontal_0002.jpg, Yes, Yes, YES, Jean-Francois_Pontal_0001.jpg
+Jean-Marc_de_La_Sabliere_0001.jpg, Yes, No, NO, 
+Jean-Pierre_Raffarin_0001.jpg, Yes, No, NO, 
+Jean-Sebastien_Giguere_0002.jpg, Yes, No, NO, 
+Jean_Brumley_0002.jpg, Yes, Yes, YES, Jean_Brumley_0001.jpg, Dianne_Feinstein_0002.jpg
+Jean_Carnahan_0001.jpg, Yes, No, NO, 
+Jean_Charest_0001.jpg, Yes, Yes, YES, Jean_Charest_0002.jpg
+Jean_Chretien_0025.jpg, Yes, Yes, YES, Jean_Chretien_0051.jpg
+Jeanne_Moreau_0002.jpg, Yes, Yes, YES, Jeanne_Moreau_0001.jpg
+Jeb_Bush_0001.jpg, Yes, Yes, YES, Jeb_Bush_0003.jpg
+Jeff_Van_Gundy_0001.jpg, Yes, Yes, YES, Jeff_Van_Gundy_0002.jpg
+Jefferson_Perez_0001.jpg, Yes, No, NO, 
+Jeffrey_Archer_0001.jpg, Yes, No, NO, 
+Jeffrey_Immelt_0002.jpg, Yes, Yes, YES, Jeffrey_Immelt_0001.jpg
+Jeffrey_Jones_0002.jpg, Yes, Yes, YES, Jeffrey_Jones_0001.jpg
+Jeffrey_Scott_Postell_0002.jpg, Yes, Yes, YES, Jeffrey_Scott_Postell_0001.jpg
+Jelena_Dokic_0003.jpg, Yes, No, NO, 
+Jennifer_Aniston_0004.jpg, Yes, Yes, YES, Jennifer_Aniston_0015.jpg, Elin_Nordegren_0002.jpg
+Jennifer_Capriati_0036.jpg, Yes, Yes, YES, Jennifer_Capriati_0012.jpg
+Jennifer_Connelly_0001.jpg, Yes, Yes, YES, Jennifer_Connelly_0003.jpg
+Jennifer_Garner_0011.jpg, Yes, No, NO, 
+Jennifer_Keller_0004.jpg, Yes, Yes, YES, Jennifer_Keller_0001.jpg
+Jennifer_Lopez_0011.jpg, Yes, No, NO, 
+Jennifer_Reilly_0002.jpg, Yes, Yes, YES, Jennifer_Reilly_0001.jpg
+Jennifer_Rodriguez_0001.jpg, Yes, No, NO, 
+Jennifer_Thompson_0002.jpg, Yes, Yes, YES, Jennifer_Thompson_0001.jpg
+Jeong_Se-hyun_0009.jpg, Yes, Yes, YES, Jeong_Se-hyun_0001.jpg
+Jeremy_Greenstock_0001.jpg, Yes, Yes, NO, Cesar_Maia_0001.jpg
+Jeremy_Shockey_0002.jpg, Yes, Yes, YES, Jeremy_Shockey_0001.jpg
+Jerry_Falwell_0001.jpg, Yes, No, NO, 
+Jerry_Regier_0004.jpg, Yes, Yes, YES, Jerry_Regier_0003.jpg
+Jerry_Springer_0004.jpg, Yes, Yes, YES, Jerry_Springer_0003.jpg
+Jesse_Harris_0002.jpg, Yes, Yes, YES, Jesse_Harris_0001.jpg
+Jesse_Jackson_0005.jpg, Yes, Yes, YES, Jesse_Jackson_0008.jpg
+Jesse_James_Leija_0001.jpg, Yes, Yes, YES, Jesse_James_Leija_0002.jpg, Evander_Holyfield_0001.jpg
+Jesse_Ventura_0003.jpg, Yes, Yes, YES, Jesse_Ventura_0002.jpg
+Jessica_Alba_0002.jpg, Yes, Yes, YES, Jessica_Alba_0001.jpg
+Jessica_Lange_0001.jpg, Yes, No, NO, 
+Jessica_Lynch_0001.jpg, Yes, No, NO, 
+Jia_Qinglin_0002.jpg, Yes, Yes, YES, Jia_Qinglin_0001.jpg, Chang_Dae-whan_0001.jpg
+Jiang_Zemin_0009.jpg, Yes, Yes, YES, Jiang_Zemin_0008.jpg
+Jim_Carrey_0001.jpg, Yes, No, NO, 
+Jim_Edmonds_0002.jpg, Yes, No, NO, 
+Jim_Furyk_0001.jpg, Yes, Yes, YES, Jim_Furyk_0003.jpg
+Jim_Hahn_0003.jpg, Yes, Yes, YES, Jim_Hahn_0004.jpg
+Jim_Harrick_0002.jpg, Yes, Yes, YES, Jim_Harrick_0001.jpg
+Jim_OBrien_0001.jpg, Yes, No, NO, 
+Jim_Tressel_0004.jpg, Yes, No, NO, 
+Jimmy_Carter_0003.jpg, Yes, Yes, YES, Jimmy_Carter_0001.jpg
+Jimmy_Kimmel_0002.jpg, Yes, Yes, YES, Jimmy_Kimmel_0001.jpg
+Jiri_Novak_0011.jpg, Yes, Yes, YES, Jiri_Novak_0006.jpg
+Jo_Dee_Messina_0001.jpg, Yes, Yes, YES, Jo_Dee_Messina_0002.jpg
+Joan_Claybrook_0001.jpg, Yes, Yes, YES, Joan_Claybrook_0002.jpg
+Joan_Laporta_0009.jpg, Yes, Yes, YES, Joan_Laporta_0008.jpg
+Job_Cohen_0001.jpg, Yes, Yes, YES, Job_Cohen_0002.jpg
+Jodie_Foster_0001.jpg, Yes, Yes, YES, Jodie_Foster_0003.jpg
+Joe_Calzaghe_0002.jpg, Yes, Yes, YES, Joe_Calzaghe_0001.jpg
+Joe_Dumars_0002.jpg, Yes, Yes, YES, Joe_Dumars_0001.jpg
+Joe_Gatti_0001.jpg, Yes, No, NO, 
+Joe_Lieberman_0001.jpg, Yes, Yes, YES, Joe_Lieberman_0005.jpg, George_Pataki_0004.jpg, Jimmy_Carter_0001.jpg
+Joe_Mantello_0001.jpg, Yes, Yes, YES, Joe_Mantello_0002.jpg
+Joe_Nichols_0001.jpg, Yes, Yes, YES, Joe_Nichols_0002.jpg
+Joe_Torre_0003.jpg, Yes, Yes, YES, Joe_Torre_0002.jpg
+Joerg_Haider_0001.jpg, Yes, Yes, YES, Joerg_Haider_0002.jpg, Adolfo_Rodriguez_Saa_0002.jpg
+John_Abizaid_0003.jpg, Yes, Yes, YES, John_Abizaid_0008.jpg
+John_Allen_Muhammad_0009.jpg, Yes, Yes, YES, John_Allen_Muhammad_0011.jpg
+John_Ashcroft_0016.jpg, Yes, Yes, YES, John_Ashcroft_0053.jpg
+John_Banko_0001.jpg, Yes, Yes, YES, John_Banko_0002.jpg
+John_Blaney_0002.jpg, Yes, Yes, YES, John_Blaney_0001.jpg
+John_Bolton_0006.jpg, Yes, Yes, YES, John_Bolton_0008.jpg
+John_Brady_0001.jpg, Yes, Yes, YES, John_Brady_0002.jpg
+John_Cusack_0002.jpg, Yes, Yes, YES, John_Cusack_0001.jpg
+John_Edwards_0001.jpg, Yes, Yes, YES, John_Edwards_0003.jpg
+John_F_Kennedy_Jr_0002.jpg, Yes, Yes, YES, John_F_Kennedy_Jr_0001.jpg
+John_Garamendi_0001.jpg, Yes, Yes, YES, John_Garamendi_0002.jpg
+John_Howard_0006.jpg, Yes, No, NO, 
+John_Jumper_0002.jpg, Yes, Yes, YES, John_Jumper_0001.jpg
+John_Kerry_0001.jpg, Yes, Yes, YES, John_Kerry_0015.jpg
+John_Malkovich_0003.jpg, Yes, Yes, YES, John_Malkovich_0001.jpg
+John_Manley_0003.jpg, Yes, Yes, YES, John_Manley_0004.jpg
+John_Mayer_0003.jpg, Yes, Yes, YES, John_Mayer_0001.jpg
+John_McCain_0002.jpg, Yes, Yes, YES, John_McCain_0007.jpg
+John_McCallum_0001.jpg, Yes, Yes, YES, John_McCallum_0002.jpg
+John_McCormack_0002.jpg, Yes, Yes, YES, John_McCormack_0001.jpg
+John_McEnroe_0002.jpg, Yes, No, NO, 
+John_Negroponte_0004.jpg, Yes, Yes, YES, John_Negroponte_0021.jpg, Dick_Cheney_0001.jpg
+John_Paul_II_0010.jpg, Yes, No, NO, 
+John_Reid_0002.jpg, Yes, Yes, YES, John_Reid_0003.jpg
+John_Reilly_0001.jpg, Yes, Yes, YES, John_Reilly_0002.jpg
+John_Rigas_0002.jpg, Yes, Yes, YES, John_Rigas_0001.jpg
+John_Rosa_0002.jpg, Yes, Yes, YES, John_Rosa_0003.jpg
+John_Rowland_0002.jpg, Yes, Yes, YES, John_Rowland_0001.jpg
+John_Ruiz_0002.jpg, Yes, Yes, YES, John_Ruiz_0001.jpg
+John_Snow_0003.jpg, Yes, Yes, YES, John_Snow_0009.jpg
+John_Spencer_0001.jpg, Yes, Yes, YES, John_Spencer_0002.jpg, Harry_Belafonte_0001.jpg
+John_Stallworth_0001.jpg, Yes, No, NO, 
+John_Stockton_0001.jpg, Yes, No, NO, 
+John_Swofford_0002.jpg, Yes, Yes, YES, John_Swofford_0001.jpg
+John_Taylor_0001.jpg, Yes, Yes, YES, John_Taylor_0002.jpg
+John_Timoney_0002.jpg, Yes, Yes, YES, John_Timoney_0001.jpg
+John_Travolta_0004.jpg, Yes, Yes, YES, John_Travolta_0007.jpg
+John_Walsh_0002.jpg, Yes, Yes, YES, John_Walsh_0001.jpg
+John_Warner_0001.jpg, Yes, Yes, YES, John_Warner_0003.jpg
+John_Wolf_0001.jpg, Yes, Yes, YES, John_Wolf_0002.jpg
+Johnny_Carson_0001.jpg, Yes, Yes, YES, Johnny_Carson_0002.jpg
+Johnny_Depp_0001.jpg, Yes, Yes, YES, Johnny_Depp_0002.jpg
+Johnny_Tapia_0003.jpg, Yes, Yes, YES, Johnny_Tapia_0001.jpg
+Johnny_Unitas_0002.jpg, Yes, Yes, YES, Johnny_Unitas_0001.jpg
+Johnson_Panjaitan_0002.jpg, Yes, Yes, YES, Johnson_Panjaitan_0001.jpg
+Jolanta_Kwasniewski_0002.jpg, Yes, No, NO, 
+Jon_Corzine_0002.jpg, Yes, No, NO, 
+Jon_Gruden_0007.jpg, Yes, No, NO, 
+Jon_Voight_0003.jpg, Yes, Yes, YES, Jon_Voight_0001.jpg
+Jonathan_Edwards_0004.jpg, Yes, No, NO, 
+Jonathan_Mostow_0002.jpg, Yes, Yes, YES, Jonathan_Mostow_0001.jpg
+Jong_Thae_Hwa_0002.jpg, Yes, Yes, YES, Jong_Thae_Hwa_0001.jpg, Hun_Sen_0003.jpg, Annette_Lu_0002.jpg, Antony_Leung_0002.jpg, Chen_Shui-bian_0005.jpg
+Jong_Wook_Lee_0003.jpg, Yes, Yes, YES, Jong_Wook_Lee_0002.jpg
+Jorge_Arce_0001.jpg, Yes, Yes, YES, Jorge_Arce_0002.jpg
+Jorge_Batlle_0002.jpg, Yes, No, NO, 
+Jorge_Castaneda_0001.jpg, Yes, Yes, YES, Jorge_Castaneda_0002.jpg
+Jorge_Rodolfo_Canicoba_Corral_0002.jpg, Yes, Yes, YES, Jorge_Rodolfo_Canicoba_Corral_0001.jpg, Gene_Robinson_0004.jpg
+Jorge_Valdano_0002.jpg, Yes, Yes, YES, Jorge_Valdano_0001.jpg
+Joschka_Fischer_0008.jpg, Yes, Yes, YES, Joschka_Fischer_0013.jpg
+Jose_Canseco_0002.jpg, Yes, No, NO, 
+Jose_Dirceu_0001.jpg, Yes, Yes, YES, Jose_Dirceu_0002.jpg, John_Brady_0002.jpg
+Jose_Manuel_Durao_Barroso_0005.jpg, Yes, Yes, YES, Jose_Manuel_Durao_Barroso_0006.jpg, Geraldine_Chaplin_0001.jpg, Bridgette_Wilson-Sampras_0003.jpg, Charles_Mathews_0001.jpg, Abdullah_al-Attiyah_0002.jpg
+Jose_Maria_Aznar_0005.jpg, Yes, Yes, YES, Jose_Maria_Aznar_0016.jpg
+Jose_Mourinho_0002.jpg, Yes, Yes, YES, Jose_Mourinho_0001.jpg
+Jose_Sarney_0001.jpg, Yes, Yes, YES, Jose_Sarney_0003.jpg
+Jose_Serra_0002.jpg, Yes, Yes, YES, Jose_Serra_0007.jpg
+Jose_Theodore_0001.jpg, Yes, Yes, YES, Jose_Theodore_0002.jpg
+Jose_Viegas_Filho_0002.jpg, Yes, Yes, YES, Jose_Viegas_Filho_0001.jpg
+Joseph_Biden_0002.jpg, Yes, No, NO, 
+Joseph_Blatter_0002.jpg, Yes, Yes, YES, Joseph_Blatter_0001.jpg
+Joseph_Deiss_0003.jpg, Yes, Yes, YES, Joseph_Deiss_0001.jpg
+Joseph_Estrada_0001.jpg, Yes, Yes, YES, Joseph_Estrada_0003.jpg, Dai_Bachtiar_0001.jpg
+Joseph_Ralston_0002.jpg, Yes, Yes, YES, Joseph_Ralston_0001.jpg
+Juan_Carlos_Ferrero_0025.jpg, No, No, YES, 
+Juan_Ignacio_Chela_0003.jpg, No, No, YES, 
+Juan_Manuel_Marquez_0002.jpg, No, No, YES, 
+Juan_Pablo_Montoya_0008.jpg, No, No, YES, 
+Juan_Valencia_Osorio_0002.jpg, No, No, YES, 
+Juanes_0003.jpg, No, No, YES, 
+Jude_Law_0001.jpg, No, No, YES, 
+Judi_Dench_0002.jpg, No, No, YES, 
+Judy_Genshaft_0002.jpg, No, No, YES, 
+Juergen_Peters_0002.jpg, No, No, YES, 
+Julia_Tymoshenko_0002.jpg, No, No, YES, 
+Julianna_Margulies_0002.jpg, No, No, YES, 
+Julianne_Moore_0016.jpg, No, No, YES, 
+Julie_Gerberding_0002.jpg, No, No, YES, 
+Julie_Taymor_0001.jpg, No, No, YES, 
+Julio_Iglesias_Jr_0002.jpg, No, No, YES, 
+Junichiro_Koizumi_0027.jpg, No, No, YES, 
+Justin_Gatlin_0001.jpg, No, Yes, NO, Joe_Dumars_0001.jpg
+Justin_Guarini_0003.jpg, No, No, YES, 
+Justin_Leonard_0001.jpg, No, No, YES, 
+Justin_Timberlake_0006.jpg, No, No, YES, 
+Justine_Henin_0001.jpg, No, Yes, NO, Ai_Sugiyama_0004.jpg
+Justine_Pasek_0005.jpg, No, No, YES, 
+Kalpana_Chawla_0002.jpg, No, No, YES, 
+Kamal_Kharrazi_0003.jpg, No, No, YES, 
+Karen_Mok_0002.jpg, No, No, YES, 
+Karin_Stoiber_0002.jpg, No, No, YES, 
+Kate_Capshaw_0002.jpg, No, No, YES, 
+Kate_Hudson_0005.jpg, No, No, YES, 
+Kate_Winslet_0001.jpg, No, No, YES, 
+Katherine_Harris_0001.jpg, No, No, YES, 
+Kathleen_Glynn_0001.jpg, No, No, YES, 
+Kathleen_Kennedy_Townsend_0002.jpg, No, No, YES, 
+Kathryn_Bigelow_0002.jpg, No, No, YES, 
+Kathy_Winters_0002.jpg, No, No, YES, 
+Katie_Harman_0003.jpg, No, No, YES, 
+Keanu_Reeves_0002.jpg, No, No, YES, 
+Keira_Knightley_0001.jpg, No, No, YES, 
+Keith_Bogans_0003.jpg, No, No, YES, 
+Kelli_White_0001.jpg, No, No, YES, 
+Kelly_Clarkson_0001.jpg, No, No, YES, 
+Kelvin_Sampson_0001.jpg, No, No, YES, 
+Kemal_Dervis_0003.jpg, No, Yes, NO, Cesar_Maia_0001.jpg
+Ken_Macha_0002.jpg, No, Yes, NO, Gregory_Hines_0001.jpg, Diana_Munz_0003.jpg, Geraldine_Chaplin_0001.jpg
+Ken_Watanabe_0001.jpg, No, No, YES, 
+Kenneth_Bowersox_0003.jpg, No, No, YES, 
+Kenneth_Branagh_0001.jpg, No, No, YES, 
+Kenneth_Evans_0002.jpg, No, No, YES, 
+Kent_Rominger_0001.jpg, No, No, YES, 
+Kevin_Costner_0002.jpg, No, No, YES, 
+Kevin_Spacey_0001.jpg, No, No, YES, 
+Kevin_Stallings_0001.jpg, No, No, YES, 
+Kieran_Prendergast_0001.jpg, No, No, YES, 
+Kifah_Ajouri_0002.jpg, No, Yes, NO, Intisar_Ajouri_0002.jpg
+Kiki_Vandeweghe_0002.jpg, No, No, YES, 
+Kim_Clijsters_0002.jpg, No, No, YES, 
+Kim_Dae-jung_0007.jpg, No, Yes, NO, Jia_Qinglin_0001.jpg, Hun_Sen_0003.jpg
+Kim_Jin-sun_0001.jpg, No, Yes, NO, Chang_Dae-whan_0001.jpg, Jia_Qinglin_0001.jpg, Annette_Lu_0002.jpg, Jong_Thae_Hwa_0001.jpg, Chen_Shui-bian_0005.jpg
+Kim_Jong-Il_0002.jpg, No, No, YES, 
+Kim_Ryong-sung_0011.jpg, No, No, YES, 
+Kim_Yong-il_0001.jpg, No, Yes, NO, Jeong_Se-hyun_0001.jpg, Angelo_Reyes_0004.jpg
+Kimi_Raikkonen_0003.jpg, No, No, YES, 
+King_Abdullah_II_0002.jpg, No, No, YES, 
+Kirk_Ferentz_0002.jpg, No, No, YES, 
+Kirk_Johnson_0001.jpg, No, No, YES, 
+Kjell_Magne_Bondevik_0002.jpg, No, Yes, NO, Adam_Sandler_0003.jpg
+Klaus_Zwickel_0002.jpg, No, No, YES, 
+Kobe_Bryant_0001.jpg, No, No, YES, 
+Kofi_Annan_0012.jpg, No, No, YES, 
+Kosuke_Kitajima_0001.jpg, No, No, YES, 
+Kristanna_Loken_0003.jpg, No, No, YES, 
+Kristen_Breitweiser_0001.jpg, No, No, YES, 
+Kristin_Davis_0003.jpg, No, No, YES, 
+Kurt_Busch_0001.jpg, No, No, YES, 
+Kurt_Russell_0001.jpg, No, No, YES, 
+Kurt_Warner_0004.jpg, No, No, YES, 
+Kwon_Yang-sook_0003.jpg, No, No, YES, 
+LK_Advani_0002.jpg, No, Yes, NO, George_Brumley_0001.jpg, Francis_George_0001.jpg
+Laila_Ali_0001.jpg, No, No, YES, 
+Lana_Clarkson_0002.jpg, No, No, YES, 
+Lance_Armstrong_0018.jpg, No, No, YES, 
+Lance_Bass_0001.jpg, No, No, YES, 
+Larry_Bowa_0001.jpg, No, No, YES, 
+Larry_Brown_0002.jpg, No, No, YES, 
+Larry_Coker_0001.jpg, No, No, YES, 
+Larry_Ellison_0003.jpg, No, No, YES, 
+Larry_Johnson_0001.jpg, No, No, YES, 
+Larry_Lindsey_0001.jpg, No, No, YES, 
+Larry_Lucchino_0002.jpg, No, No, YES, 
+Larry_Thompson_0001.jpg, No, Yes, NO, Bridgette_Wilson-Sampras_0003.jpg, Geraldine_Chaplin_0001.jpg, Charles_Mathews_0001.jpg, Hamzah_Haz_0002.jpg
+Lars_Von_Trier_0001.jpg, No, No, YES, 
+Latrell_Sprewell_0002.jpg, No, No, YES, 
+Laura_Bush_0029.jpg, No, No, YES, 
+Laura_Hernandez_0001.jpg, No, No, YES, 
+Laura_Linney_0004.jpg, No, No, YES, 
+Lauren_Hutton_0002.jpg, No, No, YES, 
+Lauren_Killian_0002.jpg, No, No, YES, 
+Laurent_Gbagbo_0001.jpg, No, Yes, NO, Guillaume_Soro_0002.jpg
+Laurent_Jalabert_0002.jpg, No, No, YES, 
+Lawrence_MacAulay_0001.jpg, No, No, YES, 
+LeAnn_Rimes_0001.jpg, No, No, YES, 
+LeBron_James_0003.jpg, No, No, YES, 
+Lea_Fastow_0001.jpg, No, No, YES, 
+Leander_Paes_0001.jpg, No, No, YES, 
+Lech_Walesa_0002.jpg, No, Yes, NO, Geraldine_Chaplin_0001.jpg, Bridgette_Wilson-Sampras_0003.jpg, Abdullah_al-Attiyah_0002.jpg, Gregory_Hines_0001.jpg
+Lee_Hoi-chang_0001.jpg, No, Yes, NO, Chen_Shui-bian_0005.jpg, Jia_Qinglin_0001.jpg, Chen_Shui-bian_0005.jpg, Hun_Sen_0003.jpg, Alberto_Fujimori_0002.jpg
+Lee_Jun_0002.jpg, No, Yes, NO, Edward_Lu_0003.jpg, Jamling_Norgay_0002.jpg
+Lee_Soo-hyuck_0002.jpg, No, Yes, NO, Gary_Locke_0001.jpg
+Lee_Tae-sik_0002.jpg, No, Yes, NO, Jia_Qinglin_0001.jpg, Chang_Dae-whan_0001.jpg, Hun_Sen_0003.jpg, Hichiro_Naemura_0001.jpg, Chung_Mong-joon_0002.jpg
+Leland_Chapman_0001.jpg, No, No, YES, 
+Len_Jenoff_0002.jpg, No, No, YES, 
+Lennox_Lewis_0001.jpg, No, No, YES, 
+Lenny_Wilkens_0002.jpg, No, No, YES, 
+Leon_LaPorte_0002.jpg, No, No, YES, 
+Leonard_Hamilton_0002.jpg, No, No, YES, 
+Leonardo_DiCaprio_0008.jpg, No, No, YES, 
+Leonid_Kuchma_0006.jpg, No, No, YES, 
+Lesley_McCulloch_0003.jpg, No, No, YES, 
+Leslie_Ann_Woodward_0001.jpg, No, No, YES, 
+Leslie_Caldwell_0003.jpg, No, No, YES, 
+Leslie_Moonves_0001.jpg, No, No, YES, 
+Leszek_Miller_0001.jpg, No, No, YES, 
+Li_Peng_0004.jpg, No, Yes, NO, Dalai_Lama_0001.jpg
+Li_Zhaoxing_0008.jpg, No, No, YES, 
+Liam_Neeson_0003.jpg, No, No, YES, 
+Lili_Taylor_0001.jpg, No, No, YES, 
+Lily_Tomlin_0001.jpg, No, No, YES, 
+Lim_Dong-won_0001.jpg, No, No, YES, 
+Lina_Krasnoroutskaya_0001.jpg, No, No, YES, 
+Lindsay_Benko_0002.jpg, No, No, YES, 
+Lindsay_Davenport_0012.jpg, No, No, YES, 
+Lindsey_Graham_0002.jpg, No, No, YES, 
+Lino_Oviedo_0003.jpg, No, No, YES, 
+Lionel_Richie_0002.jpg, No, No, YES, 
+Lisa_Gottsegen_0002.jpg, No, No, YES, 
+Lisa_Ling_0001.jpg, No, No, YES, 
+Lisa_Marie_Presley_0003.jpg, No, Yes, NO, Heather_Mills_0004.jpg
+Lisa_Raymond_0001.jpg, No, Yes, NO, Jennifer_Capriati_0012.jpg
+Liu_Mingkang_0002.jpg, No, No, YES, 
+Liza_Minnelli_0002.jpg, No, No, YES, 
+Lleyton_Hewitt_0040.jpg, No, No, YES, 
+Lloyd_Ward_0002.jpg, No, No, YES, 
+Lon_Kruger_0002.jpg, No, No, YES, 
+Lord_Hutton_0001.jpg, No, No, YES, 
+Lou_Piniella_0002.jpg, No, Yes, NO, Darren_Clarke_0001.jpg
+Luciano_Pavarotti_0002.jpg, No, No, YES, 
+Lucio_Gutierrez_0012.jpg, No, No, YES, 
+Lucy_Liu_0003.jpg, No, No, YES, 
+Ludivine_Sagnier_0004.jpg, No, Yes, NO, Charlotte_Rampling_0002.jpg, Charlotte_Rampling_0002.jpg
+Luis_Ernesto_Derbez_Bautista_0001.jpg, No, No, YES, 
+Luis_Figo_0003.jpg, No, No, YES, 
+Luis_Gonzalez_Macchi_0004.jpg, No, No, YES, 
+Luis_Horna_0005.jpg, No, No, YES, 
+Luiz_Felipe_Scolari_0002.jpg, No, No, YES, 
+Luiz_Inacio_Lula_da_Silva_0047.jpg, No, No, YES, 
+Luke_Walton_0002.jpg, No, No, YES, 
+Lyle_Vanclief_0001.jpg, No, No, YES, 
+Lynn_Abraham_0001.jpg, No, No, YES, 
+Lynn_Redgrave_0001.jpg, No, No, YES, 
+Lynne_Cheney_0003.jpg, No, Yes, NO, Donna_Shalala_0002.jpg
+Mack_Brown_0002.jpg, No, No, YES, 
+Madeleine_Albright_0002.jpg, No, Yes, NO, Debra_Brown_0001.jpg
+Madonna_0002.jpg, No, No, YES, 
+Magdalena_Maleeva_0003.jpg, No, No, YES, 
+Maggie_Smith_0002.jpg, No, No, YES, 
+Magui_Serna_0002.jpg, No, No, YES, 
+Mahathir_Mohamad_0012.jpg, No, No, YES, 
+Mahmoud_Abbas_0025.jpg, No, No, YES, 
+Makhdoom_Amin_Fahim_0002.jpg, No, No, YES, 
+Manfred_Stolpe_0002.jpg, No, No, YES, 
+Manuel_Poggiali_0002.jpg, No, No, YES, 
+Marat_Safin_0002.jpg, No, No, YES, 
+Marc-Andre_Fleury_0002.jpg, No, No, YES, 
+Marc_Grossman_0003.jpg, No, No, YES, 
+Marcelo_Ebrard_0003.jpg, No, No, YES, 
+Marcelo_Rios_0004.jpg, No, No, YES, 
+Marcelo_Salas_0001.jpg, No, No, YES, 
+Marco_Antonio_Barrera_0002.jpg, No, No, YES, 
+Marcus_Gronholm_0002.jpg, No, No, YES, 
+Margaret_Thatcher_0002.jpg, No, No, YES, 
+Maria_Luisa_Mendonca_0002.jpg, No, No, YES, 
+Maria_Shriver_0005.jpg, No, No, YES, 
+Maria_Soledad_Alvear_Valenzuela_0001.jpg, No, No, YES, 
+Mariah_Carey_0002.jpg, No, No, YES, 
+Mariana_Pollack_0003.jpg, No, No, YES, 
+Mariangel_Ruiz_Torrealba_0003.jpg, No, No, YES, 
+Marie-Reine_Le_Gougne_0001.jpg, No, No, YES, 
+Marieta_Chrousala_0002.jpg, No, No, YES, 
+Marilyn_Monroe_0002.jpg, No, No, YES, 
+Marina_Anissina_0001.jpg, No, No, YES, 
+Mario_Cipollini_0002.jpg, No, No, YES, 
+Mario_Dumont_0002.jpg, No, No, YES, 
+Mario_Kreutzberger_0001.jpg, No, Yes, NO, Binyamin_Ben-Eliezer_0005.jpg
+Marisa_Tomei_0001.jpg, No, No, YES, 
+Marissa_Jaret_Winokur_0001.jpg, No, No, YES, 
+Mark_Cuban_0001.jpg, No, No, YES, 
+Mark_Dacey_0001.jpg, No, No, YES, 
+Mark_Geragos_0002.jpg, No, No, YES, 
+Mark_Gottfried_0001.jpg, No, No, YES, 
+Mark_Hamister_0002.jpg, No, No, YES, 
+Mark_Heller_0001.jpg, No, No, YES, 
+Mark_Hurlbert_0002.jpg, No, No, YES, 
+Mark_Philippoussis_0008.jpg, No, No, YES, 
+Mark_Richt_0003.jpg, No, No, YES, 
+Mark_Schweiker_0001.jpg, No, No, YES, 
+Mark_Wahlberg_0002.jpg, No, No, YES, 
+Mark_Warner_0002.jpg, No, Yes, NO, Dorthy_Moxley_0001.jpg
+Markus_Naslund_0002.jpg, No, No, YES, 
+Marlene_Weingartner_0002.jpg, No, No, YES, 
+Martha_Beatriz_Roque_0001.jpg, No, No, YES, 
+Martha_Bowen_0001.jpg, No, No, YES, 
+Martha_Burk_0002.jpg, No, No, YES, 
+Martha_Lucia_Ramirez_0002.jpg, No, No, YES, 
+Martha_Stewart_0001.jpg, No, No, YES, 
+Martin_Brodeur_0002.jpg, No, No, YES, 
+Martin_Cauchon_0002.jpg, No, No, YES, 
+Martin_Hoellwarth_0002.jpg, No, No, YES, 
+Martin_McCauley_0002.jpg, No, No, YES, 
+Martin_McGuinness_0004.jpg, No, No, YES, 
+Martin_Scorsese_0006.jpg, No, No, YES, 
+Martin_Sheen_0002.jpg, No, No, YES, 
+Martin_Verkerk_0003.jpg, No, No, YES, 
+Martina_Hingis_0001.jpg, No, No, YES, 
+Martina_McBride_0005.jpg, No, No, YES, 
+Marty_Mornhinweg_0002.jpg, No, No, YES, 
+Marwan_Barghouthi_0002.jpg, No, Yes, NO, Abdel_Nasser_Assidi_0002.jpg
+Mary-Kate_Olsen_0002.jpg, No, No, YES, 
+Mary_Carey_0002.jpg, No, Yes, NO, Erika_Christensen_0001.jpg
+Mary_Landrieu_0002.jpg, No, No, YES, 
+Mary_Steenburgen_0001.jpg, No, No, YES, 
+Mary_Tyler_Moore_0002.jpg, No, No, YES, 
+Masahiko_Nagasawa_0001.jpg, No, No, YES, 
+Masum_Turker_0003.jpg, No, No, YES, 
+Mathias_Reichhold_0001.jpg, No, No, YES, 
+Matt_Damon_0003.jpg, No, No, YES, 
+Matt_Dillon_0003.jpg, No, Yes, NO, Emily_Robison_0002.jpg
+Matt_Doherty_0002.jpg, No, No, YES, 
+Matthew_Broderick_0004.jpg, No, No, YES, 
+Matthew_Perry_0007.jpg, No, No, YES, 
+Maureen_Fanning_0002.jpg, No, No, YES, 
+Max_Mayfield_0002.jpg, No, Yes, NO, Dick_Cheney_0001.jpg, George_Brumley_0001.jpg, Bernard_Law_0001.jpg
+Megan_Mullally_0001.jpg, No, No, YES, 
+Megawati_Sukarnoputri_0024.jpg, No, No, YES, 
+Meghann_Shaughnessy_0001.jpg, No, Yes, NO, Elena_Bovina_0002.jpg
+Mel_Brooks_0002.jpg, No, No, YES, 
+Mel_Gibson_0001.jpg, No, No, YES, 
+Melanie_Griffith_0003.jpg, No, No, YES, 
+Melissa_Etheridge_0001.jpg, No, No, YES, 
+Meryl_Streep_0010.jpg, No, No, YES, 
+Mesut_Yilmaz_0002.jpg, No, No, YES, 
+Mian_Khursheed_Mehmood_Kasuri_0003.jpg, No, No, YES, 
+Michael_Ballack_0001.jpg, No, No, YES, 
+Michael_Bloomberg_0011.jpg, No, No, YES, 
+Michael_Caine_0004.jpg, No, Yes, NO, Guillermo_Ortiz_0001.jpg
+Michael_Capellas_0002.jpg, No, Yes, NO, James_Kopp_0004.jpg
+Michael_Chang_0005.jpg, No, Yes, NO, Jackie_Chan_0008.jpg
+Michael_Chiklis_0004.jpg, No, No, YES, 
+Michael_Douglas_0004.jpg, No, No, YES, 
+Michael_J_Sheehan_0001.jpg, No, Yes, NO, Hans_Blix_0021.jpg
+Michael_Jackson_0007.jpg, No, No, YES, 
+Michael_Jordan_0003.jpg, No, No, YES, 
+Michael_Keaton_0002.jpg, No, No, YES, 
+Michael_Kostelnik_0001.jpg, No, No, YES, 
+Michael_Leavitt_0002.jpg, No, Yes, NO, Dennis_Kucinich_0003.jpg
+Michael_Moore_0001.jpg, No, No, YES, 
+Michael_Patrick_King_0002.jpg, No, No, YES, 
+Michael_Phelps_0002.jpg, No, No, YES, 
+Michael_Powell_0001.jpg, No, No, YES, 
+Michael_Schumacher_0002.jpg, No, No, YES, 
+Michael_Sullivan_0002.jpg, No, No, YES, 
+Michael_Winterbottom_0003.jpg, No, No, YES, 
+Michel_Duclos_0002.jpg, No, No, YES, 
+Michel_Temer_0001.jpg, No, No, YES, 
+Michel_Therrien_0002.jpg, No, No, YES, 
+Michelle_Branch_0001.jpg, No, No, YES, 
+Michelle_Collins_0001.jpg, No, No, YES, 
+Michelle_Kwan_0008.jpg, No, No, YES, 
+Michelle_Pfeiffer_0002.jpg, No, Yes, NO, Alison_Lohman_0002.jpg, Alison_Lohman_0002.jpg
+Michelle_Rodriguez_0001.jpg, No, No, YES, 
+Michelle_Yeoh_0001.jpg, No, No, YES, 
+Mick_Jagger_0005.jpg, No, No, YES, 
+Miguel_Contreras_0002.jpg, No, Yes, NO, Charles_Mathews_0001.jpg, Hamzah_Haz_0002.jpg, Jeanne_Moreau_0001.jpg
+Miguel_Estrada_0002.jpg, No, No, YES, 
+Mike_Babcock_0002.jpg, No, No, YES, 
+Mike_Brey_0001.jpg, No, No, YES, 
+Mike_Helton_0002.jpg, No, No, YES, 
+Mike_Holmgren_0002.jpg, No, No, YES, 
+Mike_Krzyzewski_0004.jpg, No, No, YES, 
+Mike_Martz_0006.jpg, No, No, YES, 
+Mike_Miller_0001.jpg, No, No, YES, 
+Mike_Montgomery_0002.jpg, No, No, YES, 
+Mike_Myers_0007.jpg, No, Yes, NO, John_Edwards_0003.jpg
+Mike_Price_0001.jpg, No, No, YES, 
+Mike_Scioscia_0001.jpg, No, No, YES, 
+Mike_Tyson_0002.jpg, No, No, YES, 
+Mike_Weir_0003.jpg, No, No, YES, 
+Mikhail_Gorbachev_0001.jpg, No, No, YES, 
+Mikhail_Kasyanov_0003.jpg, No, No, YES, 
+Mikhail_Wehbe_0004.jpg, No, No, YES, 
+Mikhail_Youzhny_0002.jpg, No, No, YES, 
+Mikulas_Dzurinda_0001.jpg, No, No, YES, 
+Milo_Djukanovic_0003.jpg, No, No, YES, 
+Milo_Maestrecampo_0003.jpg, No, No, YES, 
+Minnie_Driver_0002.jpg, No, No, YES, 
+Mireya_Moscoso_0003.jpg, No, No, YES, 
+Miroljub_0002.jpg, No, No, YES, 
+Mitchell_Daniels_0001.jpg, No, No, YES, 
+Mitoji_Yabunaka_0001.jpg, No, Yes, NO, Alberto_Fujimori_0002.jpg, Alberto_Ruiz_Gallardon_0002.jpg, Jeong_Se-hyun_0001.jpg, Jose_Viegas_Filho_0001.jpg, Charles_Mathews_0001.jpg
+Miyako_Miyazaki_0002.jpg, No, No, YES, 
+Mohamed_Benaissa_0002.jpg, No, No, YES, 
+Mohamed_ElBaradei_0007.jpg, No, No, YES, 
+Mohammad_Khatami_0009.jpg, No, No, YES, 
+Mohammed_Al-Douri_0009.jpg, No, No, YES, 
+Mohammed_Baqir_al-Hakim_0003.jpg, No, No, YES, 
+Monica_Bellucci_0001.jpg, No, No, YES, 
+Monica_Lewinsky_0003.jpg, No, No, YES, 
+Monica_Seles_0001.jpg, No, No, YES, 
+Monique_Garbrecht-Enfeldt_0002.jpg, No, No, YES, 
+Morgan_Freeman_0002.jpg, No, Yes, NO, Al_Sharpton_0002.jpg, Charles_Taylor_0002.jpg
+Moshe_Katsav_0001.jpg, No, No, YES, 
+Muammar_Gaddafi_0001.jpg, No, No, YES, 
+Muhammad_Ali_0003.jpg, No, No, YES, 
+Muhammad_Saeed_al-Sahhaf_0004.jpg, No, No, YES, 
+Mukesh_Ambani_0003.jpg, No, No, YES, 
+Munir_Akram_0002.jpg, No, Yes, NO, Alberto_Ruiz_Gallardon_0002.jpg
+Nabil_Shaath_0003.jpg, No, No, YES, 
+Nadia_Petrova_0002.jpg, No, No, YES, 
+Nadine_Vinzens_0002.jpg, No, No, YES, 
+Naji_Sabri_0008.jpg, No, No, YES, 
+Nan_Wang_0003.jpg, No, Yes, NO, Hee-Won_Han_0002.jpg
+Nancy_Demme_0001.jpg, No, No, YES, 
+Nancy_Pelosi_0009.jpg, No, No, YES, 
+Nancy_Reagan_0002.jpg, No, No, YES, 
+Nancy_Sinatra_0002.jpg, No, No, YES, 
+Nanni_Moretti_0002.jpg, No, No, YES, 
+Naomi_Campbell_0001.jpg, No, No, YES, 
+Naomi_Watts_0015.jpg, No, No, YES, 
+Naoto_Kan_0001.jpg, No, Yes, NO, Chang_Dae-whan_0001.jpg, Jia_Qinglin_0001.jpg, Gary_Locke_0001.jpg, Alberto_Fujimori_0002.jpg
+Nasser_al-Kidwa_0002.jpg, No, No, YES, 
+Nastassia_Kinski_0001.jpg, No, No, YES, 
+Natalie_Cole_0003.jpg, No, No, YES, 
+Natalie_Coughlin_0001.jpg, No, No, YES, 
+Natalie_Maines_0004.jpg, No, No, YES, 
+Natasha_McElhone_0001.jpg, No, No, YES, 
+Nathalie_Baye_0004.jpg, No, No, YES, 
+Nathan_Lane_0002.jpg, No, No, YES, 
+Nebojsa_Pavkovic_0001.jpg, No, No, YES, 
+Nelson_Mandela_0001.jpg, No, No, YES, 
+Neri_Marcore_0001.jpg, No, No, YES, 
+Nestor_Kirchner_0034.jpg, No, No, YES, 
+Nia_Vardalos_0001.jpg, No, No, YES, 
+Nicanor_Duarte_Frutos_0003.jpg, No, No, YES, 
+Nicholas_Byron_0002.jpg, No, Yes, NO, Jean-Pierre_Raffarin_0005.jpg
+Nicholas_Tse_0001.jpg, No, No, YES, 
+Nick_Nolte_0004.jpg, No, No, YES, 
+Nicolas_Cage_0001.jpg, No, No, YES, 
+Nicolas_Escude_0002.jpg, No, No, YES, 
+Nicolas_Lapentti_0001.jpg, No, No, YES, 
+Nicole_Kidman_0005.jpg, No, No, YES, 
+Nikki_Reed_0002.jpg, No, No, YES, 
+Noah_Wyle_0003.jpg, No, No, YES, 
+Noelle_Bush_0001.jpg, No, No, YES, 
+Nora_Bendijo_0001.jpg, No, Yes, NO, Flor_Montulo_0001.jpg
+Norah_Jones_0007.jpg, No, No, YES, 
+Norm_Coleman_0007.jpg, No, Yes, NO, Alejandro_Toledo_0028.jpg
+Norman_Jewison_0002.jpg, No, No, YES, 
+Norodom_Sihanouk_0003.jpg, No, Yes, NO, Chen_Shui-bian_0005.jpg
+Nursultan_Nazarbayev_0002.jpg, No, No, YES, 
+OJ_Simpson_0002.jpg, No, No, YES, 
+Oleksandr_Moroz_0002.jpg, No, No, YES, 
+Olesya_Bonabarenko_0002.jpg, No, No, YES, 
+Olivia_Newton-John_0002.jpg, No, No, YES, 
+Omar_Sharif_0003.jpg, No, No, YES, 
+Oprah_Winfrey_0003.jpg, No, No, YES, 
+Orlando_Bloom_0002.jpg, No, No, YES, 
+Orrin_Hatch_0001.jpg, No, No, YES, 
+Osama_bin_Laden_0003.jpg, No, No, YES, 
+Oscar_De_La_Hoya_0004.jpg, No, No, YES, 
+Oscar_Elias_Biscet_0002.jpg, No, No, YES, 
+Oswaldo_Paya_0001.jpg, No, No, YES, 
+Owen_Wilson_0001.jpg, No, No, YES, 
+Oxana_Fedorova_0003.jpg, No, No, YES, 
+Ozzy_Osbourne_0002.jpg, No, No, YES, 
+Padraig_Harrington_0002.jpg, No, No, YES, 
+Pamela_Anderson_0005.jpg, No, No, YES, 
+Paradorn_Srichaphan_0004.jpg, No, No, YES, 
+Paris_Hilton_0001.jpg, No, No, YES, 
+Parris_Glendening_0002.jpg, No, No, YES, 
+Pascal_Lamy_0001.jpg, No, No, YES, 
+Pascal_Quignard_0002.jpg, No, Yes, NO, Jim_Hahn_0004.jpg
+Pat_Burns_0002.jpg, No, No, YES, 
+Pat_Cox_0001.jpg, No, No, YES, 
+Patrice_Chereau_0001.jpg, No, No, YES, 
+Patricia_Clarkson_0001.jpg, No, No, YES, 
+Patricia_Heaton_0002.jpg, No, No, YES, 
+Patrick_Ewing_0002.jpg, No, No, YES, 
+Patrick_Leahy_0002.jpg, No, Yes, NO, Chok_Tong_Goh_0001.jpg
+Patrick_McEnroe_0002.jpg, No, No, YES, 
+Patrick_Roy_0001.jpg, No, No, YES, 
+Patrick_Stewart_0002.jpg, No, No, YES, 
+Patti_Labelle_0001.jpg, No, No, YES, 
+Patty_Schnyder_0004.jpg, No, No, YES, 
+Paul-Henri_Mathieu_0002.jpg, No, No, YES, 
+Paul_Bremer_0014.jpg, No, No, YES, 
+Paul_Burrell_0003.jpg, No, No, YES, 
+Paul_Byrd_0002.jpg, No, No, YES, 
+Paul_Coppin_0001.jpg, No, No, YES, 
+Paul_Gascoigne_0001.jpg, No, No, YES, 
+Paul_Hogan_0001.jpg, No, Yes, NO, George_HW_Bush_0005.jpg
+Paul_Kagame_0001.jpg, No, No, YES, 
+Paul_Martin_0001.jpg, No, No, YES, 
+Paul_McCartney_0001.jpg, No, No, YES, 
+Paul_McNulty_0001.jpg, No, No, YES, 
+Paul_ONeill_0009.jpg, No, No, YES, 
+Paul_Patton_0001.jpg, No, No, YES, 
+Paul_Pierce_0001.jpg, No, No, YES, 
+Paul_Sarbanes_0002.jpg, No, No, YES, 
+Paul_Shanley_0002.jpg, No, Yes, NO, Alan_Greenspan_0004.jpg, Ariel_Sharon_0071.jpg
+Paul_Tagliabue_0003.jpg, No, No, YES, 
+Paul_Wellstone_0003.jpg, No, No, YES, 
+Paul_William_Hurley_0002.jpg, No, Yes, NO, Charles_Mathews_0001.jpg, Bridgette_Wilson-Sampras_0003.jpg, Geraldine_Chaplin_0001.jpg, Hamzah_Haz_0002.jpg
+Paul_Wolfowitz_0008.jpg, No, No, YES, 
+Paula_Radcliffe_0006.jpg, No, No, YES, 
+Paula_Zahn_0002.jpg, No, No, YES, 
+Paulo_Cesar_Pinheiro_0001.jpg, No, No, YES, 
+Pedro_Almodovar_0007.jpg, No, No, YES, 
+Pedro_Malan_0002.jpg, No, Yes, NO, Jiang_Zemin_0008.jpg
+Pedro_Solbes_0001.jpg, No, No, YES, 
+Penelope_Ann_Miller_0001.jpg, No, No, YES, 
+Penelope_Cruz_0001.jpg, No, No, YES, 
+Pervez_Musharraf_0018.jpg, No, No, YES, 
+Pete_Carroll_0003.jpg, No, No, YES, 
+Pete_Rose_0002.jpg, No, No, YES, 
+Pete_Sampras_0003.jpg, No, No, YES, 
+Peter_Arnett_0001.jpg, No, No, YES, 
+Peter_Bacanovic_0002.jpg, No, No, YES, 
+Peter_Costello_0002.jpg, No, No, YES, 
+Peter_Greenaway_0002.jpg, No, No, YES, 
+Peter_Harrison_0001.jpg, No, No, YES, 
+Peter_Hillary_0001.jpg, No, No, YES, 
+Peter_Struck_0004.jpg, No, No, YES, 
+Petria_Thomas_0002.jpg, No, No, YES, 
+Petro_Symonenko_0002.jpg, No, No, YES, 
+Phan_Van_Khai_0001.jpg, No, Yes, NO, Fujio_Cho_0003.jpg, Gabriel_Valdes_0002.jpg
+Phil_Gramm_0002.jpg, No, No, YES, 
+Phil_Mickelson_0002.jpg, No, Yes, NO, Fred_Funk_0002.jpg
+Phil_Vassar_0001.jpg, No, No, YES, 
+Philippe_Noiret_0001.jpg, No, No, YES, 
+Pierce_Brosnan_0008.jpg, No, Yes, NO, Brian_Griese_0002.jpg
+Pierre_Boulanger_0001.jpg, No, No, YES, 
+Pierre_Pettigrew_0001.jpg, No, No, YES, 
+Placido_Domingo_0002.jpg, No, No, YES, 
+Prince_Charles_0002.jpg, No, No, YES, 
+Prince_Claus_0002.jpg, No, No, YES, 
+Prince_Edward_0002.jpg, No, No, YES, 
+Prince_Harry_0002.jpg, No, No, YES, 
+Prince_Naruhito_0002.jpg, No, Yes, NO, Heizo_Takenaka_0008.jpg, Jamling_Norgay_0002.jpg
+Prince_Willem-Alexander_0001.jpg, No, No, YES, 
+Prince_William_0002.jpg, No, No, YES, 
+Princess_Aiko_0002.jpg, No, Yes, NO, Charles_Mathews_0001.jpg, Geraldine_Chaplin_0001.jpg, Diana_Munz_0003.jpg
+Princess_Anne_0001.jpg, No, No, YES, 
+Princess_Caroline_0003.jpg, No, No, YES, 
+Princess_Elisabeth_0002.jpg, No, No, YES, 
+Princess_Masako_0001.jpg, No, No, YES, 
+Priscilla_Owen_0001.jpg, No, No, YES, 
+Priscilla_Presley_0001.jpg, No, No, YES, 
+Pupi_Avati_0004.jpg, No, No, YES, 
+Queen_Beatrix_0002.jpg, No, No, YES, 
+Queen_Elizabeth_II_0001.jpg, No, Yes, NO, James_Ivory_0002.jpg, Augusto_Pinochet_0001.jpg
+Queen_Latifah_0003.jpg, No, No, YES, 
+Queen_Rania_0005.jpg, No, No, YES, 
+Rachel_Griffiths_0003.jpg, No, No, YES, 
+Rachel_Hunter_0001.jpg, No, No, YES, 
+Rafael_Ramirez_0003.jpg, No, No, YES, 
+Raghad_Saddam_Hussein_0002.jpg, No, No, YES, 
+Rainer_Schuettler_0004.jpg, No, No, YES, 
+Ralf_Schumacher_0007.jpg, No, No, YES, 
+Ralph_Firman_0001.jpg, No, Yes, NO, John_F_Kennedy_Jr_0001.jpg
+Ralph_Klein_0002.jpg, No, No, YES, 
+Ralph_Lauren_0001.jpg, No, No, YES, 
+Ranil_Wickremasinghe_0002.jpg, No, No, YES, 
+Raoul_Ruiz_0004.jpg, No, No, YES, 
+Raquel_Welch_0002.jpg, No, No, YES, 
+Ray_Allen_0003.jpg, No, No, YES, 
+Ray_Nagin_0001.jpg, No, No, YES, 
+Ray_Romano_0006.jpg, No, No, YES, 
+Raymond_Odierno_0001.jpg, No, No, YES, 
+Rebecca_Romijn-Stamos_0003.jpg, No, No, YES, 
+Rebekah_Chantay_Revels_0002.jpg, No, No, YES, 
+Recep_Tayyip_Erdogan_0009.jpg, No, No, YES, 
+Reese_Witherspoon_0004.jpg, No, No, YES, 
+Reggie_Miller_0002.jpg, No, No, YES, 
+Renee_Zellweger_0006.jpg, No, No, YES, 
+Ricardo_Lagos_0013.jpg, No, Yes, NO, Ariel_Sharon_0071.jpg
+Ricardo_Lopez_Murphy_0001.jpg, No, No, YES, 
+Ricardo_Maduro_0001.jpg, No, No, YES, 
+Ricardo_Monasterio_0001.jpg, No, No, YES, 
+Ricardo_Sanchez_0003.jpg, No, No, YES, 
+Rich_Gannon_0001.jpg, No, No, YES, 
+Richard_Armitage_0007.jpg, No, Yes, NO, Goran_Persson_0002.jpg
+Richard_Branson_0002.jpg, No, No, YES, 
+Richard_Butler_0002.jpg, No, No, YES, 
+Richard_Crenna_0001.jpg, No, Yes, NO, Bill_Belichick_0002.jpg
+Richard_Gephardt_0005.jpg, No, No, YES, 
+Richard_Gere_0008.jpg, No, Yes, NO, David_Kelley_0002.jpg
+Richard_Haass_0001.jpg, No, No, YES, 
+Richard_Krajicek_0002.jpg, No, No, YES, 
+Richard_Myers_0008.jpg, No, No, YES, 
+Richard_Norton-Taylor_0001.jpg, No, No, YES, 
+Richard_Sambrook_0002.jpg, No, No, YES, 
+Richard_Shelby_0001.jpg, No, No, YES, 
+Richard_Virenque_0005.jpg, No, No, YES, 
+Richie_Adubato_0002.jpg, No, No, YES, 
+Rick_Barnes_0003.jpg, No, No, YES, 
+Rick_Carlisle_0001.jpg, No, No, YES, 
+Rick_Dinse_0002.jpg, No, Yes, NO, Abdullah_al-Attiyah_0002.jpg, Geraldine_Chaplin_0001.jpg, Dorthy_Moxley_0001.jpg, Bridgette_Wilson-Sampras_0003.jpg, Jeanne_Moreau_0001.jpg
+Rick_Perry_0002.jpg, No, No, YES, 
+Rick_Pitino_0003.jpg, No, No, YES, 
+Rick_Romley_0003.jpg, No, Yes, NO, George_Karl_0001.jpg, James_Morris_0002.jpg
+Rick_Santorum_0003.jpg, No, No, YES, 
+Rick_Stansbury_0001.jpg, No, No, YES, 
+Rick_Wagoner_0002.jpg, No, Yes, NO, John_Timoney_0001.jpg, Jeffrey_Jones_0001.jpg
+Ricky_Barnes_0001.jpg, No, No, YES, 
+Ricky_Martin_0002.jpg, No, No, YES, 
+Ricky_Ponting_0001.jpg, No, No, YES, 
+Rio_Ferdinand_0002.jpg, No, No, YES, 
+Rita_Grande_0001.jpg, No, No, YES, 
+Rita_Moreno_0001.jpg, No, No, YES, 
+Rita_Wilson_0004.jpg, No, No, YES, 
+Rob_Lowe_0002.jpg, No, No, YES, 
+Rob_Marshall_0004.jpg, No, No, YES, 
+Rob_Schneider_0001.jpg, No, No, YES, 
+Robbie_Fowler_0001.jpg, No, No, YES, 
+Robbie_Williams_0001.jpg, No, No, YES, 
+Robby_Ginepri_0001.jpg, No, No, YES, 
+Robert_Blackwill_0001.jpg, No, No, YES, 
+Robert_Blake_0008.jpg, No, No, YES, 
+Robert_Bonner_0001.jpg, No, No, YES, 
+Robert_Bullock_0001.jpg, No, No, YES, 
+Robert_DeFraites_0001.jpg, No, No, YES, 
+Robert_De_Niro_0005.jpg, No, No, YES, 
+Robert_Duvall_0005.jpg, No, No, YES, 
+Robert_Ehrlich_0002.jpg, No, No, YES, 
+Robert_Evans_0001.jpg, No, Yes, NO, Emily_Robison_0002.jpg
+Robert_Fico_0001.jpg, No, No, YES, 
+Robert_Horan_0001.jpg, No, No, YES, 
+Robert_Kocharian_0005.jpg, No, No, YES, 
+Robert_Mueller_0002.jpg, No, No, YES, 
+Robert_Mugabe_0002.jpg, No, No, YES, 
+Robert_Redford_0004.jpg, No, No, YES, 
+Robert_Stack_0001.jpg, No, No, YES, 
+Robert_Torricelli_0001.jpg, No, No, YES, 
+Robert_Witt_0002.jpg, No, No, YES, 
+Robert_Zoellick_0002.jpg, No, No, YES, 
+Roberto_Benigni_0001.jpg, No, Yes, NO, Costas_Simitis_0004.jpg
+Roberto_Carlos_0002.jpg, No, No, YES, 
+Roberto_Marinho_0002.jpg, No, No, YES, 
+Robin_Cook_0002.jpg, No, No, YES, 
+Robin_McLaurin_Williams_0001.jpg, No, No, YES, 
+Robinson_Stevenin_0002.jpg, No, No, YES, 
+Rod_Blagojevich_0001.jpg, No, No, YES, 
+Rod_Stewart_0003.jpg, No, No, YES, 
+Rodrigo_Borja_0002.jpg, No, No, YES, 
+Roger_Clemens_0001.jpg, No, No, YES, 
+Roger_Federer_0014.jpg, No, No, YES, 
+Roger_Moore_0005.jpg, No, No, YES, 
+Rogerio_Romero_0001.jpg, No, No, YES, 
+Roh_Moo-hyun_0013.jpg, No, Yes, NO, Jia_Qinglin_0001.jpg, Chang_Dae-whan_0001.jpg, Annette_Lu_0002.jpg, Goh_Kun_0001.jpg, Hun_Sen_0003.jpg
+Rolandas_Paksas_0002.jpg, No, No, YES, 
+Rolf_Eckrodt_0002.jpg, No, No, YES, 
+Roman_Polanski_0004.jpg, No, No, YES, 
+Romano_Prodi_0003.jpg, No, No, YES, 
+Ron_Dittemore_0008.jpg, No, No, YES, 
+Ron_Howard_0001.jpg, No, No, YES, 
+Ronald_Reagan_0002.jpg, No, No, YES, 
+Ronaldo_Luis_Nazario_de_Lima_0001.jpg, No, No, YES, 
+Roseanne_Barr_0002.jpg, No, No, YES, 
+Rosemarie_Stack_0002.jpg, No, No, YES, 
+Roy_Jones_Jr_0002.jpg, No, No, YES, 
+Roy_Moore_0005.jpg, No, No, YES, 
+Roy_Williams_0003.jpg, No, No, YES, 
+Ruben_Studdard_0002.jpg, No, No, YES, 
+Rubens_Barrichello_0011.jpg, No, No, YES, 
+Rudolph_Giuliani_0026.jpg, No, No, YES, 
+Rupert_Grint_0003.jpg, No, No, YES, 
+Rupert_Murdoch_0001.jpg, No, Yes, NO, James_Caan_0003.jpg, Alan_Greenspan_0004.jpg
+Russell_Coutts_0002.jpg, No, No, YES, 
+Russell_Crowe_0002.jpg, No, No, YES, 
+Russell_Simmons_0002.jpg, No, No, YES, 
+Ruth_Dreifuss_0001.jpg, No, No, YES, 
+Ruth_Harlow_0001.jpg, No, No, YES, 
+S_Jayakumar_0001.jpg, No, No, YES, 
+Saburo_Kawabuchi_0001.jpg, No, Yes, NO, Jia_Qinglin_0001.jpg, Chang_Dae-whan_0001.jpg
+Sachiko_Yamada_0004.jpg, No, No, YES, 
+Saddam_Hussein_0020.jpg, No, No, YES, 
+Sadie_Frost_0001.jpg, No, No, YES, 
+Saeb_Erekat_0001.jpg, No, No, YES, 
+Sally_Field_0001.jpg, No, No, YES, 
+Sally_Kirkland_0004.jpg, No, No, YES, 
+Sally_Ride_0002.jpg, No, Yes, NO, Ernie_Fletcher_0002.jpg
+Salma_Hayek_0009.jpg, No, Yes, NO, Diana_Munz_0003.jpg, Geraldine_Chaplin_0001.jpg, Charles_Mathews_0001.jpg, Hamzah_Haz_0002.jpg, Gregory_Hines_0001.jpg
+Salman_Rushdie_0002.jpg, No, No, YES, 
+Sam_Bith_0003.jpg, No, No, YES, 
+Sam_Mendes_0002.jpg, No, No, YES, 
+Sam_Torrance_0003.jpg, No, No, YES, 
+Samira_Makhmalbaf_0001.jpg, No, Yes, NO, Dorthy_Moxley_0001.jpg
+Sammy_Sosa_0002.jpg, No, No, YES, 
+Samuel_Waksal_0002.jpg, No, No, YES, 
+Sandra_Bullock_0003.jpg, No, No, YES, 
+Saparmurat_Niyazov_0002.jpg, No, No, YES, 
+Sarah_Hughes_0001.jpg, No, No, YES, 
+Sarah_Jessica_Parker_0006.jpg, No, No, YES, 
+Sarah_Michelle_Gellar_0003.jpg, No, No, YES, 
+Scott_McClellan_0005.jpg, No, No, YES, 
+Scott_McNealy_0002.jpg, No, Yes, NO, James_Kelly_0001.jpg
+Scott_Peterson_0004.jpg, No, No, YES, 
+Scott_Ritter_0001.jpg, No, No, YES, 
+Scott_Rudin_0001.jpg, No, No, YES, 
+Scott_Sullivan_0002.jpg, No, No, YES, 
+Scott_Wolf_0001.jpg, No, No, YES, 
+Sean_Astin_0003.jpg, No, No, YES, 
+Sean_Hayes_0001.jpg, No, Yes, NO, Adam_Sandler_0003.jpg, Brian_Griese_0002.jpg
+Sean_OKeefe_0002.jpg, No, No, YES, 
+Sean_Patrick_OMalley_0003.jpg, No, No, YES, 
+Sean_Penn_0002.jpg, No, No, YES, 
+Sebastian_Saja_0001.jpg, No, No, YES, 
+Sebastien_Grosjean_0003.jpg, No, No, YES, 
+Sepp_Blatter_0002.jpg, No, Yes, NO, Joseph_Blatter_0001.jpg
+Serena_Williams_0009.jpg, No, No, YES, 
+Sergei_Ivanov_0002.jpg, No, No, YES, 
+Sergey_Lavrov_0002.jpg, No, No, YES, 
+Sergio_Garcia_0002.jpg, No, No, YES, 
+Sergio_Vieira_De_Mello_0005.jpg, No, No, YES, 
+Shane_Mosley_0001.jpg, No, Yes, NO, Charles_Taylor_0002.jpg
+Shane_Warne_0001.jpg, No, No, YES, 
+Shannon_OBrien_0002.jpg, No, No, YES, 
+Sharon_Davis_0001.jpg, No, No, YES, 
+Sharon_Frey_0002.jpg, No, No, YES, 
+Sharon_Osbourne_0002.jpg, No, No, YES, 
+Sharon_Stone_0002.jpg, No, No, YES, 
+Shaukat_Aziz_0002.jpg, No, No, YES, 
+Shaul_Mofaz_0003.jpg, No, Yes, NO, Bijan_Namdar_Zangeneh_0002.jpg
+Sheila_Copps_0001.jpg, No, No, YES, 
+Sheila_Fraser_0001.jpg, No, No, YES, 
+Sheila_Wellstone_0001.jpg, No, No, YES, 
+Sheryl_Crow_0004.jpg, No, No, YES, 
+Shia_LaBeouf_0002.jpg, No, No, YES, 
+Shimon_Peres_0008.jpg, No, No, YES, 
+Sila_Calderon_0002.jpg, No, No, YES, 
+Silvan_Shalom_0004.jpg, No, No, YES, 
+Silvia_Farina_Elia_0003.jpg, No, No, YES, 
+Silvio_Berlusconi_0014.jpg, No, No, YES, 
+Silvio_Fernandez_0001.jpg, No, No, YES, 
+Simon_Cowell_0002.jpg, No, No, YES, 
+Slobodan_Milosevic_0004.jpg, No, No, YES, 
+Sonia_Gandhi_0004.jpg, No, No, YES, 
+Sophia_Loren_0006.jpg, No, No, YES, 
+Sourav_Ganguly_0002.jpg, No, No, YES, 
+Spencer_Abraham_0017.jpg, No, No, YES, 
+Stacy_Dragila_0002.jpg, No, No, YES, 
+Stan_Heath_0001.jpg, No, No, YES, 
+Stanley_McChrystal_0001.jpg, No, No, YES, 
+Stanley_Tong_0002.jpg, No, No, YES, 
+Stefano_Accorsi_0002.jpg, No, No, YES, 
+Steffi_Graf_0005.jpg, No, No, YES, 
+Stellan_Skarsgard_0001.jpg, No, No, YES, 
+Stephen_Ambrose_0002.jpg, No, No, YES, 
+Stephen_Daldry_0001.jpg, No, No, YES, 
+Stephen_Friedman_0001.jpg, No, No, YES, 
+Steve_Backley_0002.jpg, No, No, YES, 
+Steve_Ballmer_0002.jpg, No, No, YES, 
+Steve_Lavin_0003.jpg, No, No, YES, 
+Steve_Mariucci_0003.jpg, No, No, YES, 
+Steve_Nash_0003.jpg, No, No, YES, 
+Steve_Park_0002.jpg, No, No, YES, 
+Steve_Spurrier_0001.jpg, No, No, YES, 
+Steve_Waugh_0002.jpg, No, No, YES, 
+Steven_Hatfill_0002.jpg, No, No, YES, 
+Steven_Seagal_0002.jpg, No, No, YES, 
+Steven_Spielberg_0006.jpg, No, No, YES, 
+Stockard_Channing_0002.jpg, No, No, YES, 
+Strom_Thurmond_0003.jpg, No, Yes, NO, Hichiro_Naemura_0001.jpg, Augusto_Pinochet_0001.jpg
+Sue_Wicks_0001.jpg, No, No, YES, 
+Surakait_Sathirathai_0002.jpg, No, Yes, NO, Abdullah_al-Attiyah_0002.jpg, Geraldine_Chaplin_0001.jpg, Dalai_Lama_0001.jpg, Charles_Mathews_0001.jpg, Diana_Munz_0003.jpg
+Susan_Collins_0002.jpg, No, No, YES, 
+Susan_Sarandon_0005.jpg, No, No, YES, 
+Susie_Castillo_0001.jpg, No, No, YES, 
+Susilo_Bambang_Yudhoyono_0004.jpg, No, Yes, NO, Dai_Bachtiar_0001.jpg
+Suzanne_Gaudet_0001.jpg, No, No, YES, 
+Svetlana_Koroleva_0001.jpg, No, No, YES, 
+Sylvester_Stallone_0002.jpg, No, No, YES, 
+Taha_Yassin_Ramadan_0002.jpg, No, No, YES, 
+Takashi_Sorimachi_0001.jpg, No, No, YES, 
+Tamara_Brooks_0002.jpg, No, Yes, NO, Chanda_Rubin_0005.jpg
+Tammy_Lynn_Michaels_0001.jpg, No, No, YES, 
+Tang_Jiaxuan_0004.jpg, No, Yes, NO, Angelo_Reyes_0004.jpg, Annette_Lu_0002.jpg
+Tariq_Aziz_0003.jpg, No, No, YES, 
+Tassos_Papadopoulos_0003.jpg, No, Yes, NO, Ian_McKellen_0003.jpg
+Taufik_Hidayat_0001.jpg, No, No, YES, 
+Ted_Maher_0001.jpg, No, No, YES, 
+Terje_Roed-Larsen_0002.jpg, No, No, YES, 
+Terrell_Suggs_0001.jpg, No, No, YES, 
+Terry_McAuliffe_0003.jpg, No, No, YES, 
+Terry_Stotts_0001.jpg, No, No, YES, 
+Thabo_Mbeki_0005.jpg, No, No, YES, 
+Thaksin_Shinawatra_0004.jpg, No, No, YES, 
+Theo_Epstein_0001.jpg, No, No, YES, 
+Theodore_Tweed_Roosevelt_0002.jpg, No, No, YES, 
+Theresa_May_0001.jpg, No, Yes, NO, Biljana_Plavsic_0002.jpg
+Thierry_Falise_0002.jpg, No, No, YES, 
+Thomas_Birmingham_0002.jpg, No, No, YES, 
+Thomas_Bjorn_0002.jpg, No, No, YES, 
+Thomas_Fargo_0004.jpg, No, No, YES, 
+Thomas_Malchow_0002.jpg, No, No, YES, 
+Thomas_OBrien_0007.jpg, No, No, YES, 
+Thomas_Rupprath_0002.jpg, No, No, YES, 
+Thomas_Wyman_0002.jpg, No, No, YES, 
+Tiger_Woods_0020.jpg, No, No, YES, 
+Tim_Allen_0004.jpg, No, Yes, NO, Antony_Leung_0002.jpg
+Tim_Chapman_0001.jpg, No, No, YES, 
+Tim_Conway_0001.jpg, No, No, YES, 
+Tim_Curry_0001.jpg, No, No, YES, 
+Tim_Duncan_0002.jpg, No, No, YES, 
+Tim_Floyd_0001.jpg, No, No, YES, 
+Tim_Henman_0019.jpg, No, No, YES, 
+Tim_Robbins_0004.jpg, No, No, YES, 
+Tippi_Hedren_0002.jpg, No, No, YES, 
+Todd_Haynes_0003.jpg, No, No, YES, 
+Tom_Brady_0002.jpg, No, No, YES, 
+Tom_Coverdale_0002.jpg, No, No, YES, 
+Tom_Craddick_0002.jpg, No, No, YES, 
+Tom_Crean_0005.jpg, No, No, YES, 
+Tom_Cruise_0008.jpg, No, No, YES, 
+Tom_Daschle_0025.jpg, No, No, YES, 
+Tom_Glavine_0001.jpg, No, No, YES, 
+Tom_Hanks_0010.jpg, No, No, YES, 
+Tom_Harkin_0005.jpg, No, Yes, NO, Farouk_al-Sharaa_0003.jpg
+Tom_Jones_0001.jpg, No, No, YES, 
+Tom_Reilly_0002.jpg, No, Yes, NO, John_Reid_0003.jpg
+Tom_Ridge_0020.jpg, No, Yes, NO, Bill_Nelson_0002.jpg, James_Kelly_0001.jpg
+Tom_Watson_0003.jpg, No, No, YES, 
+Tommy_Franks_0012.jpg, No, No, YES, 
+Tommy_Haas_0006.jpg, No, No, YES, 
+Tommy_Robredo_0003.jpg, No, No, YES, 
+Tommy_Thompson_0003.jpg, No, No, YES, 
+Tomoko_Hagiwara_0001.jpg, No, No, YES, 
+Toni_Braxton_0001.jpg, No, No, YES, 
+Tony_Bennett_0004.jpg, No, No, YES, 
+Tony_Blair_0014.jpg, No, No, YES, 
+Tony_Curtis_0002.jpg, No, No, YES, 
+Tony_Parker_0002.jpg, No, No, YES, 
+Tony_Shalhoub_0002.jpg, No, No, YES, 
+Tony_Stewart_0003.jpg, No, No, YES, 
+Torri_Edwards_0001.jpg, No, No, YES, 
+Toshihiko_Fukui_0003.jpg, No, Yes, NO, Jia_Qinglin_0001.jpg
+Tracee_Ellis_Ross_0002.jpg, No, No, YES, 
+Tracy_McGrady_0002.jpg, No, No, YES, 
+Trent_Lott_0003.jpg, No, Yes, NO, David_Leahy_0001.jpg
+Tsutomu_Takebe_0001.jpg, No, Yes, NO, Fujio_Cho_0003.jpg
+Tubby_Smith_0003.jpg, No, No, YES, 
+Tung_Chee-hwa_0002.jpg, No, No, YES, 
+Tyler_Hamilton_0002.jpg, No, No, YES, 
+Tyra_Banks_0002.jpg, No, No, YES, 
+Tyron_Garner_0002.jpg, No, No, YES, 
+Uma_Thurman_0001.jpg, No, Yes, NO, Ethan_Hawke_0003.jpg
+Vaclav_Havel_0008.jpg, No, Yes, NO, Jack_Nicholson_0002.jpg
+Vaclav_Klaus_0001.jpg, No, No, YES, 
+Valdas_Adamkus_0002.jpg, No, No, YES, 
+Valentino_Rossi_0001.jpg, No, No, YES, 
+Valerie_Harper_0001.jpg, No, No, YES, 
+Valery_Giscard_dEstaing_0003.jpg, No, No, YES, 
+Vanessa_Incontrada_0002.jpg, No, No, YES, 
+Vanessa_Redgrave_0001.jpg, No, No, YES, 
+Vanessa_Williams_0003.jpg, No, No, YES, 
+Venus_Williams_0004.jpg, No, No, YES, 
+Vicente_Fernandez_0003.jpg, No, No, YES, 
+Vicente_Fox_0003.jpg, No, No, YES, 
+Vicki_Zhao_Wei_0001.jpg, No, No, YES, 
+Victoria_Beckham_0003.jpg, No, No, YES, 
+Victoria_Clarke_0002.jpg, No, No, YES, 
+Vidar_Helgesen_0002.jpg, No, No, YES, 
+Vin_Diesel_0002.jpg, No, No, YES, 
+Vince_Carter_0001.jpg, No, No, YES, 
+Vince_Gill_0002.jpg, No, No, YES, 
+Vincent_Brooks_0002.jpg, No, No, YES, 
+Vincent_Gallo_0003.jpg, No, No, YES, 
+Vitali_Klitschko_0003.jpg, No, No, YES, 
+Vivica_Fox_0001.jpg, No, No, YES, 
+Vladimir_Putin_0045.jpg, No, No, YES, 
+Vladimir_Spidla_0002.jpg, No, Yes, NO, John_Taylor_0002.jpg
+Vladimir_Voltchkov_0001.jpg, No, No, YES, 
+Vladimiro_Montesinos_0002.jpg, No, No, YES, 
+Vojislav_Kostunica_0005.jpg, No, Yes, NO, Art_Hoffmann_0001.jpg, Habib_Rizieq_0004.jpg, Abdullah_al-Attiyah_0002.jpg
+Walter_Mondale_0003.jpg, No, No, YES, 
+Wang_Yi_0001.jpg, No, Yes, NO, Goh_Kun_0001.jpg
+Wang_Yingfan_0001.jpg, No, Yes, NO, Chen_Shui-bian_0005.jpg, Gary_Locke_0001.jpg
+Warren_Beatty_0001.jpg, No, No, YES, 
+Warren_Buffett_0002.jpg, No, No, YES, 
+Wayne_Ferreira_0003.jpg, No, No, YES, 
+Wayne_Gretzky_0002.jpg, No, No, YES, 
+Wen_Jiabao_0002.jpg, No, Yes, NO, Hu_Jintao_0013.jpg
+Wesley_Clark_0001.jpg, No, No, YES, 
+Will_Smith_0001.jpg, No, No, YES, 
+William_Bratton_0003.jpg, No, No, YES, 
+William_Bulger_0002.jpg, No, No, YES, 
+William_Burns_0001.jpg, No, No, YES, 
+William_Donaldson_0003.jpg, No, No, YES, 
+William_Ford_Jr_0006.jpg, No, No, YES, 
+William_Hochul_0001.jpg, No, No, YES, 
+William_Macy_0001.jpg, No, No, YES, 
+William_Martin_0002.jpg, No, No, YES, 
+William_Rehnquist_0001.jpg, No, No, YES, 
+Win_Aung_0004.jpg, No, Yes, NO, Colin_Powell_0066.jpg
+Winona_Ryder_0006.jpg, No, No, YES, 
+Wolfgang_Schuessel_0001.jpg, No, Yes, NO, John_Banko_0002.jpg
+Woody_Allen_0001.jpg, No, No, YES, 
+Wu_Yi_0002.jpg, No, Yes, NO, Jia_Qinglin_0001.jpg, Annette_Lu_0002.jpg
+Xanana_Gusmao_0003.jpg, No, No, YES, 
+Xavier_Malisse_0003.jpg, No, No, YES, 
+Yann_Martel_0002.jpg, No, No, YES, 
+Yao_Ming_0002.jpg, No, No, YES, 
+Yasar_Yakis_0001.jpg, No, No, YES, 
+Yashwant_Sinha_0007.jpg, No, Yes, NO, Harry_Belafonte_0001.jpg
+Yasser_Arafat_0007.jpg, No, No, YES, 
+Yevgeny_Kafelnikov_0003.jpg, No, No, YES, 
+Yoko_Ono_0006.jpg, No, No, YES, 
+Yoriko_Kawaguchi_0009.jpg, No, Yes, NO, Annette_Lu_0002.jpg
+Yossi_Beilin_0001.jpg, No, Yes, NO, Cesar_Gaviria_0007.jpg
+Yu_Shyi-kun_0002.jpg, No, No, YES, 
+Yukiko_Okudo_0002.jpg, No, No, YES, 
+Yuri_Fedotov_0002.jpg, No, No, YES, 
+Yuri_Malenchenko_0002.jpg, No, No, YES, 
+Zafarullah_Khan_Jamali_0002.jpg, No, No, YES, 
+Zarai_Toledo_0001.jpg, No, No, YES, 
+Zhang_Wenkang_0001.jpg, No, Yes, NO, Choi_Sung-hong_0004.jpg, Hu_Jintao_0013.jpg, Chang_Dae-whan_0001.jpg, Jia_Qinglin_0001.jpg
+Zhang_Ziyi_0004.jpg, No, No, YES, 
+Zhu_Rongji_0003.jpg, No, No, YES, 
+Zico_0002.jpg, No, No, YES, 
+Zinedine_Zidane_0001.jpg, No, No, YES, 
+Zoran_Djindjic_0001.jpg, No, No, YES, 
