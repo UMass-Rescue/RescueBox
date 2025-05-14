@@ -1,6 +1,7 @@
 from pathlib import Path
 import onnxruntime as ort
 import numpy as np
+from deepfake_detection.process.facedetector import faceDetector
 
 
 class TransformerModelDimaONNX:
@@ -50,11 +51,31 @@ class TransformerModelDimaONNX:
         # Return the results
         return results[0]
 
-    def preprocess(self, image):
-        # We don't preprocess anything for this model
-        # Resize the image to the required resolution
-        image = self.apply_transforms(image)
-        return image
+    def preprocess(self, image, facecrop=None):
+        # Optional face cropping
+        if facecrop:
+            self.resolution_ratio = getattr(self, 'resolution_ratio', 1.5)
+            try:
+                np_image = np.array(image.convert('RGB'))
+                boxes, labels, scores, center, already_headshot = faceDetector(
+                    np_image, face_detector=facecrop
+                )
+            except Exception:
+                center, already_headshot = None, False
+            if already_headshot:
+                return self.apply_transforms(image)
+            if center is not None:
+                cx, cy = center
+                w_img, h_img = image.size
+                half = int(self.resolution * self.resolution_ratio / 2)
+                left = max(0, cx - half)
+                top = max(0, cy - half)
+                right = min(w_img, cx + half)
+                bottom = min(h_img, cy + half)
+                if right > left and bottom > top:
+                    image = image.crop((left, top, right, bottom))
+        # Apply standard transforms
+        return self.apply_transforms(image)
 
     def preprocess_images(self, images):
         # We don't preprocess anything for this model

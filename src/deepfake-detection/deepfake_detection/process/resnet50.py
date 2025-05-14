@@ -11,6 +11,7 @@ from deepfake_detection.process.utils import (
     ToDtype,
     Normalize,
 )
+from deepfake_detection.process.facedetector import faceDetector
 
 
 # Trained on COCOFake dataset
@@ -45,7 +46,29 @@ class Resnet50ModelONNX:
         out = out.transpose(2, 0, 1)
         return out[None, ...] 
     
-    def preprocess(self, image):
+    def preprocess(self, image, facecrop=None):
+        # Optional face cropping
+        if facecrop:
+            self.resolution_ratio = getattr(self, 'resolution_ratio', 1.5)
+            try:
+                np_image = np.array(image.convert('RGB'))
+                boxes, labels, scores, center, already_headshot = faceDetector(
+                    np_image, face_detector=facecrop
+                )
+            except Exception:
+                center, already_headshot = None, False
+            if already_headshot:
+                return self.apply_transforms(image)
+            if center is not None:
+                cx, cy = center
+                w_img, h_img = image.size
+                half = int(self.resolution * self.resolution_ratio / 2)
+                left = max(0, cx - half)
+                top = max(0, cy - half)
+                right = min(w_img, cx + half)
+                bottom = min(h_img, cy + half)
+                if right > left and bottom > top:
+                    image = image.crop((left, top, right, bottom))
         return self.apply_transforms(image)
 
     def decode_prediction(self, confidence):
