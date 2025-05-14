@@ -1,9 +1,13 @@
 import argparse
-from sim_data import defaultDataset
-from process.transformer import TransformerModelONNX
-from process.bnext_M import BNext_M_ModelONNX
-from process.bnext_S import BNext_S_ModelONNX
-from process.transformerDima_onnx_process import TransformerModelDimaONNX
+import onnxruntime as ort
+from deepfake_detection.sim_data import defaultDataset
+from deepfake_detection.process.transformer import TransformerModelONNX
+from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
+from deepfake_detection.process.bnext_S import BNext_S_ModelONNX
+from deepfake_detection.process.transformerDima_onnx_process import (
+    TransformerModelDimaONNX,
+)
+from deepfake_detection.process.resnet50 import Resnet50ModelONNX
 from pathlib import Path
 import json
 import pandas as pd
@@ -20,9 +24,14 @@ def args_func():
     parser.add_argument(
         "--models",
         type=str,
-        nargs="+",  # Accepts one or more model names as a list
+        nargs="+",
         required=True,
-        help="List of models to use (e.g., TransformerModel BNext_M_ModelONNX. Use 'all' to run all models or 'list' to list available models.",
+        help="List of models to use (e.g., TransformerModel BNext_M_ModelONNX). Use 'all' to run all models or 'list' to list available models.",
+    )
+    parser.add_argument(
+        "--facecrop",
+        action="store_true",
+        help="Enable face cropping before model inference.",
     )
 
     args = parser.parse_args()
@@ -31,7 +40,7 @@ def args_func():
 
 # Inputs: models (list of model objects), dataset (dataset object)
 # Outputs: results (a list of lists of dictionaries, one for each model)
-def run_models(models, dataset):
+def run_models(models, dataset, facecrop=None):
     results = []
     for model in models:
         print(f"Running model: {model.__class__.__name__}")
@@ -44,10 +53,9 @@ def run_models(models, dataset):
             # print(sample)
             image = sample["image"]
             image_path = sample["image_path"]
-            original_res = sample["original_res"]
 
-            # Preprocess the image
-            preprocessed_image = model.preprocess(image)
+            # Preprocess the image (with optional face crop)
+            preprocessed_image = model.preprocess(image, facecrop=facecrop)
 
             # Get the prediction
             prediction = model.predict(preprocessed_image)
@@ -74,6 +82,7 @@ if __name__ == "__main__":
             BNext_S_ModelONNX,
             TransformerModelONNX,
             TransformerModelDimaONNX,
+            Resnet50ModelONNX,
         ]
     }
     input_path = Path("sample_input")
@@ -120,7 +129,17 @@ if __name__ == "__main__":
 
     test_dataset = defaultDataset(dataset_path=str(input_path), resolution=224)
 
-    results = run_models(models_to_use, test_dataset)
+    # Initialize face cropper if requested
+    facecropper = None
+    if args.facecrop:
+        try:
+            facecropper = ort.InferenceSession(
+                str(Path(__file__).parent / "onnx_models/face_detector.onnx"),
+                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            )
+        except Exception as e:
+            print(f"Error loading face detector: {e}")
+    results = run_models(models_to_use, test_dataset, facecrop=facecropper)
 
     output_dir = Path("sample_output")
     output_dir.mkdir(exist_ok=True)  # Create the directory if it doesn't exist

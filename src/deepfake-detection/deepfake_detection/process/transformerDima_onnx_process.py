@@ -1,16 +1,19 @@
 from pathlib import Path
-from PIL import Image
 import onnxruntime as ort
 import numpy as np
+from deepfake_detection.process.facedetector import faceDetector
 
 
 class TransformerModelDimaONNX:
     def __init__(self, model_path="onnx_models/dima_transformer.onnx", resolution=224):
-        # Convert model_path to a Path object
-        self.model_path = Path(model_path)
+        print("Loading Transformer Model Dima ONNX...")
+        self.model_path = (
+            Path(__file__).resolve().parent.parent
+            / "onnx_models"
+            / "dima_transformer.onnx"
+        )
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime
-            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
         )
         self.resolution = resolution
         self.valid_extensions = (".jpg", ".jpeg", ".png")
@@ -48,11 +51,36 @@ class TransformerModelDimaONNX:
         # Return the results
         return results[0]
 
-    def preprocess(self, image):
-        # We don't preprocess anything for this model
-        # Resize the image to the required resolution
-        image = self.apply_transforms(image)
-        return image
+    def preprocess(self, image, facecrop=None):
+        # Optional face cropping
+        if facecrop:
+            # print('Face cropping enabled')
+            self.resolution_ratio = getattr(self, "resolution_ratio", 1.5)
+            try:
+                np_image = np.array(image.convert("RGB"))
+                boxes, labels, scores, center, already_headshot = faceDetector(
+                    np_image, face_detector=facecrop
+                )
+                # print(f"Boxes: {boxes}, Labels: {labels}, Scores: {scores}")
+                # print(f"Center: {center}, Already Headshot: {already_headshot}")
+            except Exception:
+                center, already_headshot = None, False
+            if already_headshot:
+                return self.apply_transforms(image)
+            if center is not None:
+                cx, cy = center
+                w_img, h_img = image.size
+                half = int(self.resolution * self.resolution_ratio / 2)
+                left = max(0, cx - half)
+                top = max(0, cy - half)
+                right = min(w_img, cx + half)
+                bottom = min(h_img, cy + half)
+                if right > left and bottom > top:
+                    image = image.crop((left, top, right, bottom))
+        #             print('cropped', end = ' ')
+        # image.save("cropped_image.jpg")
+        # Apply standard transforms
+        return self.apply_transforms(image)
 
     def preprocess_images(self, images):
         # We don't preprocess anything for this model
