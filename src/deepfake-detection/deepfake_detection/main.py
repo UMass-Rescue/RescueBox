@@ -65,6 +65,7 @@ def create_transform_case_task_schema() -> TaskSchema:
         value=EnumParameterDescriptor(
             parameter_type=ParameterType.ENUM,
             enum_vals=[
+                EnumVal(key="all", label="all"),
                 EnumVal(key="BNext_M_ModelONNX", label="BNext_M_ModelONNX"),
                 EnumVal(key="BNext_S_ModelONNX", label="BNext_S_ModelONNX"),
                 EnumVal(key="TransformerModelONNX", label="TransformerModelONNX"),

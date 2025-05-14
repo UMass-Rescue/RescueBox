@@ -54,12 +54,15 @@ class TransformerModelDimaONNX:
     def preprocess(self, image, facecrop=None):
         # Optional face cropping
         if facecrop:
+            # print('Face cropping enabled')
             self.resolution_ratio = getattr(self, "resolution_ratio", 1.5)
             try:
                 np_image = np.array(image.convert("RGB"))
                 boxes, labels, scores, center, already_headshot = faceDetector(
                     np_image, face_detector=facecrop
                 )
+                # print(f"Boxes: {boxes}, Labels: {labels}, Scores: {scores}")
+                # print(f"Center: {center}, Already Headshot: {already_headshot}")
             except Exception:
                 center, already_headshot = None, False
             if already_headshot:
@@ -74,6 +77,8 @@ class TransformerModelDimaONNX:
                 bottom = min(h_img, cy + half)
                 if right > left and bottom > top:
                     image = image.crop((left, top, right, bottom))
+        #             print('cropped', end = ' ')
+        # image.save("cropped_image.jpg")
         # Apply standard transforms
         return self.apply_transforms(image)
 
