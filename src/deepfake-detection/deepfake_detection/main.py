@@ -287,11 +287,15 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 # Create a server instance
 server = MLService(APP_NAME)
 
+info_file_path = Path(__file__).resolve().parent / "img-app-info.md"
+with open(info_file_path, "r", encoding="utf-8") as f:
+    app_info = f.read()
+
 server.add_app_metadata(
     name="Image DeepFake Detector",
     author="UMass Rescue",
     version="0.2.0",
-    info="Detects deepfake images using various models. Supports BNext_M, BNext_S, Transformer, and TransformerDima models.",
+    info=app_info,
     plugin_name=APP_NAME,
 )
 
