@@ -66,7 +66,9 @@ def create_transform_case_task_schema() -> TaskSchema:
                 EnumVal(key="BNext_M_ModelONNX", label="BNext_M_ModelONNX"),
                 EnumVal(key="BNext_S_ModelONNX", label="BNext_S_ModelONNX"),
                 EnumVal(key="TransformerModelONNX", label="TransformerModelONNX"),
-                EnumVal(key="TransformerModelDimaONNX", label="TransformerModelDimaONNX"),
+                EnumVal(
+                    key="TransformerModelDimaONNX", label="TransformerModelDimaONNX"
+                ),
                 EnumVal(key="Resnet50ModelONNX", label="Resnet50ModelONNX"),
             ],
             default="all",

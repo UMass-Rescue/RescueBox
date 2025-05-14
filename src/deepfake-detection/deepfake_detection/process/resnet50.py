@@ -4,8 +4,8 @@ import numpy as np
 from pathlib import Path
 from deepfake_detection.process.utils import (
     Compose,
-    InterpolationMode,
-    Resize,
+    # InterpolationMode,
+    # Resize,
     CenterCrop,
     ToImage,
     ToDtype,
@@ -15,9 +15,7 @@ from deepfake_detection.process.utils import (
 
 # Trained on COCOFake dataset
 class Resnet50ModelONNX:
-    def __init__(
-        self, model_path="onnx_models/resnet50_fakes.onnx", resolution=224
-    ):
+    def __init__(self, model_path="onnx_models/resnet50_fakes.onnx", resolution=224):
         print("Loading Transformer Model ONNX...")
         # Convert model_path to a Path object
         self.model_path = Path(model_path)
@@ -37,14 +35,13 @@ class Resnet50ModelONNX:
                 CenterCrop(self.resolution),
                 ToImage(),
                 ToDtype(np.float32, scale=True),
-                Normalize(mean=[0.485, 0.456, 0.406],
-                      std=[0.229, 0.224, 0.225]),
+                Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]
         )
         out = transform(image)
         out = out.transpose(2, 0, 1)
-        return out[None, ...] 
-    
+        return out[None, ...]
+
     def preprocess(self, image):
         return self.apply_transforms(image)
 
@@ -61,7 +58,6 @@ class Resnet50ModelONNX:
         else:
             label = "likely real"
         return {"prediction": label, "confidence": confidence}
-
 
     def postprocess(self, output):
         logit = float(output[0][0])
