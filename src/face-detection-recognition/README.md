@@ -8,46 +8,6 @@ Built with a client-server architecture using Flask-ML, FaceMatch provides struc
 
 # Getting started
 
-## Prerequisites
-
-- Python 3.12 
-- Virtual environment support (recommended but optional)
-
-## Installation
-
-### Clone the repository
-
-```
-git clone https://github.com/bertiesh/face-detection-recognition.git
-cd face-detection-recognition
-```
-
-### SetUp Virtual environment
-
-```
-python -m venv facematch-env
-source facematch-env/bin/activate  
-
-# On Windows: facematch-env\Scripts\activate
-```
-
-#### With Conda
-
-```
-conda create -n facematch-env python=3.12
-conda activate facematch-env
-```
-
-### Install dependencies
-
-_Run below command from root directory of project._
-
-```
-pip install -r requirements.txt
-```
-
-In the case that your visual studio build tools are out of date (error in one of the dependency installations), download installer from `https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022` and either update existing tools or modify installer to download necessary build tools (e.g. If C++ build tools are the issue, click desktop development with C++ and install).
-
 ---
 ## Download ONNX Models
 
@@ -61,8 +21,6 @@ To get started, download `arcface_model_new.onnx`, and `yolov8-face-detection.on
 - set up .env in root directory of FaceMatch with the following variables
     - DATABASE_DIRECTORY = path to directory of images to be uploaded to database
     - QUERIES_DIRECTORY = path to directory of images to be queried
-    - CHROMA_HOST= the host for the chromaDB server
-    - CHROMA_PORT= portnumber for the chromaDB server
 
 # Usage
 
@@ -72,33 +30,23 @@ To get started, download `arcface_model_new.onnx`, and `yolov8-face-detection.on
 
 _Run all below commands from root directory of project._
 
-### Start DB server
-```
-chroma run --path ./resources/data
-```
-
-### Start the FaceMatch server
-```
-python -m face_detection_recognitionface_match_server
-```
-
 ### Task 1: Upload images to database
 ```
-python -m facematch.Sample_Client.sample_bulk_upload_client --directory_paths <path_to_directory_of_images> --collection_name <collection_name>
+poetry run python -m ./src/face-detection-recognition/face_detection_recognition/face_match_server.py /face-match/bulkupload "<path_to_directory_of_images>" "<collection_name>"
 ```
 Note: The name of the collection could be a new collection you wish to create or an existing collection you wish to upload to.
 
 _Run with Sample images directory:_
 
 ```
-python -m facematch.Sample_Client.sample_bulk_upload_client --directory_paths ./resources/sample_db --collection_name test
+poetry run python -m ./src/face-detection-recognition/face_detection_recognition/face_match_server.py /face-match/bulkupload "./resources/sample_db"  "test"
 
-# On Windows: python -m facematch.Sample_Client.sample_bulk_upload_client --directory_paths .\resources\sample_db --collection_name test
+# On Windows: poetry run python -m .\src\face-detection-recognition\face_detection_recognition\face_match_server.py /face-match/bulkupload ".\resources\test_image.jpg" "test,0.5" ".\resources\sample_db" "test"
 ```
 
 ### Task 2: Find matching faces for single image
 ```
-python -m facematch.Sample_Client.sample_find_face_client --file_paths <path_to_image> --collection_name <collection_name> --similarity_threshold <similarity_threshold>
+poetry run python -m ./src/face-detection-recognition/face_detection_recognition/face_match_server.py /face-match/findface "<path_to_image>" "<collection_name>,<similarity_threshold>"
 ```
 > Note: The name of the collection needs to be an existing collection you wish to query.
 > The default similarity threshold, 0.45 is used if no similarity threshold is provided.
@@ -107,16 +55,16 @@ python -m facematch.Sample_Client.sample_find_face_client --file_paths <path_to_
 _Run with Sample test image:_
 
 ```
-python -m facematch.Sample_Client.sample_find_face_client --file_paths ./resources/test_image.jpg --collection_name test --similarity_threshold 0.5
+poetry run python -m ./src/face-detection-recognition/face_detection_recognition/face_match_server.py /face-match/findface "./resources/test_image.jpg" "test,0.5"
 
-# On Windows: python -m facematch.Sample_Client.sample_find_face_client --file_paths .\resources\test_image.jpg --collection_name test --similarity_threshold 0.5
+# On Windows: poetry run python -m .\src\face-detection-recognition\face_detection_recognition\face_match_server.py /face-match/findface ".\resources\test_image.jpg" "test,0.5"
 ```
 
 The correct match for the test image should be outputted with the filename Bill_Belichick_0002
 
-### Task 3: Find matching faces for single bulk images
+### Task 3: Find matching faces for many images
 ```
-python -m facematch.Sample_Client.sample_find_face_bulk_client --query_directory <path_to_queries> --collection_name <collection_name> --similarity_threshold <similarity_threshold>
+poetry run python -m ./src/face-detection-recognition/face_detection_recognition/face_match_server.py /face-match/findfacebulk   "<path_to_queries>"  "<collection_name>,<similarity_threshold>" 
 ```
 > Note: The name of the collection needs to be an existing collection you wish to query.
 > The default similarity threshold, 0.45 is used if no similarity threshold is provided.
@@ -125,32 +73,17 @@ python -m facematch.Sample_Client.sample_find_face_bulk_client --query_directory
 _Run with Sample test image:_
 
 ```
-python -m facematch.Sample_Client.sample_find_face_bulk_client --query_directory ./resources/sample_queries --collection_name test --similarity_threshold 0.5
+poetry run python -m ./src/face-detection-recognition/face_detection_recognition/face_match_server.py /face-match/findfacebulk  "./resources/sample_queries" "test,0.5"
 
-# On Windows: python -m facematch.Sample_Client.sample_find_face_bulk_client --query_directory .\resources\sample_queries --collection_name test --similarity_threshold 0.5
+# On Windows: poetry run python -m .\src\face-detection-recognition\face_detection_recognition\face_match_server.py /face-match/findfacebulk ".\resources\sample_queries" "test,0.5"
 ```
 
 Console output will show query filename followed by the found matches file names. The first three images (the ones named Bill) have a match in the database, and the last three do not.
 
-## Rescue-Box frontend
 
-_Run below command from root directory of project._
+### Use RescueBox Frontend
 
-### Start DB server
-```
-chroma run --path ./resources/data
-```
-
-### Start the FaceMatch server
-```
-python -m face_detection_recognition.face_match_server
-```
-
-### Use Rescue-Box-Desktop
-
-- Install Rescue-Box from [link](https://github.com/UMass-Rescue/RescueBox-Desktop)
-
-- Open Rescue-Box-Desktop and register the model by adding the server IP address and port number in which the server is running.
+After you've setup RB and started the RB frontend and server:
 
 - Choose the model from list of available models under the **MODELS** tab.
 
@@ -215,15 +148,16 @@ Check out this [document](https://docs.google.com/document/d/1CpN__oPgmAvY65s-tW
 
 _Run all below commands from root directory of project._
 
-## Run unit tests
+## Run unit tests for facematch
 
 ```
-python -m unittest discover test
+poetry run pytest ./src/FaceDetectionandRecognition/test/test_app_main.py -v --capture=no
 ```
-- #### Run individual test
+
+#### Run individual tests
 
 ```
-python -m unittest test.<test_file_name>
+poetry run pytest ./src/FaceDetectionandRecognition/test/test_app_main.py::TestFaceMatch::<test function name found in test_app_main.py> -v --capture=no
 ```
 
 

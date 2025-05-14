@@ -13,6 +13,7 @@ The VGGFace dataset for testing can be found at [VGGFace Dataset](https://drive.
 ---
 
 ## Single file run benchmark code
+- *IMPORTANT FOR FUTURE WORK*: The /findfacebulktesting and /listcollections endpoints as they are currently implemented need to exist and be uncommented for this script to work.
 - set up .env in root directory with the following variables
     - DATABASE_DIRECTORY = path to directory of images to be uploaded to database
     - QUERIES_DIRECTORY = path to directory of images to be queried
