@@ -31,6 +31,7 @@ import os
 from deepfake_detection.sim_data import defaultDataset
 from collections import defaultdict
 import logging
+from datetime import datetime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -211,7 +212,10 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     logger.info(f"Active models: {[m.__class__.__name__ for m in active_models]}")
     # Need logic to verify that the random num is not already in the directory *******
     out.mkdir(parents=True, exist_ok=True)
-    out = out / f"predictions_{randint(0, 999)}.csv"
+
+    now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    out = out / f"predictions_{now}.csv"
 
     # Initialize face cropper if requested
     facecropper = None
