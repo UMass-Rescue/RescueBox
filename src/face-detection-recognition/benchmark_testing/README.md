@@ -6,7 +6,9 @@ This repository contains scripts and tools to benchmark the performance and accu
 
 ## Dataset
 
-The dataset for testing can be found at [Dataset](https://drive.google.com/file/d/1dpfTxxAbM-3StVNCsA6qQyYNhhlsfPOu/view?usp=sharing).
+The LFW dataset for testing can be found at [LFW Dataset](https://drive.google.com/file/d/1N8Ym1zqoW875tVIjePWwaxHTN70p6-av/view?usp=share_link). sample_database (840 images) and sample_queries (1680 images) are the preconfigured testing image directories. 
+
+The VGGFace dataset for testing can be found at [VGGFace Dataset](https://drive.google.com/file/d/1YIswaMR87oN9taA97p2dMIzNXUzWZcGe/view?usp=share_link). database (250 images) and queries (500 images) are the preconfigured testing image directories. 
 
 ---
 
