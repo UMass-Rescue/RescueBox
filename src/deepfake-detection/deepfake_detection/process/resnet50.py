@@ -46,9 +46,9 @@ class Resnet50ModelONNX:
     def preprocess(self, image, facecrop=None):
         # Optional face cropping
         if facecrop:
-            self.resolution_ratio = getattr(self, 'resolution_ratio', 1.5)
+            self.resolution_ratio = getattr(self, "resolution_ratio", 1.5)
             try:
-                np_image = np.array(image.convert('RGB'))
+                np_image = np.array(image.convert("RGB"))
                 boxes, labels, scores, center, already_headshot = faceDetector(
                     np_image, face_detector=facecrop
                 )

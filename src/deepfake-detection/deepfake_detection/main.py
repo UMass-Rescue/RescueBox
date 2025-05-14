@@ -14,7 +14,7 @@ from rb.api.models import (
     TaskSchema,
     ParameterSchema,
     EnumParameterDescriptor,
-    TextParameterDescriptor,
+    # TextParameterDescriptor,
     EnumVal,
     ParameterType,
 )
@@ -80,11 +80,23 @@ def create_transform_case_task_schema() -> TaskSchema:
     facecrop_schema = ParameterSchema(
         key="facecrop",
         label="Enable face cropping? (true/false)",
-        input_type=InputType.TEXT,
-        value=TextParameterDescriptor(default="false"),
+        # input_type=InputType.TEXT,
+        value=EnumParameterDescriptor(
+            parameter_type=ParameterType.ENUM,
+            enum_vals=[
+                EnumVal(key="true", label="true"),
+                EnumVal(key="false", label="false"),
+            ],
+            default="false",
+            message_when_empty="Select if you want facecropping. Default is false.",
+        ),
+        # value=TextParameterDescriptor(default="false"),
     )
 
-    return TaskSchema(inputs=[input_schema, output_schema], parameters=[models_schema, facecrop_schema])
+    return TaskSchema(
+        inputs=[input_schema, output_schema],
+        parameters=[models_schema, facecrop_schema],
+    )
 
 
 # Specify the input and output types for the task
@@ -105,7 +117,9 @@ def run_models(models, dataset, facecrop=None):
         model_results = []
         model_results.append({"model_name": model.__class__.__name__})
         # print("Name:", model.__class__.__name__)
-        for i in range(len(dataset)):  # This is done one image at a time to avoid memory issues
+        for i in range(
+            len(dataset)
+        ):  # This is done one image at a time to avoid memory issues
             sample = dataset[i]
             image = sample["image"]
             image_path = sample["image_path"]
