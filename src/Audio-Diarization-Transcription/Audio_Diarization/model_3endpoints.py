@@ -12,18 +12,19 @@ from rb.api.models import (
 from pyannote.audio import Pipeline
 import whisper
 from collections import defaultdict
-from Audio_Diarization.utils import diarize_text
+from Audio_Diarization.utils import diarize_text, load_pyannote_pipeline_from_pretrained
 import typer
 import csv
 from typing import Optional
 import sqlite3
 
-# Load models
-pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.0")
+# Load huggingface model
+# pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.0")
 
 # To use local model
-# PATH_TO_CONFIG = "./models/pyannotediarizationconfig.yaml"
-# pipeline = load_pyannote_pipeline_from_pretrained(PATH_TO_CONFIG)
+PATH_TO_CONFIG = "src/Audio-Diarization-Transcription/Audio_Diarization/models/pyannote_diarization_config.yaml"
+pipeline = load_pyannote_pipeline_from_pretrained(PATH_TO_CONFIG)
+
 asr_model = whisper.load_model("medium.en")
 
 
