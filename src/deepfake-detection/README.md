@@ -56,15 +56,6 @@ torch.onnx.export(
 )
 ```
 
-## Datasets
-The model has been evaluated on several datasets:
-
-1. **DDFD (Deepfake Detection Face Dataset)**
-   - Source: [DDFD Dataset](https://cvlab.cse.msu.edu/dffd-dataset.html)
-
-2. **H3D**
-   - Source: [H3D Website](https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/shape/h3d/)
-
 ## Citations
 The model is based on the following model and dataset:
 
@@ -76,14 +67,6 @@ The model is based on the following model and dataset:
     month     = {June},
     year      = {2024},
     pages     = {3771-3780}
-}
-@InProceedings{PoseletsICCV09,
-  author       = "Lubomir Bourdev and Jitendra Malik",
-  title        = "Poselets: Body Part Detectors Trained Using 3D Human Pose Annotations",
-  booktitle    = "International Conference on Computer Vision",
-  month        = "sep",
-  year         = "2009",
-  url          = "http://www.eecs.berkeley.edu/~lbourdev/poselets"
 }
 ```
 
