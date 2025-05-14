@@ -13,7 +13,10 @@ from rb.api.models import (
     ResponseBody,
     TaskSchema,
     ParameterSchema,
+    EnumParameterDescriptor,
     TextParameterDescriptor,
+    EnumVal,
+    ParameterType,
 )
 from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 from deepfake_detection.process.bnext_S import BNext_S_ModelONNX
@@ -57,9 +60,22 @@ def create_transform_case_task_schema() -> TaskSchema:
     )
     models_schema = ParameterSchema(
         key="models",
-        label="Comma-separated list of models to use (e.g., 'BNext_M_ModelONNX,TransformerModelONNX'). Use 'all' to run all models.",
-        input_type=InputType.TEXT,
-        value=TextParameterDescriptor(default="all"),
+        label="Select Models",
+        subtitle="Select the models to use for prediction. By default, all models are selected.",
+        value=EnumParameterDescriptor(
+            parameter_type=ParameterType.ENUM,
+            enum_vals=[
+                EnumVal(key="BNext_M_ModelONNX", label="BNext_M_ModelONNX"),
+                EnumVal(key="BNext_S_ModelONNX", label="BNext_S_ModelONNX"),
+                EnumVal(key="TransformerModelONNX", label="TransformerModelONNX"),
+                EnumVal(
+                    key="TransformerModelDimaONNX", label="TransformerModelDimaONNX"
+                ),
+                EnumVal(key="Resnet50ModelONNX", label="Resnet50ModelONNX"),
+            ],
+            default="all",
+            message_when_empty="Select the models to use for prediction, default is all.",
+        ),
     )
     facecrop_schema = ParameterSchema(
         key="facecrop",
@@ -67,6 +83,7 @@ def create_transform_case_task_schema() -> TaskSchema:
         input_type=InputType.TEXT,
         value=TextParameterDescriptor(default="false"),
     )
+
     return TaskSchema(inputs=[input_schema, output_schema], parameters=[models_schema, facecrop_schema])
 
 
