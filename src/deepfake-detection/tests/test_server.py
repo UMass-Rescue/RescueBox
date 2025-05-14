@@ -15,6 +15,7 @@ class TestDeepFakeServer(RBAppTest):
         self.set_app(cli_app, APP_NAME)
 
     def get_metadata(self):
+        print(APP_NAME)
         return AppMetadata(
             name="Image DeepFake Detector",
             author="UMass Rescue",
@@ -104,6 +105,7 @@ class TestDeepFakeServer(RBAppTest):
             },
             "parameters": {
                 "models": "all",
+                "facecrop": "false",
             },
         }
         response = self.client.post(predict_api, json=payload)
