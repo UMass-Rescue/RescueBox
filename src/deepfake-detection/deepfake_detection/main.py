@@ -26,7 +26,6 @@ from deepfake_detection.process.transformerDima_onnx_process import (
 )
 from deepfake_detection.process.resnet50 import Resnet50ModelONNX
 import onnxruntime as ort
-from random import randint
 import os
 from deepfake_detection.sim_data import defaultDataset
 from collections import defaultdict
