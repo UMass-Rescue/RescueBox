@@ -25,6 +25,9 @@ jobs:
       - name: Create required files
         run: |
           pip install gdown
+          
+          gdown https://drive.google.com/drive/folders/14UJap0G5YkdQoXCbjclhrv5gxswtuDit -O /tmp/folder --folder
+          pip install gdown
           mkdir src/deepfake-detection/deepfake_detection/onnx_models
           gdown "1tFHTXCGy0hWRFH2H9MP9MpaBJvyHbW0u" --fuzzy -O src/deepfake-detection/deepfake_detection/onnx_models/bnext_M_dffd_model.onnx --continue
           gdown "1J1PjIFekJ0LEp3MxJ8ReOBmnqe5-4na6" --fuzzy -O src/deepfake-detection/deepfake_detection/onnx_models/bnext_S_coco_model.onnx --continue
@@ -32,5 +35,6 @@ jobs:
           gdown "1Ve2n-qq-zwfeBJLmeCV2XneHGb37Bgjq" --fuzzy -O src/deepfake-detection/deepfake_detection/onnx_models/transformer_model_deepfake.onnx --continue
           gdown "1rURFeRxBrNxdQpUssAPi2bXPwURLOkgl" --fuzzy -O src/deepfake-detection/deepfake_detection/onnx_models/resnet50_fakes.onnx --continue
           gdown "1TbP3X95jRNsgBkulYJrblF49IAyE6nvn" --fuzzy -0 src/deepfake-detection/deepfake_detection/onnx_models/face_detector.onnx --continue
+      
       - name: Run tests
         run: poetry run pytest
