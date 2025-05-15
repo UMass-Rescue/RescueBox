@@ -37,7 +37,9 @@ for file_id in sorted(eval_files):
         continue
 
     # Reference annotation
-    with tempfile.NamedTemporaryFile("w+", suffix=".rttm", delete=False) as temp_ref_file:
+    with tempfile.NamedTemporaryFile(
+        "w+", suffix=".rttm", delete=False
+    ) as temp_ref_file:
         temp_ref_file.writelines(ref_lines)
         temp_ref_file.flush()
         reference = Annotation()
@@ -61,7 +63,7 @@ for file_id in sorted(eval_files):
 
     # Compute detailed metrics
     detailed = metric.compute_components(reference, hypothesis)
-    file_duration = detailed['total']
+    file_duration = detailed["total"]
     file_der = metric(reference, hypothesis)
 
     total_der += file_der
@@ -73,7 +75,9 @@ for file_id in sorted(eval_files):
         total_components[k] += detailed[k]
 
     # Print detailed result
-    print(f"{file_id}: DER = {100 * file_der:.2f}% | Miss = {100 * detailed['missed detection'] / file_duration:.2f}% | FA = {100 * detailed['false alarm'] / file_duration:.2f}% | Conf = {100 * detailed['confusion'] / file_duration:.2f}%")
+    print(
+        f"{file_id}: DER = {100 * file_der:.2f}% | Miss = {100 * detailed['missed detection'] / file_duration:.2f}% | FA = {100 * detailed['false alarm'] / file_duration:.2f}% | Conf = {100 * detailed['confusion'] / file_duration:.2f}%"
+    )
 
 # Summary
 if count > 0:
