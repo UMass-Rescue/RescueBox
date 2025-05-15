@@ -162,3 +162,5 @@ python  model.py
 
 The output will look something like this
 <img width="813" alt="image" src="https://github.com/user-attachments/assets/57cb1b36-2174-4208-a50d-dce3099d7e5a" />
+
+Updating readme
