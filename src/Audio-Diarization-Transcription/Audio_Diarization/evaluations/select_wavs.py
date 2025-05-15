@@ -28,7 +28,7 @@ def select_random_wavs(input_folder, output_folder, sample_size=50):
         dst_path = os.path.join(output_folder, file_name)
         shutil.copy2(src_path, dst_path)
 
-    print(f"✅ {sample_size} files copied to: {output_folder}")
+    print(f" {sample_size} files copied to: {output_folder}")
 
 
 # Function Call, Change the file path as needed

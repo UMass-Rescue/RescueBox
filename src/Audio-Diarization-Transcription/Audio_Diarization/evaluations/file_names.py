@@ -15,4 +15,4 @@ def list_files(input_folder, output_file="file_list.txt"):
 
 
 # Function Call, Change the file path as needed
-# list_files("input/folder/filepath", "output_file_list.txt")
+# list_files("input/folder/filepath", "output_file_list.eval")
