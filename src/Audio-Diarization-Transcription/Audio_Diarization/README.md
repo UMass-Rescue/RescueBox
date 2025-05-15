@@ -76,3 +76,5 @@ To run the model using the cli, use the following command
 ```
 poetry run python src/Audio-Diarization-Transcription/Audio_Diarization/model_3endpoints.py /Audio_Diarization/diarize "src/Audio-Diarization-Transcription/Audio_Diarization/input src/Audio-Diarization-Transcription/Audio_Diarization/output" " "
 ```
+
+The diarized csv will be found in the output folder mentioned in the command. To run various options of the model - Diraize only, Transcribe only or Diairze + Transcribe, simplu change the second argument to Audio_Diarization/diarize , Audio_Diarization/transcribe or Audio_Diarization/diarize_and_transcribe respectively ~
