@@ -5,6 +5,7 @@ from deepfake_detection.main import (
     app as cli_app,
     APP_NAME,
     create_transform_case_task_schema as task_schema,
+    app_info,
 )
 from rb.api.models import AppMetadata, ResponseBody
 from rb.lib.common_tests import RBAppTest
@@ -20,7 +21,7 @@ class TestDeepFakeServer(RBAppTest):
             name="Image DeepFake Detector",
             author="UMass Rescue",
             version="0.2.0",
-            info="Detects deepfake images using various models. Supports BNext_M, BNext_S, Transformer, and TransformerDima models.",
+            info=app_info,
             plugin_name=APP_NAME,
         )
 
