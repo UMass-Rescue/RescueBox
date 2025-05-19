@@ -171,3 +171,4 @@ rescuebox/lib/
 rescuebox/pyvenv.cfg
 src/rb-api/rb/api/static/index/main.js
 **/*/.DS_Store
+/video_frames
