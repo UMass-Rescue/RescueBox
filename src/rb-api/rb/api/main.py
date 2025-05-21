@@ -1,9 +1,11 @@
+import json
 import multiprocessing
 import os
 import sys
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
+from fastapi.openapi.utils import get_openapi
 from rb.api import routes
 
 app = FastAPI(
@@ -40,6 +42,45 @@ app.include_router(routes.probes_router, prefix="/probes")
 app.include_router(routes.cli_to_api_router)
 app.include_router(routes.ui_router)
 
+
+# https://fastapi.tiangolo.com/how-to/extending-openapi/#overriding-the-defaults
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="RescueBoxAPI",
+        version="1.1.0",
+        summary="This is a recuebox OpenAPI schema",
+        description="recuebox OpenAPI schema for plugins **OpenAPI** schema",
+        routes=app.routes
+    )
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://github.com/UMass-Rescue/RescueBox/tree/main/RescueBox-Desktop/assets/icon.png"
+    }
+
+    trim_schema_names = {}
+    for route in app.routes:
+        if route.name != 'static':
+            # print(f"plugin route name is {route.path}, {route.methods}")
+            name = str(route.path.replace('-','_').replace("/", "_"))
+            method = str('_') + str(route.methods.pop().lower())
+            key = name + method
+            value = method
+            trim_schema_names[key] = value
+
+    # Dict to json string, replace the schema name, and back to dict
+    for schema_name, replacement in trim_schema_names.items():
+        openapi_schema = json.loads(json.dumps(openapi_schema).replace(schema_name, replacement))
+
+    # Sort the components schemas, because new name could not be sorted correctly
+    openapi_schema['components']['schemas'] = dict(sorted(openapi_schema['components']['schemas'].items()))
+
+    app.openapi_schema = openapi_schema
+
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 if __name__ == "__main__":
     import uvicorn

@@ -69,7 +69,7 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
             raise ValueError(f"Invalid return type from Typer command: {type(result)}")
         except Exception as e:
             # response handler for all plugin runtime errors
-            logger.error("Error: %s %s", e, stdout)
+            logger.error("Plugin Error: %s %s", e, stdout)
             raise HTTPException(  # pylint: disable=raise-missing-from
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail={"error": f"{e}"},
@@ -80,7 +80,7 @@ def streaming_endpoint(callback: Callable, *args, **kwargs) -> Generator:
     """Execute a CLI command and stream the results with proper response handling"""
 
     logger.debug(
-        f"🚀Streaming started for command: {callback.__name__} with args={args}, kwargs={kwargs}"
+        # f"🚀Streaming started for command: {callback.__name__} with args={args}, kwargs={kwargs}"
     )
 
     for line in capture_stdout_as_generator(callback, *args, **kwargs):

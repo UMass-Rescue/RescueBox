@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+from pydantic import BaseModel
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     InputSchema,
@@ -24,7 +25,11 @@ APP_NAME = "text_summarization"
 class Inputs(TypedDict):
     input_dir: DirectoryInput
     output_dir: DirectoryInput
-
+    # def __getattr__(self, key):
+    #     try:
+    #         return self[key]
+    #     except KeyError:
+    #         raise AttributeError(f"'Inputs' object has no attribute '{key}'")
 
 class Parameters(TypedDict):
     model: str
@@ -72,6 +77,7 @@ def summarize(
     """
     Summarize text and PDF files in a directory.
     """
+
     input_dir = inputs["input_dir"].path
     output_dir = inputs["output_dir"].path
     model = parameters["model"]
