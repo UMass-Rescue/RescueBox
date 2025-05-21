@@ -1,6 +1,10 @@
+# generate sdk
+curl --header "Content-Type: application/json" "http://localhost:8000/openapi.json"
+save output to oo.json
+openapi-python-client generate --path oo.json --output-path sdk2 --overwrite --config sdk_config.yaml
+Generating sdk2
 
-
-first : run celery workerer
+first : run celery worker
 next  : run main.py
 
 C:\work\misc\new\RescueBox\sdk\proj>python main.py

@@ -1,6 +1,13 @@
 # rescue-box-api-client
 A client library for accessing RescueBoxAPI
 
+# generate sdk
+curl --header "Content-Type: application/json" "http://localhost:8000/openapi.json"
+save output to oo.json
+openapi-python-client generate --path oo.json --output-path sdk2 --overwrite --config sdk_config.yaml
+Generating sdk2
+
+
 ## Usage
 First, create a client:
 
