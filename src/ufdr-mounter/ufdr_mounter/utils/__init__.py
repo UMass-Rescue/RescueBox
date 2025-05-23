@@ -1,9 +1,6 @@
 import platform
 
 if platform.system() == "Windows":
-    try:
-        from .ufdr_mount_windows import UFDRMount # type: ignore
-    except EnvironmentError:
-        print(
-            "Warning: Windows fuse mount not available. "
-        )
+    from .ufdr_mount_windows import UFDRMount # noqa: F401
+else:
+    from .ufdr_mount_unix import UFDRMount # noqa: F401
