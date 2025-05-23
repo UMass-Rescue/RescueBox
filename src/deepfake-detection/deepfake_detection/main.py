@@ -142,7 +142,7 @@ def cli_parser(input: str) -> Inputs:
     }
 
 
-def param_parser( facecrop: str = "false") -> Parameters:
+def param_parser(facecrop: str = "false") -> Parameters:
     print("param_parser called")
     return {
         "facecrop": facecrop,
@@ -222,13 +222,10 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         for pred, conf in zip(preds, confs):
             vote_totals[pred] += conf
 
-
         # --- Append the rows for this image ---
         csv_rows.append(["Path:"] + [path] * len(model_data))
         csv_rows.append(["Prediction:"] + preds)
-        csv_rows.append(
-            ["Confidence:"] + [f"{conf * 100:.0f}%" for conf in confs]
-        )
+        csv_rows.append(["Confidence:"] + [f"{conf * 100:.0f}%" for conf in confs])
 
     with open(out, "w", newline="") as f:
         writer = csv.writer(f)

@@ -285,9 +285,7 @@ def main():
     print("Press Ctrl+C to unmount and exit.")
 
     # FUSE in foreground
-    FUSE(
-        UFDRMount(ufdr_file), MOUNT_DIR, foreground=True, ro=True, allow_other=True
-    )
+    FUSE(UFDRMount(ufdr_file), MOUNT_DIR, foreground=True, ro=True, allow_other=True)
 
 
 if __name__ == "__main__":

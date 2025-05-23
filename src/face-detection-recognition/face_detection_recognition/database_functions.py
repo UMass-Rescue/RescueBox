@@ -48,7 +48,7 @@ class Vector_Database:
                         "resources",
                         "data",
                     )
-                )
+                ),
             )
 
     def create_full_collection_name(self, base_name, detector, model, isEnsemble):

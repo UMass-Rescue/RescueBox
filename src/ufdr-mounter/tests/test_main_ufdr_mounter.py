@@ -5,7 +5,6 @@ from pathlib import Path
 import os
 
 
-
 class TestUFDRMounter(RBAppTest):
     def setup_method(self):
         self.set_app(cli_app, APP_NAME)
