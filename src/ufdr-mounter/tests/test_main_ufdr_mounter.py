@@ -6,6 +6,7 @@ import os
 
 # Note : pre req libfuse library must be available in the test environment
 
+
 class TestUFDRMounter(RBAppTest):
     def setup_method(self):
         self.set_app(cli_app, APP_NAME)
