@@ -68,7 +68,6 @@ class RBAppTest(ABC):
                 assert any(
                     route["short_title"] in message for message in caplog.messages
                 )
-               
 
     def check_if_str_in_messages(self, str_to_check: str, messages: List[str]):
         """
@@ -117,7 +116,6 @@ class RBAppTest(ABC):
         expected_metadata = self.get_metadata().model_dump(mode="json")
         assert len(body) > 0
         assert len(expected_metadata) > 0
-
 
     def test_api_task_schema(self):
         ml_services = self.get_all_ml_services()

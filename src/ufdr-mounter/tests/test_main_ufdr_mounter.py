@@ -3,7 +3,7 @@ from rb.lib.common_tests import RBAppTest
 from rb.api.models import AppMetadata, ResponseBody
 from pathlib import Path
 import os
-import json
+
 
 
 class TestUFDRMounter(RBAppTest):
@@ -28,7 +28,9 @@ class TestUFDRMounter(RBAppTest):
         mount_api = f"/{APP_NAME}/mount"
         input_str = "not/a/real/file.ufdr,bad_mount_point"
         result = self.runner.invoke(self.cli_app, [mount_api, input_str, ""])
-        assert result.exit_code != 0, f"Expected failure for bad path, got: {result.output}"
+        assert (
+            result.exit_code != 0
+        ), f"Expected failure for bad path, got: {result.output}"
 
     def test_mount_command(self, caplog):
         mount_api = f"/{APP_NAME}/mount"
@@ -52,7 +54,7 @@ class TestUFDRMounter(RBAppTest):
                 "ufdr_file": {"path": str(test_file)},
                 "mount_name": {"text": str(mount_dir)},
             },
-            "parameters": {}
+            "parameters": {},
         }
         response = self.client.post(mount_api, json=input_json)
         assert response.status_code == 422

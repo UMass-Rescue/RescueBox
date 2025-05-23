@@ -16,7 +16,7 @@ from rb.lib.utils import (
     ensure_ml_func_hinting_and_task_schemas_are_valid,
     ensure_ml_func_parameters_are_typed_dict,
 )
-import json
+
 
 logger = getLogger(__name__)
 

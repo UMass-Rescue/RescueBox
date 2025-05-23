@@ -12,8 +12,9 @@ from face_detection_recognition.face_match_server import (
     app as face_detection_app,
     APP_NAME as FACE_MATCH_APP_NAME,
 )
+
 ufdr_app = None
-try :
+try:
     from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
     from ufdr_mounter.ufdr_server import app as ufdr_app, APP_NAME as UFDR_APP_NAME
 except EnvironmentError:
