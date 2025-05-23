@@ -653,7 +653,7 @@ files = [
 
 [[package]]
 name = "doc-parser"
-version = "0.1.0"
+version = "2.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -672,7 +672,7 @@ url = "../doc-parser"
 
 [[package]]
 name = "file-utils"
-version = "0.1.0"
+version = "2.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -688,7 +688,7 @@ url = "../file-utils"
 
 [[package]]
 name = "rb-lib"
-version = "0.1.0"
+version = "2.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -727,7 +727,7 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "rescuebox"
-version = "0.1.0"
+version = "2.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"

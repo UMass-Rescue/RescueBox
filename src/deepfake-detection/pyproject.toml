@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "deepfake-detection"
+version = "2.0.0"
+description = ""
+authors = ["Ben Chou <bchou@umass.edu>", "Matthew Maillet <mcmaillet@umass.edu>", "Om Mehta <omehta@umass.edu>"]
+
+readme = "README.md"
+packages = [{include = "deepfake_detection"}]
+[tool.poetry.scripts]
+deepfake-detection = "deepfake_detection.main:app"
+
+[tool.poetry.dependencies]
+numpy = "*"
+pandas = "*"
+pillow = "*"
+onnxruntime = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+

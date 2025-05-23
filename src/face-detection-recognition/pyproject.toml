@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "face-match"
+version = "2.0.0"
+description = ""
+authors = [
+    "Andrew Lin <andrewlin@umass.edu>",
+    "David Thibodeau <dpthibodeau@umass.edu>",
+    "Xinyuan Xu <xinyuanx@umass.edu>",
+    "Anju S <asanthoshkum@umass.edu>",
+    "Rigved Manoj <rmanoj@umass.edu>"
+]
+packages = [{include = "face_detection_recognition"}]
+
+[tool.poetry.scripts]
+face-match = "face_detection_recognition.face_match_server:app"
+
+[tool.poetry.dependencies]
+pandas="*"
+ruff="*"
+python-dotenv="*"
+onnxruntime="*"
+chromadb="*"
+matplotlib="*"
+opencv-python="*"
+numpy="*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

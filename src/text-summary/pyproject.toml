@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "text-summary"
-version = "0.1.0"
+version = "2.0.0"
 description = "A project that helps summarize text."
 authors = ["Prasanna <prasanna.lakkur@gmail.com>"]
 packages = [{include = "text_summary"}]

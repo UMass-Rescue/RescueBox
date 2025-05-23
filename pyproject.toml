@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rescuebox"
-version = "0.1.0"
+version = "2.0.0"
 description = ""
 authors = ["Jagath Jai Kumar <jagath.jaikumar@gmail.com>"]
 packages = [{include = "rescuebox"}]
@@ -22,6 +22,10 @@ onnxruntime = "1.21.0"
 opencv-python = ">=4.11.0.86,<5.0.0.0"
 ollama = ">=0.4.7,<0.5.0"
 pypdf2 = ">=3.0.1,<4.0.0"
+chromadb = "^1.0.4"
+pandas = ">=2.2.3,<3.0.0"
+pillow = ">=11.2.1,<12.0.0"
+fusepy = ">=3.0.1,<4.0.0"
 
 rb-lib = { path = "src/rb-lib", develop = true }
 
@@ -30,6 +34,9 @@ doc-parser = { path = "src/doc-parser", develop = true }
 audio-transcription = { path = "src/audio-transcription", develop = true }
 age-and-gender-detection = { path = "src/age_and_gender_detection", develop = true }
 text-summary = {path = "src/text-summary", develop = true}
+face-match = {path = "src/face-detection-recognition", develop = true }
+deepfake-detection = {path = "src/deepfake-detection", develop = true}
+ufdr-mounter = { path = "src/ufdr-mounter", develop = true }
 
 # Don't add new packages here, add them appropriately in the list above
 beautifulsoup4 = "^4.13.3"
