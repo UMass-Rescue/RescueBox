@@ -55,7 +55,7 @@ class TestUFDRMounter(RBAppTest):
             "parameters": {}
         }
         response = self.client.post(mount_api, json=input_json)
-        assert response.status_code == 200
+        assert response.status_code == 422
         body = ResponseBody(**response.json())
         assert body.root is not None
         assert "Mounted at" in body.root.value

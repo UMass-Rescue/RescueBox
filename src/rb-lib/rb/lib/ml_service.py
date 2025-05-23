@@ -77,7 +77,7 @@ class MLService(object):
             if self._app_metadata is None:
                 return {"error": "App metadata not set"}
             res = self._app_metadata.model_dump(mode="json")
-            logger.info(json.dumps(res))
+            logger.info(res)
             return res
 
     def add_app_metadata(
