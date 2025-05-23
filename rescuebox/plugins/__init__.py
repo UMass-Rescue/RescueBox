@@ -8,23 +8,21 @@ from audio_transcription.main import (
 from text_summary.main import app as text_summary_app, APP_NAME as TEXT_SUM_APP_NAME  # type: ignore
 from age_and_gender_detection.main import app as age_gender_app, APP_NAME as AGE_GENDER_APP_NAME  # type: ignore
 from deepfake_detection.main import app as deepfake_detection_app, APP_NAME as DEEPFAKE_APP_NAME  # type: ignore
+# Import plugin modules
+from doc_parser.main import app as doc_parser_app  # type: ignore
+from file_utils.main import app as file_utils_app  # type: ignore
 from face_detection_recognition.face_match_server import (
     app as face_detection_app,
     APP_NAME as FACE_MATCH_APP_NAME,
-)
+) # type: ignore
 
 ufdr_app = None
 try:
-    from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
-    from ufdr_mounter.ufdr_server import app as ufdr_app, APP_NAME as UFDR_APP_NAME
+    from ufdr_mounter.ufdr_server import app as ufdr_app, APP_NAME as UFDR_APP_NAME # type: ignore
 except EnvironmentError:
     print(
         "Warning: UFDR pre req for mount not available. Hence skipping the UFDR plugin. "
     )
-
-# Import plugin modules
-from doc_parser.main import app as doc_parser_app  # type: ignore
-from file_utils.main import app as file_utils_app  # type: ignore
 
 
 @dataclass(frozen=True)

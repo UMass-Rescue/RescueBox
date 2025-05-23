@@ -4,7 +4,6 @@ from rb.api.models import AppMetadata, TaskSchema
 from typer.testing import CliRunner
 from fastapi.testclient import TestClient
 from rb.api.main import app as api_app
-import json
 
 
 class RBAppTest(ABC):
