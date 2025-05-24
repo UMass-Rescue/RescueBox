@@ -28,6 +28,7 @@ hiddenimports += [ 'rb', 'rb-api', 'main', 'rb-api.rb.api.main', 'rb-lib', 'rb-d
 audio_md_data = f'src/audio-transcription/audio_transcription/app-info.md'
 whisper_data = f'{runtime_venvdir}/whisper/assets'
 
+os.environ['XDG_CACHE_HOME '] = '.'
 # for age_and_gender_detection
 
 hiddenimports += ['onnxruntime', 'opencv-python']
@@ -50,23 +51,25 @@ src_models_deepfake = f'src/deepfake-detection/{deepfake_detection_models_path}'
 # keep this for deepfake + add resnet
 src_model_bnext_M_dffd = f'{src_models_deepfake}/bnext_M_dffd_model.onnx'
 
+
 # remove these  
-src_model_dima_transformer = f'{src_models_deepfake}/dima_transformer.onnx'
-src_model_bnext_S_coco = f'{src_models_deepfake}/bnext_S_coco_model.onnx'
-src_model_transformer = f'{src_models_deepfake}/transformer_model_deepfake.onnx'
-src_model_resnet50_fakes = f'{src_models_deepfake}/resnet50_fakes.onnx'
+#src_model_bnext_S_coco = f'{src_models_deepfake}/bnext_S_coco_model.onnx'
+#src_model_transformer = f'{src_models_deepfake}/transformer_model_deepfake.onnx'
+#src_model_resnet50_fakes = f'{src_models_deepfake}/resnet50_fakes.onnx'
 
 
-facematch_models= f'facematch/facematch/models'
-facematch_config= f'facematch/facematch/config'
-src_models_facematch = f'src/FaceDetectionandRecognition/{facematch_models}'
+facematch_models= f'face_detection_recognition/models'
+facematch_config= f'face_detection_recognition/config'
+src_models_facematch = f'src/face-detection-recognition/{facematch_models}'
 
-src_facematch_config = f'src/FaceDetectionandRecognition/{facematch_config}'
+src_facematch_config = f'src/face-detection-recognition/{facematch_config}'
 
 src_facematch_db_config = f'{src_facematch_config}/db_config.json'
 src_facematch_model_config = f'{src_facematch_config}/model_config.json'
 
-facematch_md_data = f'src/FaceDetectionandRecognition/facematch/app-info.md'
+facematch_md_data = f'src/face-detection-recognition/face_detection_recognition/app-info.md'
+
+ufdr_md_data = f'src/ufdr-mounter/ufdr_mounter/ufdr-app-info.md'
 
 # for chromadb https://github.com/chroma-core/chroma/issues/4092
 hiddenimports += [
@@ -105,15 +108,17 @@ hiddenimports += [
 
 
 # keep these for facematch
-src_model_facematch_facenet512 = f'{src_models_facematch}/facenet512_model.onnx'
+
 src_model_facematch_resnet50_1 = f'{src_models_facematch}/retinaface-resnet50.onnx'
+src_model_facematch_yolov8 = f'{src_models_facematch}/yolov8-face-detection.onnx'
+src_model_facematch_facenet512 = f'{src_models_facematch}/facenet512_model.onnx'
 
 # remove these 
-src_model_facematch_arcface = f'{src_models_facematch}/arcface_model_new.onnx'
-src_model_facematch_resnet50_2 = f'{src_models_facematch}/retinaface_resnet50.onnx'
-src_model_facematch_yolo11m = f'{src_models_facematch}/yolo11m.onnx'
-src_model_facematch_yolov8 = f'{src_models_facematch}/yolov8-face-detection.onnx'
-src_model_facematch_yolov9 = f'{src_models_facematch}/yolov9.onnx'
+#src_model_facematch_arcface = f'{src_models_facematch}/arcface_model_new.onnx'
+#src_model_facematch_resnet50_2 = f'{src_models_facematch}/retinaface_resnet50.onnx'
+#src_model_facematch_yolo11m = f'{src_models_facematch}/yolo11m.onnx'
+#src_model_facematch_yolov9 = f'{src_models_facematch}/yolov9.onnx'
+
 
 
 # for text-summary
@@ -130,21 +135,14 @@ a = Analysis(
     (model_age_classifier, age_and_gender_detection_models_dir),
     (model_gender_classifier, age_and_gender_detection_models_dir),
     (src_model_bnext_M_dffd, deepfake_detection_models_path),
-    (src_model_dima_transformer, deepfake_detection_models_path),
-    (src_model_bnext_S_coco, deepfake_detection_models_path),
-    (src_model_transformer, deepfake_detection_models_path),
-    (src_model_resnet50_fakes, deepfake_detection_models_path),
-    (src_model_facematch_arcface, facematch_models),
     (src_model_facematch_facenet512, facematch_models),
     (src_model_facematch_resnet50_1, facematch_models),
-    (src_model_facematch_resnet50_2, facematch_models),
-    (src_model_facematch_yolo11m, facematch_models),
     (src_model_facematch_yolov8, facematch_models),
-    (src_model_facematch_yolov9, facematch_models)
+    
     ],
-    datas=[(audio_md_data, 'audio'), ( whisper_data, 'whisper/assets'),
-        (deepfake_md_data, 'deepfake-detection/deepfake_detection'),
-        (src_facematch_db_config, facematch_config),(facematch_md_data, 'facematch'),
+    datas=[(audio_md_data, 'audio'), ( whisper_data, 'whisper/assets'), ("whisper/base.pt", 'whisper'),
+        (deepfake_md_data, 'deepfake_detection'), (ufdr_md_data, 'ufdr_mounter'),
+        (src_facematch_db_config, facematch_config),(facematch_md_data, 'face_detection_recognition'),
         (src_facematch_model_config, facematch_config),
         ('src/rb-api/rb/api/static', 'static'), ('src/rb-api/rb/api/templates', 'templates'),
         ('src/doc-parser/doc_parser/chat_config.yml', '.'),
@@ -153,7 +151,7 @@ a = Analysis(
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=['env_runtime_hook.py'],
     excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

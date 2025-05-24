@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "age_and_gender_detection"
-version = "0.1.0"
+version = "2.0.0"
 description = "Age and Gender Classification"
 authors = ["Prasanna <prasanna.lakkur@gmail.com>"]
 packages = [{include = "age_and_gender_detection"}]

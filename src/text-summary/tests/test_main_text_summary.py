@@ -14,7 +14,7 @@ class TestTextSummary(RBAppTest):
         return AppMetadata(
             name="Text Summarization",
             author="UMass Rescue",
-            version="0.1.0",
+            version="2.0.0",
             info="Summarize text and PDF files in a directory.",
             plugin_name=APP_NAME,
         )

@@ -9,7 +9,7 @@ from rb.api import routes
 app = FastAPI(
     title="RescueBoxAPI",
     summary="RescueBox is a set of tools for file system investigations.",
-    version="0.1.0",
+    version="2.0.0",
     debug=True,
     contact={
         "name": "Umass Amherst RescuBox Team",

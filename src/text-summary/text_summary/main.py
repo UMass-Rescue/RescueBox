@@ -60,7 +60,7 @@ server.add_app_metadata(
     plugin_name=APP_NAME,
     name="Text Summarization",
     author="UMass Rescue",
-    version="0.1.0",
+    version="2.0.0",
     info="Summarize text and PDF files in a directory.",
 )
 
