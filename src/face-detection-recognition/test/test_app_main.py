@@ -171,7 +171,7 @@ class TestFaceMatch(RBAppTest):
                 "task_schema": f"/{APP_NAME}/bulkupload/task_schema",
                 "run_task": f"/{APP_NAME}/bulkupload",
                 "short_title": "Bulk Upload",
-                "order": 3,
+                "order": 0,
             },
             # {
             #     "task_schema": f"/{APP_NAME}/multi_pipeline_bulkupload/task_schema",
@@ -189,7 +189,7 @@ class TestFaceMatch(RBAppTest):
                 "task_schema": f"/{APP_NAME}/deletecollection/task_schema",
                 "run_task": f"/{APP_NAME}/deletecollection",
                 "short_title": "Delete Collection",
-                "order": 4,
+                "order": 2,
             },
             # {
             #     "task_schema": f"/{APP_NAME}/listcollections/task_schema",

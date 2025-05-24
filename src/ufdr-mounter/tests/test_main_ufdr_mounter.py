@@ -1,4 +1,4 @@
-from ufdr_mounter.ufdr_server import app as cli_app, APP_NAME, ufdr_task_schema
+from ufdr_mounter.ufdr_server import app as cli_app, APP_NAME, ufdr_task_schema, server
 from rb.lib.common_tests import RBAppTest
 from rb.api.models import AppMetadata, ResponseBody
 from pathlib import Path
@@ -12,13 +12,8 @@ class TestUFDRMounter(RBAppTest):
         self.set_app(cli_app, APP_NAME)
 
     def get_metadata(self):
-        return AppMetadata(
-            name="UFDR Mount Service",
-            author="Sribatscha Maharana",
-            version="1.0.0",
-            info="Mounts a UFDR file using FUSE and returns status.",
-            plugin_name=APP_NAME,
-        )
+        """Return app metadata for testing"""
+        return server._app_metadata
 
     def get_all_ml_services(self):
         return [

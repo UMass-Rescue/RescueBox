@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+import json
+import ast
 from typing import List, Tuple
 from rb.api.models import AppMetadata, TaskSchema
 from typer.testing import CliRunner
@@ -67,6 +69,9 @@ class RBAppTest(ABC):
                 assert any(
                     route["short_title"] in message for message in caplog.messages
                 )
+                assert any(
+                    str(route["order"]) in message for message in caplog.messages
+                )
 
     def check_if_str_in_messages(self, str_to_check: str, messages: List[str]):
         """
@@ -81,10 +86,14 @@ class RBAppTest(ABC):
                 self.cli_app, [f"/{self.app_name}/api/app_metadata"]
             )
             assert result.exit_code == 0
+            for message in caplog.messages:
+                out_data = json.loads(json.dumps(message))
+                actual_metadata = ast.literal_eval(out_data)
+                print("debug", actual_metadata.keys())
             for key, value in expected_metadata:
                 print("debug", key, value)
-                assert any(str(key) in message for message in caplog.messages)
-                assert len(str(value)) > 0
+                assert any(str(key) in k for k in actual_metadata.keys())
+                assert len(json.dumps(value)) == len(json.dumps(actual_metadata[key]))
 
     def test_schema_command(self, caplog):
         with caplog.at_level("INFO"):
@@ -112,9 +121,11 @@ class RBAppTest(ABC):
         response = self.client.get(f"/{self.app_name}/api/app_metadata")
         assert response.status_code == 200
         body = response.json()
+        actual_metadata = json.loads(json.dumps(body))
         expected_metadata = self.get_metadata().model_dump(mode="json")
-        assert len(body) > 0
-        assert len(expected_metadata) > 0
+        for key in expected_metadata.keys():
+            assert any(str(key) in k for k in actual_metadata.keys())
+            assert len(expected_metadata[key]) == len(actual_metadata[key])
 
     def test_api_task_schema(self):
         ml_services = self.get_all_ml_services()
