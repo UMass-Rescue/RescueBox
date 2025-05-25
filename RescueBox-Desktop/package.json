@@ -1,4 +1,6 @@
 {
+  "name": "rescuebox-desktop",
+  "version": "2.0.0",
   "description": "A foundation for scalable desktop apps",
   "keywords": [],
   "homepage": "https://github.com/UMass-Rescue/RescueBox-Desktop#readme",
@@ -10,9 +12,7 @@
     "url": "git+https://github.com/UMass-Rescue/RescueBox-Desktop.git"
   },
   "license": "MIT",
-  "author": {
-    "name": "UMass Rescue Lab"
-  },
+  "author": "UMass Rescue Lab",
   "contributors": [
     {
       "name": "Atharva Kale",
@@ -30,7 +30,11 @@
       "url": "https://github.com/Shreneken"
     }
   ],
+  "type": "commonjs",
   "main": "./.erb/dll/main.bundle.dev.js",
+  "directories": {
+    "doc": "docs"
+  },
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
     "build:dll": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts",
@@ -48,61 +52,6 @@
     "start:preload": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.preload.dev.ts",
     "start:renderer": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack serve --config ./.erb/configs/webpack.config.renderer.dev.ts",
     "test": "jest"
-  },
-  "browserslist": [],
-  "prettier": {
-    "singleQuote": true,
-    "overrides": [
-      {
-        "files": [
-          ".prettierrc",
-          ".eslintrc"
-        ],
-        "options": {
-          "parser": "json"
-        }
-      }
-    ]
-  },
-  "jest": {
-    "moduleDirectories": [
-      "node_modules",
-      "release/app/node_modules",
-      "src",
-      "<rootDir>"
-    ],
-    "moduleFileExtensions": [
-      "js",
-      "jsx",
-      "ts",
-      "tsx",
-      "json"
-    ],
-    "moduleNameMapper": {
-      "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/.erb/mocks/fileMock.js",
-      "\\.(css|less|sass|scss)$": "identity-obj-proxy",
-      "^@shadcn/(.*)$": "<rootDir>/src/renderer/components/ui/$1",
-      "react-markdown": "<rootDir>/src/__mocks__/ReactMarkdownMock.tsx",
-      "remark-gfm": "<rootDir>/src/__mocks__/RemarkGfmMock.ts",
-      "rehype-external-links": "<rootDir>/src/__mocks__/RehypeExternalLinksMock.ts"
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!react-syntax-highlighter/dist/esm/styles)"
-    ],
-    "setupFiles": [
-      "./.erb/scripts/check-build-exists.ts"
-    ],
-    "testEnvironment": "jsdom",
-    "testEnvironmentOptions": {
-      "url": "http://localhost/"
-    },
-    "testPathIgnorePatterns": [
-      "release/app/dist",
-      ".erb/dll"
-    ],
-    "transform": {
-      "\\.(ts|tsx|js|jsx)$": "ts-jest"
-    }
   },
   "dependencies": {
     "@electron/notarize": "^2.3.2",
@@ -228,6 +177,73 @@
     "webpack-dev-server": "^4.15.1",
     "webpack-merge": "^5.9.0"
   },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=14.x",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": ">=7.x",
+      "onFail": "error"
+    }
+  },
+  "browserslist": [],
+  "prettier": {
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": [
+          ".prettierrc",
+          ".eslintrc"
+        ],
+        "options": {
+          "parser": "json"
+        }
+      }
+    ]
+  },
+  "jest": {
+    "moduleDirectories": [
+      "node_modules",
+      "release/app/node_modules",
+      "src",
+      "<rootDir>"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "jsx",
+      "ts",
+      "tsx",
+      "json"
+    ],
+    "moduleNameMapper": {
+      "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/.erb/mocks/fileMock.js",
+      "\\.(css|less|sass|scss)$": "identity-obj-proxy",
+      "^@shadcn/(.*)$": "<rootDir>/src/renderer/components/ui/$1",
+      "react-markdown": "<rootDir>/src/__mocks__/ReactMarkdownMock.tsx",
+      "remark-gfm": "<rootDir>/src/__mocks__/RemarkGfmMock.ts",
+      "rehype-external-links": "<rootDir>/src/__mocks__/RehypeExternalLinksMock.ts"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!react-syntax-highlighter/dist/esm/styles)"
+    ],
+    "setupFiles": [
+      "./.erb/scripts/check-build-exists.ts"
+    ],
+    "testEnvironment": "jsdom",
+    "testEnvironmentOptions": {
+      "url": "http://localhost/"
+    },
+    "testPathIgnorePatterns": [
+      "release/app/dist",
+      ".erb/dll"
+    ],
+    "transform": {
+      "\\.(ts|tsx|js|jsx)$": "ts-jest"
+    }
+  },
   "build": {
     "productName": "RescueBox-Desktop",
     "appId": "org.UMass-Rescue.RescueBox-Desktop",
@@ -315,18 +331,6 @@
       "provider": "github",
       "owner": "UMass-Rescue",
       "repo": "RescueBox-Desktop"
-    }
-  },
-  "devEngines": {
-    "runtime": {
-      "name": "node",
-      "version": ">=14.x",
-      "onFail": "error"
-    },
-    "packageManager": {
-      "name": "npm",
-      "version": ">=7.x",
-      "onFail": "error"
     }
   },
   "electronmon": {

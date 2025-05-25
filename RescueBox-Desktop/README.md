@@ -5,7 +5,7 @@
 
 <img align="right" width="200" src="./docs/icon.png" width="200" />
 
-RescueBox Desktop (RBox) is a self-contained binary offering a UI interface to a library of ML models for various forensic applications. To use RescueBox Desktop, start up a model application in the background adhering to the [FlaskML](https://umass-rescue.github.io/Flask-ML/materials/guides/examples) interface. Then, register the model application's IP Host address and port. You can now run the model by specifying its inputs on the UI and analyzing outputs when ready. RBox handles the rest: running the jobs, and interfacing with different ML models. Since RBox is aimed toward forensic analysts, it is designed to operate on local, or drive-mounted storage.
+RescueBox Desktop (RBox) is a self-contained binary offering a UI interface to a library of ML models for various forensic applications. To use RescueBox Desktop, start up a model application in the background adhering to the [Fastapi](https://github.com/UMass-Rescue/RescueBox/blob/main/flaskml_migration_steps.md) interface.  You can now run the model [server](https://github.com/UMass-Rescue/RescueBox/blob/main/run_server) and interact by specifying its inputs on the UI and analyzing outputs when ready. RBox handles the rest: running the jobs, and interfacing with different ML models. Since RBox is aimed toward forensic analysts, it is designed to operate on local, or drive-mounted storage.
 
 For a review of the project's goals, read [What is RescueBox Desktop?](./docs/what-is-rescuebox-desktop.md). For a view into how RBox-Desktop works, read the [architecture section](#architecture).
 
@@ -13,13 +13,13 @@ For a review of the project's goals, read [What is RescueBox Desktop?](./docs/wh
 
 ## Step 1: Download the Latest Release
 
-Get the latest release of the binary for your operating system (Windows, macOS and Linux) from the [release page](https://github.com/UMass-Rescue/RescueBox-Desktop/releases). For Linux, see [Additional Instructions for Linux](#additional-instructions-for-linux).
+Get the latest release of the binary for your operating system (Windows) from the [source](https://github.com/UMass-Rescue/RescueBox/tree/main/RescueBox-Desktop).
 
-## Step 2: Start a Flask-ML Compliant Model
+## Step 2: Start a Fastapi Compliant Model
 
-Download and install one of the [Flask-ML compliant models](https://umass-rescue.github.io/Flask-ML/materials/guides/examples), or [write your own!](https://umass-rescue.github.io/Flask-ML/materials/guides/getting-started)
+Download and run the [Fastapi](https://github.com/UMass-Rescue/RescueBox/wiki/Onboarding) model server.
 
-Run the model application, which should provide you with a URL to register with RBox.
+Run the model application server, which should provide you with a URL to RBox.
 
 ## Step 3: Using the App
 
@@ -78,7 +78,7 @@ RescueBox implments the "Flask-ML" protocol, which is a simple interface for run
 Clone the repo and install dependencies:
 
 ```bash
-git clone https://github.com/UMass-Rescue/RescueBox-Desktop.git
+git clone https://github.com/UMass-Rescue/RescueBox.git
 cd RescueBox-Desktop
 npm install
 ```

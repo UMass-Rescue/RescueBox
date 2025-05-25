@@ -175,10 +175,14 @@ export async function selectFileSave(_event: any, arg: NewFileArgs) {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function saveLogs(_event: any, _arg: any) {
+  const now = new Date();
+  const timeString = now.toLocaleTimeString();
+  const dateString = now.toLocaleDateString();
+  const formattedDateTime = `${dateString}_${timeString}`.replace(/[/: ]/g, '-');
   return dialog
     .showSaveDialog({
       title: 'Select the File Path to save',
-      defaultPath: `rescuebox-logs-${new Date().toISOString()}.log`,
+      defaultPath: `rescuebox-logs-${formattedDateTime}.log`,
       buttonLabel: 'Save',
       // Restricting the user to only Text Files.
       filters: [
