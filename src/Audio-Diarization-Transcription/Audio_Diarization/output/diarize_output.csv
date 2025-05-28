@@ -1,0 +1,16 @@
+Audio File,Speaker,Time Range
+audio_1.wav,SPEAKER_00,0.03 - 16.45
+audio_1.wav,SPEAKER_02,16.67 - 20.16
+audio_1.wav,SPEAKER_01,21.11 - 21.93
+audio_1.wav,SPEAKER_01,22.41 - 25.97
+audio_1.wav,SPEAKER_01,26.47 - 28.74
+audio_1.wav,SPEAKER_01,29.48 - 30.42
+audio_1.wav,SPEAKER_01,30.91 - 36.40
+audio_1.wav,SPEAKER_01,36.94 - 39.97
+audio_2.wav,SPEAKER_00,0.03 - 8.64
+audio_2.wav,SPEAKER_02,9.06 - 9.09
+audio_2.wav,SPEAKER_01,9.09 - 30.96
+audio_3.wav,SPEAKER_01,0.03 - 0.06
+audio_3.wav,SPEAKER_01,0.44 - 3.42
+audio_3.wav,SPEAKER_00,3.64 - 11.81
+audio_3.wav,SPEAKER_00,12.03 - 15.13

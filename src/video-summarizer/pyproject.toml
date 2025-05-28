@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "video-summarizer"
+version = "1.0.0"
+description = "A project that helps summarize videos."
+authors = ["Sachin Thomas & Priyanka Bengaluru Anil"]
+packages = [{include = "video_summarizer"}]
+
+[tool.poetry.scripts]
+video-summarizer = "video_summarizer.main:app"
+
+[tool.poetry.dependencies]
+ollama = "*"
+openai-whisper = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

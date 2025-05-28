@@ -1,0 +1,61 @@
+from ufdr_mounter.ufdr_server import app as cli_app, APP_NAME, ufdr_task_schema
+from rb.lib.common_tests import RBAppTest
+from rb.api.models import AppMetadata, ResponseBody
+from pathlib import Path
+import os
+import json
+
+
+class TestUFDRMounter(RBAppTest):
+    def setup_method(self):
+        self.set_app(cli_app, APP_NAME)
+
+    def get_metadata(self):
+        return AppMetadata(
+            name="UFDR Mount Service",
+            author="Sribatscha Maharana",
+            version="1.0.0",
+            info="Mounts a UFDR file using FUSE and returns status.",
+            plugin_name=APP_NAME,
+        )
+
+    def get_all_ml_services(self):
+        return [
+            (0, "mount", "Mount UFDR", ufdr_task_schema()),
+        ]
+
+    def test_invalid_path(self):
+        mount_api = f"/{APP_NAME}/mount"
+        input_str = "not/a/real/file.ufdr,bad_mount_point"
+        result = self.runner.invoke(self.cli_app, [mount_api, input_str, ""])
+        assert result.exit_code != 0, f"Expected failure for bad path, got: {result.output}"
+
+    def test_mount_command(self, caplog):
+        mount_api = f"/{APP_NAME}/mount"
+        test_file = Path("src/ufdr_mounter/ufdr_mounter/testdata/test.ufdr").resolve()
+        mount_dir = Path("mnt/test_mount").resolve()
+
+        # ensure directory exists
+        os.makedirs(mount_dir, exist_ok=True)
+        input_str = f"{test_file},{mount_dir}"
+        result = self.runner.invoke(self.cli_app, [mount_api, input_str, ""])
+        assert result.exit_code == 0, f"Mount failed: {result.output}"
+        assert f"Mounted at {mount_dir}" in result.stdout
+
+    def test_mount_api(self):
+        mount_api = f"/{APP_NAME}/mount"
+        test_file = Path("src/ufdr_mounter/ufdr_mounter/testdata/test.ufdr").resolve()
+        mount_dir = Path("mnt/test_mount").resolve()
+
+        input_json = {
+            "inputs": {
+                "ufdr_file": {"path": str(test_file)},
+                "mount_name": {"text": str(mount_dir)},
+            },
+            "parameters": {}
+        }
+        response = self.client.post(mount_api, json=input_json)
+        assert response.status_code == 200
+        body = ResponseBody(**response.json())
+        assert body.root is not None
+        assert "Mounted at" in body.root.value
