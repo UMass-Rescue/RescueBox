@@ -4,7 +4,7 @@ FaceMatch is an advanced system designed for identifying facial matches within a
 
 ## 1. Creating a Database of Individuals
 
-To populate a database with images, utilize the **Upload Images to Collection in ChromaDB** endpoint.
+To populate a database with images, utilize the **Bulk Upload** link.
 
 ### Inputs
 
@@ -26,11 +26,11 @@ To populate a database with images, utilize the **Upload Images to Collection in
 
 ## 2. Search for matches 
 
-- To search for facial matches within the existing database, use the **Find Matching Faces for Single Image** endpoint.
+- To search for facial matches within the existing database, use the **Find Face Bulk** link.
 
 ### Inputs
 
-- **Image Directory:** A query image to be compared against the database.
+- **Query Directory:** query images to be compared against the database.
 
 - **Collection Name:** Choose the collection to search within.
 

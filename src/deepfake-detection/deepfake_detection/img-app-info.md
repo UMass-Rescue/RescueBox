@@ -5,69 +5,24 @@ This application is a machine learning-powered deepfake detection tool that anal
 
 ## Key Components
 1. **Server for Image Classifier (`main.py`)**: 
-   - Creates a Flask-based server to host the Image classifier model.
+   - Creates a server to host the Image classifier model.
    - Contains code to work with the RescueBox client.
    - API can work with a path to a directory containing images and creates a CSV file containing output.
    - Applies the appropriate pre-processing steps and runs the model on a collection of images.
-<!-- 
-2. **Testing Code (`test.py`)**: 
-   - Can be used to test datasets. 
-   - Assumes all fake data files have "F" in the name and uses this to assign labels.
-   - Outputs metrics. -->
 
----
+2. Input the **Path to the directory containing all the images". ".jpg", ".jpeg", ".png" are the file types supported
+   Path to the output file , select a folder that has sufficient space for the csv file that contains the results.
+   Optional choose Face cropping to true.
 
-## Evaluation
+3   result prediction confidence scores are as follows:
 
-### Results Summary
-The models were evaluated on both real and fake datasets with face cropping enabled. Below is a summary of their performance:
+   "likely fake" if confidence < 20%
 
-#### **Real Datasets**
-1. **CelebA_Val**:
-   - **BNext_M**: Excellent performance with very few misclassifications.
-   - **BNext_S**: Strong performance but slightly more uncertain predictions compared to BNext_M.
-   - **Transformer**: High accuracy with minimal uncertainty.
-   - **TransformerDima**: Reliable but slightly more uncertain predictions.
-
-2. **FFHQ**:
-   - **BNext_M**: Perfect accuracy with no misclassifications.
-   - **BNext_S**: Strong performance but slightly more uncertain predictions.
-   - **Transformer**: High accuracy with minimal uncertainty.
-   - **TransformerDima**: Reliable but more prone to uncertainty.
-
-#### **Fake Dataset**
-1. **Deepfake_v4**:
-   - **BNext_M**: Strong performance with minimal misclassifications.
-   - **BNext_S**: Excellent performance with very few misclassifications.
-   - **Transformer**: High accuracy with minimal uncertainty.
-   - **TransformerDima**: Reliable but slightly more uncertain predictions.
-
----
-
-**Best Overall Performance**:
-
-**BNext_M** and **TransformerDima** consistently perform well across both real and fake datasets, making them the most reliable choices for general use.
-
-<!-- 2. **Do not use**:
-   - **Resnet50** struggles with fake datasets and is not recommended for detecting deepfakes. Under development. -->
-
----
-
-<!-- ### How to Reproduce the Results
-
-1. **Prepare the Data**:
-   - Create a `datasets` folder in the project directory.
-   - For real images, use the CelebA and FFHQ datasets.
-   - For fake images, use the Deepfake_v4 dataset.
-
-2. **Run the Tests**:
-   - Use the `test.py` script to evaluate the models on the datasets.
-   - Ensure face cropping is enabled for consistent results.
-
-3. **Analyze the Results**:
-   - The output will include metrics such as F1 score, accuracy, and a confusion matrix for each model.
-
---- -->
-
-### Conclusion
-For most use cases, **BNext_M** and **TransformerDima** are the recommended models due to their consistent performance across datasets.
+   "weakly fake" if confidence < 40%
+                
+   "uncertain"   if confidence < 60%
+                     
+   "weakly real" if confidence < 80% 
+   
+   "likely real" if confidence < 100%
+               
