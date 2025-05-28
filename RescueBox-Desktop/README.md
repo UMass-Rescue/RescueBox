@@ -22,52 +22,43 @@ Download and run the [Fastapi](https://github.com/UMass-Rescue/RescueBox/wiki/On
 Run the model application server, which should provide you with a URL to RBox.
 
 ## Step 3: Using the App
-
-Launch the binary you downloaded in [step 1](#step-1-download-the-latest-release), and register the model application using the IP address and port.
+Launch the Rescuebox-Desktop icon or see below to launch in dev mode using npm start.
 
 You should now be able to see the model application in the app, and be able to run inference tasks on it!
 
 ![](./docs/ui-screenshot.png)
 
-## Additional Instructions for Linux
+## Additional Instructions for Mac
 
-To run the AppImage on Linux, we first need to add execution permission on the AppImage file.
 
-```bash
-chmod a+x RescueBox-Desktop-<version_number>.AppImage
+Might need these before `npm install`
+```
+### Upgrade node if your node version is less than 14. (check with `node -v`)
+brew install node@20
+echo 'export PATH="/usr/local/opt/node@20/bin:$PATH"' >> ~/.zshrc
+
+### Install python-setuptools since we're using python 3.12
+brew install python-setuptools
+### Or install it from https://pypi.org/project/setuptools/ into the python environment on your command line
 ```
 
-Then, some Additional steps may be required for Linux, depending on your distro. For Ubuntu, you will need to install the FUSE library.
-
-### Ubuntu >= 24.04
-
-```bash
-sudo add-apt-repository universe
-sudo apt install libfuse2t64
+9.  Install UI dependencies
+```
+cd RescueBox-Desktop
+npm install
 ```
 
-### Ubuntu <= 22.04
-
-```bash
-sudo add-apt-repository universe
-sudo apt install libfuse2
+10. Run UI
+```
+npm start
 ```
 
-At last, Run the AppImage with the "no-sandbox" option
-
-```bash
- ./RescueBox-Desktop-<version-number>.AppImage --no-sandbox
+You should see the UI show up after this. Connect to your server and go to the "Models" tab to run the models.
 ```
-
 # Development
 
 RescueBox Desktop is built using [Electron](https://www.electronjs.org/), [React](https://reactjs.org/), TypeScript, TailwindCSS, and SQlite (with Sequelize).
 
-RescueBox implments the "Flask-ML" protocol, which is a simple interface for running ML models. See [Flask-ML Protocol](./docs/FlaskML-Protocol-Sequence-Diagram.png).
-
-<p align="center">
-  <img src="./docs/FlaskML-Protocol-Sequence-Diagram.png" width="450" />
-</p>
 
 ## Prerequisites
 
@@ -98,14 +89,29 @@ npm start
 To package apps for the local platform:
 
 ```bash
-npm run package
+1 build the rescuebox.exe using the rescuebox.spec in RescueBox directory. ( see file for instructions)
+
+2 copy pre reqs to assets\rb_server : 
+winfsp-2.0.23075.msi , docs , demo files to run models
+
+3 copy these cmds to rb.bat and run it as one batch file
+rmdir /s /q assets\rb_server\dist
+move ../dist assets\rb_server
+cmd /c npm cache clean --force
+cmd /c npm cache verify
+cmd /c npm install
+cmd /c npm run postinstall
+cmd /c npm run build
+cmd /c npm run rebuild
+cmd /c npm exec electron-builder -- --win
 ```
+note : release\app\package.json contains the version number
+
+4 release\build\RescueBox-Desktop Setup 2.0.0.exe should get created
+ 
 
 ## Docs
 
 See electron-react's [docs and guides here](https://electron-react-boilerplate.js.org/docs/installation)
 
-[github-actions-status]: https://github.com/UMass-Rescue/RescueBox-Desktop/actions/workflows/test.yml/badge.svg?branch=main
-[github-actions-url]: https://github.com/UMass-Rescue/RescueBox-Desktop/actions/workflows/test.yml
-[github-tag-image]: https://img.shields.io/github/tag/UMass-Rescue/RescueBox-Desktop.svg?label=version
-[github-tag-url]: https://github.com/UMass-Rescue/RescueBox-Desktop/releases/latest
+
