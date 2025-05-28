@@ -1,0 +1,29 @@
+Pair 1:
+  Precision: 0.8743
+  Recall:    0.8847
+  F1 Score:  0.8795
+
+Pair 2:
+  Precision: 0.8681
+  Recall:    0.8744
+  F1 Score:  0.8712
+
+Pair 3:
+  Precision: 0.8467
+  Recall:    0.8421
+  F1 Score:  0.8444
+
+Pair 4:
+  Precision: 0.8444
+  Recall:    0.8517
+  F1 Score:  0.8480
+
+Pair 5:
+  Precision: 0.8240
+  Recall:    0.8339
+  F1 Score:  0.8289
+
+Average Scores:
+  Avg Precision: 0.8515
+  Avg Recall:    0.8573
+  Avg F1 Score:  0.8544
