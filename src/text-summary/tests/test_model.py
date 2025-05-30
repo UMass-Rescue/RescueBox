@@ -6,6 +6,7 @@ from text_summary.model import (
     summarize,
 )
 from text_summary.summary_prompt import PROMPT
+from ollama._types import ListResponse
 
 
 def test_extract_response_after_think():
@@ -18,10 +19,15 @@ def test_extract_response_after_think():
     assert extract_response_after_think(text_without_tag) == text_without_tag.strip()
 
 
-@patch("text_summary.model.ollama.pull")
-def test_ensure_model_exists(mock_pull):
+@patch("ollama.list")
+@patch("ollama.pull")
+# @patch.object(ollama.Client, '__init__', return_value=None)
+def test_ensure_model_exists(mock_pull, mock_list):
     # Test case where model is supported and pull is successful
+
     mock_pull.return_value = MagicMock(status="success")
+
+    mock_list.return_value = {"models": [ListResponse.Model(model="gemma3:1b")]}
     ensure_model_exists("gemma3:1b")  # Should not raise any exception
 
     # Test case where model is not supported
@@ -30,8 +36,8 @@ def test_ensure_model_exists(mock_pull):
 
     # Test case where pull fails
     mock_pull.return_value = MagicMock(status="failure")
-    with pytest.raises(ValueError, match="Failed to pull model 'gemma3:1b':"):
-        ensure_model_exists("gemma3:1b")
+    with pytest.raises(ValueError, match="Failed to pull model 'llama3.2:3b'"):
+        ensure_model_exists("llama3.2:3b")
 
 
 @patch("text_summary.model.ollama.generate")
