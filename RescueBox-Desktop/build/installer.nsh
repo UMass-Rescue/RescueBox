@@ -24,6 +24,10 @@ Function .onInstSuccess
     Strcpy "$INSTDIR_DAT" "$INSTDIR\resources\assets\rb_server"
     ExpandEnvStrings $0 %COMSPEC%
     ExecWait '"$0" /C "msiexec /i $INSTDIR_DAT\winfsp-2.0.23075.msi   INSTALLLEVEL=1000 /passive"'
+    Var /GLOBAL O_LOG
+    Strcpy "$O_LOG" "$AppData\RescueBox-Desktop\logs\o.log"
+    ExecWait '"$0" /C "$INSTDIR_DAT\OllamaSetup.exe /verysilent /SP /SUPPRESSMSGBOXES /log=$O_LOG"'
+
 FunctionEnd
 
 

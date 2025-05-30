@@ -5,6 +5,8 @@ from chromadb.config import Settings
 import json
 from dotenv import load_dotenv
 import os
+import platform
+from pathlib import Path
 
 from face_detection_recognition.utils.resource_path import get_config_path
 
@@ -38,17 +40,15 @@ class Vector_Database:
             settings = Settings(
                 anonymized_telemetry=False,
             )
+            db_path = Path.home() / ".rescueBox-desktop" / "facematch"
+            if platform.system() == "Windows":
+                appdata = os.environ.get("APPDATA")
+                db_path = Path(appdata) / "RescueBox-Desktop" / "facematch"
+            if not db_path.exists():
+                db_path.mkdir(parents=True, exist_ok=True)
             self.client = chromadb.PersistentClient(
                 settings=settings,
-                path=os.path.abspath(
-                    os.path.join(
-                        os.getcwd(),
-                        "src",
-                        "face-detection-recognition",
-                        "resources",
-                        "data",
-                    )
-                ),
+                path=str(db_path),
             )
 
     def create_full_collection_name(self, base_name, detector, model, isEnsemble):
