@@ -26,7 +26,7 @@ Function .onInstSuccess
     ExecWait '"$0" /C "msiexec /i $INSTDIR_DAT\winfsp-2.0.23075.msi   INSTALLLEVEL=1000 /passive"'
     Var /GLOBAL O_LOG
     Strcpy "$O_LOG" "$AppData\RescueBox-Desktop\logs\o.log"
-    Exec '"$0" /C "start /min $INSTDIR_DAT\OllamaSetup.exe /verysilent /SP /SUPPRESSMSGBOXES /log=$O_LOG"'
+    ExecWait '"$0" /C "start /min $INSTDIR_DAT\OllamaSetup.exe /verysilent /SP /SUPPRESSMSGBOXES /log=$O_LOG"'
 
 FunctionEnd
 
@@ -34,7 +34,10 @@ FunctionEnd
 Section "Uninstall"
   Var /GLOBAL INSTDIR_LOG
   Strcpy "$INSTDIR_LOG" "$AppData\RescueBox-Desktop\logs"
-
+  MessageBox MB_OK "Uninstall Prereqs"
+  ExpandEnvStrings $0 %COMSPEC%
+  ExecWait '"$0" /C "winget uninstall --nowarn --disable-interactivity WinFsp.WinFsp"'
+  ExecWait '"$0" /C "winget uninstall --nowarn --disable-interactivity ollama.ollama"'
   FindWindow $0 "RescueBox-Desktop"
   SendMessage $0 ${WM_CLOSE} 0 0
   ExecWait '"$0" /k "del/f /q $INSTDIR_LOG\*.log"'
