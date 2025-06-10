@@ -141,9 +141,9 @@ def detect_faces_and_get_embeddings(
         available_providers = ort.get_available_providers()
 
         if "CUDAExecutionProvider" in available_providers:
-            pvdr = ("CUDAExecutionProvider", {"cudnn_conv_use_max_workspace": '1'})
+            pvdr = ("CUDAExecutionProvider", {"cudnn_conv_use_max_workspace": "1"})
             providers.insert(0, pvdr)
-      
+
         providers.append("CPUExecutionProvider")
 
         detector_session = ort.InferenceSession(
