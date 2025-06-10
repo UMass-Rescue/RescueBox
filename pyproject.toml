@@ -17,7 +17,7 @@ llvmlite = "^0.44.0"
 pytest = "^8.3.4"
 httpx = "^0.28.1"
 # add dependencies common to all plugins here
-numpy = ">=1.23"
+numpy = "2.1.0"
 # torch = "2.7.1"
 onnxruntime = "1.22"
 nvidia-cudnn-cu12 = "9.5.1.17"
