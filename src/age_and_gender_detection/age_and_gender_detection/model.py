@@ -50,7 +50,11 @@ class AgeGenderDetector:
             "(48-53)",
             "(60-100)",
         ]
-        self.runtime_providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        session_options = ort.SessionOptions()
+        session_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
+        # session_options.log_severity_level = 0
+        # session_options.enable_profiling = True
+        self.runtime_providers = [("CUDAExecutionProvider", {"cudnn_conv_use_max_workspace": '1'}), "CPUExecutionProvider"]
         self.genderList = ["Male", "Female"]
         self.image_file_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]
 
@@ -59,13 +63,13 @@ class AgeGenderDetector:
         self.gender_classifier_path = gender_classifier_path
 
         self.face_detector = ort.InferenceSession(
-            self.face_detector_path, providers=self.runtime_providers
+            self.face_detector_path, sess_options= session_options, providers=self.runtime_providers
         )
         self.age_classifier = ort.InferenceSession(
-            self.age_classifier_path, providers=self.runtime_providers
+            self.age_classifier_path, sess_options= session_options, providers=self.runtime_providers
         )
         self.gender_classifier = ort.InferenceSession(
-            self.gender_classifier_path, providers=self.runtime_providers
+            self.gender_classifier_path, sess_options= session_options, providers=self.runtime_providers
         )
 
     def faceDetector(self, orig_image, threshold=0.7):

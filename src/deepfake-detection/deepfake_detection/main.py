@@ -194,7 +194,7 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             logger.warning(f"Error loading face detector: {e}")
     dataset = defaultDataset(dataset_path=input_path, resolution=224)
     res_list = run_models(active_models, dataset, facecrop=facecropper)
-    logger.info(f"Results list: {res_list}")
+    logger.debug(f"Results list: {res_list}")
     # Prepare model data structure
     model_data = []
     for model_results in res_list:
