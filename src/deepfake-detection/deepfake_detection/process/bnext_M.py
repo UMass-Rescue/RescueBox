@@ -25,7 +25,7 @@ class BNext_M_ModelONNX:
     def __init__(
         self, model_path="onnx_models/bnext_M_dffd_model.onnx", resolution=224
     ):
-        logger.info(f"Loading BNext_M Model ONNX...")
+        logger.info("Loading BNext_M Model ONNX...")
         self.model_path = (
             Path(__file__).resolve().parent.parent
             / "onnx_models"
