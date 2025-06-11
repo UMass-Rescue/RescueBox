@@ -11,6 +11,13 @@ from deepfake_detection.process.utils import (
     ToImage,
     ToDtype,
 )
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 # Trained on COCOFake dataset
@@ -18,15 +25,31 @@ class BNext_M_ModelONNX:
     def __init__(
         self, model_path="onnx_models/bnext_M_dffd_model.onnx", resolution=224
     ):
-        print("Loading BNext_M Model ONNX...")
+        logger.info("Loading BNext_M Model ONNX...")
         self.model_path = (
             Path(__file__).resolve().parent.parent
             / "onnx_models"
             / "bnext_M_dffd_model.onnx"
         )
+        providers = [
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
+        ]
+        sess_options = ort.SessionOptions()
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime
+            sess_options=sess_options,
+            providers=providers,
         )
+        dev = ort.get_device()
+        logger.info("BNext_M Model ONNX %s", dev)
+        # Get input and output memory info
+        try:
+            available_providers = ort.get_available_providers()
+            logger.info("ort available_providers %s", available_providers)
+        except Exception as e:
+            logger.error(f"Error getting available providers: {e}")
+
         self.resolution = resolution
         self.valid_extensions = (".jpg", ".jpeg", ".png")
 

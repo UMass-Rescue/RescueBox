@@ -133,19 +133,14 @@ def detect_faces_and_get_embeddings(
 
         # YOLO models processing
         session_options = ort.SessionOptions()
-        session_options.graph_optimization_level = (
-            ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        )
-
-        providers = ["CPUExecutionProvider"]
+        providers = []
         available_providers = ort.get_available_providers()
 
         if "CUDAExecutionProvider" in available_providers:
-            providers.insert(0, "CUDAExecutionProvider")
-        elif "CoreMLExecutionProvider" in available_providers:
-            providers.insert(0, "CoreMLExecutionProvider")
-        elif "MetalPerformanceShadersExecutionProvider" in available_providers:
-            providers.insert(0, "MetalPerformanceShadersExecutionProvider")
+            pvdr = "CUDAExecutionProvider"
+            providers.insert(0, pvdr)
+
+        providers.append("CPUExecutionProvider")
 
         detector_session = ort.InferenceSession(
             detector_onnx_path, sess_options=session_options, providers=providers

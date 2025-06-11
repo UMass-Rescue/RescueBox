@@ -31,7 +31,7 @@ whisper_data = f'{runtime_venvdir}/whisper/assets'
 os.environ['XDG_CACHE_HOME '] = '.'
 # for age_and_gender_detection
 
-hiddenimports += ['onnxruntime', 'opencv-python']
+hiddenimports += ['onnxruntime', 'onnxruntime-gpu', 'nvidia-cudnn-cu12', 'nvidia-cuda-runtime-cu12', 'opencv-python']
 
 age_and_gender_detection_models_dir = f'src/age_and_gender_detection/models'
 model_face_detector = f'{age_and_gender_detection_models_dir}/version-RFB-640.onnx'
@@ -50,6 +50,7 @@ src_models_deepfake = f'src/deepfake-detection/{deepfake_detection_models_path}'
 
 # keep this for deepfake + add resnet
 src_model_bnext_M_dffd = f'{src_models_deepfake}/bnext_M_dffd_model.onnx'
+src_model_facecrop = f'{src_models_deepfake}/face_detector.onnx'
 
 
 # remove these  
@@ -135,6 +136,7 @@ a = Analysis(
     (model_age_classifier, age_and_gender_detection_models_dir),
     (model_gender_classifier, age_and_gender_detection_models_dir),
     (src_model_bnext_M_dffd, deepfake_detection_models_path),
+    (src_model_facecrop, deepfake_detection_models_path),
     (src_model_facematch_facenet512, facematch_models),
     (src_model_facematch_resnet50_1, facematch_models),
     (src_model_facematch_yolov8, facematch_models),
