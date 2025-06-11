@@ -133,15 +133,11 @@ def detect_faces_and_get_embeddings(
 
         # YOLO models processing
         session_options = ort.SessionOptions()
-        session_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
-        # session_options.log_severity_level = 0
-        # session_options.enable_profiling = True
-
         providers = []
         available_providers = ort.get_available_providers()
 
         if "CUDAExecutionProvider" in available_providers:
-            pvdr = ("CUDAExecutionProvider", {"cudnn_conv_use_max_workspace": "1"})
+            pvdr = "CUDAExecutionProvider"
             providers.insert(0, pvdr)
 
         providers.append("CPUExecutionProvider")
