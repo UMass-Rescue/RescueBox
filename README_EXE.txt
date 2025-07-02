@@ -9,13 +9,39 @@ cd to top level folder for rescuebox containing the rescuebox.spec file
 install pre-reqs like ffmpg.exe for audio in this folder , as mentioned in the spec file.
 run "poetry run pyinstaller rescuebox.spec"
 
+also copy the onnx model files for all plugins. 
+example : src/age_and_gender_detection/models will need
+the three version-RFB-640.onnx, age_googlenet.onnx,gender_googlenet.onnx model files.
+run "poetry run pyinstaller rescuebox.spec"
+
 this will create "dist" and "build"
 "dist" is the single folder that contains all the python dependencies and rescuebox.exe 
+
+copy the cuda12 dlls into the dist\rescuebox folder after the build is complete.
+https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.0-build/cuda12_gpu_dlls.zip?csf=1&web=1&e=JpVB5E
 
 start server : dist\rescuebox\rescuebox.exe , to confirm its able to start and stop it (contol-c)
 
 
-2 Make rescuebox desktop on Windows steps, put these cmds in a file and run as script:
+2.1 copy the pre reqs for the desktop exe
+  a these artifacts go into RecueBox-Desktop\assets\rb_server files  https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.0-build/assets_rb_server.zip?csf=1&web=1&e=ZT03Hj
+     demo -sample files for running plugins
+     docs - rescuebox docs
+     OllamaSetup.exe pre-req for text-summary , winfsp-2.x.msi for ufdr-plugin
+
+  b copy the rescuebox server from pyinstaller output folder 
+          <RescueBox-HOME>/dist  to  RescueBox-Desktop/assets/rb_server
+
+  c. these assets are large over 2GB hence needs fix 
+    download https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.0-build/nsis-update.zip?csf=1&web=1&e=x3S2uK
+    extract and copy/overwrite C:\Users\<user-name>\AppData\Local\electron-builder\Cache\nsis with the unzip of nsis-binary-7423-2.zip
+    all the sub folders like nsis-old-version\bin with get updated
+    npm build will work ok without errors because RB is >  2 GB
+
+  d update package.json to sign the ouput of the electron-builder 
+  
+2.2 Make rescuebox desktop exe on Windows steps, put these cmds in a file and run as script:
+
 
 cd RescueBox-Desktop
 # copy the rescuebox server folder from <RescueBox-HOME>/dist  to  RescueBox-Desktop/assets/rb_server

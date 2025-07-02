@@ -295,7 +295,11 @@
       "requestedExecutionLevel": "asInvoker",
       "target": [
         "nsis"
-      ]
+      ],
+      "signtoolOptions": {
+      "certificateFile": "rescuelab_cs.umass.edu.pfx",
+      "certificatePassword": "changeMe"
+      }
     },
     "nsis": {
       "warningsAsErrors": false,
