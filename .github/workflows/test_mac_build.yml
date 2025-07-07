@@ -39,9 +39,9 @@ jobs:
       - name: Install and build
         run: |
           pwd
-          ls $RUNNER_WORKSPACE
           cd $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop
-          ls 
+          ls
+          brew install python-setuptools
           echo "run install"
           npm install
           echo "run postinstall"
