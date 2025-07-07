@@ -43,6 +43,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd $RUNNER_WORKSPACE/RescueBox
+          brew install gdown
           gdown 1yJoDqNbnNUte7vfv1GV5Go57MPkSdPlc
           ls -lrt
           mkdir tmp
