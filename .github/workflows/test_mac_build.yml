@@ -58,7 +58,11 @@ jobs:
           echo "run exec"
           npm exec electron-builder -- --mac
           ls $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build
-          if [ -f "$RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build/RescueBox-Desktop-2.1.0.dmg" ]; then
-             echo "rescueboc desktop 2.0 for mac built ok"
+          if [ -f "$RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build/RescueBox-Desktop-2.1.0-universal.dmg" ]; then
+             echo "rescueboc desktop 2.1.0 for mac built ok"
+             exit 0
+          else
+            echo "rescueboc desktop 2.1 for mac not built ok"
+            exit 1
           fi
         shell: sh
