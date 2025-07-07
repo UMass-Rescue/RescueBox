@@ -48,7 +48,7 @@ jobs:
           ls -lrt
           mkdir tmp
           cd tmp
-          unip ../rb_mac_files.zip
+          unzip ../rb_mac_files.zip
           mv age_and_gender_detection/models ../src/age_and_gender_detection
           mv face-detection-recognition/face_detection_recognition/models ../src/face-detection-recognition/face_detection_recognition
           mv deepfake-detection/deepfake_detection/onnx_models ../src/deepfake-detection/deepfake_detection
@@ -58,6 +58,7 @@ jobs:
           mv pyproject.toml ../pyproject.toml
           cd ..
           rm -rf tmp
+          rm -f rb_mac_files.zip
           brew install ffmpeg
           ls -l /usr/local/bin/ffmpeg
           cp /usr/local/bin/ffmpeg .
