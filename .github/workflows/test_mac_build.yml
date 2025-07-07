@@ -38,11 +38,10 @@ jobs:
           
       - name: Install and build
         run: |
-          cd ~/RescueBox/RescueBox/RescueBox-Desktop
-          echo %cd%
-          copy /y ..\build_files\rb.py assets\rb_server
-          copy /y ..\build_files\installer.ps1 assets\rb_server
-          copy /y ..\build_files\requirements.txt assets\rb_server
+          pwd
+          env
+          ls $HOME
+          cd $HOME/RescueBox/RescueBox-Desktop
           echo "run install"
           npm install
           echo "run postinstall"
@@ -55,4 +54,4 @@ jobs:
           npm exec electron-builder -- --publish always --mac
           ls release/build
           IF NOT EXIST "release/build/RescueBox-Desktop-2.1.0.dmg" EXIT 1
-        shell: zsh
+        shell: sh
