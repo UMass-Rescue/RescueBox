@@ -39,9 +39,9 @@ jobs:
       - name: Install and build
         run: |
           pwd
-          env
-          ls $HOME
-          cd $HOME/RescueBox/RescueBox-Desktop
+          ls $RUNNER_WORKSPACE
+          cd $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop
+          ls 
           echo "run install"
           npm install
           echo "run postinstall"
