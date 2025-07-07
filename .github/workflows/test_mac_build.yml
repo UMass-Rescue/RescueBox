@@ -42,6 +42,7 @@ jobs:
           cd $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop
           ls
           brew install python-setuptools
+          python3 -m pip install setuptools
           echo "run install"
           npm install
           echo "run postinstall"
@@ -51,7 +52,7 @@ jobs:
           echo "run rebuild"
           npm run rebuild
           echo "run exec"
-          npm exec electron-builder -- --publish always --mac
-          ls release/build
-          IF NOT EXIST "release/build/RescueBox-Desktop-2.1.0.dmg" EXIT 1
+          npm exec electron-builder -- --mac
+          ls $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build
+          IF NOT EXIST "$RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build/RescueBox-Desktop-2.1.0.dmg" EXIT 1
         shell: sh
