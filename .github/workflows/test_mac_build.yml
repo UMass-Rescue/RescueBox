@@ -37,6 +37,8 @@ jobs:
           python-version: '3.12'
           
       - name: Install and build
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           pwd
           cd $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop
