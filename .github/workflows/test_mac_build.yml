@@ -42,9 +42,43 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          pwd
+          cd $RUNNER_WORKSPACE/RescueBox
+          gdown 1yJoDqNbnNUte7vfv1GV5Go57MPkSdPlc
+          ls -lrt
+          mkdir tmp
+          cd tmp
+          unip ../rb_mac_files.zip
+          mv age_and_gender_detection/models ../src/age_and_gender_detection
+          mv face-detection-recognition/face_detection_recognition/models ../src/face-detection-recognition/face_detection_recognition
+          mv deepfake-detection/deepfake_detection/onnx_models ../src/deepfake-detection/deepfake_detection
+          mv hook.py ..
+          mv mac.spec ..
+          rm -f ../pyproject.toml
+          mv pyproject.toml ../pyproject.toml
+          cd ..
+          rm -rf tmp
+          brew install ffmpeg
+          ls -l /usr/local/bin/ffmpeg
+          cp /usr/local/bin/ffmpeg .
+          brew install pipx
+          pipx install poetry
+          poetry sync
+          poetry env list
+          poetry env info
+          poetry lock
+          poetry install
+          poetry run pyinstaller mac.spec
+          ls -l dist/rescuebox/rescuebox
+          if [ -f "dist/rescuebox/rescuebox" ]; then
+             echo "backend rescuebox exe build ok"
+          else
+             echo "backend rescuebox exe build not ok"
+             exit 1
+          fi
+          mv dist RescueBox-Desktop/assets/rb_server
+          echo "backend rescuebox build completed"
           cd $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop
-          ls
+          ls package.json
           brew install python-setuptools
           python3 -m pip install setuptools
           echo "run install"
