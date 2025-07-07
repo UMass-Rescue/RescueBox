@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v4
+        with:
+          ref: 'test_mac_build'
 
       - name: Install Node and NPM
         uses: actions/setup-node@v4
