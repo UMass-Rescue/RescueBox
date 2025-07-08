@@ -61,8 +61,8 @@ jobs:
           rm -f rb_mac_files.zip
           brew install ffmpeg
           brew list ffmpeg | grep "bin/ffmpeg"
-          ls -l /usr/local/Cellar/ffmpeg/*/bin/ffmpeg
-          cp /usr/local/Cellar/ffmpeg/*/bin/ffmpeg .
+          ls -l /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg
+          cp /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg .
           brew install pipx
           pipx install poetry
           poetry sync
