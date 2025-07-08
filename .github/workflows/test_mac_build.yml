@@ -44,7 +44,7 @@ jobs:
         run: |
           cd $RUNNER_WORKSPACE/RescueBox
           brew install gdown
-          gdown 1t8PHU13mJD_OHQtt5Rpzwt22iIcevPZ_
+          gdown 1kN8BYEDinWfs9Qv5G1T_bILiwfuT5o-V
           ls -lrt
           mkdir tmp
           cd tmp
@@ -52,6 +52,7 @@ jobs:
           # mv -f age_and_gender_detection/models ../src/age_and_gender_detection
           mv face-detection-recognition/face_detection_recognition/models ../src/face-detection-recognition/face_detection_recognition
           mv deepfake-detection/deepfake_detection/onnx_models ../src/deepfake-detection/deepfake_detection
+          mv whisper ..
           mv hook.py ..
           mv mac.spec ..
           rm -f ../pyproject.toml
@@ -63,7 +64,6 @@ jobs:
           brew list ffmpeg | grep "bin/ffmpeg"
           ls -l /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg
           cp /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg .
-          cp ffmpeg /usr/local/bin
           brew install pipx
           pipx install poetry
           rm -f poetry.lock
