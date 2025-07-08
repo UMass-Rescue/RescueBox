@@ -265,7 +265,7 @@
       "target": {
         "target": "default",
         "arch": [
-          "universal"
+          "arm64"
         ]
       },
       "additionalArguments": [
