@@ -65,11 +65,11 @@ jobs:
           cp /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg .
           brew install pipx
           pipx install poetry
-          poetry sync
-          poetry env list
-          poetry env info
+          rm -f poetry.lock
           poetry lock
           poetry install
+          poetry env list
+          poetry env info
           poetry run pyinstaller mac.spec
           ls -l dist/rescuebox/rescuebox
           if [ -f "dist/rescuebox/rescuebox" ]; then
