@@ -64,7 +64,6 @@ jobs:
           brew list ffmpeg | grep "bin/ffmpeg"
           ls -l /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg
           cp /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg .
-          brew install pipx
           pipx install poetry
           rm -f poetry.lock
           poetry lock
@@ -96,8 +95,8 @@ jobs:
           echo "run exec"
           npm exec electron-builder -- --mac
           ls $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build
-          if [ -f "$RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build/RescueBox-Desktop-2.1.0-universal.dmg" ]; then
-             echo "rescueboc desktop 2.1.0 for mac built ok"
+          if [ -f "$RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build/RescueBox-Desktop-2.1.0-arm64.dmg" ]; then
+             echo "rescueboc desktop 2.1.0 for mac arm64 only built ok"
              exit 0
           else
             echo "rescueboc desktop 2.1 for mac not built ok"
