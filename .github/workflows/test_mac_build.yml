@@ -44,7 +44,7 @@ jobs:
         run: |
           cd $RUNNER_WORKSPACE/RescueBox
           brew install gdown
-          gdown 1yJoDqNbnNUte7vfv1GV5Go57MPkSdPlc
+          gdown 1t8PHU13mJD_OHQtt5Rpzwt22iIcevPZ_
           ls -lrt
           mkdir tmp
           cd tmp
