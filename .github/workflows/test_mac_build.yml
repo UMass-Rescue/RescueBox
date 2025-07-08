@@ -63,6 +63,7 @@ jobs:
           brew list ffmpeg | grep "bin/ffmpeg"
           ls -l /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg
           cp /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg .
+          cp ffmpeg /usr/local/bin
           brew install pipx
           pipx install poetry
           rm -f poetry.lock
