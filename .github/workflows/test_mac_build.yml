@@ -49,7 +49,7 @@ jobs:
           mkdir tmp
           cd tmp
           unzip ../rb_mac_files.zip
-          mv age_and_gender_detection/models ../src/age_and_gender_detection
+          # mv -f age_and_gender_detection/models ../src/age_and_gender_detection
           mv face-detection-recognition/face_detection_recognition/models ../src/face-detection-recognition/face_detection_recognition
           mv deepfake-detection/deepfake_detection/onnx_models ../src/deepfake-detection/deepfake_detection
           mv hook.py ..
