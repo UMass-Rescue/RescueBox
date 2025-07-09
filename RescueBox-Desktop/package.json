@@ -330,7 +330,7 @@
     "publish": {
       "provider": "github",
       "owner": "UMass-Rescue",
-      "repo": "RescueBox-Desktop"
+      "repo": "RescueBox"
     }
   },
   "electronmon": {
