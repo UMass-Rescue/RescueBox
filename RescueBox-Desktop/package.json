@@ -3,13 +3,13 @@
   "version": "2.1.0",
   "description": "A foundation for scalable desktop apps",
   "keywords": [],
-  "homepage": "https://github.com/UMass-Rescue/RescueBox-Desktop#readme",
+  "homepage": "https://github.com/UMass-Rescue/RescueBox#readme",
   "bugs": {
-    "url": "https://github.com/UMass-Rescue/RescueBox-Desktop/issues"
+    "url": "https://github.com/UMass-Rescue/RescueBox/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/UMass-Rescue/RescueBox-Desktop.git"
+    "url": "git+https://github.com/UMass-Rescue/RescueBox.git"
   },
   "license": "MIT",
   "author": "UMass Rescue Lab",
