@@ -93,7 +93,7 @@ jobs:
           echo "run rebuild"
           npm run rebuild
           echo "run exec"
-          npm exec electron-builder -- --mac
+          npm exec electron-builder -- --publish always --mac
           ls $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build
           if [ -f "$RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop/release/build/RescueBox-Desktop-2.1.0-arm64.dmg" ]; then
              echo "rescueboc desktop 2.1.0 for mac arm64 only built ok"
