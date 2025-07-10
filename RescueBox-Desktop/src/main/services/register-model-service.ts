@@ -46,7 +46,7 @@ export default class RegisterModelService {
     'dist',
     'rescuebox',
   );
-  public static serverExe = path.join(RegisterModelService.serverPath, 'rescuebox.exe',);
+  public static serverExe = path.join(RegisterModelService.serverPath, 'rescuebox',);
   public static  childprocess: ChildProcess;
 
   public static  async startServer() {
@@ -62,6 +62,9 @@ export default class RegisterModelService {
     };
     if (RegisterModelService.IS_SERVER_RUNNING)
       return;
+    if (process.platform === 'win32') {
+      RegisterModelService.serverExe = path.join(RegisterModelService.serverPath, 'rescuebox.exe',);
+    }
     RegisterModelService.childprocess = spawn(RegisterModelService.serverExe, options, defaults);
     if (RegisterModelService.childprocess != null) {
       RegisterModelService.childprocess.stdout?.on('data', (data: any) => {

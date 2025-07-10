@@ -1,0 +1,100 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - test_mac_build
+  workflow_dispatch:
+  
+permissions:
+  contents: write
+  
+jobs:
+  publish:
+    # To enable auto publishing to github, update your electron publisher
+    # config in package.json > "build" and remove the conditional below
+    # D:\a\RescueBox-FlaskML-xxx\RescueBox-FlaskML-xxx
+    if: ${{ github.repository_owner == 'UMass-Rescue' }}
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest]
+
+    steps:
+      - name: Checkout git repo
+        uses: actions/checkout@v4
+        with:
+          ref: 'test_mac_build'
+
+      - name: Install Node and NPM
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - run: npm --version
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install and build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd $RUNNER_WORKSPACE/RescueBox
+          brew install gdown
+          gdown 1kN8BYEDinWfs9Qv5G1T_bILiwfuT5o-V
+          ls -lrt
+          mkdir tmp
+          cd tmp
+          unzip ../rb_mac_files.zip
+          # mv -f age_and_gender_detection/models ../src/age_and_gender_detection
+          mv face-detection-recognition/face_detection_recognition/models ../src/face-detection-recognition/face_detection_recognition
+          mv deepfake-detection/deepfake_detection/onnx_models ../src/deepfake-detection/deepfake_detection
+          mv whisper ..
+          mv hook.py ..
+          mv mac.spec ..
+          rm -f ../pyproject.toml
+          mv pyproject.toml ../pyproject.toml
+          cd ..
+          rm -rf tmp
+          rm -f rb_mac_files.zip
+          brew install ffmpeg
+          brew list ffmpeg | grep "bin/ffmpeg"
+          ls -l /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg
+          cp /opt/homebrew/Cellar/ffmpeg/7.1.1_3/bin/ffmpeg .
+          pipx install poetry
+          rm -f poetry.lock
+          poetry lock
+          poetry install
+          poetry env list
+          poetry env info
+          poetry run pyinstaller mac.spec
+          ls -l dist/rescuebox/rescuebox
+          if [ -f "dist/rescuebox/rescuebox" ]; then
+             echo "backend rescuebox exe build ok"
+          else
+             echo "backend rescuebox exe build not ok"
+             exit 1
+          fi
+          mv dist RescueBox-Desktop/assets/rb_server
+          echo "backend rescuebox build completed"
+          cd $RUNNER_WORKSPACE/RescueBox/RescueBox-Desktop
+          ls package.json
+          brew install python-setuptools
+          python3 -m pip install setuptools
+          echo "run install"
+          npm install
+          echo "run postinstall"
+          npm run postinstall
+          echo "run build"
+          npm run build
+          echo "run rebuild"
+          npm run rebuild
+          echo "run exec"
+          npm exec electron-builder -- --publish always --mac
+        shell: sh

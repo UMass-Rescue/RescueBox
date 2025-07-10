@@ -1,6 +1,6 @@
 {
   "name": "RescueBox-Desktop",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A desktop application with a collection of ML models for forensics, and a job engine to run them",
   "license": "MIT",
   "author": {
