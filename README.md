@@ -7,7 +7,7 @@ We are proud to offer our first preview release of RescueBox!
 
 The Windows download contains documentation including a product overview, installation notes, and RescueBox usage. 
 
-This release has been tested on Windows 11 64-bit hardware. The software does work if you run it on a machine with only a CPU; try it out with a few images or a short video. But for real work, because the processing is dependent on machine learning models, you won't see good performance unless you run on a machine that has a modern NVIDIA GPU card. Something like 4090 or 5090 or better for large amounts of files.
+This release has been tested on Windows 11 64-bit hardware. The software does work if you run it on a machine with only a CPU; try it out with a few images or audio files. However for large scale work, because the processing is dependent on machine learning models, you won't see good performance unless you run on a machine that has a modern NVIDIA GPU card. Something like 4090 or 5090 or better for large amounts of files.
 
 The software is free of charge. UMass Amherst is research university and a non-profit: our plan to continue development of this open source software is by seeking funding for this work from sponsors. While we seek this funding, we are indeed offering free support for the software for its users. Please ask for our help, offer feedback, and submit bug reports using [this form](https://forms.gle/wYs1S5k1JS3G2rLo7). Again, please note that there is documentation in the windows download. 
 
