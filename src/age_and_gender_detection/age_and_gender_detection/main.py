@@ -63,6 +63,7 @@ model = AgeGenderDetector(
 
 
 def predict(inputs: Inputs) -> ResponseBody:
+    """ Predicts age and gender from images in the provided directory. """
     input_path = inputs["image_directory"].path
     logger.info(f"Input path: {input_path}")
     res_list = model.predict_age_and_gender_on_dir(input_path)

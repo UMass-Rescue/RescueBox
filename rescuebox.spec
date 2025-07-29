@@ -131,7 +131,7 @@ a = Analysis(
     ['src/rb-api/rb/api/main.py'],
     pathex=['src/rb-api/rb/api', 'src/rb-lib', 'src/rb-api', 'rescuebox', 'src', '.', 'src/rb-doc-parser', 'src/rb-file-utils', 'src/audio-transcription',
     'src/text-summary', 'src/age_and_gender_detection'],
-    binaries=[('ffmpeg.exe', "."), ('chroma.exe' , "."), ('ollama.exe', "."),
+    binaries=[('ffmpeg.exe', "."),
     (model_face_detector, age_and_gender_detection_models_dir),
     (model_age_classifier, age_and_gender_detection_models_dir),
     (model_gender_classifier, age_and_gender_detection_models_dir),

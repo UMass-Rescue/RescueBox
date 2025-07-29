@@ -47,7 +47,6 @@ def download_wiki_page(url):
         wiki_content_div = soup.find("div", class_="markdown-body")
 
         if not wiki_content_div:
-            print(f"Warning: No markdown content found on {url}")
             return None
 
         return wiki_content_div.get_text().strip()
@@ -66,11 +65,14 @@ def download_all_wiki_pages():
 
     for page_url in wiki_pages:
         page_name = page_url.split("/")[-1]  # Extract the page name
+        if page_name != "plugins":
+            continue
         # print(f"Fetching: {page_name}")
         markdown_text = download_wiki_page(page_url)
 
         if markdown_text:
             wiki_data[page_name] = markdown_text
+            break
 
     return wiki_data
 

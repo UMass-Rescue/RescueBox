@@ -13,12 +13,12 @@ def load_chat_config() -> dict:
 
 
 def download_model(chat_config: dict) -> None:
-    ollama.pull(chat_config["model"]["name"])
-
+    pr = ollama.pull(chat_config["model"]["name"])
+    print(pr)
 
 def stream_output(user_content: str, chat_config: dict) -> str:
     download_model(chat_config)
-
+    print(f"[bold green]Asking: {user_content}")
     stream = ollama.chat(
         model=chat_config["model"]["name"],
         messages=[

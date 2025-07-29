@@ -24,7 +24,9 @@ def ask(
     Ask a question against the docs
     """
     reference_doc = download_all_wiki_pages()
+    
     chat_config = load_chat_config()
+    print(chat_config)
     chat_config["prompt"]["system"] = chat_config["prompt"]["system"].format(
         reference_doc=reference_doc
     )

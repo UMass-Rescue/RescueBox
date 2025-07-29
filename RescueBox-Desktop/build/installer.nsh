@@ -8,7 +8,7 @@ Var VersionNumber
 Section
   SetDetailsPrint both
   InitPluginsDir
-  StrCpy $VersionNumber "v2.0.0"
+  StrCpy $VersionNumber "v2.1.0"
   ExpandEnvStrings $0 %COMSPEC%
   MessageBox MB_OK "RescueBox $VersionNumber $INSTDIR"
   MessageBox MB_OK|MB_ICONINFORMATION "Copyright (R) ${COPYYEAR}"

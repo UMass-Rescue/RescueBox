@@ -2,6 +2,12 @@ import os
 from typing import Annotated
 
 import typer
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG) # Set level for the handler
+logger.addHandler(handler)
 
 app = typer.Typer()
 
@@ -46,8 +52,10 @@ def head(
     """
     Print the first n lines of a file
     """
+    logger.debug(f"head: {path}")
     with open(path, "r") as f:
+        head_str = ""
         for _ in range(n):
-            typer.echo(f.readline())
-
+            head_str += f.readline()
+        typer.echo(head_str)
     return path

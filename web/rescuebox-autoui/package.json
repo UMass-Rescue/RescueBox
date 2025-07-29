@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "build:watch": "vite build --watch",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "dev" : "vite --host 0.0.0.0 --open"
   },
   "dependencies": {
     "@mantine/core": "^7.13.4",

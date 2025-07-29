@@ -1,6 +1,9 @@
 import io
 import sys
 from io import StringIO
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class Capturing(list):
@@ -20,7 +23,9 @@ def capture_stdout_as_generator(func, *args, **kwargs):
 
     old_stdout = sys.stdout
     sys.stdout = buffer = io.StringIO()
-
+    logger.debug(
+                f"Executing capture_stdout_as_generator,with args={args}, kwargs={kwargs}"
+            )
     try:
         func(*args, **kwargs)  # Run the function
         sys.stdout.flush()
@@ -31,7 +36,8 @@ def capture_stdout_as_generator(func, *args, **kwargs):
             if not line:
                 break  # Stop streaming when done
 
-            print(f"Debug: Captured output -> {line.strip()}")  # Debugging print
+            logger.debug(
+                f"Captured line: {line.strip()}")  # Debugging print
             yield line.strip()  # Ensure it's yielding non-empty lines
 
     finally:

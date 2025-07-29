@@ -28,7 +28,10 @@ from rb.lib.stdout import capture_stdout_as_generator
 from rescuebox.main import app as rescuebox_app
 
 logger = logging.getLogger(__name__)
-
+logging.basicConfig(level=logging.INFO)
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO) # Set level for the handler
+logger.addHandler(handler)
 cli_to_api_router = APIRouter()
 
 
@@ -87,7 +90,7 @@ def streaming_endpoint(callback: Callable, *args, **kwargs) -> Generator:
         try:
             # Attempt to parse the output if it's JSON-like
             parsed_line = (
-                json.loads(line)
+                json.loads(line.replace("'", '"'))  # Convert single quotes to double quotes for JSON parsing
                 if isinstance(line, str) and line.lstrip().startswith("{")
                 else line
             )
@@ -115,8 +118,8 @@ def streaming_endpoint(callback: Callable, *args, **kwargs) -> Generator:
                 elif "markdown" in parsed_line:  # Matches MarkdownResponse
                     response_body = ResponseBody(root=MarkdownResponse(**parsed_line))
                 else:
-                    response_body = ResponseBody(
-                        root=TextResponse(value=str(parsed_line))
+                    return Response(
+                        content=str(parsed_line).replace("'", '"'), media_type="application/json"
                     )
 
             elif isinstance(parsed_line, list):
