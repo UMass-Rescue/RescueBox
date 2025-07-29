@@ -1,6 +1,8 @@
 
-#  Goal: make a single rescuebox.exe EXE with all plugins and run as a backend Server 
-#  make UI installer a single EXE that will include the above rescuebox.exe
+#  Goal: make a single rescuebox.exe EXE with all plugins and run as a backend Server
+#  add pre-req installers, onxx files
+#  make UI installer a single EXE that will include rescuebox.exe and the above artifacts
+#  make a zip file of the installer + docs + licenses to be shared with customers
 
 1 Make rescuebox EXE steps:
 
@@ -9,37 +11,45 @@ cd to top level folder for rescuebox containing the rescuebox.spec file
 install pre-reqs like ffmpg.exe for audio in this folder , as mentioned in the spec file.
 run "poetry run pyinstaller rescuebox.spec"
 
-also copy the onnx model files for all plugins. 
+also copy the onnx model files for all plugins.
 example : src/age_and_gender_detection/models will need
 the three version-RFB-640.onnx, age_googlenet.onnx,gender_googlenet.onnx model files.
 run "poetry run pyinstaller rescuebox.spec"
 
 this will create "dist" and "build"
-"dist" is the single folder that contains all the python dependencies and rescuebox.exe 
+"dist" is the single folder that contains all the python dependencies and rescuebox.exe.
 
 copy the cuda12 dlls into the dist\rescuebox folder after the build is complete.
-https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.0-build/cuda12_gpu_dlls.zip?csf=1&web=1&e=JpVB5E
+   https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.1-build/cuda12_gpu_dlls.zip?csf=1&web=1&e=sM9U9s
 
 start server : dist\rescuebox\rescuebox.exe , to confirm its able to start and stop it (contol-c)
 
 
 2.1 copy the pre reqs for the desktop exe
-  a these artifacts go into RecueBox-Desktop\assets\rb_server files  https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.0-build/assets_rb_server.zip?csf=1&web=1&e=ZT03Hj
+  a these artifacts go into RecueBox-Desktop\assets\rb_server folder.
+          https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.1-build/assets_rb_server.zip?csf=1&web=1&e=cJIsbR
      demo -sample files for running plugins
      docs - rescuebox docs
-     OllamaSetup.exe pre-req for text-summary , winfsp-2.x.msi for ufdr-plugin
+     OllamaSetup.exe pre-req for text-summary plugin ,
+     winfsp-2.x.msi pre-req for ufdr-plugin
 
-  b copy the rescuebox server from pyinstaller output folder 
+  b copy the rescuebox server from pyinstaller output folder
           <RescueBox-HOME>/dist  to  RescueBox-Desktop/assets/rb_server
 
-  c. these assets are large over 2GB hence needs fix 
-    download https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.0-build/nsis-update.zip?csf=1&web=1&e=x3S2uK
+  c. these assets are large over 2GB hence needs fix
+    download https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.1-build/nsis-update.zip?csf=1&web=1&e=SXK85E
+
     extract and copy/overwrite C:\Users\<user-name>\AppData\Local\electron-builder\Cache\nsis with the unzip of nsis-binary-7423-2.zip
+
     all the sub folders like nsis-old-version\bin with get updated
     npm build will work ok without errors because RB is >  2 GB
 
-  d update package.json to sign the ouput of the electron-builder 
-  
+  d update package.json to sign the ouput of the electron-builder
+       "signtoolOptions": {
+          "certificateFile": "rescuelab_cs.umass.edu.pfx",
+          "certificatePassword": "changeMe"
+        }
+
 2.2 Make rescuebox desktop exe on Windows steps, put these cmds in a file and run as script:
 
 
@@ -54,7 +64,16 @@ cmd /c npm run build
 cmd /c npm run rebuild
 cmd /c npm exec electron-builder -- --win
 
-this will create a EXE in release/build , in windows for example : RescueBox-Desktop Setup 1.1.0.exe
+this will create a EXE in "RescueBox-Desktop\release\build", in windows for example : RescueBox-Desktop Setup 2.1.0.exe
+
+2.3 Make release zip with docs and licenses:
+
+     download https://umass-my.sharepoint.com/:u:/r/personal/jaikumar_umass_edu/Documents/2.1-build/License%20%26%20Copyright.zip?csf=1&web=1&e=okCLn3
+     extract the License&Copyright folder to the same folder with exe generated in step 2.2 that is "RescueBox-Desktop\release\build"
+
+     copy the docs from RescueBox-Desktop\assets\rb_server\docs to RescueBox-Desktop\release\build\
+
+     make a zip of these 3 : the exe + licenses + docs, this is the release artifact to be shared with customers
 
 3 Install Steps:
 
@@ -64,5 +83,5 @@ this will create a EXE in release/build , in windows for example : RescueBox-Des
  subsequent restart of rescueBox Desktop UI will restart the rescuebox exe server.
 
 Notes:
-# there is one sqlite db that will be re used for initial install and subsequent restarts.
-# 
+# downloads from ondrive include onnx-files, model-demo files, pre-reqs :ollama+winfsp,  cuda12-dlls-for-gpu , nsis-2gb-fix, docs, licenses
+# code sign exe required pfx file and password
