@@ -94,9 +94,9 @@ const App = () => {
   const form = useForm({
     initialValues: selectedCommand
       ? selectedCommand.inputs.reduce((values, input) => {
-          values[input.name] = input.default || "";
-          return values;
-        }, {})
+        values[input.name] = input.default || "";
+        return values;
+      }, {})
       : {},
   });
 
@@ -107,25 +107,29 @@ const App = () => {
 
     const formValues = { ...form.values };
     // console.log(`🔹 With formValues: ${formValues}`);
+    const queryParams = new URLSearchParams();
+
     for (const key in formValues) {
       console.log(`🔹 With key : ${key}`);
       console.log(`🔹 With value : ${formValues[key]}`);
+      queryParams.set(key, formValues[key]);
     }
-    console.log(`🔹 isGetRequest : ${selectedCommand.endpoint}`);
+
     const isGetRequest =
       selectedCommand.endpoint.includes("/api/routes") ||
       selectedCommand.endpoint.includes("/api/app_metadata") ||
       selectedCommand.endpoint.endsWith("/task_schema");
 
-    const queryParams = new URLSearchParams();
-   
+
+
     if (isGetRequest) {
       queryParams.set("streaming", "false");
     }
-    
+
     let body = null;
     let url = selectedCommand.endpoint;
     console.log(`🔹 With endpoint : ${url}`);
+    let isInternalUrl = false;
     if (isGetRequest) {
       for (const key in formValues) {
         if (Object.prototype.hasOwnProperty.call(formValues, key)) {
@@ -136,32 +140,30 @@ const App = () => {
     } else {
       const inputs = {};
       const parameters = {};
-      let isPydanticInputs = true;
       for (const input of selectedCommand.inputs) {
-       
+
         if (input.is_parameter) {
           parameters[input.name] = formValues[input.name];
         } else {
-           console.log(`🔹 With input fields : ${input.type} ${input.is_file_path}`);
-          if (input.type === "str" && ! input.is_file_path) {
-            isPydanticInputs = false;
+          console.log(`🔹 With input fields : ${input.type} ${input.is_file_path}`);
+          if (input.type === "str") {
+            isInternalUrl = true;
+            break;
           }
           if (input.type === "file" || input.type === "directory") {
             let pathValue = formValues[input.name] || ""; // Ensure it's a string, even if empty
             // Remove leading/trailing quotes if present
             if (typeof pathValue === 'string' && pathValue.startsWith('"') && pathValue.endsWith('"')) {
-                pathValue = pathValue.substring(1, pathValue.length - 1);
+              pathValue = pathValue.substring(1, pathValue.length - 1);
             }
             inputs[input.name] = { path: pathValue }; // Always include the field
           } else if (input.type === "text") {
             const textValue = formValues[input.name] || ""; // Ensure it's a string, even if empty
             inputs[input.name] = { text: textValue }; // Always include the field
-          } else {
-            inputs[input.name] = formValues[input.name]; // For other types, send as is
           }
         }
       }
-      if (isPydanticInputs && Object.keys(inputs).length > 0) {
+      if (!isInternalUrl && Object.keys(inputs).length > 0) {
         body = JSON.stringify({ inputs: inputs, parameters: parameters });
       } else {
         body = null;
@@ -170,7 +172,7 @@ const App = () => {
     }
 
     const queryString = queryParams.toString();
-    if (queryString) {
+    if (queryString && isInternalUrl) {
       url = `${url}?${queryString}`;
     }
 
@@ -192,7 +194,7 @@ const App = () => {
         const errorData = await response.json();
         throw new Error(`HTTP error! Status: ${response.status} - ${JSON.stringify(errorData)}`);
       }
-      
+
       const rawText = await response.text();
       console.log("🔹 Raw response from server:", rawText);
 
@@ -204,11 +206,11 @@ const App = () => {
         parsedData = rawText; // Use raw text if JSON parsing fails
       }
 
-        setCommandOutput(
-          typeof parsedData === "object"
-            ? JSON.stringify(parsedData, null, 2)
-            : parsedData.toString()
-        );
+      setCommandOutput(
+        typeof parsedData === "object"
+          ? JSON.stringify(parsedData, null, 2)
+          : parsedData.toString()
+      );
     } catch (error) {
       console.error("❌ Request failed:", error);
       setCommandOutput(`❌ Error: ${error.message}`);
@@ -271,30 +273,30 @@ const App = () => {
                           input.type === "text" ||
                           input.type === "file" || // Added for file inputs
                           input.type === "directory") && ( // Added for directory inputs
-                          <Input
-                            placeholder={input.default || ""}
-                            {...form.getInputProps(input.name)}
-                            required
-                          />
-                        )}
+                            <Input
+                              placeholder={input.default || ""}
+                              {...form.getInputProps(input.name)}
+                              required
+                            />
+                          )}
                         {(input.type === "int" ||
-                         input.type === "ranged_int")  && (
-                          <Input
-                            type="number"
-                            placeholder={input.default?.toString() || ""}
-                            {...form.getInputProps(input.name)}
-                            required
-                          />
-                        )}
+                          input.type === "ranged_int") && (
+                            <Input
+                              type="number"
+                              placeholder={input.default?.toString() || ""}
+                              {...form.getInputProps(input.name)}
+                              required
+                            />
+                          )}
                         {(input.type === "float" || input.type === "ranged_float") && (
-                           <Input
+                          <Input
                             type="float"
                             placeholder={input.default?.toString() || ""}
                             {...form.getInputProps(input.name)}
                             required
                           />
                         )}
-                          {input.type === "enum" && (
+                        {input.type === "enum" && (
                           <Input
                             placeholder={input.default || ""}
                             {...form.getInputProps(input.name)}
