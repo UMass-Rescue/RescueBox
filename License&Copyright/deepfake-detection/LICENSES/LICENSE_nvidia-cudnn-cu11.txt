@@ -1,0 +1,4 @@
+This project uses the NVIDIA cuDNN library (via the `nvidia-cudnn-cu11` Python package),
+which is licensed under the NVIDIA cuDNN Software License Agreement.
+
+Full license: https://developer.nvidia.com/cuDNN_EULA

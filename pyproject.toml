@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "rescuebox"
-version = "2.0.0"
+version = "2.1.0"
 description = ""
-authors = ["Jagath Jai Kumar <jagath.jaikumar@gmail.com>"]
+authors = ["RescueBox Team"]
 packages = [{include = "rescuebox"}]
 
 [tool.poetry.scripts]
