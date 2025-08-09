@@ -1,0 +1,3 @@
+This project uses the NVIDIA CUDA Runtime library (via the `nvidia-cuda-runtime-cu11` Python package), which is licensed under the NVIDIA End User License Agreement (EULA).
+
+Full license: https://docs.nvidia.com/cuda/eula/index.html
