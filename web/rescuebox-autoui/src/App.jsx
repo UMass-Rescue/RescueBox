@@ -111,7 +111,7 @@ const App = () => {
       console.log(`🔹 With key : ${key}`);
       console.log(`🔹 With value : ${formValues[key]}`);
     }
-     
+    console.log(`🔹 isGetRequest : ${selectedCommand.endpoint}`);
     const isGetRequest =
       selectedCommand.endpoint.includes("/api/routes") ||
       selectedCommand.endpoint.includes("/api/app_metadata") ||
@@ -121,19 +121,18 @@ const App = () => {
    
     if (isGetRequest) {
       queryParams.set("streaming", "false");
-    } else {
-      queryParams.set("streaming", "true");
     }
     
     let body = null;
     let url = selectedCommand.endpoint;
     console.log(`🔹 With endpoint : ${url}`);
-    if (! isGetRequest) {
+    if (isGetRequest) {
       for (const key in formValues) {
         if (Object.prototype.hasOwnProperty.call(formValues, key)) {
           queryParams.set(key, formValues[key]);
         }
       }
+      console.log(`🔹 With queryParams : ${queryParams}`);
     } else {
       const inputs = {};
       const parameters = {};
@@ -162,9 +161,11 @@ const App = () => {
           }
         }
       }
-      if (isPydanticInputs) {
+      if (isPydanticInputs && Object.keys(inputs).length > 0) {
         body = JSON.stringify({ inputs: inputs, parameters: parameters });
-      } 
+      } else {
+        body = null;
+      }
       console.log(`🔹 With body: ${body}`);
     }
 
