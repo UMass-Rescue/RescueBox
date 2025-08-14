@@ -1,6 +1,6 @@
 {
   "name": "RecuseBox Hackathon",
-  "image": "nb887/rescuebox:2.1.2",
+  "image": "nb887/rescuebox:2.1.0",
   "workspaceFolder": "/rb/RescueBox",
   // The mounts property allows you to make source location where you 
   // checkout the rescuebox github repo to overwrite the container target location
@@ -13,7 +13,7 @@
   // and Path to the output file "/tmp" or any other directory in the container
 
   "mounts": [
-    "source=C:/work/rel/RescueBox,target=/rb/RescueBox,type=bind"
+    "source=/home/tester/RescueBox,target=/rb/RescueBox,type=bind"
   ],
   "customizations": {
     "vscode": {
@@ -27,6 +27,7 @@
     }
   },
   "forwardPorts": [8000],
+  "postCreateCommand": "ln -s /rb/.venv .venv && poetry install",
   "postAttachCommand": "poetry run python -m src.rb-api.rb.api.main"
 
 }
