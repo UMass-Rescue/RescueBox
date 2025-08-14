@@ -1,0 +1,33 @@
+{
+  "name": "RecuseBox Hackathon",
+  "image": "nb887/rescuebox:2.1.0",
+  "workspaceFolder": "/rb/RescueBox",
+  // The mounts property allows you to make source location where you 
+  // checkout the rescuebox github repo to overwrite the container target location
+  // now edits to local source causes
+  // rescuebox to re run with your changes
+
+  // Note : any files to pass to run rescuebox plugins must be in /rb/RescueBox/
+  // example /rb/RescueBox/src/audio-transcription/tests/ is input directory for audio transcription plugin
+  // example /rb/RescueBox/src/deepfake-detection/sample_images/ is input directory for deepfake detection plugin
+  // and Path to the output file "/tmp" or any other directory in the container
+
+  "mounts": [
+    "source=/home/tester/RescueBox,target=/rb/RescueBox,type=bind"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python"
+      }
+    }
+  },
+  "forwardPorts": [8000],
+  "postCreateCommand": "ln -s /rb/.venv .venv && poetry install",
+  "postAttachCommand": "poetry run python -m src.rb-api.rb.api.main"
+
+}
