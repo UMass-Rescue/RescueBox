@@ -17,6 +17,8 @@ from face_detection_recognition.face_match_server import (
     APP_NAME as FACE_MATCH_APP_NAME,
 )  # type: ignore
 
+from image_summary.main import app as image_summary_app, APP_NAME as IMAGE_SUM_APP_NAME  # type: ignore
+
 ufdr_app = None
 try:
     from ufdr_mounter.ufdr_server import app as ufdr_app, APP_NAME as UFDR_APP_NAME  # type: ignore
@@ -42,6 +44,7 @@ plugins: list[RescueBoxPlugin] = [
     ),
     RescueBoxPlugin(age_gender_app, AGE_GENDER_APP_NAME, "Age and Gender Classifier"),
     RescueBoxPlugin(text_summary_app, TEXT_SUM_APP_NAME, "Text summarization library"),
+    RescueBoxPlugin(image_summary_app, IMAGE_SUM_APP_NAME, "Image description library"),
     RescueBoxPlugin(
         face_detection_app, FACE_MATCH_APP_NAME, "Face Detection and Recognition Tool"
     ),
