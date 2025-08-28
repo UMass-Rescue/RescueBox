@@ -81,7 +81,13 @@ class MLService(object):
             return res
 
     def add_app_metadata(
-        self, name: str, author: str, version: str, info: str, plugin_name: str
+        self,
+        name: str,
+        author: str,
+        version: str,
+        info: str,
+        plugin_name: str,
+        gpu: bool = False,
     ):
         self._app_metadata = AppMetadata(
             name=name,
@@ -89,6 +95,7 @@ class MLService(object):
             version=version,
             info=info,
             plugin_name=plugin_name,
+            gpu=gpu,
         )
 
     def add_ml_service(
@@ -100,17 +107,21 @@ class MLService(object):
         task_schema_func: Optional[Callable[[], TaskSchema]] = None,
         short_title: Optional[str] = None,
         order: int = 0,
+        is_workflow_step: bool = False,
     ):
         ensure_ml_func_parameters_are_typed_dict(ml_function)
         ensure_ml_func_hinting_and_task_schemas_are_valid(
             ml_function, task_schema_func()
         )
+        processed_title = short_title or ""
+        if is_workflow_step:
+            processed_title = f"Step {order + 1}: {processed_title}"
         endpoint = EndpointDetails(
             rule=f"/{self.name}" + rule,
             task_schema_rule=f"/{self.name}" + rule + "/task_schema",
             func=ml_function,
             task_schema_func=task_schema_func,
-            short_title=short_title or "",
+            short_title=processed_title,
             order=order,
         )
         self.endpoints.append(endpoint)

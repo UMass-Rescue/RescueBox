@@ -155,39 +155,47 @@ export default class RegisterModelService {
     serverAddress: string,
     serverPort: number,
     pluginName: string,
+    gpu: boolean = false,
   ): Promise<ModelServerDb> {
     const modelInfo = await RegisterModelService.getAppMetadata(
       serverAddress,
       serverPort,
       pluginName,
     );
-    log.info(`Model name: ${modelInfo.name} Plugin name: ${pluginName}`);
+    log.info(`Model name: ${modelInfo.name} Plugin name: ${pluginName} {gpu: ${modelInfo.gpu}}`);
     const apiRoutes = await RegisterModelService.getAPIRoutes(
       serverAddress,
       serverPort,
       pluginName,
     );
-    const prevModel = await MLModelDb.getModelByModelInfoAndRoutes(
-      modelInfo,
-      apiRoutes,
-    );
+
+    // Use the stable model name to find the model
+    const prevModel = await MLModelDb.findByName(modelInfo.name);
     if (prevModel) {
-      log.info(`Old model found with uid ${prevModel.uid}`);
+      log.info(`Nodel found in db with uid ${prevModel.uid}`);
       log.info(
         `Updating registration info for ${prevModel.uid} at ${serverAddress}:${serverPort}`,
       );
-      await MLModelDb.restoreModel(prevModel.uid);
-      await ModelServerDb.updateServer(
-        prevModel.uid,
-        serverAddress,
-        serverPort,
-        pluginName,
+      // Update the existing model's metadata and routes
+      const updatedModel = await MLModelDb.updateModel(
+        modelInfo, // Pass appMetadata directly
+        apiRoutes,
       );
-      const server = await ModelServerDb.getServerByModelUid(prevModel.uid);
-      if (!server) {
-        throw new Error(`FATAL: Server not found for model ${prevModel.uid}`);
+      if (updatedModel) {
+          await ModelServerDb.updateServer(
+            updatedModel.uid,
+            serverAddress,
+            serverPort,
+            pluginName,
+          );
+
+        const server = await ModelServerDb.getServerByModelUid(updatedModel.uid);
+        if (!server) {
+          throw new Error(`FATAL: Server not found for model ${updatedModel.uid}`);
+        }
+        log.info(`Existing model updated for ${server.pluginName}`);
+        return server;
       }
-      return server;
     }
     log.info(
       `Registering new model app metadata at ${serverAddress}:${serverPort}`,

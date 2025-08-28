@@ -14,6 +14,7 @@ import migration0009ModelsReviseSchema from './0009_models_revise_schema';
 import migration0010ShiftTaskSchemaFromTasksToJobs from './0010_shift_task_schema_from_tasks_to_jobs';
 import migration0011ModelsAddIsRemoved from './0011_models_add_is_removed';
 import migration0012ServersAddColPlugin from './0012_servers_add_col_plugin';
+import migration0013AddGpuRecommendedToModels from './0013_add_gpu_recommended_to_models';
 
 export default function getMigrationsUmzug(sequelize: Sequelize) {
   return new Umzug({
@@ -33,6 +34,7 @@ export default function getMigrationsUmzug(sequelize: Sequelize) {
       migration0010ShiftTaskSchemaFromTasksToJobs,
       migration0011ModelsAddIsRemoved,
       migration0012ServersAddColPlugin,
+      migration0013AddGpuRecommendedToModels,
     ],
     logger: log,
   });

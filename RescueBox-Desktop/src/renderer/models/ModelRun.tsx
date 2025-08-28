@@ -2,6 +2,7 @@ import LoadingScreen from 'src/renderer/components/LoadingScreen';
 import { cn } from 'src/renderer/lib/utils';
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 import { useApiRoutes, useMLModel } from '../lib/hooks';
+import { useEffect } from 'react';
 
 function ModelRun() {
   const { modelUid } = useParams();
@@ -10,6 +11,7 @@ function ModelRun() {
     data: apiRoutes,
     error: apiRoutesError,
     isLoading: apiRoutesIsLoading,
+    mutate: mutateApiRoutes,
   } = useApiRoutes(modelUid);
 
   const {
@@ -17,6 +19,10 @@ function ModelRun() {
     error: modelError,
     isLoading: modelIsLoading,
   } = useMLModel(modelUid);
+
+  useEffect(() => {
+    mutateApiRoutes();
+  }, [mutateApiRoutes]);
 
   if (!modelUid) {
     return <div>Error: Model UID not found</div>;

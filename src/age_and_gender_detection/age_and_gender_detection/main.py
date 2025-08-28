@@ -1,6 +1,8 @@
 from rb.lib.ml_service import MLService
 from rb.api.models import (
+    BatchFileResponse,
     DirectoryInput,
+    FileResponse,
     InputSchema,
     InputType,
     TaskSchema,
@@ -53,6 +55,7 @@ server.add_app_metadata(
     author="UMass Rescue",
     version="2.0.0",
     info="Model to classify the age and gender of all faces in an image.",
+    gpu=True,
 )
 models_dir = Path("src/age_and_gender_detection/models")
 model = AgeGenderDetector(
@@ -65,10 +68,40 @@ model = AgeGenderDetector(
 def predict(inputs: Inputs) -> ResponseBody:
     input_path = inputs["image_directory"].path
     logger.info(f"Input path: {input_path}")
-    res_list = model.predict_age_and_gender_on_dir(input_path)
-    logger.info(f"Response: {res_list}")
-    response = TextResponse(value=json.dumps(res_list))
-    return ResponseBody(root=response)
+    predictions_by_image = model.predict_age_and_gender_on_dir(input_path)
+    logger.info(f"Response: {predictions_by_image}")
+
+    file_responses: list[FileResponse] = []
+    for image_path, predictions in predictions_by_image.items():
+        if not predictions:
+            continue
+
+        for i, pred in enumerate(predictions):
+            face_num = i + 1
+            image_basename = Path(image_path).name
+            
+            metadata = {
+                "Image Path": image_path,
+                "Gender": pred["gender"],
+                "Age": pred["age"],
+                "Bounding Box": str(pred["box"]),
+                #"Face Number": face_num,
+            }
+
+            file_responses.append(
+                FileResponse(
+                    file_type="img",
+                    path=image_path,
+                    title=f"Face {face_num} in {image_basename}",
+                    metadata=metadata,
+                )
+            )
+
+    if not file_responses:
+        return ResponseBody(root=TextResponse(value="No faces detected in any images."))
+
+    return ResponseBody(root=BatchFileResponse(files=file_responses))
+ 
 
 
 def cli_parser(path: str):
