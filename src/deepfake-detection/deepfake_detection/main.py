@@ -2,7 +2,7 @@
 import csv
 import warnings
 import typer
-from typing import TypedDict
+from typing import Any, Dict, List, TypedDict
 from pathlib import Path
 from rb.lib.ml_service import MLService
 from rb.api.models import (
@@ -11,12 +11,14 @@ from rb.api.models import (
     InputSchema,
     InputType,
     ResponseBody,
+    BatchFileResponse,
     TaskSchema,
     ParameterSchema,
     EnumParameterDescriptor,
     # TextParameterDescriptor,
     EnumVal,
     ParameterType,
+    TextResponse,
 )
 from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 
@@ -201,38 +203,47 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         model_name = model_results[0]["model_name"]
         predictions = model_results[1:]
         model_data.append({"name": model_name, "predictions": predictions})
-    # Build CSV content
-    csv_rows = []
-    # Add model names header
-    csv_rows.append(["Model:"] + [m["name"] for m in model_data])
-    # Loop over each image (driven by the first model's predictions)
-    num_images = len(model_data[0]["predictions"])
-    for i in range(num_images):
+    
+    # --- START OF CORRECTED CHANGES ---
+    file_responses: List[FileResponse] = []
+    # Ensure model_data is not empty before accessing its elements
+    if model_data and model_data[0]["predictions"]:
+        num_images = len(model_data[0]["predictions"])
+        for i in range(num_images):
+            row_metadata: Dict[str, Any] = {}
+            # --- START OF CHANGE ---
+            # Use the full image_path instead of just the basename
+            full_image_path = model_data[0]["predictions"][i]["image_path"]
+            path_basename = os.path.basename(full_image_path) # Keep basename for title/metadata if needed
+            row_metadata["Image Path"] = full_image_path # Store full path in metadata
+            # --- END OF CHANGE ---
 
-        # Extract the common image path (basename)
-        path = os.path.basename(model_data[0]["predictions"][i]["image_path"])
-
-        # Get each model's prediction and confidence for image i
-        preds = [m["predictions"][i]["prediction"] for m in model_data]
-        confs = [m["predictions"][i]["confidence"] for m in model_data]
-
-        # --- Aggregate predictions using a weighted vote ---
-        # Sum the confidence scores for each prediction label.
-        vote_totals = defaultdict(float)
-        for pred, conf in zip(preds, confs):
-            vote_totals[pred] += conf
-
-        # --- Append the rows for this image ---
-        csv_rows.append(["Path:"] + [path] * len(model_data))
-        csv_rows.append(["Prediction:"] + preds)
-        csv_rows.append(["Confidence:"] + [f"{conf * 100:.0f}%" for conf in confs])
-
-    with open(out, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerows(csv_rows)
-
-    return ResponseBody(FileResponse(path=str(out), file_type="csv"))
-
+            for m_idx, m in enumerate(model_data):
+                pred = m["predictions"][i]["prediction"]
+                conf = m["predictions"][i]["confidence"]
+                model_name = m["name"]
+                row_metadata[f"Prediction"] = pred
+                row_metadata[f"Confidence"] = f"{conf * 100:.0f}%"
+            
+            file_responses.append(
+                FileResponse(
+                    file_type="img",
+                    path=full_image_path, # <--- Use full_image_path here
+                    title=f"Prediction for {path_basename}", # Use basename for title
+                    metadata=row_metadata
+                )
+            )
+    
+    # Return BatchFileResponse
+    # If no predictions were made, return an empty BatchFileResponse or a TextResponse
+    if not file_responses:
+        return ResponseBody(root=TextResponse(value="No predictions generated or no images found."))
+    
+    # --- ADD THIS LINE ---
+    logger.info(f"Sending BatchFileResponse with paths: {[f.metadata for f in file_responses]}")
+    # --- END ADDITION ---
+    return ResponseBody(root=BatchFileResponse(files=file_responses))
+    # --- END OF CORRECTED CHANGES ---
 
 # ----------------------------
 # Server Setup Below

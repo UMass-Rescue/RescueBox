@@ -17,16 +17,19 @@ export type FileRow = {
   file: FileResponse;
 };
 
-const fileColumns: ColumnDef<FileRow>[] = [
+
+// Change the type here from ColumnDef<FileRow>[] to ColumnDef<Record<string, any>>[]
+const fileColumns: ColumnDef<Record<string, any>>[] = [
   {
     accessorKey: 'icon',
     id: 'icon',
     header: () => <div className="sr-only">Icon</div>,
     cell: ({ row }) => {
-      const { icon } = row.original;
+      const original = row.original as FileRow; // Cast to FileRow
+      const { icon } = original;
       return (
         <div className="flex items-center justify-center">
-          <img src={icon} alt={row.original.title} className="h-6 w-6" />
+          <img src={icon} alt={original.title} className="h-6 w-6" />
         </div>
       );
     },
@@ -62,11 +65,18 @@ const fileColumns: ColumnDef<FileRow>[] = [
         </div>
       </Button>
     ),
+    cell: ({ row }) => {
+      const original = row.original as FileRow; // Cast to FileRow
+      const { file } = original;
+      const fileName = file.path.split(/[\\/]/).pop();
+      return <span>{fileName}</span>;
+    },
   },
   {
     id: 'actions',
     cell: ({ row }) => {
-      const { file } = row.original;
+      const original = row.original as FileRow; // Cast to FileRow
+      const { file } = original;
 
       return (
         <div className="flex items-center justify-end space-x-2">

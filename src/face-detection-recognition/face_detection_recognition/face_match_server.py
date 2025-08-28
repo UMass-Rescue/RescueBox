@@ -53,6 +53,7 @@ server.add_app_metadata(
     author="FaceMatch Team",
     version="2.0.0",
     info=info,
+    gpu=True,
 )
 
 IMAGE_EXTENSIONS = {".jpg", ".png"}
@@ -298,7 +299,35 @@ def find_face_bulk_endpoint(
     )
     log_info(status)
 
-    return ResponseBody(root=TextResponse(value=str(results)))
+    # --- START OF CHANGES ---
+    file_responses = []
+    if status and results:
+        for query_img_name, matched_paths in results.items():
+            # Ensure matched_paths is a list, even if it's a single path
+            if not isinstance(matched_paths, list):
+                matched_paths = [matched_paths]
+
+            for matched_path in matched_paths:
+                # Extract filename from the matched_path for the title
+                matched_filename = os.path.basename(matched_path)
+                file_responses.append(
+                    FileResponse(
+                        file_type="img", # Assuming these are image matches
+                        path=matched_path,
+                        title=f"Match for {query_img_name}: {matched_filename}", # More descriptive title
+                        metadata={"query_image": query_img_name} # Optional metadata
+                    )
+                )
+    
+    # If no matches found or error, return a text response
+    if not status or not file_responses:
+        # If results is a string (e.g., an error message), use it directly
+        # Otherwise, convert the dictionary to a string representation
+        error_message = str(results) if isinstance(results, str) else json.dumps(results, indent=2)
+        return ResponseBody(root=TextResponse(value=error_message))
+
+    return ResponseBody(root=BatchFileResponse(files=file_responses))
+    # --- END OF CHANGES ---
 
 
 server.add_ml_service(
@@ -306,6 +335,7 @@ server.add_ml_service(
     ml_function=find_face_bulk_endpoint,
     order=1,
     short_title="Face Find Bulk",
+    is_workflow_step=True,
     inputs_cli_parser=typer.Argument(
         parser=find_face_bulk_cli_parser, help="Directory of query images"
     ),
@@ -558,6 +588,7 @@ server.add_ml_service(
     ),
     short_title="Bulk Upload",
     order=0,
+    is_workflow_step=True,
     task_schema_func=get_ingest_images_task_schema,
 )
 
@@ -1254,6 +1285,7 @@ server.add_ml_service(
     ),
     short_title="Delete Collection",
     order=2,
+    is_workflow_step=False,
     task_schema_func=delete_collection_task_schema,
 )
 
@@ -1291,7 +1323,7 @@ def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
         responseValue = ["Failed to List Collections"]
         log_info(responseValue)
 
-    collection_names = [collection.name for collection in responseValue]
+    collection_names = [str(collection) for collection in responseValue]
     return ResponseBody(
         root=BatchTextResponse(
             texts=[TextResponse(value=collection) for collection in collection_names]
