@@ -1,19 +1,36 @@
 import typer
-from rb.lib.docs import BASE_WIKI_URL, download_all_wiki_pages  # type: ignore
 from rb.lib.ollama import use_ollama  # type: ignore
+from rb.lib.docs import download_all_wiki_pages  # type: ignore
+
 from doc_parser.chat import load_chat_config, stream_output
+from doc_parser.vector_store import create_vector_store, search_vector_store
+import glob
+import os
+import sys
 
 app = typer.Typer()
 
-
-@app.command()
-def open() -> str:
+def load_docs_and_create_vector_store():
     """
-    Open docs in the browser
+    Load all wiki pages and create the vector store.
     """
-    typer.launch(BASE_WIKI_URL)
-    return BASE_WIKI_URL
+    all_docs = {}
+    # Example Usage
+    all_docs = download_all_wiki_pages()
 
+    plugin_code_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    print(f"Loading {plugin_code_path}")
+    
+    for file in glob.glob(f"{plugin_code_path}/**/*.pyxx", recursive=True):
+        with open(file, "r") as f:
+            print(f"Loading {file}")
+            try:
+                all_docs[file] = f.read()
+            except UnicodeDecodeError:
+                print(f"Skipping {file} due to UnicodeDecodeError")
+            all_docs[file] = f.read()
+
+    create_vector_store(all_docs)
 
 @use_ollama
 @app.command()
@@ -23,10 +40,13 @@ def ask(
     """
     Ask a question against the docs
     """
-    reference_doc = download_all_wiki_pages()
+    relevant_docs = search_vector_store(question)
+    
     chat_config = load_chat_config()
     chat_config["prompt"]["system"] = chat_config["prompt"]["system"].format(
-        reference_doc=reference_doc
+        reference_doc=relevant_docs
     )
-
+    
     return stream_output(question, chat_config)
+
+load_docs_and_create_vector_store()

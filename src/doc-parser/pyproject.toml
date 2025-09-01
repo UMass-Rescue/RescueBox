@@ -13,6 +13,8 @@ ollama = "*"
 typer = "*"
 rb-lib = "*"
 pyyaml = "*"
+chromadb = "*"
+sentence-transformers = "*"
 
 
 [build-system]

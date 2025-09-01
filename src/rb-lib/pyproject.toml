@@ -12,6 +12,7 @@ requests = "*"
 typer = "*"
 loguru = "*"
 anytree = "*"
+html2text = "*"
 
 
 [build-system]

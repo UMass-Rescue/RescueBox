@@ -26,6 +26,7 @@ def stream_output(user_content: str, chat_config: dict) -> str:
             {"role": "user", "content": user_content},
         ],
         stream=True,
+        options={"temperature": chat_config["model"]["temperature"]},
     )
 
     print("[bold green]Answer:")

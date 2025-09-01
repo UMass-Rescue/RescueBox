@@ -1,4 +1,5 @@
 import requests
+import html2text
 from bs4 import BeautifulSoup
 
 BASE_WIKI_URL = "https://github.com/UMass-Rescue/RescueBox/wiki"
@@ -50,7 +51,12 @@ def download_wiki_page(url):
             print(f"Warning: No markdown content found on {url}")
             return None
 
-        return wiki_content_div.get_text().strip()
+        # Convert HTML to markdown
+        h = html2text.HTML2Text()
+        h.ignore_links = True
+        h.bodywidth = 0
+        markdown = h.handle(str(wiki_content_div))
+        return markdown
 
     except requests.RequestException as e:
         print(f"Error downloading {url}: {e}")
@@ -62,6 +68,7 @@ def download_all_wiki_pages():
     Fetches all wiki pages and extracts their markdown content.
     """
     wiki_pages = get_wiki_page_links()
+    print(f"Found {len(wiki_pages)} wiki pages: {wiki_pages}")
     wiki_data = {}
 
     for page_url in wiki_pages:
@@ -71,7 +78,7 @@ def download_all_wiki_pages():
 
         if markdown_text:
             wiki_data[page_name] = markdown_text
-
+            print(f"Downloaded {page_name} successfully.")
     return wiki_data
 
 
