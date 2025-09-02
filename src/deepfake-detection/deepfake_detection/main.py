@@ -204,19 +204,15 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         predictions = model_results[1:]
         model_data.append({"name": model_name, "predictions": predictions})
     
-    # --- START OF CORRECTED CHANGES ---
     file_responses: List[FileResponse] = []
-    # Ensure model_data is not empty before accessing its elements
     if model_data and model_data[0]["predictions"]:
         num_images = len(model_data[0]["predictions"])
         for i in range(num_images):
             row_metadata: Dict[str, Any] = {}
-            # --- START OF CHANGE ---
             # Use the full image_path instead of just the basename
             full_image_path = model_data[0]["predictions"][i]["image_path"]
-            path_basename = os.path.basename(full_image_path) # Keep basename for title/metadata if needed
-            row_metadata["Image Path"] = full_image_path # Store full path in metadata
-            # --- END OF CHANGE ---
+            path_basename = os.path.basename(full_image_path)
+            row_metadata["Image Path"] = full_image_path
 
             for m_idx, m in enumerate(model_data):
                 pred = m["predictions"][i]["prediction"]
@@ -228,22 +224,16 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             file_responses.append(
                 FileResponse(
                     file_type="img",
-                    path=full_image_path, # <--- Use full_image_path here
-                    title=f"Prediction for {path_basename}", # Use basename for title
+                    path=full_image_path,
+                    title=f"Prediction for {path_basename}",
                     metadata=row_metadata
                 )
             )
-    
-    # Return BatchFileResponse
-    # If no predictions were made, return an empty BatchFileResponse or a TextResponse
     if not file_responses:
         return ResponseBody(root=TextResponse(value="No predictions generated or no images found."))
     
-    # --- ADD THIS LINE ---
-    logger.info(f"Sending BatchFileResponse with paths: {[f.metadata for f in file_responses]}")
-    # --- END ADDITION ---
     return ResponseBody(root=BatchFileResponse(files=file_responses))
-    # --- END OF CORRECTED CHANGES ---
+    
 
 # ----------------------------
 # Server Setup Below
@@ -259,9 +249,10 @@ with open(info_file_path, "r", encoding="utf-8") as f:
 server.add_app_metadata(
     name="Image DeepFake Detector",
     author="UMass Rescue",
-    version="2.0.0",
+    version="2.1.0",
     info=app_info,
     plugin_name=APP_NAME,
+    gpu=True,
 )
 
 

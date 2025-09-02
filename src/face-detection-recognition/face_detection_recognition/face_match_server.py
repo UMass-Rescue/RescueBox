@@ -51,7 +51,7 @@ server.add_app_metadata(
     name="Face Recognition and Matching",
     plugin_name=APP_NAME,
     author="FaceMatch Team",
-    version="2.0.0",
+    version="2.1.0",
     info=info,
     gpu=True,
 )
@@ -299,7 +299,6 @@ def find_face_bulk_endpoint(
     )
     log_info(status)
 
-    # --- START OF CHANGES ---
     file_responses = []
     if status and results:
         for query_img_name, matched_paths in results.items():
@@ -312,23 +311,20 @@ def find_face_bulk_endpoint(
                 matched_filename = os.path.basename(matched_path)
                 file_responses.append(
                     FileResponse(
-                        file_type="img", # Assuming these are image matches
+                        file_type="img",
                         path=matched_path,
-                        title=f"Match for {query_img_name}: {matched_filename}", # More descriptive title
-                        metadata={"query_image": query_img_name} # Optional metadata
+                        title=f"Match for {query_img_name}: {matched_filename}",
+                        metadata={"query_image": query_img_name}
                     )
                 )
     
-    # If no matches found or error, return a text response
     if not status or not file_responses:
         # If results is a string (e.g., an error message), use it directly
         # Otherwise, convert the dictionary to a string representation
         error_message = str(results) if isinstance(results, str) else json.dumps(results, indent=2)
         return ResponseBody(root=TextResponse(value=error_message))
-
+    
     return ResponseBody(root=BatchFileResponse(files=file_responses))
-    # --- END OF CHANGES ---
-
 
 server.add_ml_service(
     rule="/findfacebulk",

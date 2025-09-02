@@ -29,11 +29,8 @@ export default function BatchFileView({
   response: BatchFileResponse;
 }) {
   const { files: allFiles } = response;
-  // --- ADD THIS LOG ---
-  console.log("BatchFileView: Received allFiles:", allFiles);
-  // --- END ADDITION ---
 
-   const shouldUseDynamicColumns =
+  const shouldUseDynamicColumns =
     allFiles.length > 0 &&
     allFiles[0].metadata &&
     (allFiles[0].file_type === 'img' || allFiles[0].file_type === 'text');
@@ -94,9 +91,8 @@ export default function BatchFileView({
     return metadataKeys.map(key => ({
       accessorKey: key,
       header: key,
-      // --- START OF MODIFICATION ---
+
       cell: ({ row }) => {
-       // --- START OF MODIFICATION ---
         // Try direct access instead of row.getValue
         const value = row.original[key];
         console.log(`Cell rendering - Key: ${key}, Value: ${value}`);
@@ -104,7 +100,6 @@ export default function BatchFileView({
           return <span>{value.split(/[\\/]/).pop()}</span>;
         }
         return <span>{String(value)}</span>;
-        // --- END OF MODIFICATION ---
     },
     }));
   };
@@ -113,15 +108,8 @@ export default function BatchFileView({
   // and if the file type is one that we expect to have tabular metadata (e.g., 'img' or 'text')
 
   const dynamicColumns: ColumnDef<Record<string, any>>[] = shouldUseDynamicColumns
-    ? generateColumns(Object.keys(allFiles[0].metadata!)) // Add non-null assertion operator '!'
+    ? generateColumns(Object.keys(allFiles[0].metadata!))
     : fileColumns; // Fallback to existing fileColumns
-
-  // --- END OF MODIFICATION ---
-
-  // --- ADD THIS LOG ---
-  console.log("BatchFileView: shouldUseDynamicColumns:", shouldUseDynamicColumns);
-  console.log("BatchFileView: dynamicColumns:", dynamicColumns);
-  // --- END ADDITION ---
 
   return (
     <div>
@@ -198,27 +186,25 @@ export default function BatchFileView({
 
               {isListView ? (
                 <>
-                  {console.log("Data passed to DataTable (real data):", fileGroup.files.map((f) => f.metadata || {}))}
-                <DataTable
-                   // data={fileGroup.files.map((f) => f.metadata || {})} // Pass metadata as data, fallback to empty object
-                   // columns={fileGroup.type === 'img' || fileGroup.type === 'text' ? dynamicColumns : fileColumns}
-                  columns={
-                    shouldUseDynamicColumns &&
-                    (fileGroup.type === 'img' || fileGroup.type === 'text')
-                      ? dynamicColumns
-                      : fileColumns
-                  }
-                  data={
-                    shouldUseDynamicColumns &&
-                    (fileGroup.type === 'img' || fileGroup.type === 'text')
-                      ? fileGroup.files.map((f) => f.metadata || {})
-                      : fileGroup.files.map((file) => ({
-                          title: file.path.split(/[\\/]/).pop() || file.path,
-                          icon: fileIcons[file.path],
-                          file,
-                        }))
-                  }
-                />
+                {console.log("Data passed to DataTable (real data):", fileGroup.files.map((f) => f.metadata || {}))}
+                  <DataTable
+                    columns={
+                      shouldUseDynamicColumns &&
+                      (fileGroup.type === 'img' || fileGroup.type === 'text')
+                        ? dynamicColumns
+                        : fileColumns
+                    }
+                    data={
+                      shouldUseDynamicColumns &&
+                      (fileGroup.type === 'img' || fileGroup.type === 'text')
+                        ? fileGroup.files.map((f) => f.metadata || {})
+                        : fileGroup.files.map((file) => ({
+                            title: file.path.split(/[\\/]/).pop() || file.path,
+                            icon: fileIcons[file.path],
+                            file,
+                          }))
+                    }
+                  />
                 </>
               ) : (
                 <BatchFileGrid
