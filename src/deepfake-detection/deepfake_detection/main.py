@@ -259,9 +259,10 @@ with open(info_file_path, "r", encoding="utf-8") as f:
 server.add_app_metadata(
     name="Image DeepFake Detector",
     author="UMass Rescue",
-    version="2.0.0",
+    version="2.1.0",
     info=app_info,
     plugin_name=APP_NAME,
+    gpu=True,
 )
 
 

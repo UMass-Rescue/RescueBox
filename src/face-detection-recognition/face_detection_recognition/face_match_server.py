@@ -51,7 +51,7 @@ server.add_app_metadata(
     name="Face Recognition and Matching",
     plugin_name=APP_NAME,
     author="FaceMatch Team",
-    version="2.0.0",
+    version="2.1.0",
     info=info,
     gpu=True,
 )
