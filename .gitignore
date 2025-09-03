@@ -171,3 +171,8 @@ rescuebox/lib/
 rescuebox/pyvenv.cfg
 src/rb-api/rb/api/static/index/main.js
 **/*/.DS_Store
+whisper/*
+RescueBox-Desktop/assets/rb_server/*
+RescueBox-Desktop/assets/rb_server/demo/*/*/*
+RescueBox-Desktop/assets/rb_server/demo/*/*
+RescueBox-Desktop/assets/rb_server/docs/*
