@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import LoadingScreen from 'src/renderer/components/LoadingScreen';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -22,6 +22,9 @@ function ModelDetails() {
     error: serverStatusError,
     isLoading: serverStatusIsLoading,
   } = useServerStatus(modelUid);
+
+  const location = useLocation(); // Get the location object
+  const fromJobId = location.state?.fromJobId; // Access the passed state
 
   if (!modelUid) {
     return <div>Error: Model UID not found</div>;
@@ -60,6 +63,11 @@ function ModelDetails() {
           </Markdown>
         </div>
         <div className="sticky top-32 drop-shadow-md m-4 py-4 px-6 rounded-md w-1/3 bg-sky-200 h-full">
+          {fromJobId && ( // Conditionally render the link if fromJobId exists
+            <Link to={`/jobs/${fromJobId}/outputs`}>
+              <Button variant="link" className="text-red-500">Back to Job Outputs</Button>
+            </Link>
+          )}
           <h1 className="font-bold text-lg md:text-xl lg:text-2xl m-2">
             Model Version
           </h1>

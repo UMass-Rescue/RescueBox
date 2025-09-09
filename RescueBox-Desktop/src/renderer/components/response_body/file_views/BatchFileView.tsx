@@ -7,6 +7,7 @@ import {
   AccordionContent,
 } from '@shadcn/accordion';
 import { ListBulletIcon } from '@radix-ui/react-icons';
+import { ColumnDef } from '@tanstack/react-table';
 import {
   TooltipProvider,
   Tooltip,
@@ -28,13 +29,19 @@ export default function BatchFileView({
   response: BatchFileResponse;
 }) {
   const { files: allFiles } = response;
+
+  const shouldUseDynamicColumns =
+    allFiles.length > 0 &&
+    allFiles[0].metadata &&
+    (allFiles[0].file_type === 'img' || allFiles[0].file_type === 'text');
+
   const {
     data: fileIcons,
     error: fileIconsError,
     isLoading: fileIconsIsLoading,
   } = useFileIcons(allFiles.map((file) => file.path));
 
-  const [isListView, setIsListView] = useState(false);
+  const [isListView, setIsListView] = useState(shouldUseDynamicColumns);
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({
     img: '',
     csv: '',
@@ -78,38 +85,70 @@ export default function BatchFileView({
     return acc;
   }, [] as FilesByType[]);
 
+
+  // Function to dynamically generate columns from metadata keys
+  const generateColumns = (metadataKeys: string[]): ColumnDef<Record<string, any>>[] => {
+    return metadataKeys.map(key => ({
+      accessorKey: key,
+      header: key,
+
+      cell: ({ row }) => {
+        // Try direct access instead of row.getValue
+        const value = row.original[key];
+        console.log(`Cell rendering - Key: ${key}, Value: ${value}`);
+        if (key.toLowerCase().includes('path') && typeof value === 'string') {
+          return <span>{value.split(/[\\/]/).pop()}</span>;
+        }
+        return <span>{String(value)}</span>;
+    },
+    }));
+  };
+
+  // Determine if we should use dynamic columns based on the presence of metadata
+  // and if the file type is one that we expect to have tabular metadata (e.g., 'img' or 'text')
+
+  const dynamicColumns: ColumnDef<Record<string, any>>[] = shouldUseDynamicColumns
+    ? generateColumns(Object.keys(allFiles[0].metadata!))
+    : fileColumns; // Fallback to existing fileColumns
+
   return (
     <div>
-      <div className="flex items-center justify-end rounded-md overflow-hidden">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={() => setIsListView(true)}
-                className={`h-10 w-15 rounded-r-none ${!isListView ? 'bg-gray-300' : ''}`}
-              >
-                <ListBulletIcon className="text-white size-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>List View</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={() => setIsListView(false)}
-                className={`h-10 w-15 rounded-l-none ${isListView ? 'bg-gray-300' : ''}`}
-              >
-                <GridIcon className="text-white size-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>Grid View</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
+      {!shouldUseDynamicColumns && (
+        <div className="flex items-center justify-end rounded-md overflow-hidden">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => setIsListView(true)}
+                  className={`h-10 w-15 rounded-r-none ${
+                    !isListView ? 'bg-gray-300' : ''
+                  }`}
+                >
+                  <ListBulletIcon className="text-white size-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>List View</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => setIsListView(false)}
+                  className={`h-10 w-15 rounded-l-none ${
+                    isListView ? 'bg-gray-300' : ''
+                  }`}
+                >
+                  <GridIcon className="text-white size-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Grid View</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
       <Accordion type="multiple" className="w-full">
         {filesByType.map((fileGroup) => (
           <AccordionItem
@@ -144,17 +183,29 @@ export default function BatchFileView({
               </AccordionContent>
             </AccordionTrigger>
             <AccordionContent className="mt-1">
+
               {isListView ? (
-                <DataTable
-                  data={fileGroup.files.map((f) => {
-                    return {
-                      title: f.title ?? fileGroup.title.split(' ')[0],
-                      icon: fileGroup.icon,
-                      file: f,
-                    };
-                  })}
-                  columns={fileColumns}
-                />
+                <>
+                {console.log("Data passed to DataTable (real data):", fileGroup.files.map((f) => f.metadata || {}))}
+                  <DataTable
+                    columns={
+                      shouldUseDynamicColumns &&
+                      (fileGroup.type === 'img' || fileGroup.type === 'text')
+                        ? dynamicColumns
+                        : fileColumns
+                    }
+                    data={
+                      shouldUseDynamicColumns &&
+                      (fileGroup.type === 'img' || fileGroup.type === 'text')
+                        ? fileGroup.files.map((f) => f.metadata || {})
+                        : fileGroup.files.map((file) => ({
+                            title: file.path.split(/[\\/]/).pop() || file.path,
+                            icon: fileIcons[file.path],
+                            file,
+                          }))
+                    }
+                  />
+                </>
               ) : (
                 <BatchFileGrid
                   data={fileGroup}

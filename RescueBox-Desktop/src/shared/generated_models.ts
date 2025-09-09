@@ -29,6 +29,7 @@ declare namespace Components {
        * "Text Summarizer"
        */
       name: string;
+      gpu: boolean;
     }
     export interface BatchDirectoryInput {
       directories: DirectoryInput[];
@@ -85,6 +86,9 @@ declare namespace Components {
       path: string;
       title?: string | null;
       subtitle?: string | null;
+      metadata?: {
+        [key: string]: any;
+      };
     }
     export interface FloatParameterDescriptor {
       parameterType: ParameterType;

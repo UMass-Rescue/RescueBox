@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   directoryResponse,
   batchDirectoryResponse,
@@ -17,6 +17,7 @@ import { useJob, useMLModel, useTask } from '../lib/hooks';
 import PreviewResponseBody from './PreviewResponseBody';
 import StatusComponent from './sub-components/StatusComponent';
 import { match } from 'ts-pattern';
+import { Button } from '../components/ui/button';
 
 function JobViewOutputs() {
   const { jobId } = useParams();
@@ -24,19 +25,19 @@ function JobViewOutputs() {
   const { data: job, error: jobError, isLoading: jobIsLoading } = useJob(jobId);
 
   const {
-      data: model,
-      error: modelError,
-      isLoading: modelIsLoading,
-    } = useMLModel(job?.modelUid);
+    data: model,
+    error: modelError,
+    isLoading: modelIsLoading,
+  } = useMLModel(job?.modelUid);
 
-    const {
-      data: task,
-      error: taskError,
-      isLoading: taskIsLoading,
-    } = useTask(job?.taskUid, model?.uid);
+  const {
+    data: task,
+    error: taskError,
+    isLoading: taskIsLoading,
+  } = useTask(job?.taskUid, model?.uid);
 
   if (!job || !jobId) return <div>no job id</div>;
-  if (jobIsLoading) return <div>loading job..</div>;
+  if (jobIsLoading || modelIsLoading || taskIsLoading) return <div>loading job..</div>;
   if (jobError)
     return <div>failed to load job. Error: {jobError.toString()}</div>;
 
@@ -48,10 +49,14 @@ function JobViewOutputs() {
 
   const { response, statusText } = job;
 
-  if (!response) return <div className="p-2 border border-red-400 bg-slate-200 rounded-lg w-full">
-                        <StatusComponent status={job.status} />
-                         {statusText}
-                        </div>;
+  if (!response) {
+    return (
+      <div className="p-2 border border-red-400 bg-slate-200 rounded-lg w-full">
+        <StatusComponent status={job.status} />
+        {statusText}
+      </div>
+    );
+  }
 
   if (isDummyMode) {
     return (
@@ -68,8 +73,8 @@ function JobViewOutputs() {
     );
   }
 
-  const msg =  match(response).with({ output_type: 'text' }, (response) => {
-    if (response.value.includes('error')) {
+  const msg = match(response).with({ output_type: 'text' }, (res) => {
+    if (res.value.includes('error')) {
       return true;
     }
   });
@@ -77,21 +82,31 @@ function JobViewOutputs() {
   return (
     <div className="border border-gray-300 rounded-lg m-1 p-6 flex flex-col gap-4 shadow-md bg-white">
       <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{task?.shortTitle}</h1>
-                <StatusComponent status={job.status} />
+        <h1 className="text-2xl font-bold">{task?.shortTitle}</h1>
+        {model && (
+          <Link to={`/models/${model.uid}/details`} state={{ fromJobId: `${jobId}` }}>
+            <Button variant="link">Model Doc</Button>
+          </Link>
+        )}
+        {model && task && (
+          <Link to={`/models/${model.uid}/run/0`}>
+            <Button variant="link">Run Model</Button>
+          </Link>
+        )}
+        <StatusComponent status={job.status} />
       </div>
 
       <div className="flex flex-col gap-2">
-              <h1 className="font-bold text-sm xl:text-base">Results</h1>
-              {msg ? (
-                <div className="p-4 border border-green-400 bg-slate-200 rounded-lg w-full">
-                  <PreviewResponseBody response={response} />
-                </div>
-              ):  (
-                <div className="p-2 border border-red-400 bg-slate-200 rounded-lg w-full">
-                  <PreviewResponseBody response={response} />
-                </div>
-              )}
+        <h1 className="font-bold text-sm xl:text-base">Results</h1>
+        {msg ? (
+          <div className="p-4 border border-green-400 bg-slate-200 rounded-lg w-full">
+            <PreviewResponseBody response={response} />
+          </div>
+        ) : (
+          <div className="p-2 border border-red-400 bg-slate-200 rounded-lg w-full">
+            <PreviewResponseBody response={response} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -35,6 +35,7 @@ class AppMetadata(BaseModel):
     version: str
     name: Annotated[str, Field(examples=["Face Match App"])]
     plugin_name: Annotated[str, Field(examples=["facematch"])]
+    gpu: Annotated[bool, Field(alias="gpu")] = False
 
 
 class SchemaAPIRoute(BaseModel):
@@ -245,7 +246,7 @@ class FileResponse(BaseModel):
     path: str
     title: Optional[str] = None
     subtitle: Optional[str] = None
-
+    metadata: Optional[Dict[str, Any]] = None # <--- ADD THIS LINE
 
 class DirectoryResponse(BaseModel):
     model_config = ConfigDict(

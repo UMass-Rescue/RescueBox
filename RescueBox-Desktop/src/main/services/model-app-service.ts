@@ -57,11 +57,12 @@ class ModelAppService {
   public async getAppMetadata(): Promise<AppMetadata> {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve({
+        return resolve({
           name: this.modelDb.name,
           version: this.modelDb.version,
           author: this.modelDb.author,
           info: this.modelDb.info,
+          gpu: (this.modelDb as any).gpu ?? false,
         } satisfies AppMetadata);
       }, 1000);
     });
@@ -206,10 +207,10 @@ class ModelAppService {
         pluginName,
       );
       // Recreate the UID
-      const uid = createModelId(modelInfo, apiRoutes);
-
+      const mlModel = await MLModelDb.findByName(modelInfo.name);
+      log.info(`ping  ${pluginName} ${this.modelDb.uid} ${mlModel?.uid}`);
       // Check if UID matches the current model
-      return this.modelDb.uid === uid;
+      return this.modelDb.uid === mlModel?.uid;
     } catch {
       return false;
     }
