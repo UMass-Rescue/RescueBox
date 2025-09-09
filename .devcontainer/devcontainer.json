@@ -1,0 +1,60 @@
+{
+  "name": "RecuseBox Hackathon",
+  "image": "nb887/rb-dev:2.1.0",
+  "workspaceFolder": "/home/rbuser/RescueBox",
+  "remoteUser": "rbuser",
+  "containerUser": "rbuser",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+       "username": "rbuser",
+       "uid" : "1000",
+       "gid" : "1000"
+     }
+  },
+  // The mounts property allows you to make source location where you 
+  // checkout the rescuebox github repo to overwrite the container target location
+  // now edits to local source causes
+  // rescuebox to re run with your changes
+
+  // Note : any files to pass to run rescuebox plugins must be in /rb/RescueBox/
+  // example /rb/RescueBox/src/audio-transcription/tests/ is input directory for audio transcription plugin
+  // example /rb/RescueBox/src/deepfake-detection/sample_images/ is input directory for deepfake detection plugin
+  // and Path to the output file "/tmp" or any other directory in the container
+
+  "mounts": [
+    "source=/home/tester/RescueBox,target=/home/rbuser/RescueBox,type=bind",
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+  ],
+  "remoteEnv": {
+    "POETRY_VIRTUALENVS_IN_PROJECT": "false",
+    "POETRY_VIRTUALENVS_CREATE": "true",
+    "POETRY_VIRTUALENVS_PATH": "/home/rbuser/venv",
+    "DISPLAY": ":0"
+  },
+  "runArgs": [
+    "--privileged",
+    //"--network=host",
+    //"--userns=host",
+    "--shm-size=2gb",
+    "--memory=8gb"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  },
+  "forwardPorts": [8000],
+  "postStartCommand": "poetry env info ",
+  "postAttachCommand": "/bin/bash"
+  // start pre req ollama server followed by rescuebox backend server
+  // nohup bash -c "ollama serve" &
+  // run_server
+
+}
+
