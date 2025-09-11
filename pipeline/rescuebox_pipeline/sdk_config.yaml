@@ -1,0 +1,9 @@
+# This file is used to configure the SDK.
+use_path_prefixes_for_title_model_names: true
+field_prefix: rb_
+
+# rb_text_summarization_api_app_metadata_text_summarization_api_app_metadata_get.py
+#class_overrides:
+# text_summarization:
+#   class_name: ts
+#   module_name: ts

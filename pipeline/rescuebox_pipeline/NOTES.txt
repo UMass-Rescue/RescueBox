@@ -1,0 +1,83 @@
+# prepare rescuebox openapi parser
+
+copy custom_openapi():
+"C:\work\misc\new\RescueBox\src\rb-api\rb\api\main.py"
+
+app.openapi = custom_openapi
+
+
+# start rescuebox server
+
+# generate sdk
+
+curl --header "Content-Type: application/json" "http://localhost:8000/openapi.json" > o.json
+save output to o.json
+openapi-python-client generate --path o.json --output-path sdk2 --overwrite --config sdk_config.yaml
+Generating sdk2
+
+
+
+celery -A myapp  worker -l DEBUG --pool=solo
+
+C:\work\rel\branches\sdk\sdk>celery -A rb_celery  worker -l DEBUG --pool=solo
+[2025-09-04 12:26:47,519: DEBUG/MainProcess] | Worker: Preparing bootsteps.
+[2025-09-04 12:26:47,519: DEBUG/MainProcess] | Worker: Building graph...
+[2025-09-04 12:26:47,519: DEBUG/MainProcess] | Worker: New boot order: {StateDB, Timer, Hub, Pool, Autoscaler, Beat, Consumer}
+[2025-09-04 12:26:47,528: DEBUG/MainProcess] | Consumer: Preparing bootsteps.
+[2025-09-04 12:26:47,528: DEBUG/MainProcess] | Consumer: Building graph...
+[2025-09-04 12:26:47,576: DEBUG/MainProcess] | Consumer: New boot order: {Connection, Events, Heart, Mingle, Tasks, DelayedDelivery, Agent, Gossip, Control, event loop}
+
+ -------------- celery@home-mini v5.5.1 (immunity)
+--- ***** -----
+-- ******* ---- Windows-11-10.0.26100-SP0 2025-09-04 12:26:47
+- *** --- * ---
+- ** ---------- [config]
+- ** ---------- .> app:         rb_celery:0x28dc2269160
+- ** ---------- .> transport:   sqla+sqlite:///celerydb.db
+- ** ---------- .> results:     sqlite:///broker.db
+- *** --- * --- .> concurrency: 16 (solo)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** -----
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+
+
+[tasks]
+  . celery.accumulate
+  . celery.backend_cleanup
+  . celery.chain
+  . celery.chord
+  . celery.chord_unlock
+  . celery.chunks
+  . celery.group
+  . celery.map
+  . celery.starmap
+  . rb_celery.run_audio_plugin
+  . rb_celery.run_audio_plugin_get_text
+  . rb_celery.run_text_summarization_plugin
+  . rb_celery.save_text_to_file
+
+
+[2025-04-18 13:56:31,094: DEBUG/MainProcess] | Worker: Starting Pool
+[2025-04-18 13:56:31,094: DEBUG/MainProcess] ^-- substep ok
+[2025-04-18 13:56:31,094: DEBUG/MainProcess] | Worker: Starting Consumer
+[2025-04-18 13:56:31,094: DEBUG/MainProcess] | Consumer: Starting Connection
+[2025-04-18 13:56:31,112: INFO/MainProcess] Connected to sqla+sqlite:///celerydb.db
+[2025-04-18 13:56:31,112: DEBUG/MainProcess] ^-- substep ok
+[2025-04-18 13:56:31,112: DEBUG/MainProcess] | Consumer: Starting Events
+[2025-04-18 13:56:31,112: DEBUG/MainProcess] ^-- substep ok
+[2025-04-18 13:56:31,112: DEBUG/MainProcess] | Consumer: Starting Tasks
+[2025-04-18 13:56:31,124: DEBUG/MainProcess] ^-- substep ok
+[2025-04-18 13:56:31,124: DEBUG/MainProcess] | Consumer: Starting Heart
+[2025-04-18 13:56:31,124: DEBUG/MainProcess] ^-- substep ok
+[2025-04-18 13:56:31,124: DEBUG/MainProcess] | Consumer: Starting event loop
+[2025-04-18 13:56:31,124: INFO/MainProcess] celery@home-mini ready.
+
+
+
+--------------------------------------------------
+
+https://stackoverflow.com/questions/45744992/celery-raises-valueerror-not-enough-values-to-unpack
+
+Set an environment variable FORKED_BY_MULTIPROCESSING=1.
+             Then you can run celery -A <celery module> worker.
