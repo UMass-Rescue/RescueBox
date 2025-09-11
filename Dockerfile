@@ -70,12 +70,15 @@ ENV PATH="/home/rbuser/.local/bin:/home/rbuser/venv/bin:/usr/bin:$PATH"
 
 RUN poetry config virtualenvs.path /home/rbuser/venv
 
-RUN git clone https://github.com/UMass-Rescue/RescueBox.git
+RUN git clone https://github.com/UMass-Rescue/RescueBox.git -b hackathon
 
 RUN cd /home/rbuser/RescueBox && poetry install && \ 
     poetry cache clear _default_cache --all -n
 
-RUN cd /home/rbuser/RescueBox/RescueBox-Desktop && npm install && npm run build:dll && \
+RUN cd /home/rbuser/RescueBox/pipeline/rescuebox_pipeline && ./r.sh &&
+    cd /home/rbuser && nohup ollama serve && ollama pull llama3.2:3b
+    
+RUN cd /home/rbuser/RescueBox/RescueBox-Desktop && npm install && npm run build && \
     npm cache clean --force
 
 #  poetry 
