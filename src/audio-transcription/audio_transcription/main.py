@@ -94,6 +94,7 @@ ml_service.add_ml_service(
     task_schema_func=task_schema,
     short_title="Transcribe audio files",
     order=0,
+    help="Transcribe audio files",
 )
 
 app = ml_service.app
