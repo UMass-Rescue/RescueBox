@@ -44,6 +44,7 @@ class EndpointDetails(EndpointDetailsNoSchema):
     task_schema_func: Callable[[], TaskSchema]
     short_title: str
     order: int
+    help: str
 
 
 class MLService(object):
@@ -53,7 +54,7 @@ class MLService(object):
     into a rest api endpoint.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, help="model operation"):
         """
         Instantiates the MLService object as a wrapper for the app.
         """
@@ -62,6 +63,7 @@ class MLService(object):
         self.endpoints: List[EndpointDetails] = []
         self._app_metadata: Optional[AppMetadata] = None
         self.plugin_name = name
+        self.help = help
 
         @self.app.command(f"/{self.name}/api/routes")
         def list_routes():
@@ -111,6 +113,7 @@ class MLService(object):
         task_schema_func: Optional[Callable[[], TaskSchema]] = None,
         short_title: Optional[str] = None,
         order: int = 0,
+        help: str = "model operation"
     ):
         global ML_REGISTRY
         ML_REGISTRY[f"{self.name}{rule}"] = {
@@ -128,6 +131,7 @@ class MLService(object):
             task_schema_func=task_schema_func,
             short_title=short_title or "",
             order=order,
+            help=help,
         )
         self.endpoints.append(endpoint)
         type_hints = get_type_hints(ml_function)
@@ -148,7 +152,7 @@ class MLService(object):
 
         if parameter_type:
 
-            @self.app.command(f"/{self.name}" + rule)
+            @self.app.command(f"/{self.name}" + rule, help=help)
             def run(
                 inputs: Annotated[
                     input_type,
@@ -167,7 +171,7 @@ class MLService(object):
 
         else:
 
-            @self.app.command(f"/{self.name}" + rule)
+            @self.app.command(f"/{self.name}" + rule, help=help)
             def run(
                 inputs: Annotated[
                     input_type,

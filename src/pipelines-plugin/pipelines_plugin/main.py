@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 import rescuebox_pipeline.rb_pipe as rb_pipeline
 
 APP_NAME = "pipelines"
-ml_service = MLService(APP_NAME)
+ml_service = MLService(APP_NAME, help="Run pipeline tasks")
 
 ml_service.add_app_metadata(
     name="Pipelines Orchestrator",
@@ -309,6 +309,7 @@ for pipeline_def in config.get('pipelines', []):
         parameters_cli_parser=typer.Option(None, parser=params_parser),
         task_schema_func=schema_func,
         short_title=short_title,
+        help="Run pipeline audio transcribe and summarize."
     )
 
 app = ml_service.app
