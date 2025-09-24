@@ -22,8 +22,9 @@
   // and Path to the output file "/tmp" or any other directory in the container
 
   "mounts": [
-    "source=/home/tester/RescueBox,target=/home/rbuser/RescueBox,type=bind",
-    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+    "source=/c/work/rel/RescueBox,target=/home/rbuser/RescueBox,type=bind",
+    //"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+    "source=/c/work/rel/RescueBox/.vscode-server,target=/home/rbuser/.vscode-server,type=bind"
   ],
   "remoteEnv": {
     "POETRY_VIRTUALENVS_IN_PROJECT": "false",
@@ -35,8 +36,8 @@
     "--privileged",
     //"--network=host",
     //"--userns=host",
-    "--shm-size=2gb",
-    "--memory=8gb"
+    "--shm-size=1gb",
+    "--memory=4gb"
   ],
   "customizations": {
     "vscode": {
@@ -50,10 +51,11 @@
     }
   },
   "forwardPorts": [8000],
-  "postStartCommand": "poetry env info ",
-  "postAttachCommand": "/bin/bash"
+  "postStartCommand": "poetry env info",
+  "postAttachCommand": "echo 'Attached'"
   // start pre req ollama server followed by rescuebox backend server
-  // nohup bash -c "ollama serve" &
+  // nohup bash -c "ollama serve" > ollama.log &
+  // nohup sudo /usr/sbin/rabbitmq-server > rabbit.log &
   // run_server
 
 }

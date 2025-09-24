@@ -11,6 +11,7 @@ from rb.api.models import (
     EnumVal,
     TextResponse,
     DirectoryInput,
+    DirectoryResponse,
 )
 from text_summary.model import SUPPORTED_MODELS
 from text_summary.summarize import process_files
@@ -76,10 +77,9 @@ def summarize(
     output_dir = inputs["output_dir"].path
     model = parameters["model"]
 
-    processed_files = process_files(model, input_dir, output_dir)
+    process_files(model, input_dir, output_dir)
 
-    response = TextResponse(value=json.dumps(list(processed_files)))
-    return ResponseBody(root=response)
+    return ResponseBody(root=DirectoryResponse(path=str(output_dir), title="Summarization Output"))
 
 
 def inputs_cli_parse(input: str) -> Inputs:

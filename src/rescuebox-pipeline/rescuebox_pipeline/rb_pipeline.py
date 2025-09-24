@@ -2,9 +2,9 @@ from pathlib import Path
 import time
 from celery.result import AsyncResult
 from celery import chain
-from rb_celery import app
-from rb_celery import run_audio_plugin
-from rb_celery import run_text_summarization_plugin
+from pipeline.rescuebox_pipeline.rb_celery import app
+from pipeline.rescuebox_pipeline.rb_celery import run_audio_plugin
+from pipeline.rescuebox_pipeline.rb_celery import run_text_summarization_plugin
 
 # check task status
 def check_status(resid):

@@ -20,6 +20,17 @@ from rb.lib.utils import (
 
 logger = getLogger(__name__)
 
+# Add a global registry for ML services
+ML_REGISTRY = {}
+
+# Add functions to get registered items
+def get_ml_function(service_name: str):
+    service = ML_REGISTRY.get(service_name)
+    return service["function"] if service else None
+
+def get_ml_schema_func(service_name: str):
+    service = ML_REGISTRY.get(service_name)
+    return service["schema_func"] if service else None
 
 @dataclass
 class EndpointDetailsNoSchema:
@@ -101,6 +112,11 @@ class MLService(object):
         short_title: Optional[str] = None,
         order: int = 0,
     ):
+        global ML_REGISTRY
+        ML_REGISTRY[f"{self.name}{rule}"] = {
+            "function": ml_function,
+            "schema_func": task_schema_func
+        }
         ensure_ml_func_parameters_are_typed_dict(ml_function)
         ensure_ml_func_hinting_and_task_schemas_are_valid(
             ml_function, task_schema_func()

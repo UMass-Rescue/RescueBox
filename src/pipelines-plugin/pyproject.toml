@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "pipelines-plugin"
+version = "0.1.0"
+description = "A plugin to discover and trigger RescueBox pipelines."
+authors = ["RescueBox Team"]
+packages = [{include = "pipelines_plugin"}]
+
+[tool.poetry.scripts]
+pipelines-plugin = "pipelines_plugin.main:app"
+
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+rescuebox = {path = "../..", develop = true}

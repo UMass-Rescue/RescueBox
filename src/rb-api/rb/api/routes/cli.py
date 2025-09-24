@@ -65,6 +65,8 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
                 return ResponseBody(root=TextResponse(value=result))
             # this has an issue of nor sending back details to desktop ui the api caller ?
             raise ValueError(f"Invalid return type from Typer command: {type(result)}")
+        except HTTPException as e:
+            raise e
         except Exception as e:
             # response handler for all plugin runtime errors
             logger.error("Error: %s %s", e, stdout)

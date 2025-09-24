@@ -32,7 +32,7 @@ def process_files(model: str, input_dir: str, output_dir: str) -> None:
             text = extract_text(file_path)
             summary = summarize(model, text)
 
-            output_file = output_path / (file_path.stem + ".txt")
+            output_file = output_path / (file_path.stem + "_summary.txt")
             output_file.write_text(summary, encoding="utf-8")
             processed_files.add(str(output_file))
             logger.info(f"Processed: {file_path.name} -> {output_file.name}")
