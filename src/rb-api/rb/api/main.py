@@ -2,11 +2,33 @@ import json
 import multiprocessing
 import os
 import sys
+import threading
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
 from rb.api import routes
+#from pipeline.rescuebox_pipeline.rb_celery import app as celery_app
+
+
+def run_celery_worker():
+    celery_app.worker_main(
+        argv=[
+            'worker',
+            '--loglevel=DEBUG',
+            '--pool=gevent',
+        ]
+    )
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start the worker on startup
+    #celery_thread = threading.Thread(target=run_celery_worker, daemon=True)
+    #celery_thread.start()
+    #yield
+    # No specific shutdown logic needed for the daemon thread
+    yield
 
 app = FastAPI(
     title="RescueBoxAPI",
@@ -16,6 +38,7 @@ app = FastAPI(
     contact={
         "name": "Umass Amherst RescuBox Team",
     },
+    lifespan=lifespan
 )
 
 app.mount(
@@ -139,4 +162,4 @@ if __name__ == "__main__":
         uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
     else:
         # for cmdline dev mode
-        uvicorn.run("rb.api.main:app", host="0.0.0.0", port=8000, reload=True)
+        uvicorn.run("rb.api.main:app", host="0.0.0.0", port=8000, reload=True, workers=4)

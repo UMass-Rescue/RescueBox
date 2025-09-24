@@ -16,13 +16,14 @@ from face_detection_recognition.face_match_server import (
     app as face_detection_app,
     APP_NAME as FACE_MATCH_APP_NAME,
 )  # type: ignore
-
+from pipelines_plugin.main import app as pipelines_app, APP_NAME as PIPELINES_APP_NAME # type: ignore
+#
 ufdr_app = None
 try:
     from ufdr_mounter.ufdr_server import app as ufdr_app, APP_NAME as UFDR_APP_NAME  # type: ignore
-except EnvironmentError:
+except (ImportError, EnvironmentError):
     print(
-        "Warning: UFDR pre req for mount not available. Hence skipping the UFDR plugin. "
+        "Warning: UFDR pre req for mount not available or plugin not found. Hence skipping the UFDR plugin. "
     )
 
 
@@ -48,6 +49,7 @@ plugins: list[RescueBoxPlugin] = [
     RescueBoxPlugin(
         deepfake_detection_app, DEEPFAKE_APP_NAME, "Deepfake Image Detection"
     ),
+    RescueBoxPlugin(pipelines_app, PIPELINES_APP_NAME, "Pipeline Execution Service"),
 ]
 
 if ufdr_app:

@@ -46,9 +46,18 @@ class HTTPValidationError:
         d = dict(src_dict)
         detail = []
         _detail = d.pop("detail", UNSET)
-        for detail_item_data in _detail or []:
-            detail_item = ValidationError.from_dict(detail_item_data)
-
+        if isinstance(_detail, list):
+            for detail_item_data in _detail or []:
+                if isinstance(detail_item_data, dict):
+                    detail_item = ValidationError.from_dict(detail_item_data)
+                    detail.append(detail_item)
+                elif isinstance(detail_item_data, str):
+                    # Handle case where detail item is a simple string
+                    detail_item = ValidationError(loc=[], msg=detail_item_data, type_="string_error")
+                    detail.append(detail_item)
+        elif isinstance(_detail, str):
+            # Handle case where detail is a simple string
+            detail_item = ValidationError(loc=[], msg=_detail, type_="string_error")
             detail.append(detail_item)
 
         http_validation_error = cls(

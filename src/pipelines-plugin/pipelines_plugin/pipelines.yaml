@@ -1,0 +1,18 @@
+# Defines the mapping from a service identifier to a Celery task function name
+services:
+  audio/transcribe:
+    celery_task: run_audio_plugin
+  text_summarization/summarize:
+    celery_task: run_text_summarization_plugin
+
+# Defines the pipelines as a sequence of services
+pipelines:
+  - name: audio_to_summary
+    short_title: "Audio to Summary"
+    tasks:
+      - service: audio/transcribe
+      - service: text_summarization/summarize
+        inputs:
+          output_dir: "pipeline_output"
+        parameters:
+          model_name: gemma3:1b

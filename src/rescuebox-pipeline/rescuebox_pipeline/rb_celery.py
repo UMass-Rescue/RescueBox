@@ -1,38 +1,41 @@
 from pathlib import Path
 import time
-from celery import Celery, shared_task, states
+from typing import Any
+from celery import Celery, shared_task
 from celery.signals import task_prerun
-from celery.exceptions import Ignore
+from celery.exceptions import Ignore, TimeoutError
 from celery.contrib.abortable import AbortableTask
 from celery.contrib.abortable import AbortableAsyncResult
 from celery import chain
-from rescue_box_api_client import Client
-from rescue_box_api_client.models import BatchTextResponse
-from rescue_box_api_client.api.manage import list_plugins_post
 
 
-from rescue_box_api_client.api.audio import rb_audio_transcribe_post
-from rescue_box_api_client.models.audio_directory import AudioDirectory
-from rescue_box_api_client.models.audio_input import AudioInput
-from rescue_box_api_client.models.body_audio_transcribe_post import (
+from .rescue_box_api_client import (
+    Client
+)
+from .rescue_box_api_client.models import (
+    TextSummarizationSummarizeInputs,
+    TextSummarizationSummarizeParameters, 
+    DirectoryInput,
+    BatchTextResponse
+)
+
+from  .rescue_box_api_client.api.manage import list_plugins_post
+
+
+from .rescue_box_api_client.api.audio import rb_audio_transcribe_post
+from .rescue_box_api_client.models.audio_directory import AudioDirectory
+from .rescue_box_api_client.models.audio_input import AudioInput
+from .rescue_box_api_client.models.body_audio_transcribe_post import (
     BodyAudioTranscribePost,
 )
-from rescue_box_api_client.models.directory_input import DirectoryInput
-from rescue_box_api_client.models.validation_error import ValidationError
+from .rescue_box_api_client.models.validation_error import ValidationError
 
 
-from rescue_box_api_client.api.text_summarization import (
+from. rescue_box_api_client.api.text_summarization import (
     rb_text_summarization_summarize_post,
 )
-from rescue_box_api_client.models.body_text_summarization_summarize_post import (
+from .rescue_box_api_client.models.body_text_summarization_summarize_post import (
     BodyTextSummarizationSummarizePost,
-)
-from rescue_box_api_client.models.text_summarization_summarize_inputs import (
-    TextSummarizationSummarizeInputs,
-)
-
-from rescue_box_api_client.models.text_summarization_summarize_parameters import (
-    TextSummarizationSummarizeParameters,
 )
 
 # broker="sqla+sqlite:///celerydb.db",
@@ -44,7 +47,8 @@ from rescue_box_api_client.models.text_summarization_summarize_parameters import
 app = Celery(
     "rb_celery",
     broker="pyamqp://guest@localhost//",
-    result_backend="db+sqlite:///broker.db",
+    result_backend="file://c:/work/rel/RescueBox/results/",
+    result_extended=True
 )
 
 # this is the default serializer for chain method args Path object
@@ -69,13 +73,6 @@ def log_celery_task_call(task, *args, **kwargs):
 # create client and run the audio plugin api calls
 
 client = Client(base_url="http://localhost:8000", verify_ssl=False)
-
-list_plugins_manage_list_plugins_post = list_plugins_post.sync(
-    client=client,
-    streaming=False,
-)
-if not list_plugins_manage_list_plugins_post:
-    print("no plugins found, please check the rescuebox server is running on port 8000")
 
 
 @shared_task(bind=True)
@@ -146,7 +143,7 @@ def run_audio_plugin(self, path: Path) -> Path:
         print("audio text output written to file")
 
     else:
-        raise Exception(f"audio transcribe failed {transcribe_output}")
+        raise Exception(f"audio transcribe failed {transcribe_out}")
     return text_out_path.resolve()
 
 
@@ -157,25 +154,16 @@ class PipelineCancelledError(Exception):
     pass
 
 
-# The watcher task runs tasks in chain and handles timeouts and sets the final state.
-# user cancels this chain-task and it in turn revokes + aborts sub tasks
-@shared_task(bind=True, base=AbortableTask)
-def run_pipeline_with_timeout(self, pipeline_tasks: list, timeout: int = 50):
+@shared_task(bind=True, base=AbortableTask,
+             name="rescuebox_pipeline.rb_celery.run_pipeline_with_timeout")
+def run_pipeline_with_timeout(self, pipeline_tasks_id: str, timeout: int = 20):
     """
-    A "watcher" task that executes a pipeline chain and enforces a timeout.
+    A "watcher" task that monitors a pipeline chain and enforces a timeout.
     If the pipeline times out, this task revokes the chain and marks its own state as FAILURE.
     """
-    print(f"Received pipeline_tasks: {pipeline_tasks}")
-
-    pipeline_chain = chain(*pipeline_tasks)
-
-    print("Applying chain...")
-    pipeline_async_result = pipeline_chain.apply_async()
-    print(f"Chain applied. Result ID: {pipeline_async_result.id}")
+    pipeline_async_result = AbortableAsyncResult(pipeline_tasks_id, app=app)
 
     time_elapsed = 0
-    print(pipeline_async_result)
-
     # Poll for the result in a non-blocking way.
     while not pipeline_async_result.ready():
         # Check if the watcher task itself has been aborted.
@@ -212,12 +200,32 @@ def run_pipeline_with_timeout(self, pipeline_tasks: list, timeout: int = 50):
         time_elapsed += 1
     # If the loop exits, the pipeline is ready and finished successfully
     print(f"Watcher {self.request.id}: Pipeline completed successfully.")
-    return pipeline_async_result.get()
+    return pipeline_async_result
+
+
+# The watcher task runs tasks in chain and handles timeouts and sets the final state.
+# user cancels this chain-task and it in turn revokes + aborts sub tasks
+@shared_task(bind=True, base=AbortableTask)
+def run_pipeline_with_timeout_list(self, pipeline_tasks: list, initial_arg: Any, timeout: int = 50):
+    """
+    A "watcher" task that starts a pipeline chain and returns the AsyncResult for that chain.
+    It does NOT wait for the result, to avoid deadlocks.
+    """
+    print(f"Watcher task received pipeline_tasks: {pipeline_tasks}")
+
+    pipeline_chain = chain(*pipeline_tasks)
+
+    print("Applying chain asynchronously...")
+    # Start the chain and return its result object.
+    pipeline_async_result = pipeline_chain.apply_async(args=[initial_arg])
+    print(f"Returning chain result for id: {pipeline_async_result.id}")
+    
+    return pipeline_async_result.id
 
 
 @shared_task(bind=True, base=AbortableTask)
 def run_text_summarization_plugin(
-    self, inpath: Path, outpath: Path, model_name: str = "llama3.2:3b"
+    self, inpath: Path, inputs: dict, parameters: dict
 ) -> Path:
     # --- Add this line for debugging ---
     print(f"DEBUG: text_summarization received args: {locals()}")
@@ -225,9 +233,10 @@ def run_text_summarization_plugin(
     text_in_path = inpath
     if inpath.exists():
         text_in_path = inpath.resolve()
-    text_out_path = outpath
+    text_out_path = Path.cwd() / inputs.get("output_dir")
     text_out_path.mkdir(parents=True, exist_ok=True)
-    text_out_path = outpath.resolve()
+    print(f"text_out_path debug ${text_out_path.resolve()}")
+    model_name = parameters.get("model_name", "llama3.2:3b")
     text_summarization_out = rb_text_summarization_summarize_post.sync(
         client=client,
         streaming=False,
@@ -252,4 +261,5 @@ def run_text_summarization_plugin(
     ):
         data = text_summarization_out.texts[0].value
         print("text summarization output text ", data)
+    print(f"Task {self.request.id} completed with result: {text_out_path.resolve()}")
     return text_out_path.resolve()
