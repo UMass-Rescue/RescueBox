@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "image-details"
+version = "0.1.0"
+description = "A RescueBox plugin for extracting detailed information from images using VQA."
+authors = ["Your Name <you@example.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+torch = "*"
+transformers = "*"
+huggingface-hub = "*"
+typer = "*"
+Pillow = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

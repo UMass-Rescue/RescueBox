@@ -1,0 +1,11 @@
+{"scene_and_setting": "The image depicts a bedroom with a minimalist, bohemian aesthetic. The walls are painted a muted green. The floor is covered in reddish-brown hardwood. A large window provides natural light.", 
+
+"key_objects": [{"name": "Bed", "color": "Gray", "count": 1, "position": "Central", "attributes": "With a striped duvet cover and multiple pillows."}, {"name": "Pillows", "color": "Various", "count": 4, "position": "On Bed", "attributes": "Multiple colors including gray, orange and beige."}, 
+{"name": "Duvet Cover", "color": "Gray", "count": 1, "position": "On Bed", "attributes": "Striped pattern."}, {"name": "Throw Blanket", "color": "Beige", "count": 1, "position": "On Bed", "attributes": "Soft texture."},
+{"name": "Nightstand", "color": "White", "count": 1, "position": "Next to Bed", "attributes": "Small wooden table with a lamp."},
+{"name": "Lamp", "color": "Gold", "count": 1, "position": "On Nightstand", "attributes": "A table lamp with a white lampshade."},
+{"name": "Shelves", "color": "Gold", "count": 3, "position": "Wall Mounted", "attributes": "Floating shelves holding plants and decorative items."}, {"name": "Plants", "color": "Green", "count": 6, "position": "Shelves & Floor", "attributes": "Various types including hanging plants and potted plants."}, {"name": "Window", "color": "Clear", "count": 1, "position": "Wall", "attributes": "Large window providing natural light."}, 
+{"name": "Hardwood Floor", "color": "Reddish-Brown", "count": 1, "position": "Ground", "attributes": "Smooth hardwood floor."}], 
+"people_and_actions": "No people are visible in the scene.", "visible_text": "None", 
+"notable_details": ["Minimalist design", "Bohemian decor", "Natural light", "Vertical shelving", "Plant-filled room"], 
+"technical_details": "The image appears to be a photograph. The lighting is soft and natural, suggesting diffused daylight. The camera angle is a medium shot, providing a clear view of the room's layout. The depth of field is relatively shallow, with a slight blur in the background."}
