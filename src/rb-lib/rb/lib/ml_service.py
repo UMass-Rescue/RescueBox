@@ -243,6 +243,7 @@ class MLService(object):
                 logger.info(res)
                 return res
             
+            
         logger.debug(f"Registered ML service command: {rule}")
 
         # If the service is asynchronous, create a second endpoint to poll for the task result.
