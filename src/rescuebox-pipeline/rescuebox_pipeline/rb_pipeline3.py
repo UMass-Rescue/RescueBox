@@ -1,86 +1,76 @@
 from pathlib import Path
 import sys
 import time
-from celery.result import AsyncResult
 from celery import chain
 from celery.contrib.abortable import AbortableAsyncResult
+from celery.exceptions import TimeoutError
 
 # import the methods to use in the pipeline from worker file
 from rb_celery import (
-    PipelineCancelledError,
     app,
     run_audio_plugin,
-    run_audio_plugin_get_text,
-    save_text_to_file,
     run_text_summarization_plugin,
-    run_pipeline_with_timeout,
 )
 
 """
-Example of a RescueBox pipeline using Celery tasks
-This example assumes you have a RescueBox server running locally on port 8000
-and the Celery worker is also running.
+Example of a RescueBox pipeline using Celery tasks.
+This script demonstrates the correct way to run a pipeline with a timeout
+and handle cancellation from the client side, avoiding worker deadlocks.
 """
 
-print("first transcribe -> then summarize")
+print("--- Starting Pipeline: Transcribe then Summarize ---")
 
-audio_mp3_path = Path.cwd() / "audio"
-
-# chain two plugins
+# 1. Define paths and parameters
+audio_mp3_path = Path.cwd() / "rescuebox_pipeline" / "audio"
 output_summarize_path = Path.cwd() / "audio" / "summarize_output"
-# paramete for summarize plugin
 model_to_use = "llama3.2:3b"
+timeout_seconds = 10
 
-
-# 1. Create the individual task signatures for your pipeline
+# 2. Create the individual task signatures for your pipeline
 task1_signature = run_audio_plugin.s(path=audio_mp3_path)
+# The signature for the second task must be constructed to accept the output of the first task (`inpath`).
 task2_signature = run_text_summarization_plugin.s(
-    outpath=output_summarize_path, model_name=model_to_use
+    inputs={"output_dir": str(output_summarize_path)}, 
+    parameters={"model_name": model_to_use},
 )
 
-# 2. Put the signatures into a simple list
-pipeline_as_list = [task1_signature, task2_signature]
+# 3. Create the pipeline chain
+pipeline_chain = chain(task1_signature, task2_signature)
 
-# 2. Create the watcher task's signature, telling it to run our pipeline
-watcher_signature = run_pipeline_with_timeout.s(
-    pipeline_tasks=pipeline_as_list, timeout=20
-)
+# 4. Execute the pipeline asynchronously
+pipeline_result = pipeline_chain.apply_async()
 
-# 3. Execute the watcher task
-result = watcher_signature.apply_async()
+print(f"Pipeline started with ID: {pipeline_result.id}. Waiting for result with a {timeout_seconds}s timeout...")
 
-abortable_result = AbortableAsyncResult(result.id, app=app)
-print(f"Watcher task started with ID: {result.id}. Waiting for final result...")
-# 4. Get the final result from the watcher
+# 5. Monitor the pipeline from the client, with timeout and cancellation logic
 try:
-    # 4. Simulate waiting for a short time before cancelling
-    print("Pipeline is running. We will send a cancel request in 3 seconds...")
-    time.sleep(3)
+    # This call will block until the result is ready OR the timeout is reached.
+    final_outcome = pipeline_result.get(timeout=timeout_seconds)
 
-    # Call .abort() to cancel the AbortableTask
-    print(f"Sending abort request to watcher task...{result.id}")
-    abortable_result.abort()
+    # This part of the code will only be reached if the pipeline succeeds
+    if pipeline_result.successful():
+        print("\n--- Pipeline Finished Successfully ---")
+        print(f"Final Outcome: {final_outcome}")
+        print(f"Final State: {pipeline_result.state}")
+        if pipeline_result.parent:
+            print("Audio transcribe output path: ", pipeline_result.parent.get())
+        print("Text summarize output path: ", pipeline_result.get())
 
-    final_outcome = result.get()
-except PipelineCancelledError as e:
-    print("\n--- Pipeline Cancelled Successfully ---")
-    print(f"Caught expected exception: {e}")
-    print(f"Final State: {result.state}")  # Should be FAILURE
+except TimeoutError:
+    print(f"\n--- Pipeline Timed Out after {timeout_seconds} seconds ---")
+    print("Revoking all tasks in the pipeline...")
+    # Revoke the entire chain of tasks by traversing the parent hierarchy.
+    # This is more robust than just revoking the final task.
+    task_to_revoke = AbortableAsyncResult(pipeline_result.id, app=app)
+    while task_to_revoke:
+        print(f"Revoking task: {task_to_revoke.id}")
+        task_to_revoke.abort()  # For AbortableTask
+        app.control.revoke(task_to_revoke.id, terminate=True)  # Forcibly terminate
+        task_to_revoke = task_to_revoke.parent
+    print(f"Final State: {pipeline_result.state}")
     sys.exit(1)
 except Exception as e:
     print(f"\n--- Pipeline Failed Unexpectedly ---")
-    print(f"Caught unexpected exception: {e}")
-    print(f"Final State: {result.state}")
+    print(f"Caught unexpected exception: {type(e).__name__}: {e}")
+    print(f"Final State: {pipeline_result.state}")
     sys.exit(1)
-
-# This part of the code will only be reached if the pipeline succeeds
-if result.successful():
-    print("\n--- Pipeline Finished ---")
-    print(f"Final Outcome: {final_outcome}")
-    print(f"Final State: {result.state}")
-
-# check_status(result)
-if result.parent:
-    print("first method in pipeline audio transcribe output= ", result.parent.get())
-print("second methond in pipeline text summarize output= ", result.get())
-

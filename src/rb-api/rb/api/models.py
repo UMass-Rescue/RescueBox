@@ -22,6 +22,8 @@ from pydantic import (
 API_APPMETDATA = "app_metadata"
 API_ROUTES = "routes"
 PLUGIN_SCHEMA_SUFFIX = "_schema"
+TASK_RESULT = "result"
+
 
 
 class AppMetadata(BaseModel):

@@ -44,8 +44,7 @@ result = chain(
 while not result.ready():
     time.sleep(1)
 
-print("first method in pipeline (run_audio_plugin_get_text) output= ", result.parent.parent.get())
+print("second method in pipeline (read_text_from_file) output= ", result.parent.get())
 
-print("second method in pipeline (save_text_to_file) output= ", result.parent.get())
 
-print("third method in pipeline (run_text_summarization_plugin) output= ", result.get())
+print("fourth method in pipeline (run_text_summarization_plugin) output= ", result.get())
