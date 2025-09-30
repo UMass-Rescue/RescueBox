@@ -15,7 +15,6 @@ from rb.api.models import (
     TaskSchema,
     ParameterSchema,
     EnumParameterDescriptor,
-    # TextParameterDescriptor,
     EnumVal,
     ParameterType,
     TextResponse,

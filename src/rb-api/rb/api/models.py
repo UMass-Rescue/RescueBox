@@ -246,7 +246,7 @@ class FileResponse(BaseModel):
     path: str
     title: Optional[str] = None
     subtitle: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None # <--- ADD THIS LINE
+    metadata: Optional[Dict[str, Any]] = None # additional columns like prediction
 
 class DirectoryResponse(BaseModel):
     model_config = ConfigDict(
