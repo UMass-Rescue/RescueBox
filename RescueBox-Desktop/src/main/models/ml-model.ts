@@ -32,6 +32,8 @@ class MLModelDb extends Model<
 
   declare info: string;
 
+  declare gpu: boolean;
+
   declare routes: APIRoutes;
 
   declare updatedAt: CreationOptional<Date>;
@@ -50,27 +52,52 @@ class MLModelDb extends Model<
     });
   }
 
-  public static getModelByModelInfoAndRoutes(
-    appMetadata: AppMetadata,
-    routes: APIRoutes,
-  ) {
-    const uid = createModelId(appMetadata, routes);
+  public static getModelByModelInfoAndRoutes(appMetadata: AppMetadata) {
+    return MLModelDb.findByName(appMetadata.name);
+  }
+
+  public static async findByName(name: string) {
     return MLModelDb.findOne({
       where: {
-        uid,
+        name,
       },
     });
   }
 
+  public static async updateModel(
+    appMetadata: AppMetadata, // Now takes appMetadata directly for name
+    routes: APIRoutes,
+  ) {
+    const { name, version, author, gpu, info } = appMetadata;
+    const [updatedRows] = await MLModelDb.update(
+      {
+        version,
+        author,
+        info,
+        gpu,
+        routes,
+        isRemoved: false, // Ensure it's not marked as removed if updated
+      },
+      {
+        where: { name }, // Update by name
+      },
+    );
+    if (updatedRows === 0) {
+      throw new Error(`Model with name ${name} not found for update`);
+    }
+    return MLModelDb.findByName(name); // Return the updated model
+  }
+
   public static createModel(appMetadata: AppMetadata, routes: APIRoutes) {
     const uid = createModelId(appMetadata, routes);
-    const { name, version, author } = appMetadata;
+    const { name, version, author, gpu } = appMetadata;
     return MLModelDb.create({
       uid,
       name,
       version,
       author,
       info: appMetadata.info,
+      gpu,
       routes,
       isRemoved: false,
     });
@@ -130,6 +157,10 @@ export const initMLModel = async (connection: Sequelize) => {
       },
       info: {
         type: DataTypes.STRING,
+        allowNull: false,
+      },
+      gpu: {
+        type: DataTypes.BOOLEAN,
         allowNull: false,
       },
       routes: {

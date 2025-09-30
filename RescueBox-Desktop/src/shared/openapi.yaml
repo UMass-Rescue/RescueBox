@@ -31,7 +31,7 @@ components:
     # Info Page models
     AppMetadata:
       type: object
-      required: [info, name, author, version]
+      required: [info, name, author, version, gpu]
       properties:
         info:
           type: string
@@ -43,6 +43,9 @@ components:
         name:
           type: string
           example: "Face Match App"
+        gpu:
+          type: boolean
+          default: false
       example:
         info: "# Welcome to the Face Match App\n\nThis app will help you to match faces in your images..."
 
