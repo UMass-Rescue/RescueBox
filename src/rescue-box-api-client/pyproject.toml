@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "rescue-box-api-client"
+version = "0.1.0"
+description = "A plugin client."
+authors = ["RescueBox Team"]
+packages = [{include = "rescue_box_api_client"}]
+
+[tool.poetry.scripts]
+rescue-box-api-client = "rescue_box_api_client.client"
+
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+rescuebox = {path = "../..", develop = true}

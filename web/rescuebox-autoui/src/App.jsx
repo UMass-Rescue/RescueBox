@@ -75,7 +75,7 @@ const App = () => {
   const [tree, setTree] = useState({});
   const [selectedCommand, setSelectedCommand] = useState(null);
   const [commandOutput, setCommandOutput] = useState("");
-
+  const [isPolling, setIsPolling] = useState(false);
   useEffect(() => {
     const treeElement = document.getElementById("tree");
     if (treeElement) {
@@ -88,22 +88,68 @@ const App = () => {
   const handleCommandClick = (command) => {
     setSelectedCommand(command);
     setCommandOutput("");
+    setIsPolling(false);
   };
 
   // Initialize form
-  const form = useForm({
-    initialValues: selectedCommand
-      ? selectedCommand.inputs.reduce((values, input) => {
-        values[input.name] = input.default || "";
-        return values;
-      }, {})
-      : {},
-  });
+  const form = useForm();
+
+  // NEW: This effect updates the form whenever a new command is selected.
+  useEffect(() => {
+    if (selectedCommand) {
+      form.setValues(
+        selectedCommand.inputs.reduce((values, input) => {
+          values[input.name] = input.default || "";
+          return values;
+        }, {})
+      );
+    } else {
+      form.reset();
+    }
+  }, [selectedCommand]);
+
+  // NEW: Function to poll for the result of an async task
+  const pollForResult = async (resultUrl) => {
+    console.log(`Polling for result from: ${resultUrl}`);
+    try {
+      const resultResponse = await fetch(resultUrl, { method: "GET" });
+      if (!resultResponse.ok) {
+        const errorData = await resultResponse.json();
+        throw new Error(`HTTP error! Status: ${resultResponse.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      const resultData = await resultResponse.json();
+      console.log("🔹 Polling response:", resultData);
+
+      // Check if the task is still pending by looking for the 'status' title
+      if (resultData && resultData.title === "status" 
+            && resultData.value === 'Task status: PENDING') {
+        setCommandOutput(
+          (prevOutput) => prevOutput + ` ${resultData.value}`
+        );
+        // Poll again after a 5-second delay
+        setTimeout(() => pollForResult(resultUrl), 5000);
+      } else {
+        // Task is done (or failed), display the final result
+        setCommandOutput(
+          typeof resultData === "object"
+            ? JSON.stringify(resultData, null, 2)
+            : resultData.toString()
+        );
+        setIsPolling(false); // Stop polling
+      }
+    } catch (error) {
+      console.error("❌ Polling failed:", error);
+      setCommandOutput((prevOutput) => prevOutput + `\n❌ Polling Error: ${error.message}`);
+      setIsPolling(false); // Stop polling on error
+    }
+  };
 
   const handleRunCommand = async (event) => {
     event.preventDefault(); // Prevent default form submission
+    if (!selectedCommand || isPolling) return; // NEW: Prevent running if already polling
 
-    if (!selectedCommand) return;
+    // if (!selectedCommand) return;
 
     const formValues = { ...form.values };
     // console.log(`🔹 With formValues: ${formValues}`);
@@ -198,19 +244,36 @@ const App = () => {
       const rawText = await response.text();
       console.log("🔹 Raw response from server:", rawText);
 
-      let parsedData;
+      let parsedData = rawText;
       try {
         parsedData = JSON.parse(rawText); // Try parsing as JSON
       } catch (jsonError) {
-        console.warn("⚠️ Server returned plain text instead of JSON.");
+        console.warn("⚠️ Server returned plain text instead of JSON. ${jsonError}");
         parsedData = rawText; // Use raw text if JSON parsing fails
       }
-
-      setCommandOutput(
-        typeof parsedData === "object"
-          ? JSON.stringify(parsedData, null, 2)
-          : parsedData.toString()
-      );
+      
+      console.log("🔹 Parsed response from server:", parsedData);
+      console.log("🔹 Parsed response title:", parsedData.title);
+      console.log("🔹 Parsed response taskId:", parsedData.value);
+      // NEW: Check for a task_id in the response to start polling
+      if (
+        parsedData &&
+        parsedData.title === "task_id"
+      ) {
+        const taskId = parsedData.value;
+        const resultUrl = `${selectedCommand.endpoint}/result/${taskId}`;
+        
+        setCommandOutput(`Task started with ID: ${taskId}. Polling for result...`);
+        setIsPolling(true);
+        pollForResult(resultUrl); // Start polling for the result
+      } else {
+        // This is a synchronous command, display the result directly
+        setCommandOutput(
+          typeof parsedData === "object"
+            ? JSON.stringify(parsedData, null, 2)
+            : parsedData.toString()
+        );
+      }
     } catch (error) {
       console.error("❌ Request failed:", error);
       setCommandOutput(`❌ Error: ${error.message}`);
@@ -306,7 +369,10 @@ const App = () => {
                       </Box>
                     );
                   })}
-                  <Button type="submit">Run Command</Button>
+                  {/* NEW: Disable button while polling */}
+                  <Button type="submit" disabled={isPolling}>
+                    {isPolling ? "Polling for Result..." : "Run Command"}
+                  </Button>
                 </Stack>
               </form>
 

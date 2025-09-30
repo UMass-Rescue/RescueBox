@@ -2,9 +2,9 @@ from pathlib import Path
 import time
 from celery.result import AsyncResult
 from celery import chain
-from pipeline.rescuebox_pipeline.rb_celery import app
-from pipeline.rescuebox_pipeline.rb_celery import run_audio_plugin
-from pipeline.rescuebox_pipeline.rb_celery import run_text_summarization_plugin
+from rb_celery import app
+from rb_celery import run_audio_plugin
+from rb_celery import run_text_summarization_plugin
 
 # check task status
 def check_status(resid):
@@ -22,12 +22,16 @@ def check_status(resid):
 
 print("first transcribe -> then summarize")
 
-audio_mp3_path = Path.cwd() / "audio"
-output_summarize_path = Path.cwd() / "audio" / "summarize_output"
+audio_mp3_path = Path.cwd() / "rescuebox_pipeline" / "audio"
+output_summarize_path = Path.cwd() / "rescuebox_pipeline" / "audio" / "summarize_output"
+# paramete for summarize plugin
+model_to_use = "llama3.2:3b"
 
 # chain two plugins
 result = chain(
-    run_audio_plugin.s(audio_mp3_path), run_text_summarization_plugin.s(output_summarize_path)
+    run_audio_plugin.s(audio_mp3_path), run_text_summarization_plugin.s(
+        inputs={"output_dir": str(output_summarize_path)},
+        parameters={"model_name": model_to_use})
 )()
 
 check_status(result.id)

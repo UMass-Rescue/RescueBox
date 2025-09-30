@@ -51,13 +51,18 @@ app.mount(
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):  # fmt: skip
     """response handler for all plugin input validation errors"""
-    error_msg = str(exc)
-    for e in exc.errors():
-        error_msg = e.get("msg")
+    # The default `exc.errors()` can contain non-serializable objects (like ValueError).
+    # We need to convert them to a serializable format before passing to HTTPException.
+    serializable_errors = []
+    for error in exc.errors():
+        # Convert any non-serializable context to a string
+        if 'ctx' in error and 'error' in error['ctx']:
+            error['ctx']['error'] = str(error['ctx']['error'])
+        serializable_errors.append(error)
 
     raise HTTPException(  # pylint: disable=raise-missing-from
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        detail={"error": f"{error_msg}"},
+        detail=serializable_errors,
     )
 
 

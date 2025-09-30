@@ -1,5 +1,7 @@
 from pathlib import Path
 import time
+import json
+
 from typing import Any
 from celery import Celery, shared_task
 from celery.signals import task_prerun
@@ -7,34 +9,42 @@ from celery.exceptions import Ignore, TimeoutError
 from celery.contrib.abortable import AbortableTask
 from celery.contrib.abortable import AbortableAsyncResult
 from celery import chain
+# import sibling rb modules
+import os, sys
+sys.path.append(os.path.abspath('../'))
+sys.path.append(os.path.abspath('../rescue-box-api-client'))
+sys.path.append(os.path.abspath('../rb-api'))
+sys.path.append(os.path.abspath('../rb-lib'))
+sys.path.append(os.path.abspath('../audio-transcription'))
+sys.path.append(os.path.abspath('./rescuebox_pipeline'))
 
 
-from .rescue_box_api_client import (
+from rescue_box_api_client import (
     Client
 )
-from .rescue_box_api_client.models import (
+from rescue_box_api_client.models import (
     TextSummarizationSummarizeInputs,
     TextSummarizationSummarizeParameters, 
     DirectoryInput,
     BatchTextResponse
 )
 
-from  .rescue_box_api_client.api.manage import list_plugins_post
+from  rescue_box_api_client.api.manage import list_plugins_post
 
 
-from .rescue_box_api_client.api.audio import rb_audio_transcribe_post
-from .rescue_box_api_client.models.audio_directory import AudioDirectory
-from .rescue_box_api_client.models.audio_input import AudioInput
-from .rescue_box_api_client.models.body_audio_transcribe_post import (
+from rescue_box_api_client.api.audio import rb_audio_transcribe_post
+from rescue_box_api_client.models.audio_directory import AudioDirectory
+from rescue_box_api_client.models.audio_input import AudioInput
+from rescue_box_api_client.models.body_audio_transcribe_post import (
     BodyAudioTranscribePost,
 )
-from .rescue_box_api_client.models.validation_error import ValidationError
+from rescue_box_api_client.models.validation_error import ValidationError
 
 
-from. rescue_box_api_client.api.text_summarization import (
+from rescue_box_api_client.api.text_summarization import (
     rb_text_summarization_summarize_post,
 )
-from .rescue_box_api_client.models.body_text_summarization_summarize_post import (
+from rescue_box_api_client.models.body_text_summarization_summarize_post import (
     BodyTextSummarizationSummarizePost,
 )
 
@@ -48,7 +58,8 @@ app = Celery(
     "rb_celery",
     broker="pyamqp://guest@localhost//",
     result_backend="file://c:/work/rel/RescueBox/results/",
-    result_extended=True
+    result_extended=True,
+    include=["audio-transcription.audio_transcription.main"] # must add every plugin's main that defines a @shared_task
 )
 
 # this is the default serializer for chain method args Path object
@@ -75,8 +86,8 @@ def log_celery_task_call(task, *args, **kwargs):
 client = Client(base_url="http://localhost:8000", verify_ssl=False)
 
 
-@shared_task(bind=True)
-def save_text_to_file(data: str, out_path: Path) -> Path:
+@shared_task(bind=True, base=AbortableTask, name="rescuebox_pipeline.rb_celery.save_text_to_file")
+def save_text_to_file(self, data: str, out_path: Path) -> Path:
     try:
         file_path = out_path.resolve()
         file_out_path = file_path.parent
@@ -90,41 +101,62 @@ def save_text_to_file(data: str, out_path: Path) -> Path:
     return file_out_path
 
 
-@app.task
-def run_audio_plugin_get_text(path: Path) -> str:
-    file_path = run_audio_plugin.apply(args=[path]).get()
-    print("read from file_path ", file_path)
-    try:
-        files = file_path.glob("*.txt")
-        text_file = ""
-        for file in files:
-            print("file name ", file)
-            text_file = file
-        print("read text file ", text_file)
-        with open(text_file, "r") as f:
-            txt = f.read()
-            print("text length ", len(txt))
-            return txt
-    except Exception as e:
-        print("file read error", e)
-    return None
-
-
-@shared_task(bind=True, base=AbortableTask)
-def run_audio_plugin(self, path: Path) -> Path:
-
-    good_path = Path.cwd() / "audio"
+@app.task(bind=True, base=AbortableTask,
+          name="rescuebox_pipeline.rb_celery.run_audio_plugin_get_text")
+def run_audio_plugin_get_text(self, path: Path) -> str:
+    good_path = Path.cwd() / "rescuebox_pipeline" / "audio"
     if path.exists():
         good_path = path
+
+    # Construct the request body object to inspect it before sending.
+    request_body = BodyAudioTranscribePost(
+        inputs=AudioInput(
+            input_dir=AudioDirectory(path=str(good_path.resolve()))
+        ),
+    )
+
+    # Log the dictionary representation of the request body.
+    print(f"DEBUG: Sending POST request to /audio/transcribe with body:\n{json.dumps(request_body.to_dict(), indent=2)}")
 
     transcribe_out = rb_audio_transcribe_post.sync(
         client=client,
         streaming=False,
-        body=BodyAudioTranscribePost(
-            inputs=AudioInput(
-                input_dir=AudioDirectory(path=str(good_path)),
-            ),
+        body=request_body,
+    )
+
+    if self.is_aborted():
+        raise Ignore()
+
+    if isinstance(transcribe_out, ValidationError):
+        print("audio transcribe error ", transcribe_out)
+    if isinstance(transcribe_out, BatchTextResponse) and len(transcribe_out.texts) > 0:
+        data = transcribe_out.texts[0].value
+        print(f"audio transcribe output text {len(data)}")
+        return data
+
+
+@shared_task(bind=True, base=AbortableTask,
+             name="rescuebox_pipeline.rb_celery.run_audio_plugin")
+def run_audio_plugin(self, path: Path) -> Path:
+
+    good_path = Path.cwd() / "rescuebox_pipeline" / "audio"
+    if path.exists():
+        good_path = path
+
+    # Construct the request body object to inspect it before sending.
+    request_body = BodyAudioTranscribePost(
+        inputs=AudioInput(
+            input_dir=AudioDirectory(path=str(good_path.resolve()))
         ),
+    )
+
+    # Log the dictionary representation of the request body.
+    print(f"DEBUG: Sending POST request to /audio/transcribe with body:\n{json.dumps(request_body.to_dict(), indent=2)}")
+
+    transcribe_out = rb_audio_transcribe_post.sync(
+        client=client,
+        streaming=False,
+        body=request_body,
     )
 
     if self.is_aborted():
@@ -154,6 +186,10 @@ class PipelineCancelledError(Exception):
     pass
 
 
+# this is not working as expected on windows
+# reason seems to be deadlock between task result and execution
+# run_pipeline_with_timeout_list works on windows using filesystem as result-backend
+# TODO : need to run this on mac and make it work
 @shared_task(bind=True, base=AbortableTask,
              name="rescuebox_pipeline.rb_celery.run_pipeline_with_timeout")
 def run_pipeline_with_timeout(self, pipeline_tasks_id: str, timeout: int = 20):
@@ -223,7 +259,8 @@ def run_pipeline_with_timeout_list(self, pipeline_tasks: list, initial_arg: Any,
     return pipeline_async_result.id
 
 
-@shared_task(bind=True, base=AbortableTask)
+@shared_task(bind=True, base=AbortableTask,
+             name="rescuebox_pipeline.rb_celery.run_text_summarization_plugin")
 def run_text_summarization_plugin(
     self, inpath: Path, inputs: dict, parameters: dict
 ) -> Path:
@@ -235,7 +272,7 @@ def run_text_summarization_plugin(
         text_in_path = inpath.resolve()
     text_out_path = Path.cwd() / inputs.get("output_dir")
     text_out_path.mkdir(parents=True, exist_ok=True)
-    print(f"text_out_path debug ${text_out_path.resolve()}")
+    print(f"text_out_path debug {text_out_path.resolve()}")
     model_name = parameters.get("model_name", "llama3.2:3b")
     text_summarization_out = rb_text_summarization_summarize_post.sync(
         client=client,

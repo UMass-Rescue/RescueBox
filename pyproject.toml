@@ -47,6 +47,7 @@ face-match = {path = "src/face-detection-recognition", develop = true }
 deepfake-detection = {path = "src/deepfake-detection", develop = true}
 ufdr-mounter = { path = "src/ufdr-mounter", develop = true }
 
+rescue-box-api-client = { path = "src/rescue-box-api-client", develop = true }
 pipelines-plugin = { path = "src/pipelines-plugin", develop = true }
 rescuebox-pipeline = { path = "src/rescuebox-pipeline", develop = true }
 
