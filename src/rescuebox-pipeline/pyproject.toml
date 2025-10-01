@@ -3,7 +3,7 @@ name = "rescuebox-pipeline"
 version = "0.1.0"
 description = "A plugin runner."
 authors = ["RescueBox Team"]
-packages = [{include = "rescuebox_pipeline,rescue_box_api_client"}]
+packages = [{include = "rescuebox_pipeline,hello_world"}]
 
 [tool.poetry.scripts]
 rescuebox-pipeline = "rescuebox_pipeline.rb_pipeline"
