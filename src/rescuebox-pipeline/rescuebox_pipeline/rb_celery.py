@@ -1,4 +1,5 @@
 from pathlib import Path
+import platform
 import time
 import json
 
@@ -53,11 +54,20 @@ from rescue_box_api_client.models.body_text_summarization_summarize_post import 
 # result_backend="db+sqlite:///broker.db",
 
 # backend="rpc://" -if this is used abort/revoke does not work as expected
+db_path = "/tmp/results"
+if platform.system() == "Windows":
+        userprofile = os.environ.get("USERPROFILE")
+        db_path = Path(userprofile) / "results"
+os.makedirs(db_path, exist_ok=True)
 
+results_path = str(db_path).replace("\\", "/")
+results_path = "file://" + results_path
+        
+print(f"celery result_backend path {results_path}")
 app = Celery(
     "rb_celery",
     broker="pyamqp://guest@localhost//",
-    result_backend="file://c:/work/rel/RescueBox/results/",
+    result_backend= results_path, # "file://c:/work/rel/RescueBox/results/",
     result_extended=True,
     include=["audio-transcription.audio_transcription.main"] # must add every plugin's main that defines a @shared_task
 )

@@ -75,9 +75,10 @@ RUN git clone https://github.com/UMass-Rescue/RescueBox.git -b hackathon
 RUN cd /home/rbuser/RescueBox && poetry install && \ 
     poetry cache clear _default_cache --all -n
 
-RUN cd /home/rbuser/RescueBox/pipeline/rescuebox_pipeline && chmod 755 ./r.sh && ./r.sh 
+    
+RUN cd /home/rbuser/RescueBox/src/rescuebox-pipeline/rescuebox_pipeline && chmod 755 ./r.sh && ./r.sh 
 
-COPY .ollama/models /home/rbuser/.ollama/models
+COPY c:\Users\foth2\.ollama\models /home/rbuser/.ollama/models
 
 RUN cd /home/rbuser/RescueBox/RescueBox-Desktop && npm install && npm run build && \
     npm cache clean --force
