@@ -29,7 +29,7 @@ To run the demo, follow these steps:
     Open a terminal window, navigate to this directory, and run the following command to start the Celery worker:
 
     ```bash
-    cd <RB_HOME>>\pipeline\hello_world
+    cd <RB_HOME>>\src\rescuebox-pipeline\rescuebox_pipeline\hello_world
     celery -A myapp worker -l DEBUG --pool=solo
     ```
 
@@ -38,7 +38,7 @@ To run the demo, follow these steps:
     Open a second terminal window and run the `simple.py` script to see the Celery patterns in action:
 
     ```bash
-    cd <RB_HOME>>\pipeline\hello_world
+    cd <RB_HOME>>\src\rescuebox-pipeline\rescuebox_pipeline\hello_world
     python simple.py
     ```
 
@@ -47,7 +47,7 @@ To run the demo, follow these steps:
     You can also run the `task.py` script for additional task examples:
 
     ```bash
-    cd <RB_HOME>>\pipeline\hello_world
+    cd <RB_HOME>>\src\rescuebox-pipeline\rescuebox_pipeline\hello_world
     python task.py
     ```
 
