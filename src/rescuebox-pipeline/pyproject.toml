@@ -10,5 +10,5 @@ rescuebox-pipeline = "rescuebox_pipeline.rb_pipeline"
 
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.11,<3.13"
 rescuebox = {path = "../..", develop = true}

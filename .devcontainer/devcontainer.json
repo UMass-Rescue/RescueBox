@@ -1,6 +1,6 @@
 {
   "name": "RecuseBox Hackathon",
-  "image": "nb887/rb-dev:2.1.0",
+  "image": "nb887/rb-dev:2.1.1",
   "workspaceFolder": "/home/rbuser/RescueBox",
   "remoteUser": "rbuser",
   "containerUser": "rbuser",
