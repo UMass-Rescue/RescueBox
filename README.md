@@ -9,6 +9,7 @@ For details on design ideas refer rb_docs
 General howto documentation is available on the [Wiki](https://github.com/UMass-Rescue/RescueBox/wiki)
 
 To develop with VS Code
+
 1. Install pre reqs : docker engine , git , google drive downloader gdown
 
 2 git checkout rescuebox branch = hackathon
