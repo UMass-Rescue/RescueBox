@@ -74,7 +74,8 @@ RUN cd /home/rbuser && git clone https://github.com/UMass-Rescue/RescueBox.git -
 RUN cd /home/rbuser/RescueBox && poetry install && \ 
     poetry cache clear _default_cache --all -n
     
-RUN cd /home/rbuser/RescueBox/src/rescuebox-pipeline/rescuebox_pipeline && chmod 755 ./r.sh && ./r.sh 
+RUN cd /home/rbuser/RescueBox/src/rescuebox-pipeline/rescuebox_pipeline && \
+    chmod 755 ./rabbitmq_setup.sh && ./rabbitmq_setup.sh 
 
 COPY .ollama/ /home/rbuser/.ollama/
 

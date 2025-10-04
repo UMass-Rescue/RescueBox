@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# runs inside the container to install rabbitmq
+
 sudo apt-get install curl gnupg apt-transport-https -y
 
 ## Team RabbitMQ's signing key

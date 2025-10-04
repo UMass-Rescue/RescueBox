@@ -20,14 +20,14 @@ This demo provides a basic introduction to the Celery distributed task queue. It
 1.  **Start the Celery Worker**:
 
     ```bash
-    cd c:\work\rel\RescueBox\src\rescuebox-pipeline\hello_world
+    cd /home/rbuser/RescueBox/src/rescuebox-pipeline/rescuebox_pipeline/hello_world
     celery -A myapp worker -l DEBUG --pool=solo
     ```
 
 2.  **Execute the Demo Script**:
 
     ```bash
-    cd c:\work\rel\RescueBox\rescuebox-pipeline\hello_world
+    cd /home/rbuser/RescueBox/src/rescuebox-pipeline/rescuebox_pipeline/hello_world
     python simple.py
     ```
 
@@ -46,25 +46,25 @@ This example demonstrates how to build and run multi-step AI/ML pipelines using 
 
 ### Running the Pipeline
 
-1.  **Start the RescueBox Backend**:
+1.  **Start the RescueBox Backend if needed**:
 
     ```bash
-    cd c:\work\rel\RescueBox
+    cd /home/rbuser/RescueBox
     poetry run python -m src.rb-api.rb.api.main
     ```
 
 2.  **Start the Celery Worker**:
 
     ```bash
-    cd c:\work\rel\RescueBox\rescuebox-pipeline\
+    cd /home/rbuser/RescueBox/src/rescuebox-pipeline
     poetry run celery -A rescuebox_pipeline.rb_celery  worker -l DEBUG --pool=solo
     ```
 
-3.  **Run a Pipeline Script**:
+3.  **Run a Pipeline Script, see demo.sh for more details**:
 
     ```bash
-    cd c:\work\rel\RescueBox\rescuebox-pipeline\
-    python rescuebox_pipeline/rb_pipeline.py
+    cd /home/rbuser/RescueBox
+    poetry run python src/rescuebox-pipeline/rescuebox_pipeline/rb_pipeline.py
     ```
 
 ---
