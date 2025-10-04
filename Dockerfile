@@ -2,7 +2,7 @@
 FROM electronuserland/builder:base-03.25 AS builder
 
 RUN apt-get update && apt-get install -y software-properties-common  && \
- apt-get install -y x11-apps curl sudo vim libsm6 cmake git \
+ apt-get install -y x11-apps curl sudo vim libsm6 cmake git dos2unix fuse \
  build-essential clang  libxtst-dev \
  libxext6 libgl1 libglib2.0-0 libgconf-2-4 libasound2 libxtst6 libdrm2 libgbm1\
  libnotify-dev libnss3 libxkbcommon-x11-0 libsecret-1-dev libcap-dev  \
@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y software-properties-common  && \
  libcanberra-gtk-module libcanberra-gtk3-module \
  gperf python3-dbusmock --no-install-recommends && \
  rm -rf /var/lib/apt/lists/*
-
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     DEBIAN_FRONTEND=noninteractive TZ=America/New_York apt-get install python3.12 python3.12-venv python3.10-venv python3-pip -y && \
@@ -92,6 +91,7 @@ RUN . /tmp/envfile; echo "PATH=/usr/bin:/home/rbuser/.local/bin:/home/rbuser/ven
 RUN cd /home/rbuser/RescueBox/web/rescuebox-autoui && npm install
 
 USER root
+RUN usermod -a -G fuse rbuser
 RUN chown root /home/rbuser/RescueBox/RescueBox-Desktop/node_modules/electron/dist/chrome-sandbox
 RUN chmod 4755 /home/rbuser/RescueBox/RescueBox-Desktop/node_modules/electron/dist/chrome-sandbox
 USER rbuser

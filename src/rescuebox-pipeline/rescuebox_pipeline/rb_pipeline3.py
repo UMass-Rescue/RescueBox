@@ -21,10 +21,10 @@ and handle cancellation from the client side, avoiding worker deadlocks.
 print("--- Starting Pipeline: Transcribe then Summarize ---")
 
 # 1. Define paths and parameters
-audio_mp3_path = Path.cwd() / "rescuebox_pipeline" / "audio"
-output_summarize_path = Path.cwd() / "audio" / "summarize_output"
+audio_mp3_path = Path.cwd() / "src" / "rescuebox-pipeline" / "rescuebox_pipeline" / "audio"
+output_summarize_path = Path.cwd() / "src" / "rescuebox-pipeline" / "audio" / "summarize_output"
 model_to_use = "llama3.2:3b"
-timeout_seconds = 10
+timeout_seconds = 5
 
 # 2. Create the individual task signatures for your pipeline
 task1_signature = run_audio_plugin.s(path=audio_mp3_path)

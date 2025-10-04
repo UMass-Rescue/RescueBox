@@ -25,9 +25,9 @@ print("first transcribe -> save text to file -> then summarize")
 audio_mp3_path = Path.cwd() / "rescuebox_pipeline" / "audio"
 
 
-intermediate_text_path = Path.cwd() / "rescuebox_pipeline" / "audio" / "transcribe_output_2" / "intermediate.txt"
+intermediate_text_path = Path.cwd() / "src" / "rescuebox-pipeline" / "rescuebox_pipeline" / "audio" / "transcribe_output_2" / "intermediate.txt"
 
-output_summarize_path = Path.cwd() / "rescuebox_pipeline" / "audio" / "summarize_output_2"
+output_summarize_path = Path.cwd() / "src" / "rescuebox-pipeline" / "rescuebox_pipeline" / "audio" / "summarize_output_2"
 # paramete for summarize plugin
 model_to_use = "llama3.2:3b"
 

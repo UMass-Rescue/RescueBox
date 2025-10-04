@@ -23,7 +23,7 @@ def check_status(resid):
 print("first transcribe -> then summarize")
 
 audio_mp3_path = Path.cwd() / "rescuebox_pipeline" / "audio"
-output_summarize_path = Path.cwd() / "rescuebox_pipeline" / "audio" / "summarize_output"
+output_summarize_path = Path.cwd() / "src" / "rescuebox-pipeline" / "rescuebox_pipeline" / "summarize_output"
 # paramete for summarize plugin
 model_to_use = "llama3.2:3b"
 
@@ -38,6 +38,6 @@ check_status(result.id)
 
 try:
     print("first method in pipeline audio transcribe output= ", result.parent.get())
-    print("second methond in pipeline text summarize output= ", result.get())
+    print("second method in pipeline text summarize output= ", result.get())
 except Exception as e:
     print("Task error occurred:", e)
