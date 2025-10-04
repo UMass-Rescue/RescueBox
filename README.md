@@ -14,9 +14,10 @@ The software is free of charge. UMass Amherst is research university and a non-p
 
 For more information on Rescue Lab see our [web site](https://rescue-lab.org).
 
-
 -----------------------
 Notes for Developers Only:
+
+**For Hackathon ideas** see [issues](https://github.com/UMass-Rescue/RescueBox/issues)
 
 Please refer to the [CONTRIBUTING](CONTRIBUTING.md) file for more information on how to contribute to this project.
 
