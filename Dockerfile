@@ -1,8 +1,8 @@
 # Builder Stage
 FROM electronuserland/builder:base-03.25 AS builder
 
-RUN apt-get update && apt-get install -y software-properties-common  && \
- apt-get install -y x11-apps curl sudo vim libsm6 cmake git \
+RUN apt-get update && apt-get install -y software-properties-common \
+ x11-apps curl sudo vim libsm6 cmake git dos2unix fuse iproute2 net-tools iputils-ping  \
  build-essential clang  libxtst-dev \
  libxext6 libgl1 libglib2.0-0 libgconf-2-4 libasound2 libxtst6 libdrm2 libgbm1\
  libnotify-dev libnss3 libxkbcommon-x11-0 libsecret-1-dev libcap-dev  \
@@ -70,7 +70,7 @@ ENV PATH="/home/rbuser/.local/bin:/home/rbuser/venv/bin:/usr/bin:$PATH"
 
 RUN poetry config virtualenvs.path /home/rbuser/venv
 
-RUN git clone https://github.com/UMass-Rescue/RescueBox.git
+RUN git clone https://github.com/UMass-Rescue/RescueBox.git -b hackathon-plugins
 
 RUN cd /home/rbuser/RescueBox && poetry install && \ 
     poetry cache clear _default_cache --all -n
@@ -78,6 +78,8 @@ RUN cd /home/rbuser/RescueBox && poetry install && \
 RUN cd /home/rbuser/RescueBox/RescueBox-Desktop && npm install && npm run build:dll && \
     npm cache clean --force
 
+RUN pip install gdown && gdown 1mCZyKGgK0ZjPxG3h2vWet0RQxaMxrTfB && \
+    unzip assets_rb_server.zip -d /home/rbuser/RescueBox/    
 #  poetry 
 
 RUN echo "export VENV=`ls /home/rbuser/venv/`" >> /tmp/envfile

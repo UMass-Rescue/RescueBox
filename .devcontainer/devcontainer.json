@@ -1,6 +1,10 @@
 {
   "name": "RecuseBox Hackathon",
-  "image": "nb887/rb-dev:2.1.0",
+  // pick one of these docker images based on 
+  // for rescuebox backend projects developer:
+  // image": "nb887/rb-dev:2.1.1"
+  // or for rescuebox model developer :
+  "image": "nb887/rb-dev-plugins:2.1.1",
   "workspaceFolder": "/home/rbuser/RescueBox",
   "remoteUser": "rbuser",
   "containerUser": "rbuser",
@@ -22,8 +26,8 @@
   // and Path to the output file "/tmp" or any other directory in the container
 
   "mounts": [
-    "source=/home/tester/RescueBox,target=/home/rbuser/RescueBox,type=bind",
-    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+    "source=/home/user/RescueBox,target=/home/rbuser/RescueBox,type=bind",
+    // "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
   ],
   "remoteEnv": {
     "POETRY_VIRTUALENVS_IN_PROJECT": "false",
