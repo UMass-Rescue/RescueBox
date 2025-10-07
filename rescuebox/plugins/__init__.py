@@ -7,15 +7,15 @@ from audio_transcription.main import (
 )  # type: ignore
 from text_summary.main import app as text_summary_app, APP_NAME as TEXT_SUM_APP_NAME  # type: ignore
 from age_and_gender_detection.main import app as age_gender_app, APP_NAME as AGE_GENDER_APP_NAME  # type: ignore
-# from deepfake_detection.main import app as deepfake_detection_app, APP_NAME as DEEPFAKE_APP_NAME  # type: ignore
+from deepfake_detection.main import app as deepfake_detection_app, APP_NAME as DEEPFAKE_APP_NAME  # type: ignore
 
 # Import plugin modules
 from doc_parser.main import app as doc_parser_app  # type: ignore
 from file_utils.main import app as file_utils_app  # type: ignore
-#from face_detection_recognition.face_match_server import (
-#    app as face_detection_app,
-#    APP_NAME as FACE_MATCH_APP_NAME,
-#)  # type: ignore
+from face_detection_recognition.face_match_server import (
+    app as face_detection_app,
+    APP_NAME as FACE_MATCH_APP_NAME,
+)  # type: ignore
 
 ufdr_app = None
 try:
@@ -49,12 +49,12 @@ plugins: list[RescueBoxPlugin] = [
     ),
     RescueBoxPlugin(age_gender_app, AGE_GENDER_APP_NAME, "Age and Gender Classifier"),
     RescueBoxPlugin(text_summary_app, TEXT_SUM_APP_NAME, "Text summarization library"),
-    #RescueBoxPlugin(
-    #    face_detection_app, FACE_MATCH_APP_NAME, "Face Detection and Recognition Tool"
-    #),
-    # RescueBoxPlugin(
-    #    deepfake_detection_app, DEEPFAKE_APP_NAME, "Deepfake Image Detection"
-    #),
+    RescueBoxPlugin(
+        face_detection_app, FACE_MATCH_APP_NAME, "Face Detection and Recognition Tool"
+    ),
+    RescueBoxPlugin(
+        deepfake_detection_app, DEEPFAKE_APP_NAME, "Deepfake Image Detection"
+    ),
     RescueBoxPlugin(hello_world_app, "hello", "Hello World"),
     RescueBoxPlugin(image_details_app, "image_details", "Image Details"),
     RescueBoxPlugin(image_caption_blip_onnx_app, "caption_blip", "Image Caption BLIP"),
