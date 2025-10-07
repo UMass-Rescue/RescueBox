@@ -1,0 +1,6 @@
+
+download model files from https://drive.google.com/file/d/10Qnf_c6s42I3hqpB3whrzcMneoc_d4fc/view?usp=drive_link
+
+gdown 10Qnf_c6s42I3hqpB3whrzcMneoc_d4fc
+
+unzip the files to RescueBox/src/image-caption-blip-onnx/models/
