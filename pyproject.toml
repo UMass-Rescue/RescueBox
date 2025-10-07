@@ -44,6 +44,12 @@ face-match = {path = "src/face-detection-recognition", develop = true }
 deepfake-detection = {path = "src/deepfake-detection", develop = true}
 ufdr-mounter = { path = "src/ufdr-mounter", develop = true }
 
+hello-world = { path = "src/hello-world", develop = true }
+image-details = { path = "src/image-details", develop = true }
+image-summary = { path = "src/image-summary", develop = true }
+image-caption-blip-onnx = { path = "src/image-caption-blip-onnx", develop = true }
+
+
 # Don't add new packages here, add them appropriately in the list above
 beautifulsoup4 = "^4.13.3"
 

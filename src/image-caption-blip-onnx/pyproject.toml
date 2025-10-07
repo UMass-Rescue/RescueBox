@@ -10,7 +10,7 @@ typer = "*"
 Pillow = "*"
 transformers = "*"
 onnxruntime = "*"
-numpy = "*"
+
 
 [build-system]
 requires = ["poetry-core"]
