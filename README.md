@@ -13,7 +13,7 @@ General howto documentation is available on the [Wiki](https://github.com/UMass-
 
 To develop with VS Code on your laptop
 
-1. Install pre reqs : docker engine , git , google drive downloader gdown
+1. Install pre reqs : docker engine, git, google drive downloader gdown
     note: python and other runtime dependencies are in the container.
 
 2. git checkout rescuebox branch = hackathon-plugins
@@ -33,8 +33,7 @@ To develop with VS Code on your laptop
 the setup of run docker container with pre-reqs and your host laptop with source allows you to quickly develop with rescuebox.
 
 7. Rescuebox backend has a UI running on http://localhost:8000 , this will allow you to run existing models
- Or
- Rescuebox electron UI is a different UI a customer UI that can also be started if neeeded from Rescuebox-Desktop folder in the container using npm start.
+ the new plugin you will develop will dynamically show up in the UI , refer web/rescuebox-autoui.
 
 
 
