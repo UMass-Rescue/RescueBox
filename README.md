@@ -1,26 +1,42 @@
 # RescueBox from UMass Rescue Lab
 
-We are proud to offer our first preview release of RescueBox!
+This branch is specific to hackathon 2025 work.
 
-* [Windows software](https://umass-my.sharepoint.com/:u:/g/personal/sahilsharma_umass_edu/EYSwMi7RkoFCosIZLdzuqnMBN8n7ejoIPT9eqVjXqKIlJg?e=Kis33R) (2.3GB) 
+**For Hackathon ideas** [issues](https://github.com/UMass-Rescue/RescueBox/issues)
 
-The download contains documentation including a product overview, installation notes, and RescueBox usage. 
+Use this branch hackathon-plugins and steps below if you pick an issue that is plugins related.
 
-This release has been tested on Windows 11 64-bit hardware. The software does work if you run it on a machine with only a CPU; try it out with a few images or audio files. However for large scale work, because the processing is dependent on machine learning models, you won't see good performance unless you run on a machine that has a modern NVIDIA GPU card. Something like 4090 or 5090 or better for large amounts of files.
+Use the other branch hackathon for rescuebox infrastructure improvement ideas.
 
-The software is free of charge. UMass Amherst is research university and a non-profit: our plan to continue development of this open source software is by seeking funding for this work from sponsors. While we seek this funding, we are indeed offering free support for the software for its users. Please ask for our help, offer feedback, and submit bug reports using [this form](https://forms.gle/wYs1S5k1JS3G2rLo7). Again, please note that there is documentation in the download. 
+General howto documentation is available on the [Wiki](https://github.com/UMass-Rescue/RescueBox/wiki)
+ --Overview and Plugins could be useful.
 
-<img  width="200px" src="https://images.squarespace-cdn.com/content/v1/5efb7aa577f8b34b0f786c0f/1598361988326-7EWAXEOBNQGIQGSQK8PS/Rescue+Lab+LogoOL.jpg?format=1500w">
+To develop with VS Code on your laptop
 
-For more information on Rescue Lab see our [web site](https://rescue-lab.org).
+1. Install pre reqs : docker engine , git , google drive downloader gdown
+    note: python and other runtime dependencies are in the container.
+
+2. git checkout rescuebox branch = hackathon-plugins
+  
+3. refer RescueBox/.devcontainer/devcontainer.json , edit this file as per instructions in it.
+  mounts : source=/home/user/RescueBox <-- this should be the RescueBox path from previous step #2
+
+  start the rescuebox container "reopen in container" . open terminal insider container.
+
+4. run script setup_rescuebox.sh on your laptop (host) , this must be executed to pull onnx models and demo files and howto videos, that are too large to push to git repo. the model files are manadatory to run existing models.
+
+5.  inside the docker container, you must run cd /home/rbuserRescueBox and execute 'run_server', to start the rescuebox backend server.
+
+6. note that the docker container has pre-reqs installed like : python , poetry.
+  you now run cmds insider the container to start rescuebox backend server 
+  your laptop contains the git source that will be mounted inside the container. this allows you to modify the  source code that runs inside your container
+the setup of run docker container with pre-reqs and your host laptop with source allows you to quickly develop with rescuebox.
+
+7. Rescuebox backend has a UI running on http://localhost:8000 , this will allow you to run existing models
+ Or
+ Rescuebox electron UI is a different UI a customer UI that can also be started if neeeded from Rescuebox-Desktop folder in the container using npm start.
 
 
------------------------
-Notes for Developers Only:
 
-Please refer to the [CONTRIBUTING](CONTRIBUTING.md) file for more information on how to contribute to this project.
 
-Documentation is available on the [Wiki](https://github.com/UMass-Rescue/RescueBox/wiki)
-
-See the [LICENSE](LICENSE) file for license details.
 
