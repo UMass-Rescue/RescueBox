@@ -54,7 +54,7 @@ Before you begin, please ensure you have the following software installed:
   pip install gdown
   ```
 
-## Step-by-Step Setup
+## Step-by-Step Setup . [How To Video](https://drive.google.com/file/d/1q27_mH22k6PXDhHhPWR8KSby3HSlQ6uQ/view?usp=sharing)
 
 Follow these steps carefully to set up your development environment.
 
