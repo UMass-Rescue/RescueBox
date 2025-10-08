@@ -30,12 +30,14 @@
     "POETRY_VIRTUALENVS_IN_PROJECT": "false",
     "POETRY_VIRTUALENVS_CREATE": "true",
     "POETRY_VIRTUALENVS_PATH": "/home/rbuser/venv",
-    "DISPLAY": ":0"
+    "DISPLAY": "host.docker.internal:0"
+    // to run electron UI in the container :
+    // on windows install mobaX-server  
+    // on a mac install XQuartz 
+    // to troubleshoot , run 'xclock' in the container and confirm UI shows up ok 
   },
   "runArgs": [
     "--privileged",
-    //"--network=host",
-    //"--userns=host",
     "--shm-size=1gb",
     "--memory=4gb"
   ],
@@ -53,10 +55,9 @@
   "forwardPorts": [8000],
   "postStartCommand": "poetry env info",
   "postAttachCommand": "echo 'Attached'"
-  // start pre req ollama server followed by rescuebox backend server
-  // nohup bash -c "ollama serve" > ollama.log &
-  // nohup sudo /usr/sbin/rabbitmq-server > rabbit.log &
-  // run_server
+  // run pre-req.sh from /home/rbuser/RescueBox
+  // this will start ollama serve , rabbitmq-server and rescuebox backend server
+  // now access the UI at http://localhost:8000 from a browser on your laptop
 
 }
 

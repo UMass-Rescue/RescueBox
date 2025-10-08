@@ -2,7 +2,7 @@
 FROM electronuserland/builder:base-03.25 AS builder
 
 RUN apt-get update && apt-get install -y software-properties-common  && \
- apt-get install -y x11-apps curl sudo vim libsm6 cmake git dos2unix fuse \
+ apt-get install -y x11-apps curl sudo vim libsm6 cmake git dos2unix fuse iproute2 net-tools iputils-ping  \
  build-essential clang  libxtst-dev \
  libxext6 libgl1 libglib2.0-0 libgconf-2-4 libasound2 libxtst6 libdrm2 libgbm1\
  libnotify-dev libnss3 libxkbcommon-x11-0 libsecret-1-dev libcap-dev  \
@@ -78,6 +78,10 @@ RUN cd /home/rbuser/RescueBox/src/rescuebox-pipeline/rescuebox_pipeline && \
     chmod 755 ./rabbitmq_setup.sh && ./rabbitmq_setup.sh 
 
 COPY .ollama/ /home/rbuser/.ollama/
+
+# to get demo files
+RUN pip install gdown && gdown 1mCZyKGgK0ZjPxG3h2vWet0RQxaMxrTfB && \
+    unzip assets_rb_server.zip -d /home/rbuser/RescueBox/
 
 RUN cd /home/rbuser/RescueBox/RescueBox-Desktop && npm install && npm run build && \
     npm cache clean --force

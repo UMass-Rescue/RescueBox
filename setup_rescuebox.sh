@@ -4,7 +4,7 @@
 # all the other scripts are run insider the container.
 # its purpose is to download files from google drive for rescuebox that is too large to checkin.
 
-git checkout https://github.com/UMass-Rescue/RescueBox.git -b hackathon-main
+git checkout https://github.com/UMass-Rescue/RescueBox.git -b hackathon
 
 cd RescueBox
 
@@ -20,9 +20,12 @@ unzip rescuebox_models.zip -d .
 
 # download demo files and docs
  # https://drive.google.com/file/d/1mCZyKGgK0ZjPxG3h2vWet0RQxaMxrTfB/view?usp=drive_link
+  # gdown 1mCZyKGgK0ZjPxG3h2vWet0RQxaMxrTfB
 
-gdown 1mCZyKGgK0ZjPxG3h2vWet0RQxaMxrTfB
+# download videos for hackathon
+ # 1q27_mH22k6PXDhHhPWR8KSby3HSlQ6uQ
 
-unzip assets_rb_server.zip -d .
+gdown 1q27_mH22k6PXDhHhPWR8KSby3HSlQ6uQ
+unzip rb_videos.zip -d .
 
-# follow the docs "rescuebox 2.1.0 usage.pdf" to run the models using demo files
+# follow the videos to run the models
