@@ -11,7 +11,8 @@ Use the other branch hackathon for rescuebox infrastructure improvement ideas.
 General howto documentation is available on the [Wiki](https://github.com/UMass-Rescue/RescueBox/wiki)
  --Overview and Plugins could be useful.
 
-To develop with VS Code on your laptop
+## Step-by-Step Setup [How To Video] (https://drive.google.com/file/d/1q27_mH22k6PXDhHhPWR8KSby3HSlQ6uQ/view?usp=sharing)
+To develop with VS Code on your laptop.
 
 1. Install pre reqs : docker engine, git, google drive downloader gdown
     note: python and other runtime dependencies are in the container.
