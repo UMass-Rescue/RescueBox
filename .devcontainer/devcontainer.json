@@ -27,13 +27,13 @@
 
   "mounts": [
     "source=/home/user/RescueBox,target=/home/rbuser/RescueBox,type=bind",
-    // "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
   ],
   "remoteEnv": {
     "POETRY_VIRTUALENVS_IN_PROJECT": "false",
     "POETRY_VIRTUALENVS_CREATE": "true",
     "POETRY_VIRTUALENVS_PATH": "/home/rbuser/venv",
-    "DISPLAY": ":0"
+    "DISPLAY": "host.docker.internal:0.0"
   },
   "runArgs": [
     "--privileged",
@@ -61,4 +61,3 @@
   // run_server
 
 }
-

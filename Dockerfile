@@ -75,7 +75,7 @@ RUN git clone https://github.com/UMass-Rescue/RescueBox.git -b hackathon-plugins
 RUN cd /home/rbuser/RescueBox && poetry install && \ 
     poetry cache clear _default_cache --all -n
 
-RUN cd /home/rbuser/RescueBox/RescueBox-Desktop && npm install && npm run build:dll && \
+RUN cd /home/rbuser/RescueBox/RescueBox-Desktop && npm install && \
     npm cache clean --force
 
 RUN pip install gdown && gdown 1mCZyKGgK0ZjPxG3h2vWet0RQxaMxrTfB && \
