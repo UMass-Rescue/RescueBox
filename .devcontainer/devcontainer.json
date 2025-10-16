@@ -26,8 +26,8 @@
   // and Path to the output file "/tmp" or any other directory in the container
 
   "mounts": [
-    "source=/home/user/RescueBox,target=/home/rbuser/RescueBox,type=bind",
-    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+    "source=c:/work/rel/RescueBox,target=/home/rbuser/RescueBox,type=bind",
+    // "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
   ],
   "remoteEnv": {
     "POETRY_VIRTUALENVS_IN_PROJECT": "false",
@@ -39,6 +39,7 @@
     "--privileged",
     //"--network=host",
     //"--userns=host",
+    "--platform=linux/amd64",
     "--shm-size=2gb",
     "--memory=8gb"
   ],
