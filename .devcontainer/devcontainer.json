@@ -22,9 +22,9 @@
   // and Path to the output file "/tmp" or any other directory in the container
 
   "mounts": [
-    "source=/c/work/rel/RescueBox,target=/home/rbuser/RescueBox,type=bind",
+    "source=/c/work/rel/RescueBox,target=/home/rbuser/RescueBox,type=bind"
     //"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
-    "source=/c/work/rel/RescueBox/.vscode-server,target=/home/rbuser/.vscode-server,type=bind"
+    // Isolate node_modules directories to prevent host/container conflicts
   ],
   "remoteEnv": {
     "POETRY_VIRTUALENVS_IN_PROJECT": "false",
@@ -39,7 +39,8 @@
   "runArgs": [
     "--privileged",
     "--shm-size=1gb",
-    "--memory=4gb"
+    "--memory=4gb",
+    "--platform=linux/amd64"
   ],
   "customizations": {
     "vscode": {
@@ -60,4 +61,3 @@
   // now access the UI at http://localhost:8000 from a browser on your laptop
 
 }
-

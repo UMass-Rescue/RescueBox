@@ -83,7 +83,7 @@ COPY .ollama/ /home/rbuser/.ollama/
 RUN pip install gdown && gdown 1mCZyKGgK0ZjPxG3h2vWet0RQxaMxrTfB && \
     unzip assets_rb_server.zip -d /home/rbuser/RescueBox/
 
-RUN cd /home/rbuser/RescueBox/RescueBox-Desktop && npm install && npm run build && \
+RUN cd /home/rbuser/RescueBox/RescueBox-Desktop && npm install && \
     npm cache clean --force
 
 #  poetry 
