@@ -2,11 +2,11 @@ import inspect
 import json
 import logging
 import time
-from typing import Callable, Generator, Optional
+from typing import Any, Callable, Generator, Optional
 
 import typer
 from fastapi import APIRouter, HTTPException, Response, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from makefun import with_signature
 from pydantic import BaseModel
 from rb.api.models import (
@@ -58,9 +58,7 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
             if isinstance(
                 result, list
             ):  # or Ensure it's a valid str model for routes call
-                return Response(
-                    content=str(result).replace("'", '"'), media_type="application/json"
-                )
+                return JSONResponse(content=result)
             if isinstance(
                 result, str
             ):  # or Ensure it's a valid str model for routes call
@@ -213,7 +211,7 @@ for plugin in rescuebox_app.registered_groups:
                 endpoint=command_callback(command),
                 methods=["POST"],
                 name=command.callback.__name__,
-                response_model=ResponseBody,
+                response_model=Any, # for internal use
             )
             logger.debug(
                 f"Registering FastAPI route for {plugin.name} command: {command.callback.__name__}"

@@ -3,7 +3,6 @@ import {
   Anchor,
   Box,
   Button,
-  Checkbox,
   Grid,
   Group,
   Input,
@@ -18,6 +17,16 @@ import { useEffect, useState } from "react";
 
 // Import CSS
 import "./App.css";
+
+// --- NEW SORTING FUNCTION ---
+const sortTreeByOrder = (node) => {
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(sortTreeByOrder); // Recurse first
+    node.children.sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+  return node;
+};
+// --- END NEW SORTING FUNCTION ---
 
 // Recursive component to render each group and command
 const TreeNode = ({ node, level = 0, onCommandClick }) => (
@@ -70,7 +79,9 @@ const App = () => {
   useEffect(() => {
     const treeElement = document.getElementById("tree");
     if (treeElement) {
-      setTree(JSON.parse(treeElement.textContent));
+      const parsedTree = JSON.parse(treeElement.textContent);
+      const sortedTree = sortTreeByOrder(parsedTree);
+      setTree(sortedTree);
     }
   }, []);
 
@@ -83,9 +94,9 @@ const App = () => {
   const form = useForm({
     initialValues: selectedCommand
       ? selectedCommand.inputs.reduce((values, input) => {
-          values[input.name] = input.default || "";
-          return values;
-        }, {})
+        values[input.name] = input.default || "";
+        return values;
+      }, {})
       : {},
   });
 
@@ -94,45 +105,96 @@ const App = () => {
 
     if (!selectedCommand) return;
 
-    let inputs = { ...form.values };
+    const formValues = { ...form.values };
+    // console.log(`🔹 With formValues: ${formValues}`);
+    const queryParams = new URLSearchParams();
 
-    // Exclude `streaming=true` for non-streaming routes
-    const isStreamingAllowed =
-      !selectedCommand.endpoint.includes("/routes") &&
-      !selectedCommand.endpoint.includes("/app_metadata");
-
-    if (isStreamingAllowed) {
-      inputs.streaming = true;
+    for (const key in formValues) {
+      console.log(`🔹 With key : ${key}`);
+      console.log(`🔹 With value : ${formValues[key]}`);
+      queryParams.set(key, formValues[key]);
     }
 
-    const queryString = new URLSearchParams(inputs).toString();
-
     const isGetRequest =
-      selectedCommand.endpoint.includes("/routes") ||
-      selectedCommand.endpoint.includes("/app_metadata");
+      selectedCommand.endpoint.includes("/api/routes") ||
+      selectedCommand.endpoint.includes("/api/app_metadata") ||
+      selectedCommand.endpoint.endsWith("/task_schema");
 
-    const url = isGetRequest
-      ? `${selectedCommand.endpoint}?${queryString}`
-      : selectedCommand.endpoint;
+
+
+    if (isGetRequest) {
+      queryParams.set("streaming", "false");
+    }
+
+    let body = null;
+    let url = selectedCommand.endpoint;
+    console.log(`🔹 With endpoint : ${url}`);
+    let isInternalUrl = false;
+    if (isGetRequest) {
+      for (const key in formValues) {
+        if (Object.prototype.hasOwnProperty.call(formValues, key)) {
+          queryParams.set(key, formValues[key]);
+        }
+      }
+      console.log(`🔹 With queryParams : ${queryParams}`);
+    } else {
+      const inputs = {};
+      const parameters = {};
+      for (const input of selectedCommand.inputs) {
+
+        if (input.is_parameter) {
+          parameters[input.name] = formValues[input.name];
+        } else {
+          console.log(`🔹 With input fields : ${input.type} ${input.is_file_path}`);
+          if (input.type === "str") {
+            isInternalUrl = true;
+            break;
+          }
+          if (input.type === "file" || input.type === "directory") {
+            let pathValue = formValues[input.name] || ""; // Ensure it's a string, even if empty
+            // Remove leading/trailing quotes if present
+            if (typeof pathValue === 'string' && pathValue.startsWith('"') && pathValue.endsWith('"')) {
+              pathValue = pathValue.substring(1, pathValue.length - 1);
+            }
+            inputs[input.name] = { path: pathValue }; // Always include the field
+          } else if (input.type === "text") {
+            const textValue = formValues[input.name] || ""; // Ensure it's a string, even if empty
+            inputs[input.name] = { text: textValue }; // Always include the field
+          }
+        }
+      }
+      if (!isInternalUrl && Object.keys(inputs).length > 0) {
+        body = JSON.stringify({ inputs: inputs, parameters: parameters });
+      } else {
+        body = null;
+      }
+      console.log(`🔹 With body: ${body}`);
+    }
+
+    const queryString = queryParams.toString();
+    if (queryString && isInternalUrl) {
+      url = `${url}?${queryString}`;
+    }
 
     console.log(
       `🔹 Sending ${isGetRequest ? "GET" : "POST"} request to: ${url}`
     );
-
     setCommandOutput(""); // Reset output
 
     try {
       const response = await fetch(url, {
         method: isGetRequest ? "GET" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: isGetRequest ? null : JSON.stringify(inputs),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: body,
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`HTTP error! Status: ${response.status} - ${JSON.stringify(errorData)}`);
       }
 
-      // Handle normal JSON response
       const rawText = await response.text();
       console.log("🔹 Raw response from server:", rawText);
 
@@ -146,7 +208,7 @@ const App = () => {
 
       setCommandOutput(
         typeof parsedData === "object"
-          ? JSON.stringify(parsedData, null, 2) // Pretty-print JSON
+          ? JSON.stringify(parsedData, null, 2)
           : parsedData.toString()
       );
     } catch (error) {
@@ -157,8 +219,9 @@ const App = () => {
 
   const handleReset = () => {
     if (selectedCommand) {
-      form.reset();
+      setSelectedCommand("");
       setCommandOutput("");
+      form.reset();
     }
   };
 
@@ -198,38 +261,51 @@ const App = () => {
               {/* Command Form */}
               <form onSubmit={handleRunCommand} className="command-form">
                 <Stack spacing="xs" mb={12}>
-                  {selectedCommand.inputs.map((input) => (
-                    <Box key={input.name}>
-                      {input.help && (
-                        <Text size="sm" color="dimmed" mb={4}>
-                          {input.help}
-                        </Text>
-                      )}
-                      {input.type === "str" && (
-                        <Input
-                          placeholder={input.default || ""}
-                          {...form.getInputProps(input.name)}
-                          required
-                        />
-                      )}
-                      {input.type === "int" && (
-                        <Input
-                          type="number"
-                          placeholder={input.default?.toString() || ""}
-                          {...form.getInputProps(input.name)}
-                          required
-                        />
-                      )}
-                      {input.type === "bool" && (
-                        <Checkbox
-                          label={input.name}
-                          {...form.getInputProps(input.name, {
-                            type: "checkbox",
-                          })}
-                        />
-                      )}
-                    </Box>
-                  ))}
+                  {selectedCommand.inputs.map((input) => {
+                    return (
+                      <Box key={input.name}>
+                        {input.help && (
+                          <Text size="sm" color="dimmed" mb={4}>
+                            {input.help}
+                          </Text>
+                        )}
+                        {(input.type === "str" ||
+                          input.type === "text" ||
+                          input.type === "file" || // Added for file inputs
+                          input.type === "directory") && ( // Added for directory inputs
+                            <Input
+                              placeholder={input.default || ""}
+                              {...form.getInputProps(input.name)}
+                              required
+                            />
+                          )}
+                        {(input.type === "int" ||
+                          input.type === "ranged_int") && (
+                            <Input
+                              type="number"
+                              placeholder={input.default?.toString() || ""}
+                              {...form.getInputProps(input.name)}
+                              required
+                            />
+                          )}
+                        {(input.type === "float" || input.type === "ranged_float") && (
+                          <Input
+                            type="float"
+                            placeholder={input.default?.toString() || ""}
+                            {...form.getInputProps(input.name)}
+                            required
+                          />
+                        )}
+                        {input.type === "enum" && (
+                          <Input
+                            placeholder={input.default || ""}
+                            {...form.getInputProps(input.name)}
+                            required
+                          />
+                        )}
+                      </Box>
+                    );
+                  })}
                   <Button type="submit">Run Command</Button>
                 </Stack>
               </form>

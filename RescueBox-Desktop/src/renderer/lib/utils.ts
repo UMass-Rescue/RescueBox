@@ -88,7 +88,15 @@ export function buildRequestBody(
           );
         }
         requestBody.inputs[input.key] = {
-          files: inputData.map((file) => ({ path: file }) satisfies FileInput),
+          files: inputData.map((file) => {
+            if (typeof file === 'string') {
+              return { path: file };
+            }
+            if (typeof file === 'object' && file !== null && 'path' in file) {
+              return file;
+            }
+            throw new Error(`Invalid file data in batchfile input: ${file}`);
+          }),
         } satisfies BatchFileInput;
       })
       .with({ inputType: 'batchdirectory' }, () => {

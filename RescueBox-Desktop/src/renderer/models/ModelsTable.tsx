@@ -58,7 +58,14 @@ function ModelsTable({
             )}
             {models.map((model: MLModel) => (
               <TableRow key={model.uid} className="hover:bg-gray-50">
-                <TableCell className="pl-4">{model.name}</TableCell>
+                <TableCell className="pl-4">
+                  {model.name}
+                  {model.gpu && (
+                    <span className="ml-2 text-red-500 text-xs font-semibold">
+                      (Needs GPU)
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell className="pr-6 text-gray-900 text-center">
                   {model.version}
                 </TableCell>

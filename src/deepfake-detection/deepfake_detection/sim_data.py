@@ -1,5 +1,6 @@
 from os import listdir
 from os.path import isdir
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -8,16 +9,16 @@ from PIL import Image
 class defaultDataset:
     def __init__(self, dataset_path, resolution=224):
         assert isdir(dataset_path), f"Dataset path {dataset_path} does not exist."
-        self.dataset_path = dataset_path
+        self.dataset_path = Path(dataset_path)
         self.resolution = resolution
         self.images = []
-        for image_path in listdir(dataset_path):
+        for image_filename in listdir(dataset_path):
             if (
-                image_path.lower().endswith(".jpg")
-                or image_path.lower().endswith(".png")
-                or image_path.lower().endswith(".jpeg")
+                image_filename.lower().endswith(".jpg")
+                or image_filename.lower().endswith(".png")
+                or image_filename.lower().endswith(".jpeg")
             ):
-                self.images.append(str(dataset_path / image_path))
+                self.images.append(str(self.dataset_path / image_filename))
 
     def __len__(self):
         return len(self.images)
