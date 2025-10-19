@@ -43,6 +43,7 @@ text-summary = {path = "src/text-summary", develop = true}
 face-match = {path = "src/face-detection-recognition", develop = true }
 deepfake-detection = {path = "src/deepfake-detection", develop = true}
 ufdr-mounter = { path = "src/ufdr-mounter", develop = true }
+image-summary = { path = "src/image-summary", develop = true }
 
 # Don't add new packages here, add them appropriately in the list above
 beautifulsoup4 = "^4.13.3"
