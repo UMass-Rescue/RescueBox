@@ -50,9 +50,10 @@ class TestAgeGender(RBAppTest):
         return AppMetadata(
             name="Age and Gender Classifier",
             author="UMass Rescue",
-            version="2.0.0",
+            version="2.1.0",
             info="Model to classify the age and gender of all faces in an image.",
             plugin_name=APP_NAME,
+            gpu=True,
         )
 
     def get_all_ml_services(self):
@@ -81,7 +82,7 @@ class TestAgeGender(RBAppTest):
             result = self.runner.invoke(self.cli_app, [age_gender_api, str(input_path)])
             assert result.exit_code == 0, f"Error: {result.output}"
             expected_files = [
-                str(Path(s))
+                Path(s)
                 for s in [
                     "src/age_and_gender_detection/test_images/gela.jpg",
                     "src/age_and_gender_detection/test_images/guy.jpg",
@@ -89,8 +90,18 @@ class TestAgeGender(RBAppTest):
                     "src/age_and_gender_detection/test_images/kid1.jpg",
                 ]
             ]
+            # Combine all log messages into one string for easier searching
+            all_messages = " ".join(caplog.messages)
+            
             for expected_file in expected_files:
-                assert any(expected_file in message for message in caplog.messages)
+                # Create multiple path representations to check for cross-platform compatibility
+                posix_path = expected_file.as_posix()  # Forward slashes: src/age_and_gender_detection/test_images/gela.jpg
+                native_path = str(expected_file)  # OS-native: src\age_and_gender_detection\test_images\gela.jpg on Windows
+                escaped_path = native_path.replace("\\", "\\\\")  # Double-escaped: src\\\\age_and_gender_detection\\\\test_images\\\\gela.jpg
+                
+                # Check if any path representation appears in the log messages
+                assert any(path_repr in all_messages for path_repr in [posix_path, native_path, escaped_path]), \
+                    f"Expected file {expected_file} not found in log messages. Checked: {posix_path}, {native_path}, {escaped_path}"
 
     def test_invalid_path(self):
         age_gender_api = f"/{APP_NAME}/predict"
@@ -113,12 +124,21 @@ class TestAgeGender(RBAppTest):
         body = ResponseBody(**response.json())
         print(f"Response body: {body}")
         assert body.root is not None
-        preds = json.loads(body.root.value)
-        assert len(preds) == 4
-        for k, v in EXPECTED_OUTPUT.items():
-            assert k in preds
-            assert len(preds[k]) == len(v)
-            v = v[0]
-            assert v.keys() == preds[k][0].keys()
-            assert v["gender"] == preds[k][0]["gender"]
-            assert v["age"] == preds[k][0]["age"]
+        assert hasattr(body.root, 'files'), "Expected BatchFileResponse with files attribute"
+        
+        # Convert BatchFileResponse to the old dict format for comparison
+        files = body.root.files
+        assert len(files) == 4, f"Expected 4 files, got {len(files)}"
+        
+        # Check that all expected images are present in the response
+        returned_paths = {file_resp.path for file_resp in files}
+        expected_paths = set(EXPECTED_OUTPUT.keys())
+        assert returned_paths == expected_paths, \
+            f"Mismatch in returned paths. Expected: {expected_paths}, Got: {returned_paths}"
+        
+        # Verify each file's predictions match expectations
+        for file_resp in files:
+            image_path = file_resp.path
+            expected = EXPECTED_OUTPUT[image_path][0]
+            assert file_resp.metadata["Gender"] == expected["gender"]
+            assert file_resp.metadata["Age"] == expected["age"]
