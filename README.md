@@ -99,11 +99,12 @@ Follow these steps carefully to set up your development environment.
 2.  **(Optional) Run Electron UI:**
     To use the alternative electron desktop UI, open a new terminal in VS Code and run:
     ```bash
-    # Inside the container
+    # **Inside the container**
     cd Rescuebox-Desktop
+    npm install
     npm start
     ```
-    This UI may need xServe XQuartz on macos.
+    This UI may need xServe XQuartz on macos. see **Mac_Setup_Readme.md** for details
 
 3.  **(Optional) Run Celery Pipeline Demo:**
     To test the Celery pipeline, ensure RabbitMQ is running (from `pre-req.sh`). Then, in a new VS Code terminal, start the Celery worker.
@@ -127,6 +128,8 @@ Follow these steps carefully to set up your development environment.
 
 *   **Issue:** "ModuleNotFound error: No module named 'xxx" errors when running py scripts inside the container.
     *   **Solution:** ```poetry env info``` to confirm virtual env. run ```poetry install``` from top level RescueBox only.
+
+* **Path does not point to a directory"** this error occurs if you run recuebox server insider the container ,however in the UI model input path is provided from the laptop
 
 ## Architecture Notes
 
