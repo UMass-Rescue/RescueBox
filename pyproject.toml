@@ -32,6 +32,9 @@ chromadb = "^1.0.4"
 pandas = ">=2.2.3,<3.0.0"
 pillow = ">=11.2.1,<12.0.0"
 fusepy = ">=3.0.1,<4.0.0"
+perception = "^0.5.1"
+psycopg2-binary = "^2.9.10"
+pgvector = "^0.3.6"
 
 rb-lib = { path = "src/rb-lib", develop = true }
 
@@ -48,6 +51,7 @@ hello-world = { path = "src/hello-world", develop = true }
 image-details = { path = "src/image-details", develop = true }
 image-summary = { path = "src/image-summary", develop = true }
 image-caption-blip-onnx = { path = "src/image-caption-blip-onnx", develop = true }
+perceptual-hash = { path = "src/perceptual-hash", develop = true }
 
 
 # Don't add new packages here, add them appropriately in the list above

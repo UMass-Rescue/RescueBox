@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "perceptual-hash"
+version = "0.1.0"
+description = "Perceptual hashing plugin for detecting duplicate and near-duplicate media in forensic investigations"
+authors = ["RescueBox Team"]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+typer = "*"
+pydantic = "*"
+perception = "^0.5.1"
+psycopg2-binary = "*"
+pgvector = "*"
+pillow = "*"
+numpy = "*"
+pandas = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
