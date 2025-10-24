@@ -23,6 +23,13 @@ class TextEmbedding(SQLModel, table=True):
     path: str = Field(index=True)
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(384)))
 
+class ImageEmbedding(SQLModel, table=True):
+    __tablename__ = "image_embeddings"
+
+    id: int | None = Field(default=None, primary_key=True)
+    path: str = Field(index=True)
+    embedding: list[int] = Field(default=[], sa_column=Column(Vector(512)))
+
 # TODO: There is probably a way to do this without this try kludge
 try:
     # Create an HNSW index
@@ -35,5 +42,15 @@ try:
         postgresql_ops={'embedding': 'vector_l2_ops'}
     )
     index.create(engine)
+
+    img_index = Index(
+        'item_vector_idx',
+        ImageEmbedding.embedding,
+        postgresql_using='hnsw',
+        # OK, like, whatever...
+        postgresql_with={'m': 16, 'ef_construction': 64},
+        postgresql_ops={'embedding': 'vector_l2_ops'}
+    )
+    img_index.create(engine)
 except:
     print("Index probably already exists")

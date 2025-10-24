@@ -18,8 +18,9 @@ pytest = "^8.3.4"
 httpx = "^0.28.1"
 # add dependencies common to all plugins here
 numpy = "2.1.0"
-# torch = "2.7.1"
-onnxruntime =  [ {version = "1.22",  platform = "win32"},
+torch = "2.7.1"
+transformers = "^4.40.0"
+onnxruntime =  [ {version = "1.22" , platform = "win32"},
                  {version = "1.21.0", platform = "linux"}
 ]
 nvidia-cudnn-cu12 = {version = "9.5.1.17",  platform = "win32"}
@@ -51,6 +52,7 @@ image-details = { path = "src/image-details", develop = true }
 image-summary = { path = "src/image-summary", develop = true }
 image-caption-blip-onnx = { path = "src/image-caption-blip-onnx", develop = true }
 text-embeddings = { path = "src/text-embeddings", develop = true }
+image-embeddings = { path = "src/image-embeddings", develop = true }
 
 
 # Don't add new packages here, add them appropriately in the list above
