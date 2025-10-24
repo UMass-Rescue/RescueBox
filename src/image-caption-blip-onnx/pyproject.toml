@@ -1,0 +1,17 @@
+
+[tool.poetry]
+name = "image-caption-blip-onnx"
+version = "0.1.0"
+description = "A RescueBox plugin for image captioning using a BLIP ONNX model."
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+typer = "*"
+Pillow = "*"
+transformers = "*"
+onnxruntime = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -342,6 +342,7 @@ class InputSchema(BaseModel):
     label: str
     subtitle: Optional[str] = ""
     input_type: Annotated[Union[InputType, NewFileInputType], Field(alias="inputType")]
+    default: Optional[str] = None
 
 
 class RangedFloatParameterDescriptor(BaseModel):

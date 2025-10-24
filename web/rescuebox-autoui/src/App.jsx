@@ -88,6 +88,17 @@ const App = () => {
   const handleCommandClick = (command) => {
     setSelectedCommand(command);
     setCommandOutput("");
+    // Prefill form values from defaults in schema
+    try {
+      const defaults = (command?.inputs || []).reduce((values, input) => {
+        values[input.name] = input.default ?? "";
+        return values;
+      }, {});
+      form.setValues(defaults);
+      form.resetDirty(values => Object.keys(values).length === 0);
+    } catch (e) {
+      // no-op; safe default if structure differs
+    }
   };
 
   // Initialize form
@@ -143,7 +154,9 @@ const App = () => {
       for (const input of selectedCommand.inputs) {
 
         if (input.is_parameter) {
-          parameters[input.name] = formValues[input.name];
+          // Always include parameter values; fall back to defaults for hidden fields
+          const value = form.values[input.name] ?? input.default ?? "";
+          parameters[input.name] = value;
         } else {
           console.log(`🔹 With input fields : ${input.type} ${input.is_file_path}`);
           if (input.type === "str") {
@@ -151,14 +164,14 @@ const App = () => {
             break;
           }
           if (input.type === "file" || input.type === "directory") {
-            let pathValue = formValues[input.name] || ""; // Ensure it's a string, even if empty
+            let pathValue = form.values[input.name] || ""; // Ensure it's a string, even if empty
             // Remove leading/trailing quotes if present
             if (typeof pathValue === 'string' && pathValue.startsWith('"') && pathValue.endsWith('"')) {
               pathValue = pathValue.substring(1, pathValue.length - 1);
             }
             inputs[input.name] = { path: pathValue }; // Always include the field
           } else if (input.type === "text") {
-            const textValue = formValues[input.name] || ""; // Ensure it's a string, even if empty
+            const textValue = form.values[input.name] || ""; // Ensure it's a string, even if empty
             inputs[input.name] = { text: textValue }; // Always include the field
           }
         }
@@ -261,26 +274,40 @@ const App = () => {
               {/* Command Form */}
               <form onSubmit={handleRunCommand} className="command-form">
                 <Stack spacing="xs" mb={12}>
-                  {selectedCommand.inputs.map((input) => {
-                    return (
-                      <Box key={input.name}>
-                        {input.help && (
-                          <Text size="sm" color="dimmed" mb={4}>
-                            {input.help}
-                          </Text>
-                        )}
-                        {(input.type === "str" ||
-                          input.type === "text" ||
-                          input.type === "file" || // Added for file inputs
-                          input.type === "directory") && ( // Added for directory inputs
-                            <Input
-                              placeholder={input.default || ""}
-                              {...form.getInputProps(input.name)}
-                              required
-                            />
+                  {(selectedCommand.inputs || [])
+                    .filter((input) => {
+                      if (!input.is_parameter) return true;
+                      // Hide these parameter fields from UI; use defaults instead
+                      return !(
+                        input.name === "model_name" ||
+                        input.name === "chunker" ||
+                        input.name === "chunk_size" ||
+                        input.name === "chunk_overlap"
+                      );
+                    })
+                    .map((input) => {
+                      const isLockedParam =
+                        !!input.is_parameter &&
+                        (input.name === "model_name" || input.name === "chunker");
+                      return (
+                        <Box key={input.name}>
+                          {input.help && (
+                            <Text size="sm" color="dimmed" mb={4}>
+                              {input.help}
+                            </Text>
                           )}
-                        {(input.type === "int" ||
-                          input.type === "ranged_int") && (
+                          {(input.type === "str" ||
+                            input.type === "text" ||
+                            input.type === "file" ||
+                            input.type === "directory") && (
+                              <Input
+                                placeholder={input.default || ""}
+                                {...form.getInputProps(input.name)}
+                                required={!isLockedParam}
+                                disabled={isLockedParam}
+                              />
+                            )}
+                          {(input.type === "int" || input.type === "ranged_int") && (
                             <Input
                               type="number"
                               placeholder={input.default?.toString() || ""}
@@ -288,24 +315,25 @@ const App = () => {
                               required
                             />
                           )}
-                        {(input.type === "float" || input.type === "ranged_float") && (
-                          <Input
-                            type="float"
-                            placeholder={input.default?.toString() || ""}
-                            {...form.getInputProps(input.name)}
-                            required
-                          />
-                        )}
-                        {input.type === "enum" && (
-                          <Input
-                            placeholder={input.default || ""}
-                            {...form.getInputProps(input.name)}
-                            required
-                          />
-                        )}
-                      </Box>
-                    );
-                  })}
+                          {(input.type === "float" || input.type === "ranged_float") && (
+                            <Input
+                              type="float"
+                              placeholder={input.default?.toString() || ""}
+                              {...form.getInputProps(input.name)}
+                              required
+                            />
+                          )}
+                          {input.type === "enum" && (
+                            <Input
+                              placeholder={input.default || ""}
+                              {...form.getInputProps(input.name)}
+                              required={!isLockedParam}
+                              disabled={isLockedParam}
+                            />
+                          )}
+                        </Box>
+                      );
+                    })}
                   <Button type="submit">Run Command</Button>
                 </Stack>
               </form>

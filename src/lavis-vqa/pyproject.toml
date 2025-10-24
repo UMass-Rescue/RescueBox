@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "lavis-vqa"
+version = "0.1.0"
+description = "A RescueBox plugin for Visual Question Answering using LAVIS."
+authors = ["Your Name <you@example.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "*"
+typer = "*"
+salesforce-lavis = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
