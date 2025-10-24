@@ -66,7 +66,11 @@ def head(
     lines = []
     with open(path, "r") as f:
         for _ in range(n):
-            lines.append(f.readline())
+            line = f.readline()
+            if not line:
+                break
+
+            lines.append(line)
 
     head_output = "".join(lines)
     typer.echo(head_output)
