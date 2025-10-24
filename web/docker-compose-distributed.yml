@@ -1,0 +1,41 @@
+# This docker compose file is meant as a start to the distributed server setup 
+# with a frontend and backend
+
+services:
+  backend:
+    build: ./backend
+    container_name: rb_backend
+    expose: 
+      - "8000"
+    volumes: 
+      - shared-certs:/app/certs
+    networks:
+      - app-network
+  frontend:
+    build: ./frontend
+    container_name: rb_frontend
+    expose:
+      - "1212"
+    networks:
+      - app-network
+
+  nginx:
+    build: nginx
+    container_name: nginx
+    ports:
+      - "443:443"
+    volumes:
+      - shared-certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - frontend
+    networks: 
+      - app-network
+  
+volumes:
+  shared-certs
+
+networks:
+  app-network:
+    driver: bridge 
+
