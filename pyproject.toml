@@ -56,7 +56,7 @@ text-embeddings = { path = "src/text-embeddings", develop = true }
 # Don't add new packages here, add them appropriately in the list above
 beautifulsoup4 = "^4.13.3"
 sqlmodel = "^0.0.27"
-psycopg2 = "^2.9.11"
+psycopg2-binary = "^2.9.11"
 pgvector = "^0.4.1"
 
 [tool.poetry.group.dev.dependencies]
