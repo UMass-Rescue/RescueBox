@@ -1,5 +1,5 @@
 from pgvector.sqlalchemy import Vector
-from sqlmodel import Field, SQLModel, create_engine, Column
+from sqlmodel import Field, SQLModel, create_engine, Column, Index
 
 ## Create the data model and connect to the DB
 
@@ -22,3 +22,17 @@ class TextEmbedding(SQLModel, table=True):
     path: str = Field(index=True)
     embedding: list[int] = Field(default=[], sa_column=Column(Vector(384)))
 
+# TODO: There is probably a way to do this without this try kludge
+try:
+    # Create an HNSW index
+    index = Index(
+        'item_vector_idx',
+        TextEmbedding.embedding,
+        postgresql_using='hnsw',
+        # OK, like, whatever...
+        postgresql_with={'m': 16, 'ef_construction': 64},
+        postgresql_ops={'embedding': 'vector_l2_ops'}
+    )
+    index.create(engine)
+except:
+    print("Index probably already exists")
