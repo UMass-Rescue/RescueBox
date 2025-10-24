@@ -9,16 +9,18 @@ app = typer.Typer()
 @app.command()
 def ls(
     path: str = typer.Argument(..., help="The path to list files from"),
-) -> list[str]:
+) -> list[str] | str:
     """
     List files in a directory
     """
     if not os.path.exists(path):
-        typer.echo(f"Path {path} does not exist")
-        raise typer.Abort()
+        error = f"Path {path} does not exist"
+        typer.echo(error)
+        return error
     if not os.path.isdir(path):
-        typer.echo(f"Path {path} is not a directory")
-        raise typer.Abort()
+        error = f"Path {path} is not a directory"
+        typer.echo(error)
+        return error
 
     for file in os.listdir(path):
         typer.echo(file)
@@ -32,8 +34,10 @@ def op(path: str = typer.Argument(..., help="The path to open")) -> str:
     Open a file
     """
     if not os.path.exists(path):
-        typer.echo(f"Path {path} does not exist")
-        raise typer.Abort()
+        error = f"Path {path} does not exist"
+        typer.echo(error)
+        return error
+
     typer.launch(path)
     return path
 
@@ -46,8 +50,25 @@ def head(
     """
     Print the first n lines of a file
     """
+    if not os.path.exists(path):
+        error = f"Path {path} does not exist"
+        typer.echo(error)
+        return error
+    if not os.path.isfile(path):
+        error = f"Path {path} is not a regular file"
+        typer.echo(error)
+        return error
+    if n < 0:
+        error = f"Number of lines to read cannot be negative"
+        typer.echo(error)
+        return error
+
+    lines = []
     with open(path, "r") as f:
         for _ in range(n):
-            typer.echo(f.readline())
+            lines.append(f.readline())
 
-    return path
+    head_output = "".join(lines)
+    typer.echo(head_output)
+
+    return head_output
