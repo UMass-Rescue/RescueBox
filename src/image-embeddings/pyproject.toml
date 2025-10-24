@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "image-embeddings"
+version = "0.1.0"
+description = "Image embeddings plugin for RescueBox using CLIP"
+authors = ["RescueBox Team"]
+packages = [{include = "image_embeddings"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+typer = "^0.12.5"
+pydantic = "^2.9.0"
+transformers = "*"
+torch = "*"
+pillow = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
