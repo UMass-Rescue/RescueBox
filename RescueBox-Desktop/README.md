@@ -78,23 +78,30 @@ npm install
 
 ## Installing PostreSQL and pgvector
 
-We use SQLModel:
+We use SQLModel to connect to a locally running PostgreSQL database instance. We need
+to ensure there is a user named `rescue_box` running on the database.
+
 
 ```
 pip install sqlmodel
+pip install psycopg2
 ```
 
 And we need to ensure PG and pgvector are running:
 
 ```
 # install PG
-brew install postgresql 
+brew install postgresql
 
 # Start PG (per output of brew install command above)
 brew services start postgresql@14
 
-# Connect to the default postgres database:
+# Connect to the default postgres database (using your username):
 psql -U [username] -d postgres
+
+; Run these database commands:
+CREAET DATABASE rescue_box;
+CREATE USER rescue_box;
 ```
 
 #TODO:
@@ -115,7 +122,7 @@ To package apps for the local platform:
 ```bash
 1 build the rescuebox.exe using the rescuebox.spec in RescueBox directory. ( see file for instructions)
 
-2 copy pre reqs to assets\rb_server : 
+2 copy pre reqs to assets\rb_server :
 winfsp-2.0.23075.msi , docs , demo files to run models
 
 3 copy these cmds to rb.bat and run it as one batch file
@@ -132,7 +139,7 @@ cmd /c npm exec electron-builder -- --win
 note : release\app\package.json contains the version number
 
 4 release\build\RescueBox-Desktop Setup 2.0.0.exe should get created
- 
+
 
 ## Docs
 

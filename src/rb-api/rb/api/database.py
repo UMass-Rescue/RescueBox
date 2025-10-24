@@ -1,14 +1,14 @@
-from typing import Annotated
-
-from fastapi import Depends, FastAPI, HTTPException, Query
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlmodel import Field, SQLModel, create_engine
 
 ## Create the data model and connect to the DB
 
-# TODO: Probably can relocate this to a better location, but for now...
-
-# TODO: Need to think about credentials
-postgres_url = "postgresql://dage@localhost/rescue_box"
+# Note:
+#
+# Installation needs to enforce a shared username across deployments.
+# Furthermore, installing postgresql with Rescue Box may be its own task,
+# requiring consideration for if PG happens to already be installed, etc...
+#
+postgres_url = "postgresql://rescue_box@localhost/rescue_box"
 engine = create_engine(postgres_url)
 
 def create_db_and_tables():
@@ -19,7 +19,5 @@ class MediaCollection(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
-    # created_at: 
+    # created_at:
     # updated_at
-
-## End database glue
