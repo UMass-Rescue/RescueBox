@@ -1,4 +1,5 @@
-from sqlmodel import Field, SQLModel, create_engine
+from pgvector.sqlalchemy import Vector
+from sqlmodel import Field, SQLModel, create_engine, Column
 
 ## Create the data model and connect to the DB
 
@@ -19,5 +20,6 @@ class MediaCollection(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
+    embedding: list[int] = Field(default=None, sa_column=Column(Vector(3)))
     # created_at:
     # updated_at

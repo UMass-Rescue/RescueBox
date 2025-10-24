@@ -85,6 +85,7 @@ to ensure there is a user named `rescue_box` running on the database.
 ```
 pip install sqlmodel
 pip install psycopg2
+pip install pgvector
 ```
 
 And we need to ensure PG and pgvector are running:
