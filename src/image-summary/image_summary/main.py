@@ -15,10 +15,11 @@ from rb.api.models import (
     EnumVal,
     TextResponse,
     DirectoryInput,
+    TextInput
 )
 
-from .model import SUPPORTED_MODELS
-from .process import process_images
+from .model import SUPPORTED_MODELS, rank_images_by_relevance
+from .process import process_images, iter_image_files
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ APP_NAME = "image_summary"
 class Inputs(TypedDict):
     input_dir: DirectoryInput
     output_dir: DirectoryInput
+    target_str: TextInput
 
 
 class Parameters(TypedDict):
@@ -46,6 +48,11 @@ def task_schema() -> TaskSchema:
         label="Path to the directory for the output summaries",
         input_type=InputType.DIRECTORY,
     )
+    target_str_schema = InputSchema(
+        key="target_str",
+        label="Target string for filtering images",
+        input_type=InputType.TEXT,
+    )
     parameter_schema = ParameterSchema(
         key="model",
         label="Model to use for image description",
@@ -59,7 +66,7 @@ def task_schema() -> TaskSchema:
         ),
     )
     return TaskSchema(
-        inputs=[input_dir_schema, output_dir_schema], parameters=[parameter_schema]
+        inputs=[input_dir_schema, output_dir_schema,target_str_schema], parameters=[parameter_schema]
     )
 
 
@@ -84,12 +91,17 @@ def summarize_images(
 ) -> ResponseBody:
     input_dir = inputs["input_dir"].path
     output_dir = inputs["output_dir"].path
+    target_str = inputs["target_str"].text
     model = parameters["model"]
 
     logger.info(
-        f"ImageSummary API: received request | model={model} | input_dir={input_dir} | output_dir={output_dir}"
+        f"ImageSummary API: received request | model={model} | input_dir={input_dir} | output_dir={output_dir} | target_str={target_str}"
     )
-    processed_files = process_images(model, input_dir, output_dir)
+
+    images = list(iter_image_files(input_dir))
+    ranked_images = rank_images_by_relevance(images, target_str) # list of (str, float), sorted by float, desc order
+    # processed_files = process_images(model, input_dir, output_dir, target_str)
+    processed_files = process_images(model, ranked_images, output_dir)
 
     response = TextResponse(value=json.dumps(list(processed_files)))
     logger.info(f"ImageSummary API: response ready | files={len(processed_files)}")
@@ -97,9 +109,10 @@ def summarize_images(
 
 
 def inputs_cli_parse(input: str) -> Inputs:
-    input_dir, output_dir = input.split(",")
+    input_dir, output_dir, target_str = input.split(",")
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
+    target_str = target_str.strip()
     if not input_dir.exists():
         raise ValueError("Input directory does not exist.")
     if not output_dir.exists():
@@ -107,6 +120,7 @@ def inputs_cli_parse(input: str) -> Inputs:
     return Inputs(
         input_dir=DirectoryInput(path=input_dir),
         output_dir=DirectoryInput(path=output_dir),
+        target_str=target_str,
     )
 
 
