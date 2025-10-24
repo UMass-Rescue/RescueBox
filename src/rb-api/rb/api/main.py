@@ -5,7 +5,22 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from rb.api import routes
-from rb.api.database import app
+from rb.api.database import create_db_and_tables
+
+app = FastAPI(
+    title="RescueBoxAPI",
+    summary="RescueBox is a set of tools for file system investigations.",
+    version="2.0.0",
+    debug=True,
+    contact={
+        "name": "Umass Amherst RescuBox Team",
+    },
+)
+
+@app.on_event("startup")
+def on_startup():
+    print("Creating database and tables")
+    create_db_and_tables()
 
 app.mount(
     "/static",

@@ -21,18 +21,3 @@ class TempMediaCollection(SQLModel, table=True):
     # updated_at
 
 ## End database glue
-
-app = FastAPI(
-    title="RescueBoxAPI",
-    summary="RescueBox is a set of tools for file system investigations.",
-    version="2.0.0",
-    debug=True,
-    contact={
-        "name": "Umass Amherst RescuBox Team",
-    },
-)
-
-@app.on_event("startup")
-def on_startup():
-    print("Creating database and tables")
-    create_db_and_tables()
