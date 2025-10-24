@@ -1,0 +1,2 @@
+Digital forensics involves acquisition, analysis, and reporting.
+This article outlines best practices and common pitfalls.

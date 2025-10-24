@@ -1,0 +1,40 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: rb-postgres
+    environment:
+      POSTGRES_USER: rbuser
+      POSTGRES_PASSWORD: rescue
+      POSTGRES_DB: rescuebox
+    volumes:
+      - ./init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "rbuser" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "5433:5432"
+
+  app:
+    image: nb887/rb-dev-plugins:2.1.1
+    container_name: rb-devcontainer
+    user: "1000:1000"
+    volumes:
+      - ..:/home/rbuser/RescueBox
+    environment:
+      POETRY_VIRTUALENVS_IN_PROJECT: "false"
+      POETRY_VIRTUALENVS_CREATE: "true"
+      POETRY_VIRTUALENVS_PATH: "/home/rbuser/venv"
+      DISPLAY: "host.docker.internal:0.0"
+      DATABASE_URL: "postgresql://rbuser:rescue@db:5432/rescuebox"
+    depends_on:
+      db:
+        condition: service_healthy
+    shm_size: 2gb
+    privileged: true
+    platform: linux/amd64
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"

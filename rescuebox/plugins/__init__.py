@@ -29,6 +29,8 @@ from hello_world.main import app as hello_world_app # type: ignore
 from image_details.main import app as image_details_app # type: ignore
 from image_caption_blip_onnx.main import app as image_caption_blip_onnx_app # type: ignore
 from image_summary.main import app as image_summary_app # type: ignore
+from text_embeddings.main import app as text_embeddings_app, APP_NAME as TEXT_EMB_APP_NAME # type: ignore
+from image_embeddings.main import app as image_embeddings_app, APP_NAME as IMAGE_EMB_APP_NAME # type: ignore
 
  
 
@@ -59,6 +61,8 @@ plugins: list[RescueBoxPlugin] = [
     RescueBoxPlugin(image_details_app, "image_details", "Image Details"),
     RescueBoxPlugin(image_caption_blip_onnx_app, "caption_blip", "Image Caption BLIP"),
     RescueBoxPlugin(image_summary_app, "image_summary", "Image Summary"),
+    RescueBoxPlugin(text_embeddings_app, TEXT_EMB_APP_NAME, "Text Embeddings"),
+    RescueBoxPlugin(image_embeddings_app, IMAGE_EMB_APP_NAME, "Image Embeddings"),
     
 
 ]

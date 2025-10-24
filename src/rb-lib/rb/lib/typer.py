@@ -40,6 +40,7 @@ def get_inputs_from_signature(
                                         "name": an_input.key,
                                         "type": an_input.input_type.value,
                                         "help": an_input.label,
+                                        "default": getattr(an_input, "default", None),
                                         "is_parameter": False,
                                         "is_file_path": an_input.input_type
                                         == InputType.FILE,
