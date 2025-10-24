@@ -57,7 +57,7 @@ You should see the UI show up after this. Connect to your server and go to the "
 ```
 # Development
 
-RescueBox Desktop is built using [Electron](https://www.electronjs.org/), [React](https://reactjs.org/), TypeScript, TailwindCSS, and SQlite (with Sequelize).
+RescueBox Desktop is built using [Electron](https://www.electronjs.org/), [React](https://reactjs.org/), TypeScript, TailwindCSS, SQlite (with Sequelize), and PostgreSQL + pgvector.
 
 
 ## Prerequisites
@@ -75,6 +75,30 @@ npm install
 ```
 
 **Having issues installing? See this [debugging guide](https://github.com/electron-react-boilerplate/electron-react-boilerplate/issues/400)**
+
+## Installing PostreSQL and pgvector
+
+We use SQLModel:
+
+```
+pip install sqlmodel
+```
+
+And we need to ensure PG and pgvector are running:
+
+```
+# install PG
+brew install postgresql 
+
+# Start PG (per output of brew install command above)
+brew services start postgresql@14
+
+# Connect to the default postgres database:
+psql -U [username] -d postgres
+```
+
+#TODO:
+pgvector
 
 ## Starting Development
 
