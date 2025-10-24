@@ -15,11 +15,10 @@ engine = create_engine(postgres_url)
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
-class MediaCollection(SQLModel, table=True):
-    __tablename__ = "media_collections"
+class TextEmbedding(SQLModel, table=True):
+    __tablename__ = "text_embeddings"
 
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
-    embedding: list[int] = Field(default=None, sa_column=Column(Vector(3)))
-    # created_at:
-    # updated_at
+    path: str = Field(index=True)
+    embedding: list[int] = Field(default=[], sa_column=Column(Vector(384)))
+
