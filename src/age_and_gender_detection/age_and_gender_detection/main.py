@@ -2,6 +2,7 @@ from rb.lib.ml_service import MLService
 from rb.api.models import (
     BatchFileResponse,
     DirectoryInput,
+    FileFilterDirectory,
     FileResponse,
     InputSchema,
     InputType,
@@ -9,13 +10,14 @@ from rb.api.models import (
     ResponseBody,
     TextResponse,
 )
-from typing import TypedDict
+from typing import List, TypedDict
 from age_and_gender_detection.model import AgeGenderDetector
 from pathlib import Path
 import logging
 import json
 import typer
 import onnxruntime
+from pydantic import DirectoryPath
 
 onnxruntime.set_default_logger_severity(3)
 
@@ -39,9 +41,16 @@ def task_schema() -> TaskSchema:
     return TaskSchema(inputs=[input_schema], parameters=[])
 
 
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff"}
+
+class ImageDirectory(FileFilterDirectory):
+    path: DirectoryPath
+    file_extensions: List[str] = IMAGE_EXTENSIONS
+
+
 # Specify the input and output types for the task
-class Inputs(TypedDict):
-    image_directory: DirectoryInput
+class ImageInputs(TypedDict):
+    image_directory: ImageDirectory
 
 
 class Parameters(TypedDict):
@@ -65,8 +74,8 @@ model = AgeGenderDetector(
 )
 
 
-def predict(inputs: Inputs) -> ResponseBody:
-    input_path = inputs["image_directory"].path
+def predict(inputs: ImageInputs) -> ResponseBody:
+    input_path = DirectoryPath(inputs["image_directory"].path)
     logger.info(f"Input path: {input_path}")
     predictions_by_image = model.predict_age_and_gender_on_dir(input_path)
     logger.info(f"Response: {predictions_by_image}")
@@ -113,7 +122,7 @@ def cli_parser(path: str):
             raise ValueError(f"Directory {image_directory} does not exist.")
         if not image_directory.is_dir():
             raise ValueError(f"Path {image_directory} is not a directory.")
-        inputs = Inputs(image_directory=DirectoryInput(path=image_directory))
+        inputs = ImageInputs(image_directory=DirectoryInput(path=image_directory))
         return inputs
     except Exception as e:
         logger.error(f"Error parsing CLI input: {e}")
