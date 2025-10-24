@@ -14,7 +14,9 @@ engine = create_engine(postgres_url)
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
-class TempMediaCollection(SQLModel, table=True):
+class MediaCollection(SQLModel, table=True):
+    __tablename__ = "media_collections"
+
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     # created_at: 
