@@ -1,10 +1,15 @@
 import multiprocessing
 import os
+import ssl
 import sys
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
+sys.path.append("rb/api/routes")
 from rb.api import routes
+
+# Create some sort of offline config file to save keys securely
+from config import CERT_PATH, KEY_PATH
 
 app = FastAPI(
     title="RescueBoxAPI",
@@ -12,9 +17,12 @@ app = FastAPI(
     version="2.0.0",
     debug=True,
     contact={
-        "name": "Umass Amherst RescuBox Team",
+        "name": "Umass Amherst RescueBox Team",
     },
 )
+
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.load_cert_chain(certfile=CERT_PATH, keyfile=KEY_PATH)
 
 app.mount(
     "/static",
@@ -47,7 +55,7 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()  # For Windows support
     # for pyinstaller exe
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False, ssl=ssl_context)
     else:
         # for cmdline dev mode
-        uvicorn.run("rb.api.main:app", host="0.0.0.0", port=8000, reload=True)
+        uvicorn.run("rb.api.main:app", host="0.0.0.0", port=8000, reload=True, ssl=ssl_context)

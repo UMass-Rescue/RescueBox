@@ -25,6 +25,11 @@ ENV PATH="/root/.local/bin:$PATH"
 COPY src /rescuebox/src/
 COPY rescuebox /rescuebox/rescuebox
 COPY pyproject.toml poetry.lock /rescuebox/
+COPY key.pem /rescuebox/ca-certificates/
+COPY cert.pem /rescuebox/ca-certificates/
+
+# Update SSL certificates in the container
+RUN update-ca-certificates
 
 # Install dependencies without creating a virtual environment
 WORKDIR /rescuebox/src/rb-api
@@ -35,4 +40,4 @@ RUN poetry config virtualenvs.create false \
 EXPOSE 8000
 
 # Run Uvicorn directly
-CMD ["uvicorn", "rb.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "rb.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--ssl-keyfile", "/rescuebox/ca-certificates/key.pem", "--ssl-certfile", "/rescuebox/ca-certificates/cert.pem"]
