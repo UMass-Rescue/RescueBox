@@ -106,6 +106,14 @@ CREATE USER rescue_box;
 
 #TODO:
 pgvector
+# install PG vector 
+git clone https://github.com/pgvector/pgvector.git
+cd pgvector
+make
+sudo make install
+inside psql
+CREATE EXTENSION vector;
+\dx  -- check installed extensions, vector should be listed
 
 ## Starting Development
 
