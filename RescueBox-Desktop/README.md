@@ -57,7 +57,7 @@ You should see the UI show up after this. Connect to your server and go to the "
 ```
 # Development
 
-RescueBox Desktop is built using [Electron](https://www.electronjs.org/), [React](https://reactjs.org/), TypeScript, TailwindCSS, and SQlite (with Sequelize).
+RescueBox Desktop is built using [Electron](https://www.electronjs.org/), [React](https://reactjs.org/), TypeScript, TailwindCSS, SQlite (with Sequelize), and PostgreSQL + pgvector.
 
 
 ## Prerequisites
@@ -91,7 +91,7 @@ To package apps for the local platform:
 ```bash
 1 build the rescuebox.exe using the rescuebox.spec in RescueBox directory. ( see file for instructions)
 
-2 copy pre reqs to assets\rb_server : 
+2 copy pre reqs to assets\rb_server :
 winfsp-2.0.23075.msi , docs , demo files to run models
 
 3 copy these cmds to rb.bat and run it as one batch file
@@ -108,7 +108,7 @@ cmd /c npm exec electron-builder -- --win
 note : release\app\package.json contains the version number
 
 4 release\build\RescueBox-Desktop Setup 2.0.0.exe should get created
- 
+
 
 ## Docs
 

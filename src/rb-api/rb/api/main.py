@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from rb.api import routes
+from rb.api.database import create_db_and_tables
 
 app = FastAPI(
     title="RescueBoxAPI",
@@ -16,12 +17,16 @@ app = FastAPI(
     },
 )
 
+@app.on_event("startup")
+def on_startup():
+    print("Creating database and tables")
+    create_db_and_tables()
+
 app.mount(
     "/static",
     StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")),
     name="static",
 )
-
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):  # fmt: skip

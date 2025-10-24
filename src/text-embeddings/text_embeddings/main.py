@@ -16,7 +16,8 @@ from rb.api.models import (
     DirectoryInput,
     TextResponse,
 )
-
+from rb.api.database import engine, TextEmbedding
+from sqlmodel import Session
 
 APP_NAME = "text_embeddings"
 
@@ -162,30 +163,33 @@ def embed_text(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             file_paths.append(path)
 
     results: dict[str, list[float]] = {}
-    for path in file_paths:
-        try:
-            with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                text = f.read()
-        except Exception:
-            continue
+    with Session(engine) as session:
+        for path in file_paths:
+            try:
+                with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                    text = f.read()
+            except Exception:
+                continue
 
-        chunks = _chunk_text(
-            text,
-            chunker=chunker,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-        )
-        if not chunks:
-            continue
+            chunks = _chunk_text(
+                text,
+                chunker=chunker,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+            )
+            if not chunks:
+                continue
 
-        vectors = model.encode(
-            chunks,
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-            show_progress_bar=False,
-        )
-        file_embedding = np.mean(vectors, axis=0)
-        results[path] = file_embedding.tolist()
+            vectors = model.encode(
+                chunks,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )
+            file_embedding = np.mean(vectors, axis=0)
+            results[path] = file_embedding.tolist()
+            session.add(TextEmbedding(path=path, embedding=file_embedding.tolist()))
+        session.commit()
 
     response = TextResponse(
         value=json.dumps(results),
