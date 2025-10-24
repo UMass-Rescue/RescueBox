@@ -76,52 +76,6 @@ npm install
 
 **Having issues installing? See this [debugging guide](https://github.com/electron-react-boilerplate/electron-react-boilerplate/issues/400)**
 
-## Installing PostreSQL and pgvector
-
-We use SQLModel to connect to a locally running PostgreSQL database instance. We need
-to ensure there is a user named `rescue_box` running on the database.
-
-
-```
-pip install sqlmodel
-pip install psycopg2
-pip install pgvector
-```
-
-And we need to ensure PG and pgvector are running:
-
-```
-# install PG
-brew install postgresql@17
-
-# Install pgvector:
-brew install pgvector
-
-# Start PG (per output of brew install command above)
-brew services start postgresql@17
-
-# Connect to the default postgres database (using your username):
-psql -U [username] -d postgres
-
-; Run these database commands from psql:
-CREATE DATABASE rescue_box;
-CREATE USER rescue_box;
-GRANT ALL PRIVILEGES ON DATABASE rescue_box TO rescue_box;
-GRANT ALL ON SCHEMA public TO rescue_box;
-CREATE EXTENSION vector;
-```
-
-
-## pgvector
-# install PG vector 
-git clone https://github.com/pgvector/pgvector.git
-cd pgvector
-make
-sudo make install
-inside psql
-CREATE EXTENSION vector;
-\dx  -- check installed extensions, vector should be listed
-
 ## Starting Development
 
 Start the app in the `dev` environment:
