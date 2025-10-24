@@ -12,6 +12,10 @@ pydantic = "^2.9.0"
 transformers = "*"
 torch = "*"
 pillow = "*"
+sqlmodel = "*"
+sqlalchemy = "*"
+pgvector = "*"
+rb-api = { path = "../rb-api", develop = true }
 
 [build-system]
 requires = ["poetry-core"]
