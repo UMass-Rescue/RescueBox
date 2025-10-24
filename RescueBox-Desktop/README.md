@@ -111,6 +111,17 @@ GRANT ALL ON SCHEMA public TO rescue_box;
 CREATE EXTENSION vector;
 ```
 
+
+## pgvector
+# install PG vector 
+git clone https://github.com/pgvector/pgvector.git
+cd pgvector
+make
+sudo make install
+inside psql
+CREATE EXTENSION vector;
+\dx  -- check installed extensions, vector should be listed
+
 ## Starting Development
 
 Start the app in the `dev` environment:
