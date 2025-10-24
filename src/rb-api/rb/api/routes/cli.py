@@ -1,3 +1,4 @@
+import traceback
 import inspect
 import json
 import logging
@@ -70,7 +71,7 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
             raise e
         except Exception as e:
             # response handler for all plugin runtime errors
-            logger.error("Error: %s %s", e, stdout)
+            logger.error("Error: %s %s\n%s", e, stdout, traceback.format_exc())
             raise HTTPException(  # pylint: disable=raise-missing-from
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail={"error": f"{e}"},
