@@ -1,5 +1,4 @@
 # imports
-import csv
 import warnings
 import typer
 from typing import Any, Dict, List, TypedDict
@@ -24,7 +23,6 @@ from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 import onnxruntime as ort
 import os
 from deepfake_detection.sim_data import defaultDataset
-from collections import defaultdict
 import logging
 from datetime import datetime
 
@@ -217,8 +215,8 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                 pred = m["predictions"][i]["prediction"]
                 conf = m["predictions"][i]["confidence"]
                 model_name = m["name"]
-                row_metadata[f"Prediction"] = pred
-                row_metadata[f"Confidence"] = f"{conf * 100:.0f}%"
+                row_metadata["Prediction"] = pred
+                row_metadata["Confidence"] = f"{conf * 100:.0f}%"
             
             file_responses.append(
                 FileResponse(
