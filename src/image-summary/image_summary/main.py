@@ -77,6 +77,7 @@ server.add_app_metadata(
     author="UMass Rescue",
     version="1.0.0",
     info=app_info_paragraph,
+    gpu=True,
 )
 
 

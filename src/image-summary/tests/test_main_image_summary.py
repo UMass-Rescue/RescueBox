@@ -23,6 +23,7 @@ class TestImageSummary(RBAppTest):
                 "Input: a directory of images. Output: a matching directory of .txt files (one per image) containing the description."
             ),
             plugin_name=APP_NAME,
+            gpu=True,
         )
 
     def get_all_ml_services(self):
