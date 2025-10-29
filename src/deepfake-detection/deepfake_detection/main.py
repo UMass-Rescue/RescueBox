@@ -200,7 +200,7 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         model_name = model_results[0]["model_name"]
         predictions = model_results[1:]
         model_data.append({"name": model_name, "predictions": predictions})
-    
+
     file_responses: List[FileResponse] = []
     if model_data and model_data[0]["predictions"]:
         num_images = len(model_data[0]["predictions"])
@@ -217,20 +217,22 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                 model_name = m["name"]
                 row_metadata["Prediction"] = pred
                 row_metadata["Confidence"] = f"{conf * 100:.0f}%"
-            
+
             file_responses.append(
                 FileResponse(
                     file_type="img",
                     path=full_image_path,
                     title=f"Prediction for {path_basename}",
-                    metadata=row_metadata
+                    metadata=row_metadata,
                 )
             )
     if not file_responses:
-        return ResponseBody(root=TextResponse(value="No predictions generated or no images found."))
-    
+        return ResponseBody(
+            root=TextResponse(value="No predictions generated or no images found.")
+        )
+
     return ResponseBody(root=BatchFileResponse(files=file_responses))
-    
+
 
 # ----------------------------
 # Server Setup Below

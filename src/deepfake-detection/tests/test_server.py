@@ -64,8 +64,12 @@ class TestDeepFakeServer(RBAppTest):
         # Verify the structured response in the log output
         # The CLI logs the BatchFileResponse which should contain our prediction
         assert "BatchFileResponse" in caplog.text, "Expected BatchFileResponse in logs"
-        assert "'Prediction': 'fake'" in caplog.text, "Expected prediction 'fake' in metadata"
-        assert "'Confidence': '100%'" in caplog.text, "Expected confidence '100%' in metadata"
+        assert (
+            "'Prediction': 'fake'" in caplog.text
+        ), "Expected prediction 'fake' in metadata"
+        assert (
+            "'Confidence': '100%'" in caplog.text
+        ), "Expected confidence '100%' in metadata"
         assert "img1.jpg" in caplog.text, "Expected img1.jpg in response"
 
     def test_invalid_path(self):
@@ -112,7 +116,9 @@ class TestDeepFakeServer(RBAppTest):
         response = self.client.post(predict_api, json=payload)
         assert response.status_code == 200
         body = ResponseBody(**response.json())
-        assert hasattr(body.root, 'files'), "Expected BatchFileResponse with files attribute"
+        assert hasattr(
+            body.root, "files"
+        ), "Expected BatchFileResponse with files attribute"
         files = body.root.files
         assert len(files) == 1, f"Expected 1 file response, got {len(files)}"
         file_resp = files[0]

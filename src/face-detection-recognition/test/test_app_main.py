@@ -349,15 +349,16 @@ class TestFaceMatch(RBAppTest):
         assert response.status_code == 200
         body = ResponseBody(**response.json())
 
-        assert isinstance(body.root, BatchFileResponse), \
-            f"Expected BatchFileResponse with matches, got {type(body.root)}"
+        assert isinstance(
+            body.root, BatchFileResponse
+        ), f"Expected BatchFileResponse with matches, got {type(body.root)}"
         # BatchFileResponse with matches
         print(f"Find face bulk result: {len(body.root.files)} matches found")
         # Verify the structure of file responses
         for file_resp in body.root.files:
             assert file_resp.file_type.value == "img"
-            assert hasattr(file_resp, 'metadata')
-            assert 'query_image' in file_resp.metadata
+            assert hasattr(file_resp, "metadata")
+            assert "query_image" in file_resp.metadata
             print(f"  - {file_resp.title}")
 
     # @pytest.mark.skipif(not has_test_images, reason="Test images not available")
