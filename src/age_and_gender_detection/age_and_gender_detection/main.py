@@ -13,7 +13,6 @@ from typing import TypedDict
 from age_and_gender_detection.model import AgeGenderDetector
 from pathlib import Path
 import logging
-import json
 import typer
 import onnxruntime
 

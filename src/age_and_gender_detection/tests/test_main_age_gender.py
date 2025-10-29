@@ -5,7 +5,6 @@ from rb.api.models import AppMetadata
 from pathlib import Path
 from rb.api.models import ResponseBody
 import logging
-import json
 
 
 class DebugOnlyFilter(logging.Filter):

@@ -174,3 +174,4 @@ rescuebox/pyvenv.cfg
 src/rb-api/rb/api/static/index/main.js
 **/*/.DS_Store
 src/text-summary/test_output/*
+src/image-summary/test_output/

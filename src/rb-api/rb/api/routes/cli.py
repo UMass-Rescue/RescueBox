@@ -5,7 +5,7 @@ import time
 from typing import Any, Callable, Generator, Optional
 
 import typer
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from makefun import with_signature
 from pydantic import BaseModel

@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "image-summary"
+version = "1.0.0"
+description = "Describe images in a directory using an LLM."
+authors = ["Prasanna <prasanna.lakkur@gmail.com>"]
+packages = [{include = "image_summary"}]
+
+[tool.poetry.scripts]
+image-summary = "image_summary.main:app"
+
+[tool.poetry.dependencies]
+ollama = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
