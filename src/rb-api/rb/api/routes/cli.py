@@ -211,7 +211,7 @@ for plugin in rescuebox_app.registered_groups:
                 endpoint=command_callback(command),
                 methods=["POST"],
                 name=command.callback.__name__,
-                response_model=Any, # for internal use
+                response_model=Any,  # for internal use
             )
             logger.debug(
                 f"Registering FastAPI route for {plugin.name} command: {command.callback.__name__}"

@@ -62,7 +62,8 @@ class AgeGenderDetector:
         ]
         session_options = ort.SessionOptions()
         self.runtime_providers = [
-            "CUDAExecutionProvider", "CPUExecutionProvider",
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
         ]
         self.genderList = ["Male", "Female"]
         self.image_file_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]

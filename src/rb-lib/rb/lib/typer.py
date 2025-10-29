@@ -89,13 +89,14 @@ def get_inputs_from_signature(
         result.append(data)
     return result
 
+
 def typer_app_to_tree(app: typer.Typer) -> dict:
     # Create root node
     root = Node("rescuebox", command=None, is_group=True)
     schema_commands = {}
 
     def add_commands_to_node(typer_app: typer.Typer, parent_node: Node):
-        
+
         for group in getattr(typer_app, "registered_groups", []):
             group_node = Node(
                 group.name,
