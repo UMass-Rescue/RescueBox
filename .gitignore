@@ -36,6 +36,9 @@ MANIFEST
 RescueBox-Desktop/assets/rb_server/
 whisper/
 .nicegui/
+ffmpeg
+ffmpeg.exe
+*.gguf
 
 # Installer logs
 pip-log.txt
