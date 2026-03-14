@@ -13,6 +13,7 @@ from typing import TypedDict
 from age_and_gender_detection.model import AgeGenderDetector
 from pathlib import Path
 import logging
+import json
 import typer
 import onnxruntime
 
@@ -78,13 +79,13 @@ def predict(inputs: Inputs) -> ResponseBody:
         for i, pred in enumerate(predictions):
             face_num = i + 1
             image_basename = Path(image_path).name
-
+            
             metadata = {
                 "Image Path": image_path,
                 "Gender": pred["gender"],
                 "Age": pred["age"],
                 "Bounding Box": str(pred["box"]),
-                # "Face Number": face_num,
+                #"Face Number": face_num,
             }
 
             file_responses.append(
@@ -100,6 +101,7 @@ def predict(inputs: Inputs) -> ResponseBody:
         return ResponseBody(root=TextResponse(value="No faces detected in any images."))
 
     return ResponseBody(root=BatchFileResponse(files=file_responses))
+ 
 
 
 def cli_parser(path: str):

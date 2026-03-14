@@ -36,6 +36,8 @@ class BNext_M_ModelONNX:
             "CPUExecutionProvider",
         ]
         sess_options = ort.SessionOptions()
+        session_options.inter_op_num_threads = 4
+        session_options.intra_op_num_threads = 4
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime
             sess_options=sess_options,

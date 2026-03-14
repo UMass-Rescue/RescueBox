@@ -1,0 +1,110 @@
+
+The Workflow design :
+
+1 Original prompt : "run age-detector on /cases [filter: gender is female] then summarize"
+
+2 Python: Sees [filter: age is teenager]. It pulls this out and saves it as active_filter.
+
+2.a Clean prompt: "run age-detector on /cases then summarize"
+
+3/ LLM: Receives the "Clean" prompt: "run age-detector on /cases then summarize".
+
+3.a LLM: Returns ["age_detector", "summarize_images"].
+
+4 Orchestrator: Sees two tools. It looks at its internal DAG (NetworkX) or dependency map.
+ It knows summarize_images can take a subset of age_detector.
+
+5 The Form: You present a form to the user. Because the active_filter exists, the form can pre-fill a checkbox: "Apply user-defined filter [age is teenager] between steps?"
+
+
+import os
+import re
+
+# 1. Run Age-Gender
+records = await age_gender_tool(input_dir="C:/Evidence")
+
+# 2. Filter records based on user intent (e.g., "elderly")
+# This part is done by your LLM or a simple Python list comprehension
+filtered_files = [r['file_name'] for r in records if r['age'] > 60]
+
+# 3. Create the comma-separated filter string
+subset_filter = ",".join(filtered_files)
+
+# 4. Run Summarize with the subset
+summary = await summarize_tool(input_dir="C:/Evidence", file_filter=subset_filter)
+
+user_prompt = "run age-gender on /data [only: gender=='female'] then summarize"
+
+# Regex to find anything inside square brackets starting with 'only:'
+filter_match = re.search(r'\[only:\s*(.*?)\]', user_prompt)
+
+if filter_match:
+    constraint = filter_match.group(1)
+    # constraint now = "gender=='female'"
+    # You can now force this into the 'file_filter' argument of the next tool
+	
+
+
+def get_target_files(input_dir: str, file_filter: str = None):
+    all_files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+    
+    if not file_filter:
+        return [os.path.join(input_dir, f) for f in all_files]
+
+    # New Logic: If the filter looks like a specific list of files (e.g., "img1.jpg,img2.jpg")
+    if "," in file_filter or file_filter in all_files:
+        target_list = [f.strip() for f in file_filter.split(",")]
+        return [os.path.join(input_dir, f) for f in target_list if f in all_files]
+        
+    # Standard Glob/Regex logic
+    import fnmatch
+    return [os.path.join(input_dir, f) for f in all_files if fnmatch.fnmatch(f, file_filter)]
+	
+def parse_simple_filter(user_input):
+    # Regex to find: [only: KEY OPERATOR VALUE]
+    match = re.search(r'\[only:\s*(\w+)\s+(is|above|below|has)\s+(.*?)\]', user_input, re.IGNORECASE)
+    
+    if match:
+        key, operator, value = match.groups()
+        
+        # Simple Translation Logic
+        ops = {"is": "==", "above": ">", "below": "<", "has": "in"}
+        py_op = ops.get(operator.lower(), "==")
+        
+        # Return a structured filter that your internal common method can use
+        return {"key": key.lower(), "op": py_op, "val": value.strip()}
+    return None
+	
+def parse_multi_filter(user_input):
+    # 1. Find the filter block
+    block_match = re.search(r'\[filter:\s*(.*?)\]', user_input, re.IGNORECASE)
+    if not block_match:
+        return None
+    
+    raw_filters = block_match.group(1).split(",")
+    parsed_conditions = []
+
+    for item in raw_filters:
+        # 2. Extract Key, Operator (is/above/below), and Value
+        item_match = re.search(r'(\w+)\s+(is|above|below)\s+(.*)', item.strip(), re.IGNORECASE)
+        if item_match:
+            key, op, val = item_match.groups()
+            parsed_conditions.append({
+                "key": key.lower().strip(),
+                "op": op.lower().strip(),
+                "val": val.lower().strip()
+            })
+            
+    return parsed_conditions # Returns a list of condition dicts
+
+AGE_MAPPING = {
+    "child": (0, 12),
+    "teenager": (13, 19),
+    "adult": (20, 64),
+    "senior": (65, 120)
+}
+
+# Inside your filter logic:
+if key == "age" and val in AGE_MAPPING:
+    min_age, max_age = AGE_MAPPING[val]
+    # logic: if min_age <= row['age'] <= max_age: ...

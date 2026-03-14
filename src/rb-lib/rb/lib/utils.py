@@ -128,3 +128,97 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
                 ), f"For key {key}, the parameter type is ParameterType.INT, but the TypeDict hint is {parameter_type_hint}. Change to int."
             case _:  # pragma: no cover
                 assert_never(parameter_type)
+
+
+# --- Filter helper utilities for plugins ----------------------------------
+from typing import List, Optional, Tuple
+from pathlib import Path
+
+def extract_filter_id(inputs: dict, parameters: dict) -> Optional[str]:
+    """Extract a filter id from parameters or inputs if present."""
+    fid = None
+    try:
+        # Check top-level then _meta container
+        fid = parameters.get("filterId") or parameters.get("filter_id") or (parameters.get("_meta") or {}).get("filterId")
+    except Exception:
+        fid = None
+
+    try:
+        ffi = inputs.get("file_filter") if isinstance(inputs, dict) else inputs["file_filter"]
+        if isinstance(ffi, dict) and ffi.get("filter_id"):
+            fid = fid or ffi.get("filter_id")
+        else:
+            try:
+                attr_fid = getattr(ffi, "filter_id", None)
+                if attr_fid:
+                    fid = fid or attr_fid
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return fid
+
+
+def load_saved_filter(filter_id: str, input_dir: Path) -> Tuple[List[Path], List[str]]:
+    """
+    Load a persisted filter and return (input_paths, output_patterns).
+    Input paths are resolved against input_dir when stored as relative paths.
+    """
+    from frontend.database.file_filter_store import load_filter
+
+    input_paths: List[Path] = []
+    output_patterns: List[str] = []
+    if not filter_id:
+        return input_paths, output_patterns
+    saved = load_filter(filter_id)
+    if not saved:
+        return input_paths, output_patterns
+    spaths = saved.get("paths_json") or []
+    if spaths:
+        resolved = []
+        for p in spaths:
+            try:
+                rp = Path(p)
+                if not rp.is_absolute():
+                    rp = Path(input_dir) / rp
+                resolved.append(rp)
+            except Exception:
+                continue
+        input_paths = resolved
+    output_patterns = saved.get("patterns_json") or []
+    return input_paths, output_patterns
+
+
+def collect_inline_file_filter(inputs: dict, input_dir: Path) -> List[Path]:
+    """Collect input file list from uploaded BatchFileInput in the request (inline)."""
+    try:
+        filter_paths = inputs["file_filter"].files
+        if filter_paths:
+            return [Path(f.path) for f in filter_paths]
+    except Exception:
+        pass
+    return [Path(f) for f in input_dir.iterdir() if f.is_file()]
+
+
+def collect_inline_output_patterns(inputs: dict) -> List[str]:
+    """Collect output patterns from uploaded output_filter files (inline)."""
+    patterns: List[str] = []
+    try:
+        output_filter_files = inputs.get("output_filter").files
+    except Exception:
+        output_filter_files = []
+
+    if output_filter_files:
+        for pf in output_filter_files:
+            try:
+                p = Path(pf.path)
+                if p.exists():
+                    content = p.read_text(encoding="utf-8")
+                    for line in content.splitlines():
+                        line = line.strip()
+                        if line:
+                            patterns.append(line)
+            except Exception:
+                continue
+    return patterns
+

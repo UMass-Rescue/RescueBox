@@ -34,7 +34,8 @@ templates = Jinja2Templates(
 
 @ui_router.get("/")
 async def interface(request: Request):
-    tree = typer_app_to_tree(rescuebox_app)
+    tree, _ = typer_app_to_tree(rescuebox_app)
+    print(tree)
     return templates.TemplateResponse(
         "index.html.j2", {"request": request, "tree": json.dumps(tree)}
     )

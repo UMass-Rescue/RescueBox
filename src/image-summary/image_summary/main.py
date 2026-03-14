@@ -1,11 +1,17 @@
-from typing import TypedDict
+from typing import List, TypedDict
 from pathlib import Path
 import logging
 import json
 import typer
 
 from rb.lib.ml_service import MLService
+from rb.lib.utils import (
+    extract_filter_id,
+    load_saved_filter,
+    collect_inline_file_filter,
+)
 from rb.api.models import (
+    BatchFileInput,
     InputSchema,
     InputType,
     ParameterSchema,
@@ -18,7 +24,7 @@ from rb.api.models import (
 )
 
 from .model import SUPPORTED_MODELS
-from .process import process_images, process_images_json
+from .process import process_images
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -59,26 +65,27 @@ def task_schema() -> TaskSchema:
         ),
     )
     return TaskSchema(
-        inputs=[input_dir_schema, output_dir_schema], parameters=[parameter_schema]
+        inputs=[input_dir_schema, output_dir_schema],
+        parameters=[parameter_schema],
     )
 
 
 server = MLService(APP_NAME)
-app_info_md = (Path(__file__).parent / "app-info.md").read_text(encoding="utf-8")
-app_info_paragraph = (
-    app_info_md.strip().split("\n\n", 2)[1].strip()
-    if "\n\n" in app_info_md
-    else app_info_md.strip()
-)
-
 server.add_app_metadata(
     plugin_name=APP_NAME,
     name="Image Summary",
     author="UMass Rescue",
     version="1.0.0",
-    info=app_info_paragraph,
-    gpu=True,
+    info=(
+        "This plugin lets you generate rich descriptions for every image in a folder. "
+        "For each image, it identifies the scene and setting, key objects and their attributes (colors, counts, positions), "
+        "people and actions (if present), visible text (quoted verbatim), and notable visual details like lighting and composition. "
+        "Input: a directory of images. Output: a matching directory of .txt files (one per image) containing the description."
+    ),
 )
+
+
+# Note: filter helper implementations live in `rb.lib.utils` for reuse across plugins.
 
 
 def summarize_images(
@@ -88,14 +95,62 @@ def summarize_images(
     input_dir = inputs["input_dir"].path
     output_dir = inputs["output_dir"].path
     model = parameters["model"]
+    # Use shared helper utilities (from rb.lib.utils) to extract filter id and resolve inputs/output patterns
+    filter_id = extract_filter_id(inputs, parameters)
+    file_filter = collect_inline_file_filter(inputs, input_dir)
+    output_patterns: list[str] = []
+    if filter_id:
+        saved_inputs, saved_patterns = load_saved_filter(filter_id, input_dir)
+        if saved_inputs:
+            file_filter = saved_inputs
+        if saved_patterns:
+            output_patterns = saved_patterns
 
     logger.info(
-        f"ImageSummary API: received request | model={model} | input_dir={input_dir} | output_dir={output_dir}"
+        "ImageSummary API: received request | model=%s | input_dir=%s | output_dir=%s", model, input_dir, output_dir
     )
-    processed_files = process_images(model, input_dir, output_dir)
+    processed_files = process_images(model, input_dir, output_dir, file_filter)
 
-    response = TextResponse(value=json.dumps(list(processed_files)))
-    logger.info(f"ImageSummary API: response ready | files={len(processed_files)}")
+    # If output patterns were not obtained from a persisted filter, collect them from uploaded files
+    if not output_patterns:
+        try:
+            output_filter_files = inputs.get("output_filter").files
+        except (AttributeError, KeyError, TypeError):
+            output_filter_files = []
+
+        if output_filter_files:
+            for pf in output_filter_files:
+                try:
+                    p = Path(pf.path)
+                    if p.exists():
+                        content = p.read_text(encoding="utf-8")
+                        for line in content.splitlines():
+                            line = line.strip()
+                            if line:
+                                output_patterns.append(line)
+                except (OSError, AttributeError, TypeError, UnicodeDecodeError):
+                    # Ignore malformed filter files
+                    continue
+
+    # If any output patterns provided, filter the generated summary files by searching
+    # their text for any of the patterns. Otherwise return all processed files.
+    if output_patterns:
+        matched: set[str] = set()
+        for out_file in processed_files:
+            try:
+                txt = Path(out_file).read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue
+            for pat in output_patterns:
+                if pat in txt:
+                    matched.add(out_file)
+                    break
+        result_files = matched
+    else:
+        result_files = processed_files
+
+    response = TextResponse(value=json.dumps(list(result_files)))
+    logger.info(f"ImageSummary API: response ready | files={len(result_files)}")
     return ResponseBody(root=response)
 
 
@@ -130,40 +185,6 @@ server.add_ml_service(
     order=0,
     task_schema_func=task_schema,
 )
-
-
-def summarize_images_json(
-    inputs: Inputs,
-    parameters: Parameters,
-) -> ResponseBody:
-    input_dir = inputs["input_dir"].path
-    output_dir = inputs["output_dir"].path
-    model = parameters["model"]
-
-    logger.info(
-        f"ImageSummary JSON API: received request | model={model} | input_dir={input_dir} | output_dir={output_dir}"
-    )
-    processed_files = process_images_json(model, input_dir, output_dir)
-
-    response = TextResponse(value=json.dumps(list(processed_files)))
-    logger.info(f"ImageSummary JSON API: response ready | files={len(processed_files)}")
-    return ResponseBody(root=response)
-
-
-server.add_ml_service(
-    rule="/summarize-images-json",
-    ml_function=summarize_images_json,
-    inputs_cli_parser=typer.Argument(
-        parser=inputs_cli_parse, help="Input and output directory paths"
-    ),
-    parameters_cli_parser=typer.Argument(
-        parser=parameters_cli_parse, help="Model to use for description"
-    ),
-    short_title="Describe Images (JSON)",
-    order=1,
-    task_schema_func=task_schema,
-)
-
 
 app = server.app
 

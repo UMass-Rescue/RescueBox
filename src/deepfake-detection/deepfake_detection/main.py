@@ -1,4 +1,5 @@
 # imports
+import csv
 import warnings
 import typer
 from typing import Any, Dict, List, TypedDict
@@ -23,6 +24,7 @@ from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 import onnxruntime as ort
 import os
 from deepfake_detection.sim_data import defaultDataset
+from collections import defaultdict
 import logging
 from datetime import datetime
 
@@ -200,7 +202,7 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         model_name = model_results[0]["model_name"]
         predictions = model_results[1:]
         model_data.append({"name": model_name, "predictions": predictions})
-
+    
     file_responses: List[FileResponse] = []
     if model_data and model_data[0]["predictions"]:
         num_images = len(model_data[0]["predictions"])
@@ -215,24 +217,22 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                 pred = m["predictions"][i]["prediction"]
                 conf = m["predictions"][i]["confidence"]
                 model_name = m["name"]
-                row_metadata["Prediction"] = pred
-                row_metadata["Confidence"] = f"{conf * 100:.0f}%"
-
+                row_metadata[f"Prediction"] = pred
+                row_metadata[f"Confidence"] = f"{conf * 100:.0f}%"
+            
             file_responses.append(
                 FileResponse(
                     file_type="img",
                     path=full_image_path,
                     title=f"Prediction for {path_basename}",
-                    metadata=row_metadata,
+                    metadata=row_metadata
                 )
             )
     if not file_responses:
-        return ResponseBody(
-            root=TextResponse(value="No predictions generated or no images found.")
-        )
-
+        return ResponseBody(root=TextResponse(value="No predictions generated or no images found."))
+    
     return ResponseBody(root=BatchFileResponse(files=file_responses))
-
+    
 
 # ----------------------------
 # Server Setup Below

@@ -167,10 +167,12 @@ def detect_with_retinaface(
     img_input = prepare_retinaface_input(img_rgb)
 
     # Load model
-    # session_options = ort.SessionOptions()
+    session_options = ort.SessionOptions()
+    session_options.inter_op_num_threads = 4
+    session_options.intra_op_num_threads = 4
     providers = ["CPUExecutionProvider"]
     try:
-        session = ort.InferenceSession(model_path, providers=providers)
+        session = ort.InferenceSession(model_path, sess_options=session_options, providers=providers)
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
         return [], [], []

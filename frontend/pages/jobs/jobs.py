@@ -1,0 +1,240 @@
+"""
+Jobs Page
+
+This module provides the JobsPage class for displaying and managing job history,
+including job details, cancellation, and deletion.
+"""
+
+import logging
+from nicegui import ui
+from typing import List, Dict
+from frontend.components.shared import create_navbar
+from frontend.components.jobs import render_job_row
+from frontend.pages.jobs.job_utils import extract_job_fields, get_plugin_name
+from frontend.database import JobRecord, JobStatus
+from frontend.api_client import api_client
+from frontend.constants import UI_TITLES, UI_BUTTONS, SUCCESS_MESSAGES, ERROR_MESSAGES
+from frontend.utils.error_handling import handle_api_error, show_error_to_user, show_success_to_user
+
+# Configure logging for this module
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+class JobsPage:
+    """
+    Jobs listing page.
+    
+    Displays all jobs in a table format with status, timestamps, and actions
+    (view, cancel, delete). Jobs are sorted by start time (newest first).
+    
+    Usage:
+        page = JobsPage()
+        await page.render()
+    
+    Tips:
+    - Jobs are automatically loaded on page render
+    - Jobs are sorted by start time (newest first)
+    - Cancel action only available for running jobs
+    - Delete action only available for completed/failed jobs
+    """
+    
+    def __init__(self):
+        """
+        Initialize JobsPage.
+        
+        Sets up API client and initializes empty jobs list.
+        """
+        logger.info("Initializing JobsPage")
+        self.api_client = api_client
+        self.jobs: List[JobRecord] = []
+        logger.debug("JobsPage initialized successfully")
+    
+    async def render(self):
+        """
+        Render the jobs page UI.
+        
+        Creates the page layout with header, refresh button, and jobs table.
+        Automatically loads jobs on render.
+        
+        Returns:
+            None: UI is added directly to the current context
+        """
+        logger.info("Rendering jobs page")
+        with ui.column().classes('container mx-auto p-8'):
+            try:
+                from frontend.components.jobs.jobs_header import render_jobs_header
+                render_jobs_header(ui.column(), UI_TITLES['jobs'], on_refresh=self.load_jobs)
+            except Exception:
+                # Fallback inline
+                ui.label(UI_TITLES['jobs']).classes('text-4xl font-bold mb-6')
+                ui.button(UI_BUTTONS['refresh'], on_click=self.load_jobs).classes('mb-4 bg-blue-600 text-white')
+
+            # Jobs table
+            logger.debug("Creating jobs container")
+            self.jobs_container = ui.column().classes('space-y-2 w-full')
+            await self.load_jobs()
+        logger.info("Jobs page rendered successfully")
+    
+    async def load_jobs(self):
+        """
+        Load jobs from the local SQLite database.
+        
+        Fetches the list of jobs from the database (jobs are already sorted by
+        start time, newest first). Updates internal state and triggers UI refresh.
+        
+        Returns:
+            None
+        
+        Tips:
+        - Jobs are loaded from local SQLite database
+        - Jobs are already sorted by startTime descending (newest first)
+        - UI is automatically refreshed after loading
+        """
+        logger.info("Loading jobs from database")
+        try:
+            from frontend.database import get_job_db
+            job_db = get_job_db()
+            jobs_data = await job_db.get_all_jobs()
+            logger.info("Loaded %d jobs from database", len(jobs_data))
+            
+            self.jobs = jobs_data
+            logger.debug("Jobs sorted by start time (newest first)")
+            await self.render_jobs()
+            logger.info("Jobs loaded and rendered successfully")
+        except Exception as e:
+            await handle_api_error(e, "Error loading jobs", user_message=ERROR_MESSAGES['load_jobs'])
+    
+    async def render_jobs(self):
+        """
+        Render job rows in the table.
+        
+        Clears the container and renders table header and job rows with
+        appropriate action buttons based on job status.
+        
+        Returns:
+            None
+        
+        Tips:
+        - Table header is fixed at the top
+        - Each job row includes model name, timestamps, status, and actions
+        - Model names are fetched asynchronously for each job
+        - Action buttons vary based on job status
+        """
+        logger.info("Rendering jobs in table")
+        self.jobs_container.clear()
+        
+        with self.jobs_container:
+            # Table header
+            logger.debug("Creating table header")
+            with ui.row().classes('bg-gray-200 p-4 font-bold border-b w-full'):
+                ui.label('Job ID').classes('w-36')
+                ui.label('Model').classes('flex-1')
+                ui.label('Times').classes('w-64')
+                ui.label('Status').classes('w-32')
+                ui.label('Actions').classes('w-48')
+        
+            # Job rows
+            logger.debug("Rendering %d job rows", len(self.jobs))
+            for job in self.jobs:
+                job_fields = extract_job_fields(job)
+                job_uid = job_fields['uid']
+                logger.debug("Rendering job: %s", job_uid)
+                
+                # Get model name or endpoint name
+                plugin_name = await get_plugin_name(self.api_client, job_fields['modelUid'])
+                if not plugin_name and job_fields['endpoint']:
+                    plugin_name = job_fields['endpoint']  # Use endpoint for chatbot jobs
+                
+                render_job_row(
+                    self.jobs_container,
+                    job,
+                    plugin_name=plugin_name or 'Unknown',
+                    on_view=lambda uid=job_uid: ui.navigate.to(f"/jobs/{uid}"),
+                    on_cancel=self.cancel_job,
+                    on_delete=self.delete_job
+                )
+        logger.info("Jobs rendered successfully")
+    
+    async def cancel_job(self, job_id: str):
+        """
+        Cancel a running job.
+        
+        Updates job status in database to 'Canceled' and refreshes the jobs list.
+        
+        Args:
+            job_id (str): Job unique identifier
+        
+        Returns:
+            None
+        
+        Tips:
+        - Only works for jobs with status 'Running'
+        - Updates job status in local database
+        - Jobs list is automatically refreshed after cancellation
+        - User notification shown on success/failure
+        """
+        logger.info("Canceling job: %s", job_id)
+        try:
+            from frontend.database import get_job_db, JobStatus
+            job_db = get_job_db()
+            await job_db.update_job_status(
+                job_id,
+                JobStatus.CANCELED,
+                status_text='Job canceled by user'
+            )
+            logger.info("Job %s canceled successfully", job_id)
+            show_success_to_user(SUCCESS_MESSAGES['job_canceled'])
+            await self.load_jobs()
+        except Exception as e:
+            await handle_api_error(e, f"Error canceling job {job_id}", user_message=ERROR_MESSAGES['cancel_job'])
+    
+    async def delete_job(self, job_id: str):
+        """
+        Delete a job from the database.
+        
+        Removes job record from local database and refreshes the jobs list.
+        
+        Args:
+            job_id (str): Job unique identifier
+        
+        Returns:
+            None
+        
+        Tips:
+        - Deletes job from local SQLite database
+        - Jobs list is automatically refreshed after deletion
+        - User notification shown on success/failure
+        """
+        logger.info("Deleting job: %s", job_id)
+        try:
+            from frontend.database import get_job_db
+            job_db = get_job_db()
+            success = await job_db.delete_job(job_id)
+            if success:
+                logger.info("Job %s deleted successfully", job_id)
+                show_success_to_user(SUCCESS_MESSAGES['job_deleted'])
+            else:
+                logger.warning("Job %s not found for deletion", job_id)
+                show_error_to_user('Job not found', type='warning')
+            await self.load_jobs()
+        except Exception as e:
+            await handle_api_error(e, f"Error deleting job {job_id}", user_message=ERROR_MESSAGES['delete_job'])
+
+@ui.page('/jobs')
+async def jobs_page():
+    """
+    Page route handler for /jobs.
+    
+    Creates the jobs page with navigation bar and renders the JobsPage.
+    
+    Returns:
+        None: Page is rendered directly
+    """
+    logger.info("Jobs page route accessed")
+    from frontend.utils.theme import apply_saved_theme
+    apply_saved_theme()
+    create_navbar()
+    jobs_page_instance = JobsPage()
+    await jobs_page_instance.render()
+    logger.debug("Jobs page route completed")

@@ -1,0 +1,120 @@
+# Run all tests
+pytest frontend/tests/
+
+# Run only unit tests (no backend required)
+pytest frontend/tests/unit/ -m unit
+
+# Run integration tests (requires backend API running)
+pytest frontend/tests/integration/ -m integration
+
+# Run API endpoint tests (requires backend API running)
+# First start backend: python -m rb.api.main
+pytest frontend/tests/integration/test_api_endpoints.py -m api -v
+
+# Run all tests except API tests (no backend required)
+pytest frontend/tests/ -m "not api"
+
+# Run with coverage
+pytest frontend/tests/ --cov=frontend --cov-report=html
+
+# Run specific test file
+pytest frontend/tests/unit/test_validators.py
+
+# Run chat history database tests
+pytest frontend/tests/unit/test_chat_history_db.py -v
+
+# Run notification tests
+pytest frontend/tests/unit/test_notifications.py -v
+
+# Run stepper component tests
+pytest frontend/tests/unit/test_stepper.py -v
+
+# Run stepper UI integration tests
+pytest frontend/tests/integration/test_stepper_ui.py -v
+
+# Run notification UI integration tests
+pytest frontend/tests/integration/test_notifications_ui.py -v
+
+# Run Ollama Granite model integration tests (requires Ollama running)
+# First ensure Ollama is running: ollama serve
+# Ensure Granite model is available: ollama pull granite4:micro
+pytest frontend/tests/integration/test_ollama_granite_integration.py -v -m ollama
+
+# Run multiple tool calls unit tests
+pytest frontend/tests/unit/test_multi_tool_calls.py -v
+
+# Run multiple tool calls integration tests (requires Ollama and API)
+pytest frontend/tests/integration/test_multi_tool_calls_integration.py -v -m "api and ollama"
+
+# Run all tests except Ollama tests (no Ollama required)
+pytest frontend/tests/ -m "not ollama"
+
+# Run results renderers unit tests
+pytest frontend/tests/unit/test_table_helpers.py -v
+pytest frontend/tests/unit/test_file_renderers.py -v
+pytest frontend/tests/unit/test_directory_renderers.py -v
+pytest frontend/tests/unit/test_text_renderers.py -v
+
+# Run all results renderer tests
+pytest frontend/tests/unit/test_table_helpers.py frontend/tests/unit/test_file_renderers.py frontend/tests/unit/test_directory_renderers.py frontend/tests/unit/test_text_renderers.py frontend/tests/unit/test_components.py -v
+
+# Run NiceGUI storage utility tests
+pytest frontend/tests/unit/test_nicegui_storage.py -v
+
+# Run chat history with NiceGUI integration tests
+pytest frontend/tests/unit/test_chat_history_nicegui_integration.py -v
+
+# Run chatbot storage integration tests (requires NiceGUI context)
+pytest frontend/tests/integration/test_chatbot_storage_integration.py -v
+
+# Run chatbot flow integration tests (requires backend API + Ollama)
+pytest frontend/tests/integration/test_chatbot_flow_integration.py -v -m "api and ollama"
+
+# Run pages integration tests (requires backend API)
+pytest frontend/tests/integration/test_pages_integration.py -v -m api
+
+# Run all integration tests with real dependencies (no mocks)
+# Requires: backend API, Ollama (for some tests)
+pytest frontend/tests/integration/test_api_endpoints.py -v -m api
+pytest frontend/tests/integration/test_ollama_granite_integration.py -v -m ollama
+pytest frontend/tests/integration/test_chatbot_flow_integration.py -v -m "api and ollama"
+pytest frontend/tests/integration/test_pages_integration.py -v -m api
+pytest frontend/tests/integration/test_chatbot_storage_integration.py -v
+pytest frontend/tests/integration/test_stepper_ui.py -v
+pytest frontend/tests/integration/test_form_generator.py -v
+
+
+# Chatbot flow with real API and Ollama
+pytest frontend/tests/integration/test_chatbot_flow_integration.py -v -m "api and ollama"
+
+# Pages with real API
+pytest frontend/tests/integration/test_pages_integration.py -v -m api
+
+# All integration tests with real dependencies
+pytest frontend/tests/integration/test_api_endpoints.py -v -m api
+pytest frontend/tests/integration/test_ollama_granite_integration.py -v -m ollama
+pytest frontend/tests/integration/test_chatbot_flow_integration.py -v -m "api and ollama"
+pytest frontend/tests/integration/test_pages_integration.py -v -m api
+pytest frontend/tests/integration/test_chatbot_storage_integration.py -v
+
+pytest frontend/tests/unit/test_table_helpers.py -v
+pytest frontend/tests/unit/test_file_renderers.py -v
+pytest frontend/tests/unit/test_directory_renderers.py -v
+pytest frontend/tests/unit/test_text_renderers.py -v
+
+# Run all results renderer tests
+pytest frontend/tests/unit/test_table_helpers.py frontend/tests/unit/test_file_renderers.py frontend/tests/unit/test_directory_renderers.py frontend/tests/unit/test_text_renderers.py frontend/tests/unit/test_components.py -v
+
+# Run error handling tests
+pytest frontend/tests/unit/test_chatbot_core_errors.py -v
+pytest frontend/tests/unit/test_results_utils_errors.py -v
+pytest frontend/tests/unit/test_form_handlers_errors.py -v
+pytest frontend/tests/unit/test_file_renderers_errors.py -v
+pytest frontend/tests/unit/test_database_errors.py -v
+pytest frontend/tests/unit/test_chatbot_forms_errors.py -v
+
+# Run all error handling tests
+pytest frontend/tests/unit/test_chatbot_core_errors.py frontend/tests/unit/test_results_utils_errors.py frontend/tests/unit/test_form_handlers_errors.py frontend/tests/unit/test_file_renderers_errors.py frontend/tests/unit/test_database_errors.py frontend/tests/unit/test_chatbot_forms_errors.py -v
+
+# Run with verbose output
+pytest frontend/tests/ -v

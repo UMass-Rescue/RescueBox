@@ -23,13 +23,11 @@ class TestImageSummary(RBAppTest):
                 "Input: a directory of images. Output: a matching directory of .txt files (one per image) containing the description."
             ),
             plugin_name=APP_NAME,
-            gpu=True,
         )
 
     def get_all_ml_services(self):
         return [
             (0, "summarize-images", "Describe Images", task_schema()),
-            (1, "summarize-images-json", "Describe Images (JSON)", task_schema()),
         ]
 
     @patch("image_summary.process.ensure_model_exists")
@@ -113,76 +111,3 @@ class TestImageSummary(RBAppTest):
             self.cli_app, [summarize_api, input_str, parameter_str]
         )
         assert result.exit_code != 0
-
-    @patch("image_summary.process.ensure_model_exists")
-    @patch("image_summary.process.describe_image_json", return_value="{}")
-    def test_summarize_images_json_command(
-        self, describe_json_mock, ensure_model_exists_mock
-    ):
-        summarize_api = f"/{APP_NAME}/summarize-images-json"
-        full_path = Path.cwd() / "src" / "image-summary" / "test_input"
-        output_path = Path.cwd() / "src" / "image-summary" / "test_output"
-        # Clean any prior outputs
-        output_path.mkdir(parents=True, exist_ok=True)
-        for f in output_path.glob("*.json"):
-            try:
-                f.unlink()
-            except Exception:
-                pass
-        input_str = f"{str(full_path)},{str(output_path)}"
-        parameter_str = "gemma3:4b"
-
-        result = self.runner.invoke(
-            self.cli_app, [summarize_api, input_str, parameter_str]
-        )
-        assert result.exit_code == 0, f"Error: {result.output}"
-
-        input_files = [
-            f
-            for f in full_path.glob("*")
-            if f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
-        ]
-        # Expected output keeps original filename (with extension) and then appends .json
-        expected_files = {
-            str(output_path / (file.name + ".json")) for file in input_files
-        }
-
-        output_files = list(output_path.glob("*.json"))
-        assert len(output_files) == len(expected_files)
-        assert set(map(str, output_files)) == expected_files
-        for file in output_files:
-            with open(file, "r", encoding="utf-8") as f:
-                content = f.read()
-                assert "{}" == content
-
-    @patch("image_summary.process.ensure_model_exists")
-    @patch("image_summary.process.describe_image_json", return_value="{}")
-    def test_api_summarize_json(self, describe_json_mock, ensure_model_exists_mock):
-        summarize_api = f"/{APP_NAME}/summarize-images-json"
-        full_path = Path.cwd() / "src" / "image-summary" / "test_input"
-        output_path = Path.cwd() / "src" / "image-summary" / "test_output"
-        parameter_str = "gemma3:4b"
-        input_json = {
-            "inputs": {
-                "input_dir": {"path": str(full_path)},
-                "output_dir": {"path": str(output_path)},
-            },
-            "parameters": {"model": parameter_str},
-        }
-        response = self.client.post(summarize_api, json=input_json)
-        assert response.status_code == 200
-        body = response.json()
-        input_files = [
-            f
-            for f in full_path.glob("*")
-            if f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
-        ]
-        expected_files = [
-            str(output_path / (str(file.name) + ".json")) for file in input_files
-        ]
-        results = json.loads(body["value"])
-        assert results is not None
-        assert len(results) == len(expected_files)
-        assert set(expected_files) == set(results)
-        for file in results:
-            assert file.endswith(".json")

@@ -133,6 +133,8 @@ def detect_faces_and_get_embeddings(
 
         # YOLO models processing
         session_options = ort.SessionOptions()
+        session_options.inter_op_num_threads = 4
+        session_options.intra_op_num_threads = 4
         providers = []
         available_providers = ort.get_available_providers()
 

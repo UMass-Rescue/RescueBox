@@ -21,22 +21,6 @@ IMAGE_PROMPT: Final[str] = (
     "Output only the description."
 )
 
-IMAGE_PROMPT_JSON: Final[str] = (
-    "You are a vision model. Analyze the image and RETURN STRICT JSON ONLY. "
-    "Use snake_case keys. No markdown, no explanations, no trailing commas. "
-    "Respond with an object containing: {"
-    '\n  "scene": string or null,'
-    '\n  "setting": string or null,'
-    '\n  "objects": [ { "name": string, "attributes": {"colors": [string], "count": number|null}, "position": string|null } ],'
-    '\n  "people": [ { "description": string, "actions": [string] } ],'
-    '\n  "visible_text": string or null,'
-    '\n  "notable_details": [string],'
-    '\n  "lighting": string or null,'
-    '\n  "camera_angle": string or null,'
-    '\n  "composition": string or null'
-    "\n}. Use null for unknown fields and [] for empty lists."
-)
-
 
 def extract_response_after_think(text: str) -> str:
     """
@@ -79,20 +63,6 @@ def describe_image(model: str, image_path: str) -> str:
     response = ollama.generate(
         model=model,
         prompt=IMAGE_PROMPT,
-        images=[image_path],
-    )
-    if response and response.get("done"):
-        return extract_response_after_think(response.get("response", "").strip())
-    return str(response)
-
-
-def describe_image_json(model: str, image_path: str) -> str:
-    """
-    Describe a single image and return STRICT JSON string.
-    """
-    response = ollama.generate(
-        model=model,
-        prompt=IMAGE_PROMPT_JSON,
         images=[image_path],
     )
     if response and response.get("done"):

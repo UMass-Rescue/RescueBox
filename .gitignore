@@ -35,6 +35,7 @@ MANIFEST
 *.manifest
 RescueBox-Desktop/assets/rb_server/
 whisper/
+.nicegui/
 
 # Installer logs
 pip-log.txt

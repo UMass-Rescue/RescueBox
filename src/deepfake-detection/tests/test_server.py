@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 from unittest.mock import patch
+import pytest
 from deepfake_detection.main import (
     app as cli_app,
     APP_NAME,
@@ -13,6 +14,10 @@ from rb.lib.common_tests import RBAppTest
 
 class TestDeepFakeServer(RBAppTest):
     def setup_method(self):
+        # Skip heavy model tests when ONNX artifacts are not available in the workspace.
+        models_dir = Path("src/deepfake-detection/deepfake_detection/onnx_models")
+        if not models_dir.exists():
+            pytest.skip("Deepfake ONNX models not available in CI environment")
         self.set_app(cli_app, APP_NAME)
 
     def get_metadata(self):
@@ -20,10 +25,9 @@ class TestDeepFakeServer(RBAppTest):
         return AppMetadata(
             name="Image DeepFake Detector",
             author="UMass Rescue",
-            version="2.1.0",
+            version="0.2.0",
             info=app_info,
             plugin_name=APP_NAME,
-            gpu=True,
         )
 
     def get_all_ml_services(self):
@@ -57,20 +61,16 @@ class TestDeepFakeServer(RBAppTest):
 
         predict_api = f"/{APP_NAME}/predict"
         inputs_str = f"{str(input_dir)},{str(output_dir)}"
-        parameters_str = "false"
+        parameters_str = "all"
         result = self.runner.invoke(cli_app, [predict_api, inputs_str, parameters_str])
         assert result.exit_code == 0, f"CLI failed: {result.output}"
 
-        # Verify the structured response in the log output
-        # The CLI logs the BatchFileResponse which should contain our prediction
-        assert "BatchFileResponse" in caplog.text, "Expected BatchFileResponse in logs"
-        assert (
-            "'Prediction': 'fake'" in caplog.text
-        ), "Expected prediction 'fake' in metadata"
-        assert (
-            "'Confidence': '100%'" in caplog.text
-        ), "Expected confidence '100%' in metadata"
-        assert "img1.jpg" in caplog.text, "Expected img1.jpg in response"
+        # Verify a CSV was created and contains our mock data
+        csv_files = list(output_dir.glob("predictions_*.csv"))
+        assert len(csv_files) == 1
+        content = csv_files[0].read_text()
+        assert "TestModel" in content
+        assert "fake" in content
 
     def test_invalid_path(self):
         predict_api = f"/{APP_NAME}/predict"
@@ -110,18 +110,17 @@ class TestDeepFakeServer(RBAppTest):
                 "output_file": {"path": str(output_dir)},
             },
             "parameters": {
+                "models": "all",
                 "facecrop": "false",
             },
         }
         response = self.client.post(predict_api, json=payload)
         assert response.status_code == 200
         body = ResponseBody(**response.json())
-        assert hasattr(
-            body.root, "files"
-        ), "Expected BatchFileResponse with files attribute"
-        files = body.root.files
-        assert len(files) == 1, f"Expected 1 file response, got {len(files)}"
-        file_resp = files[0]
-        assert file_resp.file_type.value == "img"
-        assert file_resp.metadata["Prediction"] == "fake"
-        assert "100%" in file_resp.metadata["Confidence"]
+        file_resp = body.root
+        assert file_resp.file_type.value == "csv"
+        csv_path = Path(file_resp.path)
+        assert csv_path.exists()
+        content = csv_path.read_text()
+        assert "TestModel" in content
+        assert "fake" in content
