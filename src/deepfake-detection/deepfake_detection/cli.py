@@ -133,9 +133,13 @@ if __name__ == "__main__":
     facecropper = None
     if args.facecrop:
         try:
+            available = ort.get_available_providers()
+            providers = ["CPUExecutionProvider"]
+            if "CUDAExecutionProvider" in available:
+                providers.insert(0, "CUDAExecutionProvider")
             facecropper = ort.InferenceSession(
                 str(Path(__file__).parent / "onnx_models/face_detector.onnx"),
-                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                providers=providers,
             )
         except Exception as e:
             print(f"Error loading face detector: {e}")

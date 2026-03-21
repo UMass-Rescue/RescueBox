@@ -13,11 +13,15 @@ from frontend.pages.chatbot.utils.database_service import DatabaseService
 from frontend.pages.chatbot.utils.form_error_handler import FormErrorHandler
 from frontend.pages.chatbot.utils.form_validator import FormValidator
 from frontend.pages.chatbot.utils.conversation_manager import ConversationManager
-from frontend.chatbot.multi_tool_handler import chain_output_to_input
+from frontend.chatbot.multi_tool_handler import (
+    chain_output_to_input,
+    extract_batch_file_items,
+    apply_metadata_filter,
+)
 from frontend.components.shared.notifications import notify_info
 from frontend.pages.chatbot.chatbot_forms import show_results, load_and_show_form
 from frontend.chatbot import api_helpers
-from nicegui import background_tasks
+from nicegui import background_tasks, ui
 import asyncio
 
 
@@ -59,7 +63,9 @@ class JobSubmissionOrchestrator:
         """
         try:
             await self._validate_and_prepare(request_body, endpoint, container)
-            response_body, actual_conversation_id, job_info = await self._execute_job(request_body, endpoint, task_schema, container, core)
+            response_body, actual_conversation_id, job_info = await self._execute_job(
+                request_body, endpoint, task_schema, container, core, remaining_calls
+            )
             # If the job was scheduled to run in background, _execute_job returns response_body=None.
             # In that case we should not call the immediate success handler (results will be shown when job completes).
             if response_body is not None:
@@ -77,7 +83,7 @@ class JobSubmissionOrchestrator:
             request_body, endpoint, self.form_handler.state_manager, container
         )
 
-    async def _execute_job(self, request_body, endpoint: str, task_schema, container, core):
+    async def _execute_job(self, request_body, endpoint: str, task_schema, container, core, remaining_calls=None):
         """Execute the actual job submission."""
         self.logger.info("Executing job submission for endpoint: %s", endpoint)
 
@@ -156,6 +162,10 @@ class JobSubmissionOrchestrator:
             'inputs': {k: v.model_dump(mode='json') if hasattr(v, 'model_dump') else v for k, v in request_body.inputs.items()},
             'parameters': request_body.parameters
         }
+        if 'file_filter' in request_body.inputs:
+            ff = request_dict.get('inputs', {}).get('file_filter', {})
+            n = len(ff.get('files', [])) if isinstance(ff, dict) else 0
+            self.logger.info("Request includes file_filter: %d paths (keys: %s)", n, list(request_dict.get('inputs', {}).keys()))
 
         # Build API endpoint path using helper
         api_endpoint = api_helpers.make_api_path(core.config.RESCUEBOX_HOST, endpoint)
@@ -186,6 +196,13 @@ class JobSubmissionOrchestrator:
                         # show_results will handle container validity internally
                         logger.debug("job_submission_orchestrator: about to show_results container=%r job_id=%s", container, job_id)
                         await show_results(container=container, response_body=response_data, job_id=job_id)
+                        # Handle remaining calls in multi-call sequence (filter dialog + next form)
+                        if remaining_calls:
+                            from rb.api.models import ResponseBody
+                            resp = ResponseBody(**response_data) if isinstance(response_data, dict) else response_data
+                            await self.handle_remaining_calls(
+                                remaining_calls, resp, container, core
+                            )
                         # Ensure processing state cleared after background UI update
                         try:
                             if getattr(self.form_handler, 'state_manager', None):
@@ -316,6 +333,24 @@ class JobSubmissionOrchestrator:
         # This maintains the existing behavior where errors bubble up
         raise error
 
+    async def _show_filter_criteria_dialog(self, container) -> str:
+        """Show dialog to collect filter criteria; returns criteria string or empty for all."""
+        future: asyncio.Future[str] = asyncio.get_event_loop().create_future()
+
+        with container:
+            with ui.dialog() as dialog, ui.card().classes('w-[400px]'):
+                ui.label('Filter files before next step').classes('text-lg font-semibold')
+                ui.label('e.g. Gender:Female, Age:>30. Leave empty to use all.').classes('text-sm text-gray-600')
+                inp = ui.input(placeholder='Gender:Female, Age:>30').classes('w-full mt-2')
+                with ui.row().classes('mt-4 gap-2'):
+                    ui.button('Use all', on_click=lambda: [dialog.close(), future.set_result('')])
+                    ui.button('Apply filter', on_click=lambda: [dialog.close(), future.set_result(inp.value or '')])
+            dialog.open()
+        try:
+            return await asyncio.wait_for(future, timeout=120.0)
+        except asyncio.TimeoutError:
+            return ''
+
     async def handle_remaining_calls(self,
                                      remaining_calls: List[Dict[str, Any]],
                                      response_body,
@@ -332,6 +367,8 @@ class JobSubmissionOrchestrator:
             core: ChatbotCore instance
             load_form_func: Optional function to load next form
         """
+        from rb.api.models import BatchFileResponse
+
         if not remaining_calls:
             return
 
@@ -343,25 +380,38 @@ class JobSubmissionOrchestrator:
             # Get schema for next endpoint
             next_schema = await core.get_task_schema_from_endpoint(next_endpoint)
             if next_schema:
-                # Chain output from current call to next call
                 self.logger.info("Chaining output to next tool call: %s", next_endpoint)
                 next_arguments = chain_output_to_input(response_body, next_arguments, next_schema)
-                notify_info(f"Proceeding to next tool: {next_endpoint}")
             else:
                 self.logger.warning("Could not get schema for next endpoint: %s", next_endpoint)
 
-            # Load next form - import here to avoid circular imports
-            await load_and_show_form(
-                container=container,
-                core=core,
-                endpoint=next_endpoint,
-                arguments=next_arguments,
-                on_form_submit=self._create_next_form_handler(
-                    remaining_calls[1:] if len(remaining_calls) > 1 else None,
-                    container,
-                    core
+            # If previous response is BatchFileResponse, ask for filter criteria
+            filtered_paths: Optional[List[str]] = None
+            if hasattr(response_body, 'root') and isinstance(response_body.root, BatchFileResponse):
+                items = extract_batch_file_items(response_body)
+                if items:
+                    criteria = await self._show_filter_criteria_dialog(container)
+                    filtered_paths = apply_metadata_filter(items, criteria)
+                    if not filtered_paths:
+                        filtered_paths = [it["path"] for it in items]
+                    self.logger.info("Filter applied: %d paths from %d items", len(filtered_paths), len(items))
+
+            # All UI creation must run inside container (background task has no slot stack)
+            with container:
+                if next_schema:
+                    notify_info(f"Proceeding to next tool: {next_endpoint}")
+                await load_and_show_form(
+                    container=container,
+                    core=core,
+                    endpoint=next_endpoint,
+                    arguments=next_arguments,
+                    on_form_submit=self._create_next_form_handler(
+                        remaining_calls[1:] if len(remaining_calls) > 1 else None,
+                        container,
+                        core,
+                        filtered_paths=filtered_paths
+                    )
                 )
-            )
 
         except Exception as e:
             self.logger.error("Error handling remaining calls: %s", str(e))
@@ -383,10 +433,14 @@ class JobSubmissionOrchestrator:
         """Clean up error message to make it more user-friendly."""
         return self.error_handler.clean_error_message(raw_error)
 
-    def _create_next_form_handler(self, remaining_calls, container, core):
+    def _create_next_form_handler(self, remaining_calls, container, core, filtered_paths: Optional[List[str]] = None):
         """Create a form handler for the next call in sequence."""
         async def handle_next_form(request_body, next_endpoint, task_schema):
-            # Get current conversation_id from state manager
+            # Inject file_filter (hidden) when we have filtered paths from previous BatchFileResponse
+            if filtered_paths:
+                if isinstance(request_body.inputs, dict):
+                    request_body.inputs["file_filter"] = {"files": [{"path": p} for p in filtered_paths]}
+                    self.logger.info("Filter applied: %d paths", len(filtered_paths))
             conversation_id = self.form_handler.state_manager.conversation_id
             await self.submit_job(
                 request_body, next_endpoint, task_schema,

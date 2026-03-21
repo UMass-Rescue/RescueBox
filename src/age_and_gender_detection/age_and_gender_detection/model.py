@@ -2,6 +2,9 @@
 
 import cv2
 import onnxruntime as ort
+
+# Suppress "Initializer appears in graph inputs" warnings (harmless, model still works)
+ort.set_default_logger_severity(3)
 import argparse
 import numpy as np
 from pathlib import Path
@@ -63,10 +66,11 @@ class AgeGenderDetector:
         session_options = ort.SessionOptions()
         session_options.inter_op_num_threads = 4
         session_options.intra_op_num_threads = 4
-        
-        self.runtime_providers = [
-            "CUDAExecutionProvider", "CPUExecutionProvider",
-        ]
+
+        available = ort.get_available_providers()
+        self.runtime_providers = ["CPUExecutionProvider"]
+        if "CUDAExecutionProvider" in available:
+            self.runtime_providers.insert(0, "CUDAExecutionProvider")
         self.genderList = ["Male", "Female"]
         self.image_file_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]
 

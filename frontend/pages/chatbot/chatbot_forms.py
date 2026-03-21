@@ -20,21 +20,32 @@ from frontend.pages.chatbot.constants import FormConfig
 from frontend.pages.chatbot.pickers import ToolPicker, AnalysisPicker
 from frontend.pages.chatbot.utils.ui_styling import UIStyling
 from frontend.pages.chatbot.results import ResultRenderer
+from frontend.utils.nicegui_storage import get_user_id
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Global chat container reference (set by ChatbotPage.render) to ensure selection messages
-# always render into the main chat area even if callers pass an input-area container.
-_GLOBAL_CHAT_CONTAINER = None
+# Per-session chat container references (keyed by user_id from get_user_id).
+# Ensures selection messages render into the correct user's chat area when
+# multiple concurrent browser clients are connected.
+_CHAT_CONTAINERS_BY_USER: dict[str, ui.element] = {}
 
 def set_global_chat_container(container: ui.element):
-    global _GLOBAL_CHAT_CONTAINER
-    _GLOBAL_CHAT_CONTAINER = container
+    """Store chat container for the current session (browser client)."""
+    user_id = get_user_id()
+    if user_id:
+        _CHAT_CONTAINERS_BY_USER[user_id] = container
+        logger.debug("Stored chat container for user %s", user_id[:16] + "..." if len(user_id) > 16 else user_id)
+    else:
+        logger.warning("No user_id available; chat container not stored for session")
 
 def get_global_chat_container() -> Optional[ui.element]:
-    return _GLOBAL_CHAT_CONTAINER
+    """Get chat container for the current session (browser client)."""
+    user_id = get_user_id()
+    if user_id:
+        return _CHAT_CONTAINERS_BY_USER.get(user_id)
+    return None
 
 async def show_tool_picker(
     container: ui.element,
@@ -164,7 +175,7 @@ async def load_and_show_form(
     - Form submission triggers on_form_submit callback
     """
     logger.info("Loading form for endpoint: %s", endpoint)
-    logger.info("load_and_show_form invocation: provided_container=%r global_chat_container=%r", container, get_global_chat_container())
+    logger.debug("load_and_show_form invocation: provided_container=%r global_chat_container=%r", container, get_global_chat_container())
     logger.debug("Form arguments: %s", arguments)
     # If no container provided, try to render into the input area as a safer default
     if container is None:

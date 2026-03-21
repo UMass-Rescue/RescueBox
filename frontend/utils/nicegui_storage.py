@@ -25,11 +25,15 @@ Usage:
 """
 
 import logging
+import threading
 from typing import Optional
 from nicegui import app
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Lock for demo folder assignment (avoids race when multiple sessions request at once)
+_demo_folder_lock = threading.Lock()
 
 # Fallback storage used by tests when NiceGUI's app.storage isn't available
 _test_fallback_storage: dict = {}
@@ -85,7 +89,13 @@ def get_user_id() -> Optional[str]:
             logger.warning("Failed to persist generated session id: %s", e)
             # Fall through to returning None or test fallback below
     except Exception as e:
-        logger.warning("Error getting user ID: %s", e)
+        err_msg = str(e)
+        # "can only be used within a UI context" is expected when called from background
+        # tasks, timers, or after request context ends - use debug to avoid noisy warnings
+        if 'UI context' in err_msg or 'ui context' in err_msg.lower():
+            logger.debug("User ID unavailable (no UI context): %s", err_msg)
+        else:
+            logger.warning("Error getting user ID: %s", e)
         # In test environments (pytest / no ui.run storage_secret), provide a stable test id
         try:
             import os
@@ -94,6 +104,65 @@ def get_user_id() -> Optional[str]:
         except Exception:
             pass
         return None
+
+
+def get_assigned_demo_folder() -> Optional[str]:
+    """
+    Get the demo folder assigned to this browser session (Option 1 auto-assign).
+    Each session gets one folder from the pool (e.g. /home/tester/Documents/demo1..demo5).
+    Once assigned, the same folder is returned for this session. Assigned folders
+    are removed from the available pool for other sessions.
+    """
+    try:
+        from frontend.config import DEMO_FOLDERS_BASE, DEMO_FOLDER_NAMES
+        user_id = get_user_id()
+        if not user_id:
+            return None
+        # Check if this session already has an assignment
+        try:
+            existing = app.storage.user.get('assigned_demo_folder')
+            if existing:
+                return existing
+        except Exception:
+            pass
+        # Assign next available folder
+        with _demo_folder_lock:
+            assignments = dict(app.storage.general.get('demo_folder_assignments', {}))
+            assigned_paths = set(assignments.values())
+            for name in DEMO_FOLDER_NAMES:
+                path = str(DEMO_FOLDERS_BASE / name)
+                if path not in assigned_paths:
+                    assignments[user_id] = path
+                    app.storage.general['demo_folder_assignments'] = assignments
+                    app.storage.user['assigned_demo_folder'] = path
+                    logger.info("Assigned demo folder %s to session %s", path, user_id[:12])
+                    return path
+        logger.warning("No demo folders available for session %s", user_id[:12])
+        return None
+    except Exception as e:
+        logger.warning("Error getting assigned demo folder: %s", e)
+        return None
+
+
+def release_demo_folder_for_client(client) -> None:
+    """
+    Release the demo folder assigned to this client when it is deleted.
+    Call from @app.on_delete with client context. Removes the session from
+    demo_folder_assignments so the folder becomes available for other sessions.
+    """
+    try:
+        with client:
+            user_id = get_user_id()
+            if not user_id:
+                return
+            with _demo_folder_lock:
+                assignments = dict(app.storage.general.get('demo_folder_assignments', {}))
+                if user_id in assignments:
+                    released = assignments.pop(user_id)
+                    app.storage.general['demo_folder_assignments'] = assignments
+                    logger.info("Released demo folder %s for deleted session %s", released, user_id[:12])
+    except Exception as e:
+        logger.warning("Error releasing demo folder for client: %s", e)
 
 
 def get_current_conversation_id() -> Optional[str]:

@@ -7,7 +7,7 @@ def create_chat_window() -> Any:
     Create a chat window container with helper to append messages.
     Returns the container element with methods:
       - append_message(role: str, text: str)
-      - clear()
+    Uses NiceGUI's native clear() for proper container clearing when switching modes.
     """
     container = ui.column().classes('flex-1 overflow-auto p-4 space-y-4 w-full bg-white rounded-lg shadow-sm border')
 
@@ -21,17 +21,7 @@ def create_chat_window() -> Any:
         # Ensure appended into main container by adding as child
         container.add(msg_card)
 
-    def clear():
-        # Remove all children safely
-        try:
-            for child in list(container.element.children):
-                child.delete()
-        except Exception:
-            # Best-effort; NiceGUI context can be fragile
-            pass
-
-    # Attach helpers
+    # Attach helper; use native container.clear() for mode switching
     container.append_message = append_message
-    container.clear = clear
     return container
 

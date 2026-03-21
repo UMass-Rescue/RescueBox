@@ -246,23 +246,18 @@ I am **RescueBox Forensic Assistant** - I only handle forensic analysis tasks.
 Please rephrase your request as a forensic analysis task."""
     else:  # no_match
         logger.debug("Using no_match rejection message")
-        return """### ❓ RescueBox did not Understand Your Request
+        return """#### I am a **RescueBox Forensic Assistant**.
 
-I am a **RescueBox Forensic Assistant**.
 
-### How to Use:
+#### these are some prompt **Examples:**
 
-**Format:** `[Action] + "in" +  [directory]`
+* Transcribe audio in /evidence/recordings
 
-**Examples:**
+* Detect deepfakes in /case/videos
 
-* "Transcribe audio in /evidence/recordings"
+* Detect age and gender of faces in /suspects/unknown
 
-* "Detect deepfakes in /case/videos"
-
-* "Find matching faces in /suspects/unknown"
-
-* "Describe images in /evidence/photos"
+* Describe images in /evidence/photos
 
 Type `/help` for detailed instructions."""
 

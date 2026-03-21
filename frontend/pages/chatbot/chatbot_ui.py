@@ -23,7 +23,8 @@ def create_chat_ui(
     tool_registry,  # Tool registry for direct tool picker access
     core,  # Chatbot core for form loading
     form_submit_handler,  # Form submit handler
-    status_text_ref: object = None
+    status_text_ref: object = None,
+    state_manager=None,  # ChatbotStateManager for clearing when switching modes
 ) -> tuple[ui.element, ui.textarea, ui.label]:
     """
     Create the chatbot UI layout with chat-intuitive design.
@@ -52,7 +53,8 @@ def create_chat_ui(
         tool_registry=tool_registry,
         core=core,
         form_submit_handler=form_submit_handler,
-        status_text_ref=status_text_ref
+        status_text_ref=status_text_ref,
+        state_manager=state_manager
     )
 
     return ui_builder.build_ui()

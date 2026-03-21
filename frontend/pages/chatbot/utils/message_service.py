@@ -56,6 +56,9 @@ class MessageService:
                 elif hasattr(value, 'model_dump'):
                     # Handle Pydantic models
                     arguments[key] = value.model_dump()
+                elif isinstance(value, dict):
+                    # Preserve dicts (e.g. file_filter) as JSON-serializable
+                    arguments[key] = value
                 else:
                     # Handle other types
                     arguments[key] = str(value)

@@ -26,8 +26,8 @@ import asyncio
 import httpx
 import sys
 from pathlib import Path
-from nicegui import ui, app
-from frontend.config import APP_TITLE, APP_PORT, APP_FAVICON, APP_DARK_MODE, APP_SHOW_BROWSER
+from nicegui import ui, app, Client
+from frontend.config import APP_TITLE, APP_PORT, APP_FAVICON, APP_DARK_MODE, APP_SHOW_BROWSER, RECONNECT_TIMEOUT
 from frontend.components.shared import create_navbar
 from frontend.constants import UI_TITLES, UI_BUTTONS, NAV_LINKS
 from frontend.config import API_BASE_URL, BACKEND_URL, API_TIMEOUT, LOG_FILE, LOG_LEVEL
@@ -398,6 +398,12 @@ if __name__ in {"__main__", "__mp_main__"}:
         </html>
         """, sanitize=False)
 
+    # Release demo folder when client is deleted (browser closed) so it can be reused
+    @app.on_delete
+    async def _on_client_delete(client: Client):
+        from frontend.utils.nicegui_storage import release_demo_folder_for_client
+        release_demo_folder_for_client(client)
+
     # Start the unified server
     # This runs both NiceGUI frontend and backend API on the same port
     ui.run(
@@ -406,6 +412,8 @@ if __name__ in {"__main__", "__mp_main__"}:
         dark=APP_DARK_MODE,
         favicon=APP_FAVICON,
         show=APP_SHOW_BROWSER,
+        # Reconnect timeout: 1 hour keeps demo folder for entire demo (no release on brief disconnect)
+        reconnect_timeout=RECONNECT_TIMEOUT,
         # Add a secret key for user-specific storage (e.g., chat history)
         # This should be a long, random string in a real application
         storage_secret='REPLACE_WITH_A_REAL_SECRET_KEY',

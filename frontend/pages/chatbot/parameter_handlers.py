@@ -12,7 +12,6 @@ from nicegui import ui
 import inspect
 
 from frontend.database import get_chat_history_db
-from frontend.pages.chatbot.chatbot_message import ChatMessage
 from frontend.pages.chatbot.chatbot import ChatbotPage
 from frontend.utils.nicegui_storage import get_conversation_to_load
 
@@ -30,26 +29,48 @@ class UrlParameterManager:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-    async def detect_and_handle_url_parameters(self, chatbot: ChatbotPage) -> None:
+    async def detect_and_handle_url_parameters(
+        self,
+        chatbot: ChatbotPage,
+        *,
+        load_conversation: Optional[str] = None,
+        rerun: Optional[str] = None,
+    ) -> None:
         """
-        Detect URL parameters from the current request and handle them.
+        Detect URL parameters and handle them.
+        Prefer page params (load_conversation, rerun) passed by NiceGUI from the URL.
+        Fall back to extracting from request if not provided.
 
         Args:
             chatbot: The ChatbotPage instance to operate on
+            load_conversation: Optional conversation ID from ?load_conversation=...
+            rerun: Optional message ID from ?rerun=...
         """
-        self.logger.info("Detecting and handling URL parameters...")
+        self.logger.info("Detecting and handling URL parameters (page_params: load_conversation=%s, rerun=%s)",
+                        load_conversation, rerun)
 
-        # Try to get URL parameters from the request
-        url_params = self._extract_url_parameters()
-
-        if not url_params:
-            self.logger.debug("No URL parameters detected")
+        # Prefer page params (NiceGUI injects these from URL)
+        if rerun:
+            self.logger.info("Using rerun from page params: %s", rerun)
+            await self._handle_rerun_parameter(rerun, chatbot)
+            return
+        if load_conversation:
+            self.logger.info("Using load_conversation from page params: %s", load_conversation)
+            await self._handle_load_conversation_parameter(load_conversation, chatbot)
             return
 
-        # Handle specific parameters
+        # Fallback: extract from request
+        self.logger.info("No page params; falling back to URL extraction")
+        url_params = self._extract_url_parameters()
+        if not url_params:
+            self.logger.info("No URL parameters detected from request")
+            return
+
         if 'rerun' in url_params:
+            self.logger.info("Using rerun from extracted URL: %s", url_params['rerun'])
             await self._handle_rerun_parameter(url_params['rerun'], chatbot)
         elif 'load_conversation' in url_params:
+            self.logger.info("Using load_conversation from extracted URL: %s", url_params['load_conversation'])
             await self._handle_load_conversation_parameter(url_params['load_conversation'], chatbot)
 
     def _extract_url_parameters(self) -> Dict[str, str]:
@@ -128,9 +149,10 @@ class UrlParameterManager:
         Args:
             chatbot: The ChatbotPage instance
         """
-        self.logger.info("Checking for stored conversation to load...")
+        self.logger.info("Checking for stored conversation to load (fallback when no URL param)...")
         conversation_data = get_conversation_to_load()
-        self.logger.info("get_conversation_to_load() returned: %s", conversation_data)
+        conv_id = conversation_data.get('conversation_id') if conversation_data else None
+        self.logger.info("get_conversation_to_load() returned conversation_id=%s", conv_id)
 
         if conversation_data:
             self.logger.info("Found stored conversation to load: %s",
@@ -224,42 +246,51 @@ async def handle_load_conversation_parameter(conversation_id: str, chatbot: Opti
     """
     Handle load_conversation URL parameter by loading the conversation.
 
+    Uses ConversationLoader for proper rendering of tool calls and rich content.
+
     Args:
         conversation_id: Conversation ID to load
         chatbot: Optional ChatbotPage instance
     """
-    logger.info("Handling load_conversation parameter for conversation: %s", conversation_id)
+    logger.info("handle_load_conversation_parameter: starting for conversation %s", conversation_id)
 
     try:
         chat_history = get_chat_history_db()
         conversation = await chat_history.get_conversation(conversation_id)
         messages = await chat_history.get_messages(conversation_id)
 
+        logger.info("handle_load_conversation_parameter: fetched conversation=%s, messages=%d",
+                    'yes' if conversation else 'no', len(messages) if messages else 0)
+
         if not conversation or not messages:
+            logger.warning("handle_load_conversation_parameter: conversation not found or empty")
             ui.notify('Conversation not found or empty', type='negative')
             return
 
-        # Create a chatbot instance and load the conversation
         active_chatbot = chatbot or ChatbotPage()
+        logger.info("handle_load_conversation_parameter: loading %s (%d messages), resetting state",
+                    conversation_id, len(messages))
 
-        # Load the conversation data
-        logger.info("Loading conversation: %s (%d messages)", conversation_id, len(messages))
-
-        # Clear current chat and set conversation ID
+        # Clear default new-conversation state before loading
         active_chatbot.state_manager.reset_conversation()
-        active_chatbot.state_manager.conversation_id = conversation_id
 
-        # Add all messages to the chat
-        for message_data in messages:
-            # Convert database message to ChatMessage
-            role = message_data.role
-            content = message_data.content
-            message = ChatMessage(role, content)
-            active_chatbot._add_message(message)
+        # Build conversation_data for ConversationLoader (handles tool_call, tool_result, etc.)
+        conversation_dict = conversation.model_dump() if hasattr(conversation, 'model_dump') else dict(conversation)
+        messages_dicts = [
+            msg.model_dump() if hasattr(msg, 'model_dump') else dict(msg) if hasattr(msg, '__dict__') else msg
+            for msg in messages
+        ]
+        conversation_data = {
+            'conversation_id': conversation_id,
+            'conversation_data': conversation_dict,
+            'messages': messages_dicts,
+        }
 
+        await active_chatbot.load_conversation_from_data(conversation_data)
         await active_chatbot.scroll_to_bottom()
+        logger.info("handle_load_conversation_parameter: loaded successfully, title=%s", conversation.title)
         ui.notify(f'Loaded conversation: {conversation.title}', type='positive')
 
     except Exception as e:
-        logger.error("Error handling load_conversation parameter: %s", str(e))
+        logger.error("handle_load_conversation_parameter failed: %s", str(e), exc_info=True)
         ui.notify(f'Failed to load conversation: {str(e)}', type='negative')

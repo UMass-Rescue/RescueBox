@@ -14,16 +14,17 @@ Key Responsibilities:
 """
 from pathlib import Path
 import sys
+import json
 import httpx
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 from frontend.api_client import ApiClient
 from frontend.chatbot.api_helpers import fetch_task_schema
 from rb.api.models import TaskSchema, RequestBody, ResponseBody
-from frontend.constants import DEFAULT_GRANITE_GGUF_MODEL_PATH
 from frontend.chatbot.schema_utils import convert_arguments_to_initial_values as _convert
 from frontend.chatbot.forms import create_input_form as _create
 from frontend.chatbot.orchestrator import submit_job_orchestrator
-from frontend.chatbot.granite import GraniteLocal
+from frontend.chatbot.granite import parse_fine_tune_tool_response
+from frontend.chatbot.tool_config import create_advanced_granite_prompt
 import logging
 from typing import Optional, Dict, Any
 
@@ -47,9 +48,7 @@ class ThinChatbotCore:
         self.api_client = httpx.AsyncClient(base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
         self.ollama_client = httpx.AsyncClient(base_url=config.OLLAMA_HOST, timeout=60.0)
         self.api = ApiClient(config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
-        self._granite_local = None
-        # preserve legacy attribute expected by tests
-        self._llama_model = None
+        self._llama_model = None  # legacy attribute for tests
 
     async def get_task_schema_from_endpoint(self, endpoint: str) -> Optional[TaskSchema]:
         schema_dict = await fetch_task_schema(self.api if hasattr(self, 'api') else None, self.api_client, self.config, endpoint)
@@ -70,27 +69,60 @@ class ThinChatbotCore:
         return await submit_job_orchestrator(self.api if hasattr(self, 'api') else None, self.api_client, self.config, request_dict, api_endpoint)
 
 
-    async def call_granite_model_direct(self, prompt: str, model_path: str = DEFAULT_GRANITE_GGUF_MODEL_PATH, use_advanced: bool = True, update_status_callback=None):
-        if self._granite_local is None or getattr(self._granite_local, '_llama_model_path', None) != model_path:
-            self._granite_local = GraniteLocal()
-        result = await self._granite_local.call_direct(prompt, model_path, use_advanced=use_advanced, update_status_callback=update_status_callback)
-        # Legacy attribute: set to None or updated via public accessor if available
-        # Do not access protected members; keep legacy attribute unset
-        self._llama_model = None
-        return result
+    async def call_granite_model_direct(self, prompt: str, use_advanced: bool = True, update_status_callback=None):
+        """Call Granite model via Ollama API for tool selection."""
+        return await self._call_ollama(prompt, use_advanced, update_status_callback)
+
+    async def _call_ollama(self, prompt: str, use_advanced: bool, update_status_callback=None) -> Optional[list]:
+        """Call Ollama API for Granite model tool selection."""
+        if update_status_callback:
+            update_status_callback("🧠 RescueBox working with AI model...")
+        try:
+            if use_advanced:
+                messages = create_advanced_granite_prompt(prompt)
+                # Convert to Ollama format (role + content; flatten tool_calls into content)
+                ollama_messages = []
+                for m in messages:
+                    role = m.get("role", "user")
+                    content = m.get("content", "")
+                    if m.get("tool_calls"):
+                        parts = [content] if content else []
+                        for tc in m["tool_calls"]:
+                            fn = tc.get("function", tc)
+                            name = fn.get("name") if isinstance(fn, dict) else fn
+                            args = fn.get("arguments", {}) if isinstance(fn, dict) else {}
+                            parts.append(f"<tool_code>{json.dumps({'name': name, 'arguments': args})}</tool_code>")
+                        content = "\n".join(parts)
+                    ollama_messages.append({"role": role, "content": content})
+            else:
+                ollama_messages = [
+                    {"role": "system", "content": "You are a forensic assistant. Respond with tool calls in <tool_code> tags."},
+                    {"role": "user", "content": prompt},
+                ]
+            resp = await self.ollama_client.post(
+                "/api/chat",
+                json={"model": self.config.GRANITE_MODEL, "messages": ollama_messages, "stream": False},
+                timeout=120.0,
+            )
+            if resp.status_code != 200:
+                logger.warning("Ollama failed: %s %s", resp.status_code, resp.text[:200])
+                return None
+            data = resp.json()
+            model_text = data.get("message", {}).get("content", "")
+            if model_text:
+                result = parse_fine_tune_tool_response(model_text)
+                if result:
+                    logger.info("Ollama returned %d tool call(s)", len(result))
+                    return result
+        except Exception as e:
+            logger.debug("Ollama error: %s", e)
+        return None
 
     async def close(self):
         await self.api_client.aclose()
         if hasattr(self, 'api'):
             await self.api.aclose()
         await self.ollama_client.aclose()
-        if self._granite_local is not None:
-            try:
-                releaser = getattr(self._granite_local, 'release_model', None)
-                if callable(releaser):
-                    releaser()
-            except Exception:
-                pass
         self._llama_model = None
 
 

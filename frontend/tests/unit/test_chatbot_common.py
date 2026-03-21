@@ -327,7 +327,7 @@ class TestChatbotCore:
         non_existent_path = tmp_path / "non_existent_model.gguf"
         
         with patch('llama_cpp.Llama', create=True):
-            result = await core.call_granite_model_direct("test prompt", str(non_existent_path), use_advanced=True)
+            result = await core.call_granite_model_direct("test prompt", use_advanced=True)
             assert result is None
 
     @pytest.mark.asyncio
@@ -370,7 +370,7 @@ class TestChatbotCore:
                     mock_loop.run_in_executor = mock_run_in_executor
                     
                     with patch('asyncio.get_event_loop', return_value=mock_loop):
-                        result = await core.call_granite_model_direct("transcribe audio", str(model_file), use_advanced=False)
+                        result = await core.call_granite_model_direct("transcribe audio", use_advanced=False)
         
         assert result is not None
         assert isinstance(result, list)
@@ -418,7 +418,7 @@ class TestChatbotCore:
                     mock_loop.run_in_executor = mock_run_in_executor
                     
                     with patch('asyncio.get_event_loop', return_value=mock_loop):
-                        result = await core.call_granite_model_direct("summarize images", str(model_file), use_advanced=True)
+                        result = await core.call_granite_model_direct("summarize images", use_advanced=True)
         
         assert result is not None
         assert isinstance(result, list)
@@ -466,7 +466,7 @@ class TestChatbotCore:
                     mock_loop.run_in_executor = mock_run_in_executor
                     
                     with patch('asyncio.get_event_loop', return_value=mock_loop):
-                        result = await core.call_granite_model_direct("transcribe and summarize", str(model_file), use_advanced=True)
+                        result = await core.call_granite_model_direct("transcribe and summarize", use_advanced=True)
         
         assert result is not None
         assert isinstance(result, list)
@@ -501,7 +501,7 @@ class TestChatbotCore:
                             return func()
                         mock_loop.return_value.run_in_executor = lambda executor, func: func()
 
-                        result = await core.call_granite_model_direct("test prompt", str(model_file), use_advanced=True)
+                        result = await core.call_granite_model_direct("test prompt", use_advanced=True)
 
         assert result is None
 
@@ -529,7 +529,7 @@ class TestChatbotCore:
                             return func()
                         mock_loop.return_value.run_in_executor = lambda executor, func: func()
 
-                        result = await core.call_granite_model_direct("test prompt", str(model_file), use_advanced=True)
+                        result = await core.call_granite_model_direct("test prompt", use_advanced=True)
 
         assert result is None
 
@@ -554,7 +554,7 @@ class TestChatbotCore:
                             return func()
                         mock_loop.return_value.run_in_executor = lambda executor, func: func()
 
-                        result = await core.call_granite_model_direct("test prompt", str(model_file), use_advanced=True)
+                        result = await core.call_granite_model_direct("test prompt", use_advanced=True)
 
         assert result is None
 
@@ -604,7 +604,7 @@ class TestChatbotCore:
                         assert result1 is not None
 
                         # Second call - should reuse cached model
-                        result2 = await core.call_granite_model_direct("test prompt 2", str(model_file), use_advanced=True)
+                        result2 = await core.call_granite_model_direct("test prompt 2", use_advanced=True)
                         assert result2 is not None
                         
                         # Llama constructor should only be called once (model caching)
@@ -620,16 +620,12 @@ class TestChatbotCore:
         core.api_client.aclose = AsyncMock()
         core.ollama_client.aclose = AsyncMock()
         
-        # Set up a mock llama model to test cleanup
-        mock_llama_model = MagicMock()
-        core._llama_model = mock_llama_model
-        core._llama_model_path = "/path/to/model.gguf"
+        # Set up legacy attribute to test cleanup
+        core._llama_model = MagicMock()
         
         await core.close()
         
         core.api_client.aclose.assert_called_once()
         core.ollama_client.aclose.assert_called_once()
-        # Verify llama model is cleaned up
         assert core._llama_model is None
-        assert core._llama_model_path is None
 

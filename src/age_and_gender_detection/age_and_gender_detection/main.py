@@ -17,7 +17,6 @@ import json
 import typer
 import onnxruntime
 
-onnxruntime.set_default_logger_severity(3)
 
 APP_NAME = "age-gender"
 

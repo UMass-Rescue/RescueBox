@@ -117,6 +117,13 @@ class DirectoryBrowser:
         """Get the starting path, expanding user paths and using CWD as fallback."""
         if self.initial_path:
             return str(Path(self.initial_path).expanduser())
+        try:
+            from frontend.utils.nicegui_storage import get_assigned_demo_folder
+            demo = get_assigned_demo_folder()
+            if demo:
+                return demo
+        except Exception as e:
+            logger.debug("Could not get assigned demo folder: %s", e)
         return os.getcwd()
 
     def _create_dialog_header(self):
@@ -312,6 +319,13 @@ class FileBrowser:
         """Get the starting path, expanding user paths and using CWD as fallback."""
         if self.initial_path:
             return str(Path(self.initial_path).expanduser())
+        try:
+            from frontend.utils.nicegui_storage import get_assigned_demo_folder
+            demo = get_assigned_demo_folder()
+            if demo:
+                return demo
+        except Exception as e:
+            logger.debug("Could not get assigned demo folder: %s", e)
         return os.getcwd()
 
     def _create_dialog_header(self):

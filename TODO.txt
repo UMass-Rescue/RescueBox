@@ -1,0 +1,16 @@
+
+run  model picker -one at a time-done
+
+each user gets a unique demo directory -done
+
+test ufdr model
+
+update app_info for all models
+
+make 3 google docs for initial-setup , simple-scenarios, complex-scenarios
+
+test concurrent users
+
+test history load
+
+

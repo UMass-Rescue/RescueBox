@@ -25,7 +25,7 @@ def render_message_card(container: ui.element, role: str, content: str, timestam
 
             with ui.row().classes(f'w-full {alignment}'):
                 with ui.card().classes(f'{bg_color} {card_width_class} shadow-sm'):
-                    with ui.row().classes('p-1.5 items-center gap-2 flex-wrap'):
+                    with ui.column().classes('p-1.5 w-full gap-1'):
                         if role == 'user':
                             ui.label('You').classes('font-medium text-xs')
                         else:
@@ -35,6 +35,6 @@ def render_message_card(container: ui.element, role: str, content: str, timestam
                             ui.markdown(content).classes('text-sm')
                         else:
                             ui.label(content).classes('text-sm')
-                        ui.label(timestamp).classes('text-xs opacity-70')
+                        # ui.label(timestamp).classes('text-xs opacity-70')
     except Exception as e:
         logger.exception("Error rendering message card: %s", e)

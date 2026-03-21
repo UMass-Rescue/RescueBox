@@ -17,7 +17,7 @@ class UIModeManager:
     """Handles UI mode switching and related operations."""
 
     def __init__(self, mode_indicator, models_btn, analyze_btn, chat_container,
-                 status_text_ref=None, form_submit_handler=None, core=None):
+                 status_text_ref=None, form_submit_handler=None, core=None, state_manager=None):
         """
         Initialize UI mode manager.
 
@@ -29,6 +29,7 @@ class UIModeManager:
             status_text_ref: Status text reference (optional)
             form_submit_handler: Form submit handler (optional)
             core: Chatbot core (optional)
+            state_manager: ChatbotStateManager (optional) - cleared when switching modes
         """
         self.mode_indicator = mode_indicator
         self.models_btn = models_btn
@@ -37,6 +38,7 @@ class UIModeManager:
         self.status_text_ref = status_text_ref
         self.form_submit_handler = form_submit_handler
         self.core = core
+        self.state_manager = state_manager
         self.logger = logging.getLogger(__name__)
 
     async def switch_mode(self, mode: str, input_area=None):
@@ -47,7 +49,11 @@ class UIModeManager:
             mode: Mode to switch to ('analyze' or 'models')
             input_area: Input area element (optional)
         """
-        # Clear chat container when switching modes to remove unused UI elements
+        # Clear in-memory messages so the new mode shows a clean slate
+        if self.state_manager and hasattr(self.state_manager, 'clear_messages'):
+            self.state_manager.clear_messages()
+            self.logger.debug("Cleared state manager messages when switching to %s mode", mode)
+        # Clear chat container when switching modes to remove all UI elements
         self.chat_container.clear()
         self.logger.debug("Cleared chat container when switching to %s mode", mode)
 

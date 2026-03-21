@@ -46,6 +46,116 @@ class MultiToolCallResult:
             self.completed_count += 1
 
 
+def extract_batch_file_items(response_body: ResponseBody) -> List[Dict[str, Any]]:
+    """
+    Extract path and metadata from each FileResponse in a BatchFileResponse.
+    Returns list of dicts: [{"path": str, "metadata": dict}, ...].
+    Returns empty list if not BatchFileResponse or no files.
+    """
+    from rb.api.models import BatchFileResponse, FileResponse
+    try:
+        root = response_body.root
+        if not isinstance(root, BatchFileResponse) or not root.files:
+            return []
+        items = []
+        for fr in root.files:
+            if isinstance(fr, FileResponse):
+                items.append({
+                    "path": str(fr.path),
+                    "metadata": dict(fr.metadata) if fr.metadata else {},
+                })
+        return items
+    except Exception as e:
+        logger.warning("Error extracting batch file items: %s", e)
+        return []
+
+
+def _parse_age_range_for_comparison(mval_str: str) -> Optional[float]:
+    """
+    Parse age range strings like "(0-2)", "(25-32)", "(60-100)" from Age/Gender classifier.
+    Returns the upper bound as float for numeric comparison, or None if not parseable.
+    """
+    import re
+    m = re.match(r"\((\d+)-(\d+)\)", mval_str.strip())
+    if m:
+        return float(m.group(2))  # upper bound
+    return 0
+
+
+def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> List[str]:
+    """
+    Filter items by metadata criteria. criteria_str format: "Key:value" or "Key=value", comma-separated.
+    Supports both colon and equals: "Gender:Female" or "Gender=Female".
+    E.g. "Gender:Female, Age:>30" keeps items where Gender==Female and Age>30.
+    Age values from Age/Gender classifier are range strings like "(0-2)", "(25-32)" - we use the
+    upper bound for numeric comparisons (e.g. Age=<10 matches "(0-2)", "(4-6)").
+    Returns list of paths for items that match. Empty criteria = all items.
+    """
+    if not criteria_str or not criteria_str.strip():
+        return [it["path"] for it in items]
+    criteria = [c.strip() for c in criteria_str.split(",") if c.strip()]
+    if not criteria:
+        return [it["path"] for it in items]
+    result = []
+    for it in items:
+        logger.info("items path has %s", it["path"]) 
+        meta = it.get("metadata") or {}
+        match = True
+        for c in criteria:
+            # Support both "Key:value" and "Key=value"
+            if "=" in c:
+                key, val = c.split("=", 1)
+            elif ":" in c:
+                key, val = c.split(":", 1)
+            else:
+                continue
+            key = key.strip()
+            val = val.strip()
+            mval = meta.get(key)
+            if mval is None:
+                match = False
+                break
+            mval_str = str(mval)
+            key_lower = key.lower()
+            # Age from Age/Gender classifier is "(0-2)", "(25-32)" etc - parse for numeric comparison
+            age_num = _parse_age_range_for_comparison(mval_str) if key_lower == "age" else None
+            logger.info("Metadata mval_str %s", mval_str)
+            logger.info(f"The age_num is: {age_num}")
+            if val.startswith(">"):
+                try:
+                    cmp_val = float(val[1:].strip())
+                    if age_num is not None:
+                        match = age_num > cmp_val
+                    else:
+                        match = float(mval_str) > cmp_val
+                except (ValueError, TypeError):
+                    match = mval_str == val[1:].strip()
+            elif val.startswith("<"):
+                try:
+                    cmp_val = float(val[1:].strip())
+                    if age_num is not None:
+                        match = age_num < cmp_val
+                    else:
+                        match = float(mval_str) < cmp_val
+                except (ValueError, TypeError):
+                    match = mval_str == val[1:].strip()
+            else:
+                if age_num is not None:
+                    try:
+                        match = age_num == float(val)
+                    except (ValueError, TypeError):
+                        match = mval_str == val
+                else:
+                    match = mval_str == val
+            if not match:
+                break
+        if match:
+            result.append(it["path"])
+            logger.info("result path is %s", it["path"]) 
+    logger.info("Metadata filter applied: %d paths from %d items", len(result), len(items))
+    return list(dict.fromkeys(result))  # deduplicate paths
+
+
 def extract_output_path(response_body: ResponseBody) -> Optional[str]:
     """
     Extract output directory/path from a ResponseBody.

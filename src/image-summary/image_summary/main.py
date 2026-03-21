@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import List, TypedDict, NotRequired
 from pathlib import Path
 import logging
 import json
@@ -35,6 +35,7 @@ APP_NAME = "image_summary"
 class Inputs(TypedDict):
     input_dir: DirectoryInput
     output_dir: DirectoryInput
+    file_filter: NotRequired[BatchFileInput]  # Optional: from chained BatchFileResponse filter
 
 
 class Parameters(TypedDict):
@@ -52,6 +53,11 @@ def task_schema() -> TaskSchema:
         label="Path to the directory for the output summaries",
         input_type=InputType.DIRECTORY,
     )
+    file_filter_schema = InputSchema(
+        key="file_filter",
+        label="Optional: filter to specific files (from previous step)",
+        input_type=InputType.BATCHFILE,
+    )
     parameter_schema = ParameterSchema(
         key="model",
         label="Model to use for image description",
@@ -65,7 +71,7 @@ def task_schema() -> TaskSchema:
         ),
     )
     return TaskSchema(
-        inputs=[input_dir_schema, output_dir_schema],
+        inputs=[input_dir_schema, output_dir_schema, file_filter_schema],
         parameters=[parameter_schema],
     )
 
@@ -95,6 +101,8 @@ def summarize_images(
     input_dir = inputs["input_dir"].path
     output_dir = inputs["output_dir"].path
     model = parameters["model"]
+    files = inputs["file_filter"].files
+    logger.info("files are %s", files)
     # Use shared helper utilities (from rb.lib.utils) to extract filter id and resolve inputs/output patterns
     filter_id = extract_filter_id(inputs, parameters)
     file_filter = collect_inline_file_filter(inputs, input_dir)
@@ -106,8 +114,10 @@ def summarize_images(
         if saved_patterns:
             output_patterns = saved_patterns
 
+    has_ff = "file_filter" in (inputs if isinstance(inputs, dict) else {})
     logger.info(
-        "ImageSummary API: received request | model=%s | input_dir=%s | output_dir=%s", model, input_dir, output_dir
+        "ImageSummary API: received request | model=%s | input_dir=%s | output_dir=%s | file_filter=%s",
+        model, input_dir, output_dir, has_ff
     )
     processed_files = process_images(model, input_dir, output_dir, file_filter)
 

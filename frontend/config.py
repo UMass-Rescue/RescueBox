@@ -38,3 +38,10 @@ DB_PATH = DATA_DIR / 'jobs.db'
 # Logging Configuration
 LOG_LEVEL = os.getenv('RESCUEBOX_LOG_LEVEL', 'INFO')
 LOG_FILE = DATA_DIR / 'rescuebox.log'
+
+# Demo folders: each browser session gets one folder from this pool (Option 1 auto-assign)
+DEMO_FOLDERS_BASE = Path(os.getenv('RESCUEBOX_DEMO_FOLDERS_BASE', '/home/tester/Documents'))
+DEMO_FOLDER_NAMES = ['demo1', 'demo2', 'demo3', 'demo4', 'demo5', 'demo6', 'demo7', 'demo8', 'demo9', 'demo10']
+
+# Reconnect timeout (seconds) before client is deleted; 1 hour keeps demo folder for entire demo
+RECONNECT_TIMEOUT = float(os.getenv('RESCUEBOX_RECONNECT_TIMEOUT', '3600'))

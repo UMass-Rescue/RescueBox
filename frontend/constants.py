@@ -95,8 +95,8 @@ SUCCESS_MESSAGES = {
 
 # Model Configuration
 # fine tuned
-# DEFAULT_GRANITE_GGUF_MODEL_PATH = r"C:\work\rel\granite\model_assets\rb-gr4-micro.gguf"
 
 # default https://huggingface.co/ibm-granite/granite-4.0-micro-GGUF/blob/main/granite-4.0-micro-Q4_0.gguf
 
-DEFAULT_GRANITE_GGUF_MODEL_PATH = r"/work/pi_gbissias_umass_edu/rescuebox/RescueBox/granite-4.0-micro-Q4_0.gguf"
+DEFAULT_GRANITE_GGUF_MODEL_PATH = r"./granite-4.0-micro-Q4_0.gguf"
+# DEFAULT_GRANITE_GGUF_MODEL_PATH = r"./granite-4.0-micro-f16.gguf"

@@ -133,7 +133,7 @@ async def fetch_task_schema(api_client, http_client, config, endpoint: str):
             response = await http_client.get(schema_endpoint)
         except httpx.RequestError:
             # normalize message for callers/tests
-            raise httpx.RequestError("Network error")
+            raise httpx.RequestError("Error due to Backend not running? ")
         except Exception:
             # try sync fallback and handle network errors explicitly
             try:

@@ -187,9 +187,13 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     if facecrop_param in ("true", "1", "yes"):  # enable face cropping
         try:
             model_dir = Path(__file__).resolve().parent / "onnx_models"
+            available = ort.get_available_providers()
+            providers = ["CPUExecutionProvider"]
+            if "CUDAExecutionProvider" in available:
+                providers.insert(0, "CUDAExecutionProvider")
             facecropper = ort.InferenceSession(
                 str(model_dir / "face_detector.onnx"),
-                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                providers=providers,
             )
         except Exception as e:
             logger.warning(f"Error loading face detector: {e}")

@@ -20,7 +20,7 @@ logger.setLevel(logging.INFO)
 class ChatUIBuilder:
     """Builds the complete chat UI with proper separation of concerns."""
 
-    def __init__(self, on_send, on_new_conversation, tool_registry, core, form_submit_handler, status_text_ref=None):
+    def __init__(self, on_send, on_new_conversation, tool_registry, core, form_submit_handler, status_text_ref=None, state_manager=None):
         """
         Initialize chat UI builder.
 
@@ -31,6 +31,7 @@ class ChatUIBuilder:
             core: Chatbot core for form loading
             form_submit_handler: Form submit handler
             status_text_ref: Reactive state reference for status text
+            state_manager: ChatbotStateManager for clearing messages when switching modes
         """
         self.on_send = on_send
         self.on_new_conversation = on_new_conversation
@@ -38,6 +39,7 @@ class ChatUIBuilder:
         self.core = core
         self.form_submit_handler = form_submit_handler
         self.status_text_ref = status_text_ref
+        self.state_manager = state_manager
 
         # Initialize UI components
         self.mode_indicator = None
@@ -79,7 +81,8 @@ class ChatUIBuilder:
                 chat_container=chat_container,
                 status_text_ref=self.status_text_ref,
                 form_submit_handler=self.form_submit_handler,
-                core=self.core
+                core=self.core,
+                state_manager=self.state_manager
             )
 
             # Setup mode handlers

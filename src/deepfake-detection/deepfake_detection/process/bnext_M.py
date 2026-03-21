@@ -31,16 +31,16 @@ class BNext_M_ModelONNX:
             / "onnx_models"
             / "bnext_M_dffd_model.onnx"
         )
-        providers = [
-            "CUDAExecutionProvider",
-            "CPUExecutionProvider",
-        ]
-        sess_options = ort.SessionOptions()
+        available = ort.get_available_providers()
+        providers = ["CPUExecutionProvider"]
+        if "CUDAExecutionProvider" in available:
+            providers.insert(0, "CUDAExecutionProvider")
+        session_options = ort.SessionOptions()
         session_options.inter_op_num_threads = 4
         session_options.intra_op_num_threads = 4
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime
-            sess_options=sess_options,
+            sess_options=session_options,
             providers=providers,
         )
         dev = ort.get_device()

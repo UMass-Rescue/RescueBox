@@ -132,7 +132,8 @@ class ChatbotPage:
             tool_registry=self.tool_registry,
             core=self.core,
             form_submit_handler=self.form_handler,
-            status_text_ref=self.state_manager
+            status_text_ref=self.state_manager,
+            state_manager=self.state_manager
         )
 
         # Set UI components in event handler
@@ -503,23 +504,27 @@ class ChatbotPage:
         self.chat_container.clear()
         welcome_message = ChatMessage('assistant', 'New conversation started. How can I help you?')
         self._add_message(welcome_message)
-        await self.scroll_to_bottom()
+        #await self.scroll_to_bottom()
 
 
 
 
 @ui.page('/chatbot')
-async def chatbot_page():
+async def chatbot_page(
+    load_conversation: Optional[str] = None,
+    rerun: Optional[str] = None,
+):
     """
     Page route handler for /chatbot.
 
+    Query params load_conversation and rerun are passed by NiceGUI from the URL.
     Creates the chatbot page with navigation bar and renders the ChatbotPage.
     Handles URL parameters and conversation loading through the UrlParameterManager.
 
     Returns:
         None: Page is rendered directly
     """
-    logger.info("Chatbot page route accessed")
+    logger.info("Chatbot page route accessed (load_conversation=%s, rerun=%s)", load_conversation, rerun)
 
     # Import URL parameter manager
     from frontend.pages.chatbot.parameter_handlers import url_parameter_manager
@@ -553,15 +558,17 @@ async def chatbot_page():
     except Exception:
         pass
 
-    # Handle URL parameters (rerun, load_conversation)
-    await url_parameter_manager.detect_and_handle_url_parameters(chatbot)
+    # Handle URL parameters (rerun, load_conversation) - prefer page params from NiceGUI
+    await url_parameter_manager.detect_and_handle_url_parameters(
+        chatbot, load_conversation=load_conversation, rerun=rerun
+    )
 
-    # Handle conversation loading from client storage
+    # Handle conversation loading from client storage (fallback for non-URL flows)
     await url_parameter_manager.handle_stored_conversation_loading(chatbot)
 
     # Ensure UI is scrolled to bottom on initial load.
     # We use a timer to catch any late-rendering components or mode switches
     # that might happen shortly after the page is loaded.
-    ui.timer(1.0, chatbot.scroll_to_bottom, once=True)
+    #ui.timer(1.0, chatbot.scroll_to_bottom, once=True)
 
     logger.debug("Chatbot page route completed")

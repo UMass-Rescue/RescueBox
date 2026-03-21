@@ -5,10 +5,8 @@ This module provides functions for performing actions on conversations.
 """
 
 import logging
-import asyncio
 from nicegui import ui
 from frontend.database import get_chat_history_db
-from frontend.utils.nicegui_storage import set_conversation_to_load
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -56,73 +54,27 @@ async def load_conversation(conversation_id: str):
     """
     Load a conversation into the current chat.
 
+    Uses URL parameter (load_conversation=id) so the page load triggers a full reload
+    and the conversation is loaded. Storage-based approach fails when already on
+    /chatbot because ui.navigate.to('/chatbot') does not reload the page.
+
     Args:
         conversation_id: Conversation unique identifier
     """
-    logger.info("Loading conversation: %s", conversation_id)
+    logger.info("Loading conversation: %s (using URL param approach)", conversation_id)
 
     try:
-        # Navigate to chatbot page if not already there
-        # For now, always navigate to ensure we're on the right page
-        try:
-            ui.navigate.to('/chatbot')
-            # Give time for navigation to complete
-            await asyncio.sleep(0.5)
-        except RuntimeError as ui_error:
-            if "slot cannot be determined" in str(ui_error):
-                logger.debug("UI navigation skipped in test environment: %s", ui_error)
-            else:
-                raise
-
-        # Get chatbot instance (this assumes it's available globally or through some registry)
-        # We need to access the current chatbot page instance
-        # For now, we'll implement this by directly accessing the chat functionality
-
-        # Load conversation data
-        chat_history = get_chat_history_db()
-        conversation = await chat_history.get_conversation(conversation_id)
-        messages = await chat_history.get_messages(conversation_id)
-
-        if not conversation or not messages:
-            try:
-                ui.notify('Conversation not found or empty', type='negative')
-            except RuntimeError as ui_error:
-                if "slot cannot be determined" in str(ui_error):
-                    logger.debug("UI notification skipped in test environment: %s", ui_error)
-                else:
-                    raise
-            return
-
-        # Store conversation data for loading (convert to dicts for JSON serialization)
-        logger.info("Storing conversation %s for loading (%d messages)", conversation_id, len(messages))
-
-        # Convert ConversationRecord to dict for JSON serialization
-        conversation_dict = conversation.model_dump() if hasattr(conversation, 'model_dump') else dict(conversation)
-        logger.info("Converted conversation to dict: %s", conversation_dict)
-
-        # Convert ChatMessageRecord objects to dicts for JSON serialization
-        messages_dicts = []
-        for msg in messages:
-            if hasattr(msg, 'model_dump'):
-                messages_dicts.append(msg.model_dump())
-            else:
-                messages_dicts.append(dict(msg) if hasattr(msg, '__dict__') else msg)
-        logger.info("Converted %d messages to dicts", len(messages_dicts))
-
-        set_conversation_to_load(conversation_id, conversation_dict, messages_dicts)
-        logger.info("Conversation data stored successfully")
-
-        # Navigate to chatbot to trigger conversation loading
-        logger.info("Navigating to /chatbot to load conversation")
-        try:
-            ui.navigate.to('/chatbot')
-            logger.info("Navigation to /chatbot completed")
-        except RuntimeError as ui_error:
-            if "slot cannot be determined" in str(ui_error):
-                logger.debug("UI navigation skipped in test environment: %s", ui_error)
-            else:
-                raise
-
+        # Navigate with URL param so page load reads it and loads the conversation.
+        # This works even when already on /chatbot (forces reload with param).
+        target = f'/chatbot?load_conversation={conversation_id}'
+        logger.info("Navigating to %s to load conversation (full reload with param)", target)
+        ui.navigate.to(target)
+        logger.info("load_conversation: navigation triggered for %s", conversation_id)
+    except RuntimeError as ui_error:
+        if "slot cannot be determined" in str(ui_error):
+            logger.debug("UI navigation skipped in test environment: %s", ui_error)
+        else:
+            raise
     except Exception as e:
         logger.error("Error loading conversation: %s", e)
         try:

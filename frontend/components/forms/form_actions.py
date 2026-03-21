@@ -77,10 +77,19 @@ def render_form_actions(container: ui.element, on_cancel: Callable, on_submit: C
                     on_click=_cancel_wrapper
                 ).classes('bg-gray-300')
 
+                btn_ref = [None]  # Use list to allow closure to capture mutable ref
+
+                async def _submit_wrapper():
+                    """Disable submit button on first click to prevent duplicate submissions."""
+                    if btn_ref[0]:
+                        btn_ref[0].disable()
+                    await on_submit()
+
                 submit_btn = ui.button(
                     '▶ Submit Job',
-                    on_click=on_submit
+                    on_click=_submit_wrapper
                 ).classes('bg-green-600 text-white')
+                btn_ref[0] = submit_btn
 
             return submit_btn
     except Exception as e:

@@ -1,4 +1,4 @@
-from typing import Any, Callable, Mapping, Union, get_type_hints
+from typing import Any, Callable, Mapping, Union, get_type_hints, get_origin, get_args
 
 from pydantic import BaseModel
 from typing_extensions import assert_never
@@ -59,8 +59,18 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
         parameters_schema_key_to_parameter_type.keys()
     ), f"Parameter schema and Typed Dict for parameters must have the same keys. Parameter schema keys: {parameters_schema_key_to_parameter_type.keys()} | Typed Dict keys: {parameters_type_hints.keys()}"
 
+    def _unwrap_optional(hint):
+        """Unwrap NotRequired[X] to X for optional input validation."""
+        try:
+            from typing import NotRequired
+            if get_origin(hint) is NotRequired:
+                return get_args(hint)[0]
+        except Exception:
+            pass
+        return hint
+
     for key in input_schema_input_key_to_input_type:
-        input_type_hint = input_type_hints[key]
+        input_type_hint = _unwrap_optional(input_type_hints[key])
         input_type = input_schema_input_key_to_input_type[key]
         match input_type:
             case InputType.FILE:
@@ -190,11 +200,23 @@ def load_saved_filter(filter_id: str, input_dir: Path) -> Tuple[List[Path], List
 
 
 def collect_inline_file_filter(inputs: dict, input_dir: Path) -> List[Path]:
-    """Collect input file list from uploaded BatchFileInput in the request (inline)."""
+    """Collect input file list from uploaded BatchFileInput in the request (inline).
+    Supports both Pydantic model (.files) and plain dict (["files"]) for file_filter.
+    """
     try:
-        filter_paths = inputs["file_filter"].files
-        if filter_paths:
-            return [Path(f.path) for f in filter_paths]
+        ff = inputs.get("file_filter")
+        if ff is None:
+            return [Path(f) for f in input_dir.iterdir() if f.is_file()]
+        # Support both Pydantic model (.files) and plain dict (["files"])
+        if isinstance(ff, dict):
+            files = ff.get("files") or []
+        else:
+            files = getattr(ff, "files", None) or []
+        if files:
+            return [
+                Path(f.get("path") if isinstance(f, dict) else getattr(f, "path", f))
+                for f in files
+            ]
     except Exception:
         pass
     return [Path(f) for f in input_dir.iterdir() if f.is_file()]
