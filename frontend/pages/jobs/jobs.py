@@ -97,8 +97,12 @@ class JobsPage:
             job_db = get_job_db()
             jobs_data = await job_db.get_all_jobs()
             logger.info("Loaded %d jobs from database", len(jobs_data))
-            
-            self.jobs = jobs_data
+            # Ensure newest first (by startTime descending)
+            self.jobs = sorted(
+                jobs_data,
+                key=lambda j: j.get('startTime') or '',
+                reverse=True
+            )
             logger.debug("Jobs sorted by start time (newest first)")
             await self.render_jobs()
             logger.info("Jobs loaded and rendered successfully")

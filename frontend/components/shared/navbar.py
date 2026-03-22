@@ -79,7 +79,7 @@ def create_navbar():
             with ui.row().classes('gap-4 items-center'):
                 logger.debug("Creating navigation links row")
 
-                ui.link('Model Details', '/models').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
+                ui.link('Plugin Details', '/models').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
                 logger.debug("Models link created")
 
                 ui.link('Assistant', '/chatbot').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
@@ -90,6 +90,9 @@ def create_navbar():
                 
                 ui.link('Logs', '/logs').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
                 logger.debug("Logs link created")
+
+                ui.link('Demo', '/demo').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
+                logger.debug("Demo link created")
 
                 # Theme toggle
                 from frontend.utils.theme import create_theme_toggle

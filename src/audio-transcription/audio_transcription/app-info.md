@@ -1,45 +1,26 @@
-## Audio Transcription
+# Audio Transcription
 
-### Installing requirements
-
-1. Install ffmpeg(.exe on windows)
-```
-sudo apt update && sudo apt install ffmpeg
-```
-2. Install poetry with pip/pipx
-```
-poetry lock ( refer dependencies listed in pyproject.toml)
-```
-3. Install dependencies
-```
-poetry install
-```
-
-### Starting the server
-
-```
-run_server
-
-```
-
-### Client command line example
-
-```
-sample file : <RescueBOX_HOME>src\audio-transcription\tests\sample.mp3
-poetry run  typer audio_transcription.main run transcribe "<PATH-to>\src\audio-transcription\tests\sample.mp3"
+Audio Transcription uses Whisper to transcribe speech in audio files. It processes all supported audio files in a directory (including subdirectories) and returns the transcription text for each file.
+Note : this is a CPU intensive operation and not a GPU load. and hence takes  time per audio file
 
 
-negative test : typer audio_transcription.main run transcribe "sample.mp3" "'e1': 'example', 'e2' : 0.1, 'e3': 1"
-ERROR:audio_transcription.main:Invalid full path input for transcribe command: sample.mp3
-Aborted.
+## Inputs
 
+- **Audio Directory:** Path to a directory containing audio files to transcribe. Supported formats: .mp3, .wav, .flac, .aac.
+
+## Outputs
+
+- **Batch Text Response:** Each audio file is returned with:
+  - **Title:** Source file path
+  - **Value:** Transcription text for that file
+
+### Sample Output
+
+```json
+{
+  "file_path": "/path/to/recording.mp3",
+  "result": "Hello, this is the transcribed text from the audio file."
+}
 ```
 
-### Command line tool
-```
-poetry run typer audio_transcription.main --help
-```
-Transcribe a single file
-```
-poetry run typer audio_transcription.main run transcribe "full_path_to_mp3_file"
-```
+Results can be viewed in the Jobs page. Each transcription is shown with its source file path and the transcribed text.

@@ -14,11 +14,11 @@ Usage:
 
 # UI Titles
 UI_TITLES = {
-    'models': 'Available Models',
+    'models': 'Available Plugins',
     'jobs': 'Jobs',
     'chatbot': 'RescueBox Assistant',
     'logs': 'Application Logs',
-    'model_details': 'Model Details',
+    'model_details': 'Plugin Details',
     'job_details': 'Job Details',
     'home': 'Welcome to RescueBox Desktop',
     'home_subtitle': 'Select a model or use the Assistant to get started',
@@ -34,7 +34,7 @@ UI_BUTTONS = {
     'inspect': 'Inspect',
     'run': 'Run Model',
     'connect': 'Connect',
-    'browse_models': 'Browse Models',
+    'browse_models': 'Browse Plugins',
     'open_assistant': 'Open Assistant',
     'view_jobs': 'View Jobs',
     'new_conversation': 'New Conversation',
@@ -69,6 +69,7 @@ NAV_LINKS = {
     'jobs': '/jobs',
     'chatbot': '/chatbot',
     'logs': '/logs',
+    'demo': '/demo',
     'home': '/',
 }
 

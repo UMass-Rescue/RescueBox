@@ -42,6 +42,7 @@ from frontend.utils.logging_context import configure_logging_with_context
 import frontend.pages.models
 import frontend.pages.chatbot
 import frontend.pages.jobs
+import frontend.pages.demo
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -356,6 +357,12 @@ if __name__ in {"__main__", "__mp_main__"}:
     # Setup backend routes integration before starting the server
     setup_backend_routes()
     logger.info("Backend API routes integrated: %s", BACKEND_AVAILABLE)
+
+    # Serve demo PDFs at /demo/...
+    demo_dir = Path(__file__).parent / 'demo'
+    if demo_dir.exists():
+        app.add_static_files(url_path='/demo', local_directory=str(demo_dir))
+        logger.info("Demo PDFs served at /demo/")
     
     # Register the startup handler. This is the compatible way for older NiceGUI versions.
     app.on_startup(prefetch_and_cache_models)

@@ -200,7 +200,7 @@ class ModelsPage:
                 # fallback to inline rendering
                 if online_models:
                     logger.debug("Rendering online models (fallback)")
-                    ui.label('Available Models').classes('text-2xl font-bold mt-6 mb-4')
+                    # ui.label('Available Models').classes('text-2xl font-bold mt-6 mb-4')
                     for model in online_models:
                         render_model_card(
                             self.models_container,

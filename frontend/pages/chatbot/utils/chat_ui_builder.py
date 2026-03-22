@@ -95,9 +95,9 @@ class ChatUIBuilder:
     def _create_ui_state(self):
         """Create initial UI state."""
         return {
-            'current_mode': 'analyze',  # Default to analyze mode
-            'chat_visible': True,       # Chat always visible for context
-            'input_visible': True       # Input visible in analyze mode only
+            'current_mode': 'assistant',  # Default to Assistant mode
+            'chat_visible': True,        # Chat always visible for context
+            'input_visible': True        # Input visible in Assistant mode only
         }
 
     def _build_header(self, ui_state):
@@ -120,10 +120,10 @@ class ChatUIBuilder:
                     ui.icon('smart_toy', size='1.5rem').classes('text-blue-600')
                     # ui.label('🤖 Assistant').classes('text-lg font-semibold text-gray-800 mr-2')
                     ui.label('RescueBox Assistant').classes('text-sm text-gray-600')
-                    mode_indicator = ui.badge('Analyze', color='green').classes('text-xs')
+                    mode_indicator = ui.badge('Assistant', color='green').classes('text-xs')
                 with ui.row().classes('items-center gap-3'):
                     models_btn = ui.button('📋 Models').classes(UIStyling.BUTTON_ENABLED)
-                    analyze_btn = ui.button('🧠 Analyze').classes(UIStyling.BUTTON_ENABLED)
+                    analyze_btn = ui.button('🧠 Assistant').classes(UIStyling.BUTTON_ENABLED)
                     ui.button('📜 History', on_click=self._show_history_dialog).classes(UIStyling.BUTTON_ENABLED)
                     ui.button('New Conversation', on_click=self.on_new_conversation).classes(UIStyling.BUTTON_ENABLED)
             self.mode_indicator = mode_indicator
@@ -193,7 +193,7 @@ class ChatUIBuilder:
             await show_tool_picker(chat_container, self.tool_registry, on_tool_selected)
 
         async def handle_analyze_click():
-            await switch_mode('analyze')
+            await switch_mode('assistant')
 
         # Bind button handlers
         self.models_btn.on_click(handle_models_click)

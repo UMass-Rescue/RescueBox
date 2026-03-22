@@ -1,5 +1,6 @@
 """audio transcribe plugin"""
 
+import os
 import logging
 from typing import List, TypedDict
 
@@ -27,12 +28,18 @@ logging.basicConfig(
 
 APP_NAME = "audio"
 ml_service = MLService(APP_NAME)
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+info_file_path = os.path.join(script_dir, "app-info.md")
+with open(info_file_path, "r") as f:
+    info = f.read()
+
 ml_service.add_app_metadata(
     plugin_name=APP_NAME,
     name="Audio Transcription",
     author="RescueBox Team",
     version="2.0.0",
-    info="A parser for transcribing audio files.",
+    info=info,
 )
 
 model = AudioTranscriptionModel()

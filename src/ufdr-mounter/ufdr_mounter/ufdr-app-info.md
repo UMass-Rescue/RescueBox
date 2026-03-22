@@ -12,14 +12,19 @@ A `.ufdr` file is a Cellebrite forensic export that combines an XML metadata blo
 
 ### OS-Specific Notes
 
-#### Windows 
+#### Linux 
+Install FUSE via your package manager:
 
-Requires Windows File System Proxy setup - [WinFsp (FUSE-compatible)](https://github.com/winfsp/winfsp/releases)
-This is auto  Downloaded (Release 2.0 is recommended) and installed . 
+```bash
+sudo apt update && sudo apt install fuse
+```
+If needed, also allow non-root FUSE mounts (depending on distro):
+```bash
+sudo usermod -a -G fuse $(whoami)
+```
 
-If  manual install, it is mandatory to select the `Developer` feature in the Custom Setup wizard.
+Then log out and log back in to apply group changes.
 
-Note: the rescuebox plugin will mount a drive letter .
 
 ## Usage
 
@@ -27,8 +32,10 @@ Note: the rescuebox plugin will mount a drive letter .
 
 1. Open the RescueBox model interface and run the UFDR Mount Service
 2. Specify the mount point:
-   - **Windows**:  
-     Enter a valid **drive letter** (e.g., `M:` or `R:`) as the mount point.
+   - **Linux**:
+     Specify the mount point:
+        Use an absolute path (e.g., /mnt/test1)
+        or a short name like test1 (which will be mounted inside the repo's mnt/ folder)
 
 Note:  When you exit the RescueBox desktop the path will be un-mounted. Unmount task is not supported in this version.
 

@@ -129,7 +129,7 @@ class MessageProcessor:
                     elif result_type == 'analysis_picker':
                         update_status_callback("Choose an option from the menu above", scroll_after=False)
                     elif result_type in ('show_form', 'multi_tool_calls'):
-                        update_status_callback("Fill the form above and click Submit Job", scroll_to_form=True)
+                        update_status_callback("Fill the Input form above and click Submit Job", scroll_to_form=True)
                     else:
                         update_status_callback("Ready")
                 except Exception:

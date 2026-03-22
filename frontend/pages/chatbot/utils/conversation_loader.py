@@ -43,6 +43,16 @@ class ConversationLoader:
             # Append all historical messages
             await self._load_all_messages(messages)
 
+            # Disable input: loaded conversation is view-only (read, review, re-run).
+            # User must start New Conversation to type a new prompt.
+            try:
+                self.chatbot_page.state_manager.set_input_enabled(False)
+                self.chatbot_page.state_manager.set_status(
+                    "View previous chat, re-run model or start a new conversation"
+                )
+            except Exception as e:
+                self.logger.debug("Could not disable input after load: %s", e)
+
             self.logger.info("Historical conversation appended successfully: %s", conversation_id)
 
         except KeyError as e:

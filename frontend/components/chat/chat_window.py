@@ -6,7 +6,7 @@ def render_welcome_message(container: ui.element) -> None:
     """
     Render the standard welcome message into the given container.
 
-    Used by: Open Assistant (initial load), New Conversation, and switching to Analyze mode.
+    Used by: Open Assistant (initial load), New Conversation, and switching to Assistant mode.
     Keeps all three entry points consistent with the same friendly greeting.
     """
     with container:

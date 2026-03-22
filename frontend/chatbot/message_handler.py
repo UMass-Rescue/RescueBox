@@ -179,8 +179,8 @@ class MessageHandler:
             logger.info("Returning model picker request")
             return {'type': 'tool_picker', 'content': None}
         
-        if command == '/analyze':
-            logger.info("Processing /analyze command")
+        if command == '/assistant':
+            logger.info("Processing /assistant command")
             # For /analyze without args, show analysis type picker
             if not args:
                 logger.info("No args provided, showing analysis picker")

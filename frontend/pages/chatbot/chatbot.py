@@ -510,7 +510,7 @@ class ChatbotPage:
     async def _handle_new_conversation(self):
         """Handle new conversation request."""
         self.state_manager.reset_conversation()
-        # Clear chat container and show welcome message (shared with Analyze mode & initial load)
+        # Clear chat container and show welcome message (shared with Assistant mode & initial load)
         self.chat_container.clear()
         from frontend.components.chat.chat_window import render_welcome_message
         render_welcome_message(self.chat_container)

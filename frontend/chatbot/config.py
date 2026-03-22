@@ -112,7 +112,7 @@ class ToolRegistry:
         '/find-faces': 'face-match/findfacebulk',
         '/summarize': 'text_summarization/summarize',
         '/models': 'pick_tool',
-        '/analyze': 'smart_analyze',
+        '/assistant': 'smart_analyze',
         '/help': 'help',
     }
     
@@ -183,7 +183,7 @@ class ToolRegistry:
         
         The help text includes:
         - List of all slash commands with descriptions
-        - Special commands (/models, /analyze, /help)
+        - Special commands (/models, /assistant, /help)
         - Natural language usage examples
         - Overview of available methods
         
@@ -209,7 +209,7 @@ class ToolRegistry:
 
 #### Three different ways to use RescueBox Assistant
 1. **Model Picker** - **Type `/models`** to see all the models and you pick one
-2. **Smart Analyze** - Enter a **prompt model task in natural language**
+2. **Assistant** - Enter a **prompt model task in natural language**
 -**Transcribe** audio files in /evidence/recordings
 or
 -**Summarize** photos in /images/case456

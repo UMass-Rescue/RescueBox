@@ -46,12 +46,25 @@ image-summary = { path = "src/image-summary", develop = true }
 beautifulsoup4 = "^4.13.3"
 nicegui = "3.2"
 
+# for text_embeddings
+torch = "2.7.1"
+transformers = "^4.40.0"
+sentence-transformers = "3.0.1"
+
+# Text Processing
+langchain-text-splitters = "^1.0"
+
+# Database
+sqlmodel = "^0.0.27"
+psycopg2-binary = "^2.9.11"
+pgvector = "^0.4.1"
+
 # ONNX Runtime: use manual pip install for GPU on arm64 (chromadb pulls CPU version, overwrites GPU)
 # See docs/DGX_SPARK.md for: pip install https://github.com/ultralytics/assets/releases/download/v0.0.0/onnxruntime_gpu-1.24.0-cp312-cp312-linux_aarch64.whl
 
 cmake = "^4.2.3"
 ninja = "^1.13.0"
-packaging = "^26.0"
+packaging = ">=23.2"
 wheel = "^0.46.3"
 llama-cpp-python = "^0.3.16"
 

@@ -17,7 +17,7 @@ def render_models_list(container: ui.element, models: List[Dict[str, Any]], serv
             offline_models = [m for m in models if server_statuses.get(m['uid']) != 'Online']
 
             if online_models:
-                ui.label('Available Models').classes('text-2xl font-bold mt-6 mb-4')
+                # ui.label('Available Models').classes('text-2xl font-bold mt-6 mb-4')
                 for model in online_models:
                     from frontend.components.models.model_card import render_model_card
                     render_model_card(

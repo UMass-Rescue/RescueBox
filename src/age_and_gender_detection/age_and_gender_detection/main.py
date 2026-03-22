@@ -1,3 +1,4 @@
+import os
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     BatchFileResponse,
@@ -48,12 +49,18 @@ class Parameters(TypedDict):
 
 
 server = MLService(APP_NAME)
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+info_file_path = os.path.join(script_dir, "app-info.md")
+with open(info_file_path, "r") as f:
+    info = f.read()
+
 server.add_app_metadata(
     plugin_name=APP_NAME,
     name="Age and Gender Classifier",
     author="UMass Rescue",
     version="2.1.0",
-    info="Model to classify the age and gender of all faces in an image.",
+    info=info,
     gpu=True,
 )
 models_dir = Path("src/age_and_gender_detection/models")

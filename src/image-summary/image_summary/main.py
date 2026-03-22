@@ -3,6 +3,7 @@ from pathlib import Path
 import logging
 import json
 import typer
+import os
 
 from rb.lib.ml_service import MLService
 from rb.lib.utils import (
@@ -77,17 +78,19 @@ def task_schema() -> TaskSchema:
 
 
 server = MLService(APP_NAME)
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+info_file_path = os.path.join(script_dir, "app-info.md")
+with open(info_file_path, "r") as f:
+    info = f.read()
+
 server.add_app_metadata(
     plugin_name=APP_NAME,
     name="Image Summary",
     author="UMass Rescue",
     version="1.0.0",
-    info=(
-        "This plugin lets you generate rich descriptions for every image in a folder. "
-        "For each image, it identifies the scene and setting, key objects and their attributes (colors, counts, positions), "
-        "people and actions (if present), visible text (quoted verbatim), and notable visual details like lighting and composition. "
-        "Input: a directory of images. Output: a matching directory of .txt files (one per image) containing the description."
-    ),
+    info=info,
+    gpu=True,
 )
 
 

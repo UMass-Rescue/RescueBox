@@ -25,13 +25,13 @@ class UIModeManager:
         Args:
             mode_indicator: UI element showing current mode
             models_btn: Models mode button
-            analyze_btn: Analyze mode button
+            analyze_btn: Assistant mode button
             chat_container: Chat messages container
             status_text_ref: Status text reference (optional)
             form_submit_handler: Form submit handler (optional)
             core: Chatbot core (optional)
             state_manager: ChatbotStateManager (optional) - cleared when switching modes
-            show_welcome_callback: Callable(container) to show welcome message when switching to analyze (optional)
+            show_welcome_callback: Callable(container) to show welcome message when switching to Assistant (optional)
         """
         self.mode_indicator = mode_indicator
         self.models_btn = models_btn
@@ -49,7 +49,7 @@ class UIModeManager:
         Switch between different UI modes.
 
         Args:
-            mode: Mode to switch to ('analyze' or 'models')
+            mode: Mode to switch to ('assistant' or 'models')
             input_area: Input area element (optional)
         """
         # Clear in-memory messages so the new mode shows a clean slate
@@ -62,8 +62,8 @@ class UIModeManager:
         self.chat_container.clear()
         self.logger.debug("Cleared chat container when switching to %s mode", mode)
 
-        if mode == 'analyze':
-            self.mode_indicator.text = 'Analyze'
+        if mode == 'assistant':
+            self.mode_indicator.text = 'Assistant'
             self.mode_indicator.props('color=green')
 
             # Show welcome message (same as New Conversation & initial load)
@@ -71,7 +71,7 @@ class UIModeManager:
                 try:
                     self.show_welcome_callback(self.chat_container)
                 except Exception as e:
-                    self.logger.debug("Failed to show welcome message on analyze switch: %s", e)
+                    self.logger.debug("Failed to show welcome message on Assistant switch: %s", e)
 
             # Update button styles
             self.analyze_btn.classes(UIStyling.BUTTON_ENABLED, remove=UIStyling.BUTTON_DISABLED)
@@ -98,5 +98,5 @@ class UIModeManager:
                 input_area.classes('hidden')
 
         self.logger.info("Switched to %s mode", mode)
-        UIOperations.safe_notify(f'Switched to {mode} mode', type='info', timeout=1000)
+        UIOperations.safe_notify(f'Switched to {mode.capitalize()} mode', type='info', timeout=1000)
 
