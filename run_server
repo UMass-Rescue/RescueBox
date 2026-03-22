@@ -1,3 +1,10 @@
 #!/usr/bin/env bash
 
+# for face-recognition
+export CUDNN_HOME=~/cudnn/cudnn-linux-aarch64-9.13.1.26_cuda13-archive
+export LD_LIBRARY_PATH=$CUDNN_HOME/lib:$LD_LIBRARY_PATH
+ls $CUDNN_HOME/lib/libcudnn.so
+
+
+
 poetry run python -m src.rb-api.rb.api.main

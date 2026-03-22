@@ -104,24 +104,33 @@ def render_job_row(
             logger.warning("Failed to parse end time: %s, error: %s", job['endTime'], e)
             end_time_str = job['endTime']
     
+    job_uid = job.get('uid', 'N/A')
     with container:
-        with ui.row().classes('p-4 border-b hover:bg-gray-50 items-center w-full'):
-            # Job ID
-            ui.label(job.get('uid', 'N/A')).classes('w-36 font-mono text-sm')
+        with ui.row().classes('p-4 border-b hover:bg-gray-50 items-center w-full flex-nowrap gap-2'):
+            # Job ID - truncated with ellipsis, full ID on hover
+            with ui.element('div').classes('w-40 min-w-0 shrink-0'):
+                id_label = ui.label(job_uid).classes('font-mono text-sm truncate block')
+                id_label.tooltip(job_uid)
 
-            # Model name
-            ui.label(plugin_name or 'Unknown').classes('flex-1')
+            # Model name (and notes indicator)
+            with ui.element('div').classes('flex-1 min-w-0 overflow-hidden flex items-center gap-2'):
+                ui.label(plugin_name or 'Unknown').classes('truncate block')
+                if job.get('caseNotes'):
+                    notes_preview = (job['caseNotes'] or '')[:50]
+                    if len(job.get('caseNotes', '') or '') > 50:
+                        notes_preview += '…'
+                    ui.icon('description', size='sm').classes('text-gray-500 shrink-0').tooltip(notes_preview)
             
             # Times (start / end)
-            with ui.column().classes('w-64'):
+            with ui.column().classes('w-64 shrink-0'):
                 ui.label(start_time_str).classes('text-sm')
                 ui.label(end_time_str).classes('text-xs text-gray-600')
             
             # Status
-            ui.label(status).classes(f'w-32 {status_color} font-semibold')
+            ui.label(status).classes(f'w-32 shrink-0 {status_color} font-semibold')
             
             # Actions
-            with ui.row().classes('gap-2 w-48'):
+            with ui.row().classes('gap-2 w-48 shrink-0'):
                 if on_view:
                     ui.button(
                         'View',

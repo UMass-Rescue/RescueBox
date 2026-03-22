@@ -12,6 +12,7 @@ from rb.api.models import TaskSchema
 from frontend.pages.chatbot.utils.ui_operations import UIOperations
 from frontend.chatbot.core import ChatbotCore
 from frontend.pages.chatbot.utils.job_submission_orchestrator import JobSubmissionOrchestrator
+from frontend.components.forms.case_notes_dialog import show_case_notes_dialog
 
 
 # Configure logging for this module
@@ -59,13 +60,20 @@ class FormSubmitHandler:
             remaining_calls: Remaining tool calls in sequence
             conversation_id: Conversation ID for message saving
         """
+        # Show case notes modal before submitting
+        case_notes = await show_case_notes_dialog()
+        if case_notes is None:
+            logger.debug("User cancelled case notes dialog, aborting submission")
+            return False
+
         # Scroll to bottom to ensure the user sees the progress
         UIOperations.scroll_to_bottom()
 
         await self.job_orchestrator.submit_job(
             request_body, endpoint, task_schema, container, core,
-            remaining_calls, conversation_id
+            remaining_calls, conversation_id, case_notes=case_notes or None
         )
+        return True
 
     def _report_error(self, title: str, details: str = None):
         """Report an error (placeholder for future implementation)."""

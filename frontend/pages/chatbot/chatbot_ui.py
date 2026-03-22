@@ -42,7 +42,7 @@ def create_chat_ui(
             It must have a 'status_text' attribute that the status label will bind to.
 
     Returns:
-        tuple[ui.element, ui.textarea, ui.label]: Tuple of (chat_container, input_field, status_label)
+        tuple[ui.element, ui.textarea, ui.label, ui.element]: Tuple of (chat_container, input_field, status_label, input_area)
     """
     logger.info("Creating chat UI using ChatUIBuilder")
 

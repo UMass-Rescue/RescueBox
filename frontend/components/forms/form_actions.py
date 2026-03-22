@@ -83,7 +83,9 @@ def render_form_actions(container: ui.element, on_cancel: Callable, on_submit: C
                     """Disable submit button on first click to prevent duplicate submissions."""
                     if btn_ref[0]:
                         btn_ref[0].disable()
-                    await on_submit()
+                    submitted = await on_submit()
+                    if btn_ref[0] and submitted is not True:
+                        btn_ref[0].enable()
 
                 submit_btn = ui.button(
                     '▶ Submit Job',

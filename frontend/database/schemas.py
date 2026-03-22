@@ -64,7 +64,8 @@ class JobDatabaseSchema(DatabaseSchema):
                 request TEXT NOT NULL,
                 response TEXT,
                 taskSchema TEXT NOT NULL,
-                filterId TEXT
+                filterId TEXT,
+                caseNotes TEXT
             )
             """,
             """

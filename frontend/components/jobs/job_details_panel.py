@@ -14,17 +14,27 @@ logger.setLevel(logging.INFO)
 
 async def render_job_details_panel(container: ui.element, api_client, job_fields: dict) -> None:
     """
-    Render the job details panel: metadata, model info, and read-only form.
+    Render the job details panel: metadata, model info, case notes, and read-only form.
     """
     job_uid = job_fields.get('uid')
     request_body_dict = job_fields.get('request', {})
     task_schema_dict = job_fields.get('taskSchema')
+    case_notes = job_fields.get('caseNotes')
 
     with container:
         with ui.card().classes('bg-white border border-gray-300 p-6'):
             # Job metadata header
             with ui.column().classes('gap-4'):
                 ui.label('Job Information').classes('text-2xl font-bold')
+
+                # Case notes section
+                if case_notes:
+                    with ui.column().classes('gap-2'):
+                        ui.label('Case Notes').classes('font-semibold text-gray-700')
+                        ui.label(case_notes).classes('text-gray-800 whitespace-pre-wrap rounded p-3 bg-gray-50 border border-gray-200')
+                elif case_notes is not None and case_notes == '':
+                    pass  # Empty notes, don't show section
+                # If caseNotes key not present (older jobs), don't show
 
                 # Basic info
                 render_job_metadata(job_fields)

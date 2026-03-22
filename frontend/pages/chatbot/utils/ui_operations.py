@@ -65,3 +65,18 @@ class UIOperations:
                 });
             }, 100);
         """)
+
+    @staticmethod
+    def scroll_form_into_view():
+        """Scroll the displayed form into view (to top of viewport) instead of page bottom."""
+        ui.run_javascript("""
+            setTimeout(() => {
+                const forms = document.querySelectorAll('.rb-form-wrapper');
+                const form = forms.length ? forms[forms.length - 1] : null;
+                if (form) {
+                    form.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                } else {
+                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                }
+            }, 150);
+        """)

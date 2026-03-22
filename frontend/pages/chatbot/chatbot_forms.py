@@ -151,7 +151,8 @@ async def load_and_show_form(
     core: ChatbotCore,
     endpoint: str,
     arguments: dict,
-    on_form_submit: Callable
+    on_form_submit: Callable,
+    on_form_cancel: Optional[Callable] = None
 ) -> Optional[ui.element]:
     """
     Load task schema and show form.
@@ -243,11 +244,11 @@ async def load_and_show_form(
             render_container = get_global_chat_container() or container
             if render_container is not None:
                 with render_container:
-                    wrapper = ui.column().classes('w-full')
+                    wrapper = ui.column().classes('w-full rb-form-wrapper')
             else:
-                wrapper = ui.column().classes('w-full')
+                wrapper = ui.column().classes('w-full rb-form-wrapper')
         except RuntimeError:
-            wrapper = ui.column().classes('w-full')
+            wrapper = ui.column().classes('w-full rb-form-wrapper')
 
         # Create form and add to wrapper
         # Note: on_submit callback receives (request_body, endpoint, task_schema)
@@ -303,7 +304,8 @@ async def load_and_show_form(
                     task_schema=task_schema,
                     endpoint=endpoint,
                     initial_values=initial_values,
-                    on_submit=_on_submit_wrapper
+                    on_submit=_on_submit_wrapper,
+                    on_cancel=on_form_cancel
                 )
             # Attach selection_card to the form_card so the Cancel handler can remove it directly.
             try:

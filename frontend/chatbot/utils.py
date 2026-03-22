@@ -235,13 +235,13 @@ I am **RescueBox Forensic Assistant** - I only handle forensic analysis tasks.
 
 | Task | Example |
 |------|---------|
-| 🎤 **Transcribe Audio** | "Transcribe recordings in /evidence/audio" |
-| 🖼️ **Describe Images** | "Describe photos in /case/images" |
-| 👤 **Age & Gender** | "Classify faces in /suspects" |
-| 🔍 **Detect Deepfakes** | "Check /evidence/videos for deepfakes" |
-| 📤 **Upload Faces** | "Upload faces from /known to suspects collection" |
-| 🔎 **Find Faces** | "Find matching faces in /unknown" |
-| 📝 **Summarize Text** | "Summarize documents in /case/reports" |
+| 🎤 **Transcribe Audio** | Transcribe recordings in /evidence/audio |
+| 🖼️ **Describe Images** | Describe photos in /case/images |
+| 👤 **Age & Gender** | Classify faces in /suspects |
+| 🔍 **Detect Deepfakes** | Check /evidence/videos for deepfakes |
+| 📤 **Upload Faces** | Upload faces from /known to suspects collection |
+| 🔎 **Find Faces** | Find matching faces in /unknown |
+| 📝 **Summarize Text** | Summarize documents in /case/reports |
 
 Please rephrase your request as a forensic analysis task."""
     else:  # no_match

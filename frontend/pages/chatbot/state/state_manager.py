@@ -35,6 +35,7 @@ class ChatbotStateManager:
         self.is_processing = False
         self.status_text = "Ready"
         self.input_field = None  # Will be set by UI
+        self.input_area = None  # Optional: container with input_field + send_button
 
         logger.debug("ChatbotStateManager initialized")
 
@@ -111,6 +112,40 @@ class ChatbotStateManager:
         """
         self.input_field = input_field
 
+    def set_input_area(self, input_area):
+        """
+        Set the input area container (has input_field and send_button).
+        Used by set_input_enabled to disable/enable both.
+
+        Args:
+            input_area: Container with .input_field and .send_button
+        """
+        self.input_area = input_area
+        if input_area and not self.input_field:
+            self.input_field = getattr(input_area, 'input_field', None)
+
+    def set_input_enabled(self, enabled: bool):
+        """
+        Enable or disable the input area based on whether the system is ready for a new prompt.
+        Input is enabled only when there is no pending chat interaction.
+
+        Args:
+            enabled: True to enable (ready for new prompt), False to disable
+        """
+        try:
+            area = self.input_area or (self.input_field and getattr(self.input_field, 'parent', None))
+            if area:
+                field = getattr(area, 'input_field', None) or self.input_field
+                btn = getattr(area, 'send_button', None)
+                if field:
+                    (field.enable() if enabled else field.disable())
+                if btn:
+                    (btn.enable() if enabled else btn.disable())
+            elif self.input_field:
+                (self.input_field.enable() if enabled else self.input_field.disable())
+        except Exception as e:
+            logger.debug("Could not set input enabled=%s: %s", enabled, e)
+
     def clear_input(self):
         """Clear the input field if it exists."""
         if self.input_field:
@@ -121,7 +156,7 @@ class ChatbotStateManager:
         self.clear_messages()
         self.conversation_id = None
         self.clear_input()
-        self.set_status("New conversation started")
+        self.set_status("Ready")
         logger.info("Conversation reset")
 
     def get_conversation_summary(self) -> dict:

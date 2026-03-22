@@ -21,6 +21,7 @@ async def render_job_outputs_card(container, api_client, job):
     status = job_fields['status']
     status_text = job_fields['statusText']
     task_schema_dict = job_fields['taskSchema']
+    endpoint = job_fields['endpoint']
 
     logger.info("Rendering job outputs for job: %s", job_uid)
 
@@ -50,7 +51,7 @@ async def render_job_outputs_card(container, api_client, job):
         with ui.row().classes('items-center justify-between mb-4'):
             try:
                 task_schema = TaskSchema(**task_schema_dict) if isinstance(task_schema_dict, dict) else task_schema_dict
-                task_title = 'Results'
+                task_title = 'Results ' + endpoint
             except Exception:
                 task_title = task_schema_dict.get('shortTitle', 'Results') if isinstance(task_schema_dict, dict) else 'Results'
 

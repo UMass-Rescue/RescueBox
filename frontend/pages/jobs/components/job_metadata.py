@@ -87,7 +87,7 @@ async def render_model_info(api_client, job_fields: Dict[str, Any]):
         endpoint = job_fields.get('endpoint') or job_fields.get('taskUid')
         if endpoint:
             with ui.row().classes('items-center gap-2 mt-4'):
-                ui.label('Endpoint:').classes('font-semibold')
+                ui.label('Model:').classes('font-semibold')
                 ui.label(endpoint).classes('flex-1 text-sm text-gray-600')
                 logger.debug("Job uses endpoint directly: %s", endpoint)
 

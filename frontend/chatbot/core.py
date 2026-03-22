@@ -57,8 +57,8 @@ class ThinChatbotCore:
     def convert_arguments_to_initial_values(self, arguments: Dict[str, Any], task_schema: TaskSchema, endpoint: str = "") -> Dict[str, Any]:
         return _convert(arguments, task_schema, endpoint)
 
-    async def create_input_form(self, task_schema: TaskSchema, endpoint: str, initial_values: Optional[Dict] = None, on_submit: callable = None):
-        return await _create(task_schema, endpoint, initial_values=initial_values, on_submit=on_submit)
+    async def create_input_form(self, task_schema: TaskSchema, endpoint: str, initial_values: Optional[Dict] = None, on_submit: callable = None, on_cancel: callable = None):
+        return await _create(task_schema, endpoint, initial_values=initial_values, on_submit=on_submit, on_cancel=on_cancel)
 
     async def submit_job(self, request_body: RequestBody, endpoint: str) -> ResponseBody:
         api_endpoint = f"{'' if endpoint.startswith('/') else '/'}{endpoint}"

@@ -48,7 +48,8 @@ class ResultProcessor:
                            add_message_callback: Callable,
                            show_error_callback: Callable,
                            update_status_callback: Callable,
-                           load_form_callback: Callable = None):
+                           load_form_callback: Callable = None,
+                           set_input_enabled_callback: Callable = None):
         """
         Process a handler result and trigger appropriate actions.
 
@@ -65,35 +66,56 @@ class ResultProcessor:
         result_type = result.get('type', 'unknown')
         logger.info("Processing result type: %s", result_type)
 
+        def _set_input(enabled: bool):
+            if set_input_enabled_callback:
+                try:
+                    set_input_enabled_callback(enabled)
+                except Exception:
+                    pass
+
         try:
             if result_type == 'show_form':
+                _set_input(False)
                 await self._handle_show_form(result, container, core, load_form_callback)
+                update_status_callback("Ready", scroll_to_form=True)
+                return
 
             elif result_type == 'multi_tool_calls':
+                _set_input(False)
                 await self._handle_multi_tool_calls(result, container, load_form_callback, add_message_callback)
 
             elif result_type == 'message':
+                _set_input(True)
                 logger.info("About to call _handle_message for result: %s", result)
                 await self._handle_message(result, add_message_callback)
                 logger.info("_handle_message completed")
 
             elif result_type == 'error':
+                _set_input(True)
                 await self._handle_error(result, show_error_callback)
 
             elif result_type == 'help':
+                _set_input(True)
                 await self._handle_help(result, add_message_callback)
 
             elif result_type == 'tool_picker':
+                _set_input(False)
                 await self._handle_tool_picker(result, container, add_message_callback)
+                update_status_callback("Ready", scroll_after=False)
+                return
 
             elif result_type == 'analysis_picker':
+                _set_input(False)
                 await self._handle_analysis_picker(result, container, add_message_callback)
+                update_status_callback("Ready", scroll_after=False)
+                return
 
             else:
+                _set_input(True)
                 logger.warning("Unknown result type: %s", result_type)
                 show_error_callback(f"Unknown response type: {result_type}")
 
-            update_status_callback("Ready")
+            update_status_callback("Ready", scroll_to_form=False)
 
         except Exception as e:
             logger.error("Error processing result: %s", str(e))
@@ -107,13 +129,21 @@ class ResultProcessor:
         if load_form_callback:
             await load_form_callback(endpoint, arguments)
         else:
-            # Fallback to direct form loading
+            # Fallback to direct form loading (rare - load_form_callback usually set)
+            def _on_cancel():
+                if self.state_manager:
+                    try:
+                        self.state_manager.set_input_enabled(True)
+                    except Exception:
+                        pass
+
             await load_and_show_form(
                 container=container,
                 core=core,
                 endpoint=endpoint,
                 arguments=arguments,
-                on_form_submit=self._create_form_submit_handler(container, core)
+                on_form_submit=self._create_form_submit_handler(container, core),
+                on_form_cancel=_on_cancel
             )
 
     async def _handle_multi_tool_calls(self, result: Dict[str, Any], container, load_form_callback, add_message_callback):

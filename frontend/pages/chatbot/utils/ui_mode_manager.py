@@ -17,7 +17,8 @@ class UIModeManager:
     """Handles UI mode switching and related operations."""
 
     def __init__(self, mode_indicator, models_btn, analyze_btn, chat_container,
-                 status_text_ref=None, form_submit_handler=None, core=None, state_manager=None):
+                 status_text_ref=None, form_submit_handler=None, core=None, state_manager=None,
+                 show_welcome_callback=None):
         """
         Initialize UI mode manager.
 
@@ -30,11 +31,13 @@ class UIModeManager:
             form_submit_handler: Form submit handler (optional)
             core: Chatbot core (optional)
             state_manager: ChatbotStateManager (optional) - cleared when switching modes
+            show_welcome_callback: Callable(container) to show welcome message when switching to analyze (optional)
         """
         self.mode_indicator = mode_indicator
         self.models_btn = models_btn
         self.analyze_btn = analyze_btn
         self.chat_container = chat_container
+        self.show_welcome_callback = show_welcome_callback
         self.status_text_ref = status_text_ref
         self.form_submit_handler = form_submit_handler
         self.core = core
@@ -53,6 +56,8 @@ class UIModeManager:
         if self.state_manager and hasattr(self.state_manager, 'clear_messages'):
             self.state_manager.clear_messages()
             self.logger.debug("Cleared state manager messages when switching to %s mode", mode)
+        if self.state_manager and hasattr(self.state_manager, 'set_status'):
+            self.state_manager.set_status("Ready")
         # Clear chat container when switching modes to remove all UI elements
         self.chat_container.clear()
         self.logger.debug("Cleared chat container when switching to %s mode", mode)
@@ -60,6 +65,13 @@ class UIModeManager:
         if mode == 'analyze':
             self.mode_indicator.text = 'Analyze'
             self.mode_indicator.props('color=green')
+
+            # Show welcome message (same as New Conversation & initial load)
+            if self.show_welcome_callback:
+                try:
+                    self.show_welcome_callback(self.chat_container)
+                except Exception as e:
+                    self.logger.debug("Failed to show welcome message on analyze switch: %s", e)
 
             # Update button styles
             self.analyze_btn.classes(UIStyling.BUTTON_ENABLED, remove=UIStyling.BUTTON_DISABLED)
@@ -69,6 +81,8 @@ class UIModeManager:
             if input_area is not None:
                 self.chat_container.classes('', remove='hidden')
                 input_area.classes('', remove='hidden')
+                if self.state_manager:
+                    self.state_manager.set_input_enabled(True)  # Ready for new prompt
 
         elif mode == 'models':
             self.mode_indicator.text = 'Models'

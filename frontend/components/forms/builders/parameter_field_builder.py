@@ -2,11 +2,12 @@
 Parameter Field Builder
 
 This module provides functions for creating parameter form fields.
+Supports both Pydantic models and dict-based schemas (from API or model_dump).
 """
 
 import logging
 from nicegui import ui
-from typing import Dict
+from typing import Dict, Any
 from pathlib import Path
 import sys
 
@@ -26,6 +27,48 @@ from rb.api.models import (
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def _is_ranged_float_descriptor(desc: Any) -> bool:
+    """True if descriptor is ranged_float (Pydantic model or dict)."""
+    if isinstance(desc, RangedFloatParameterDescriptor):
+        return True
+    if isinstance(desc, dict):
+        pt = desc.get('parameter_type') or desc.get('parameterType')
+        return pt == 'ranged_float' and 'range' in desc and 'default' in desc
+    return False
+
+
+def _get_ranged_float_values(desc: Any) -> tuple:
+    """Return (min, max, default) from ranged_float descriptor."""
+    if isinstance(desc, RangedFloatParameterDescriptor):
+        return (float(desc.range.min), float(desc.range.max), float(desc.default))
+    if isinstance(desc, dict):
+        r = desc.get('range', {})
+        default = desc.get('default', 0.5)
+        return (float(r.get('min', 0)), float(r.get('max', 1)), float(default))
+    raise ValueError("Invalid ranged_float descriptor")
+
+
+def _is_ranged_int_descriptor(desc: Any) -> bool:
+    """True if descriptor is ranged_int (Pydantic model or dict)."""
+    if isinstance(desc, RangedIntParameterDescriptor):
+        return True
+    if isinstance(desc, dict):
+        pt = desc.get('parameter_type') or desc.get('parameterType')
+        return pt == 'ranged_int' and 'range' in desc and 'default' in desc
+    return False
+
+
+def _get_ranged_int_values(desc: Any) -> tuple:
+    """Return (min, max, default) from ranged_int descriptor."""
+    if isinstance(desc, RangedIntParameterDescriptor):
+        return (int(desc.range.min), int(desc.range.max), int(desc.default))
+    if isinstance(desc, dict):
+        r = desc.get('range', {})
+        default = desc.get('default', 0)
+        return (int(r.get('min', 0)), int(r.get('max', 100)), int(default))
+    raise ValueError("Invalid ranged_int descriptor")
 
 
 async def create_parameter_field(
@@ -59,14 +102,22 @@ async def create_parameter_field(
     - Initial values come from initial_values or parameter default
     - Reactive refs are stored for sliders, regular widgets for others
     """
-    param_id = param_schema.key
-    label = param_schema.label
-    subtitle = param_schema.subtitle or ''
-    param_descriptor = param_schema.value
+    # Support both Pydantic model and dict-based param_schema
+    if isinstance(param_schema, dict):
+        param_id = param_schema.get('key', '')
+        label = param_schema.get('label', param_id)
+        subtitle = param_schema.get('subtitle') or ''
+        param_descriptor = param_schema.get('value', {})
+    else:
+        param_id = param_schema.key
+        label = param_schema.label
+        subtitle = param_schema.subtitle or ''
+        param_descriptor = param_schema.value
 
     logger.debug("Creating parameter field: %s (descriptor type: %s)", param_id, type(param_descriptor).__name__)
 
-    initial_value = initial_values.get(param_id, getattr(param_descriptor, 'default', None))
+    default_val = param_descriptor.get('default') if isinstance(param_descriptor, dict) else getattr(param_descriptor, 'default', None)
+    initial_value = initial_values.get(param_id, default_val)
 
     with ui.column().classes('gap-2'):
         if subtitle:
@@ -75,70 +126,41 @@ async def create_parameter_field(
         else:
             ui.label(label).classes('font-semibold')
 
-        if isinstance(param_descriptor, RangedFloatParameterDescriptor):
-            initial = initial_value if initial_value is not None else param_descriptor.default
-            try:
-                from frontend.components.forms.fields.parameter_widgets import create_ranged_float_widget
-                create_ranged_float_widget(param_id, param_descriptor, float(initial), form_widgets)
-            except Exception:
-                # Create slider with initial value and a value label updated via event handler
-                with ui.row().classes('items-center gap-4'):
-                    slider = ui.slider(
-                        min=param_descriptor.range.min,
-                        max=param_descriptor.range.max,
-                        step=0.01,
-                        value=float(initial)
-                    ).classes('flex-1')
+        if _is_ranged_float_descriptor(param_descriptor):
+            rmin, rmax, rdefault = _get_ranged_float_values(param_descriptor)
+            initial = initial_value if initial_value is not None else rdefault
+            initial = float(initial)
+            # Clamp to range
+            initial = max(rmin, min(rmax, initial))
 
-                    # Label showing formatted slider value
-                    value_label = ui.label(f'{float(initial):.2f}').classes('w-16 text-right')
+            # Use number input for precise values (e.g. 0.45); slider clicks often jump to extremes
+            number_input = ui.number(
+                value=initial,
+                min=rmin,
+                max=rmax,
+                step=0.05,
+                format='%.2f',
+                placeholder=f'{rmin} to {rmax}'
+            ).classes('w-full')
+            form_widgets[param_id] = number_input
 
-                    # Update label when slider value changes
-                    def _on_slider_update(e):
-                        try:
-                            # event args may contain the new value in different shapes
-                            new_val = e.args[0] if e.args else slider.value
-                            value_label.text = f'{float(new_val):.2f}'
-                        except Exception:
-                            try:
-                                value_label.text = str(slider.value)
-                            except Exception:
-                                value_label.text = ''
+        elif _is_ranged_int_descriptor(param_descriptor):
+            rmin, rmax, rdefault = _get_ranged_int_values(param_descriptor)
+            initial = initial_value if initial_value is not None else rdefault
+            initial = int(initial)
+            # Clamp to range
+            initial = max(rmin, min(rmax, initial))
 
-                    slider.on('update:modelValue', _on_slider_update)
-
-                    # Store the slider widget for form collection (value read from slider.value)
-                    form_widgets[param_id] = slider
-
-        elif isinstance(param_descriptor, RangedIntParameterDescriptor):
-            initial = initial_value if initial_value is not None else param_descriptor.default
-            try:
-                from frontend.components.forms.fields.parameter_widgets import create_ranged_int_widget
-                create_ranged_int_widget(param_id, param_descriptor, int(initial), form_widgets)
-            except Exception:
-                # Create integer slider with initial value and update label on change
-                with ui.row().classes('items-center gap-4'):
-                    slider = ui.slider(
-                        min=param_descriptor.range.min,
-                        max=param_descriptor.range.max,
-                        step=1,
-                        value=int(initial)
-                    ).classes('flex-1')
-
-                    value_label = ui.label(str(int(initial))).classes('w-16 text-right')
-
-                    def _on_int_slider_update(e):
-                        try:
-                            new_val = e.args[0] if e.args else slider.value
-                            value_label.text = str(int(new_val))
-                        except Exception:
-                            try:
-                                value_label.text = str(int(slider.value))
-                            except Exception:
-                                value_label.text = ''
-
-                    slider.on('update:modelValue', _on_int_slider_update)
-                    form_widgets[param_id] = slider
+            # Use number input for precise values; slider clicks often jump to extremes
+            number_input = ui.number(
+                value=initial,
+                min=rmin,
+                max=rmax,
+                step=1,
+                format='%d',
+                placeholder=f'{rmin} to {rmax}'
+            ).classes('w-full')
+            form_widgets[param_id] = number_input
 
         elif isinstance(param_descriptor, FloatParameterDescriptor):
             initial_num = float(initial_value) if initial_value is not None else param_descriptor.default

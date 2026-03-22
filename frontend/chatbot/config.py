@@ -204,9 +204,19 @@ class ToolRegistry:
         logger.info("Generating help text from tool registry")
         
         # help_text = """### 🛠️ RescueBox Usage
+        
+        help_text = """
 
-        help_text = """#### Shortcut model commands
+#### Three different ways to use RescueBox Assistant
+1. **Model Picker** - **Type `/models`** to see all the models and you pick one
+2. **Smart Analyze** - Enter a **prompt model task in natural language**
+-**Transcribe** audio files in /evidence/recordings
+or
+-**Summarize** photos in /images/case456
+
+3. **Shortcut Commands** - For Advanced users type model eg. `/transcribe` to transcribe audio files
 """
+        #help_text += """#### Shortcut model commands"""
         logger.debug("Processing %d slash commands", len(ToolRegistry.SLASH_COMMANDS))
         
         for cmd, endpoint in ToolRegistry.SLASH_COMMANDS.items():
@@ -218,21 +228,6 @@ class ToolRegistry:
                 )
                 help_text += f"- `{cmd}` - {desc}\n"
                 logger.debug("Added help entry for %s: %s", cmd, desc)
-        
-        help_text += """
 
-#### Natural Language
-Describe your model task:
-**Transcribe** audio files in /evidence/recordings
-or
-**Summarize** photos in /images/case456
-
-
-#### Three different ways to use RescueBox Assistant
-1. **Shortcut Commands** - Type model `/transcribe` to transcribe audio files
-2. **Model Picker** - Type `/models` to see all models and pick by number
-3. **Smart Analyze** - Describe your model task in natural language
-"""
-        
         logger.info("Help text generated successfully")
         return help_text

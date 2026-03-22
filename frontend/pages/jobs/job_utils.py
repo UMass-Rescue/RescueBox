@@ -62,6 +62,7 @@ def extract_job_fields(job) -> Dict[str, Any]:
             'request': request,
             'response': response,
             'taskSchema': task_schema,
+            'caseNotes': getattr(job, 'caseNotes', None),
         }
     else:
         # Legacy dict access
@@ -77,6 +78,7 @@ def extract_job_fields(job) -> Dict[str, Any]:
             'request': job.get('request', {}),
             'response': job.get('response'),
             'taskSchema': job.get('taskSchema', {}),
+            'caseNotes': job.get('caseNotes'),
         }
 
 

@@ -1,0 +1,9 @@
+wget https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-aarch64/cudnn-linux-aarch64-9.13.1.26_cuda13-archive.tar.xz
+
+mkdir -p ~/cudnn/
+tar -xf cudnn-linux-aarch64-9.13.1.26_cuda13-archive.tar.xz -C ~/cudnn/
+
+export CUDNN_HOME=~/cudnn/cudnn-linux-aarch64-9.13.1.26_cuda13-archive
+export LD_LIBRARY_PATH=$CUDNN_HOME/lib:$LD_LIBRARY_PATH
+ls $CUDNN_HOME/lib/libcudnn.so
+

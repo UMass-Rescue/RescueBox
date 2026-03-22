@@ -18,10 +18,10 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
                 refresh_btn = ui.button('Refresh').props('icon=refresh').classes('px-4 py-2')
                 ui.label(f'Log file: {str(log_file)}').classes('text-sm text-gray-600')
 
-            # Log content display
-            with ui.card().classes('w-full'):
-                with ui.scroll_area().classes('h-96 w-full'):
-                    log_display = ui.code().classes('w-full text-xs font-mono whitespace-pre-wrap')
+            # Log content display - full width, fill viewport height below navbar
+            with ui.card().classes('w-full max-w-full min-w-0'):
+                with ui.scroll_area().classes('min-h-[calc(100vh-12rem)] w-full max-w-full'):
+                    log_display = ui.code().classes('w-full max-w-full text-xs font-mono whitespace-pre-wrap')
                     log_display.props('language=text')
 
             # Attach simple refresh handler (caller may override or call _load_logs directly)

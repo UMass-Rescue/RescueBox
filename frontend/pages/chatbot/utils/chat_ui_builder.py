@@ -74,6 +74,7 @@ class ChatUIBuilder:
                 input_area = self._build_input_area()
 
             # Initialize mode manager now that chat_container exists
+            from frontend.components.chat.chat_window import render_welcome_message
             self.mode_manager = UIModeManager(
                 mode_indicator=self.mode_indicator,
                 models_btn=self.models_btn,
@@ -82,13 +83,14 @@ class ChatUIBuilder:
                 status_text_ref=self.status_text_ref,
                 form_submit_handler=self.form_submit_handler,
                 core=self.core,
-                state_manager=self.state_manager
+                state_manager=self.state_manager,
+                show_welcome_callback=render_welcome_message
             )
 
             # Setup mode handlers
             self._setup_mode_handlers(ui_state, chat_container, input_area)
 
-        return chat_container, self.input_field, self.status_text_ref
+        return chat_container, self.input_field, self.status_text_ref, input_area
 
     def _create_ui_state(self):
         """Create initial UI state."""
@@ -116,7 +118,7 @@ class ChatUIBuilder:
             with ui.row().classes('bg-white border-b shadow-sm items-center justify-between w-full px-4 py-3 sticky top-0 z-10'):
                 with ui.row().classes('items-center gap-3'):
                     ui.icon('smart_toy', size='1.5rem').classes('text-blue-600')
-                    ui.label('🤖 Assistant').classes('text-lg font-semibold text-gray-800 mr-2')
+                    # ui.label('🤖 Assistant').classes('text-lg font-semibold text-gray-800 mr-2')
                     ui.label('RescueBox Assistant').classes('text-sm text-gray-600')
                     mode_indicator = ui.badge('Analyze', color='green').classes('text-xs')
                 with ui.row().classes('items-center gap-3'):
@@ -177,9 +179,16 @@ class ChatUIBuilder:
                     logger.info("ChatUIBuilder loading form: target_chat_container=%r endpoint=%s args=%s", chat_container, endpoint, args)
                 except Exception:
                     pass
-                await load_and_show_form(chat_container, self.core, endpoint, args or {}, handle_form_submit)
-                # Scroll to bottom to show the loaded form
-                UIOperations.scroll_to_bottom()
+                def _on_cancel():
+                    if self.state_manager:
+                        self.state_manager.set_input_enabled(True)
+
+                await load_and_show_form(
+                    chat_container, self.core, endpoint, args or {},
+                    handle_form_submit, on_form_cancel=_on_cancel
+                )
+                # Scroll form into view instead of page bottom
+                UIOperations.scroll_form_into_view()
 
             await show_tool_picker(chat_container, self.tool_registry, on_tool_selected)
 

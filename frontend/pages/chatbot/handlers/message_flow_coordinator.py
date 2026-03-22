@@ -139,10 +139,11 @@ class MessageFlowCoordinator:
                 core=core
             )
 
-            # Update processing state after routing completes
+            # Update processing state after routing completes.
+            # Input enable/disable is handled by message_processor based on result type
+            # (rule: enabled only when no pending chat interaction).
             is_processing_ref['value'] = False
             self.state_manager.set_processing(False)
-            input_field.enable()
 
         return process_result
 

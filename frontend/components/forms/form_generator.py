@@ -79,6 +79,7 @@ class FormGenerator:
         container,
         initial_values: Optional[Dict] = None,
         onSubmit: Optional[Callable] = None,
+        onCancel: Optional[Callable] = None,
         compact: bool = False
     ):
         """
@@ -127,6 +128,19 @@ class FormGenerator:
         # Convert dict to TaskSchema if needed
         if isinstance(schema, dict):
             logger.debug("Converting dictionary schema to TaskSchema")
+            schema = dict(schema)
+            # Normalize parameters: if dict keyed by param name, convert to list
+            params = schema.get('parameters')
+            if isinstance(params, dict):
+                schema['parameters'] = [
+                    {
+                        'key': k,
+                        'label': v.get('label', k.replace('_', ' ').title()),
+                        'subtitle': v.get('subtitle', ''),
+                        'value': v.get('value', v)  # v is descriptor if no nested 'value'
+                    }
+                    for k, v in params.items()
+                ]
             task_schema = TaskSchema(**schema)
         else:
             task_schema = schema
@@ -249,14 +263,20 @@ class FormGenerator:
                                 logger.debug("Cancel: cleared active tool selection registry")
                             except (ImportError, AttributeError) as e:
                                 logger.debug("Cancel: failed to clear active tool selection registry: %s", e)
+                            if onCancel:
+                                try:
+                                    onCancel()
+                                except Exception as e:
+                                    logger.debug("onCancel callback failed: %s", e)
 
                         async def _on_submit():
                             if onSubmit:
-                                await handle_form_submit(
+                                return await handle_form_submit(
                                     task_schema,
                                     self.form_widgets,
                                     onSubmit
                                 )
+                            return False
 
                         action_col = ui.column()
                         # Attach reference for form_actions to delete the outer container if needed.

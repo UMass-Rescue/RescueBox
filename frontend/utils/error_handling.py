@@ -192,10 +192,7 @@ def handle_validation_error(
         primary_error = error_messages[0]
         logger.info("Showing validation error to user: %s", primary_error)
 
-        # Show both notification and dialog for maximum visibility
-        ui.notify(primary_error, type='negative', position='center', close_button=True, timeout=15000)
-
-        # Also show a dialog with more detailed error information (use component)
+        # Show validation dialog only
         try:
             from frontend.components.errors.validation_dialog import show_validation_dialog
             show_validation_dialog(primary_error, error_messages[1:] if len(error_messages) > 1 else None)

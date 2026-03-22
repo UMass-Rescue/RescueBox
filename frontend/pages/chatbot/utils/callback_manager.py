@@ -47,11 +47,13 @@ class CallbackManager:
     def get_result_processor_callbacks(self) -> dict:
         """Return callbacks needed for result processing."""
         callbacks = self.get_standard_callbacks()
+        sm = getattr(self.chatbot_page, 'state_manager', None)
         return {
             'add_message_callback': callbacks['add_message'],
             'show_error_callback': callbacks['show_error'],
             'update_status_callback': callbacks['update_status'],
             'load_form_callback': callbacks['load_form'],
+            'set_input_enabled_callback': (lambda enabled: sm.set_input_enabled(enabled)) if sm else None,
         }
 
     def get_form_handler_callbacks(self) -> dict:

@@ -20,7 +20,7 @@ def create_chat_header(on_new_conversation: Callable, ui_state: dict, ui_styling
         # Left side - Title and status
         with ui.row().classes('items-center gap-3'):
             ui.icon('smart_toy', size='1.5rem').classes('text-blue-600')
-            ui.label('🤖 Assistant').classes('text-lg font-semibold text-gray-800 mr-2')
+            # ui.label('🤖 Assistant').classes('text-lg font-semibold text-gray-800 mr-2')
             ui.label('RescueBox Assistant').classes('text-sm text-gray-600')
             # Mode indicator
             mode_indicator = ui.badge('Analyze', color='green').classes('text-xs')

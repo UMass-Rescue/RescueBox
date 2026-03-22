@@ -127,12 +127,12 @@ class JobsPage:
         with self.jobs_container:
             # Table header
             logger.debug("Creating table header")
-            with ui.row().classes('bg-gray-200 p-4 font-bold border-b w-full'):
-                ui.label('Job ID').classes('w-36')
-                ui.label('Model').classes('flex-1')
-                ui.label('Times').classes('w-64')
-                ui.label('Status').classes('w-32')
-                ui.label('Actions').classes('w-48')
+            with ui.row().classes('bg-gray-200 p-4 font-bold border-b w-full flex-nowrap'):
+                ui.label('Job ID').classes('w-40 shrink-0')
+                ui.label('Model').classes('flex-1 min-w-0')
+                ui.label('Times').classes('w-64 shrink-0')
+                ui.label('Status').classes('w-32 shrink-0')
+                ui.label('Actions').classes('w-48 shrink-0')
         
             # Job rows
             logger.debug("Rendering %d job rows", len(self.jobs))

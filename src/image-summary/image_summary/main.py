@@ -101,7 +101,10 @@ def summarize_images(
     input_dir = inputs["input_dir"].path
     output_dir = inputs["output_dir"].path
     model = parameters["model"]
-    files = inputs["file_filter"].files
+    if "file_filter" in inputs:
+        files = inputs["file_filter"].files
+    else:
+        files = []
     logger.info("files are %s", files)
     # Use shared helper utilities (from rb.lib.utils) to extract filter id and resolve inputs/output patterns
     filter_id = extract_filter_id(inputs, parameters)

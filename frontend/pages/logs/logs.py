@@ -55,14 +55,15 @@ class LogsPage:
         """
         logger.info("Rendering logs page")
 
-        with ui.column().classes('w-full p-4 gap-4'):
+        with ui.column().classes('w-full max-w-full min-w-0 p-4 gap-4 flex flex-col flex-1'):
             # Page header
             ui.label(UI_TITLES.get('logs', 'Application Logs')).classes('text-2xl font-bold mb-4')
 
-            # Use extracted log viewer component
+            # Use extracted log viewer component (full width, fill available space)
             try:
                 from frontend.components.logs.log_viewer import render_log_viewer
-                self.log_display = render_log_viewer(ui.column(), LOG_FILE, self.max_lines)
+                log_container = ui.column().classes('w-full max-w-full min-w-0 flex-1')
+                self.log_display = render_log_viewer(log_container, LOG_FILE, self.max_lines)
                 # Load initial content into returned element if available
                 if self.log_display is not None:
                     await self._load_logs()
@@ -74,8 +75,8 @@ class LogsPage:
                     log_path = str(LOG_FILE)
                     ui.label(f'Log file: {log_path}').classes('text-sm text-gray-600')
 
-                with ui.card().classes('w-full'):
-                    with ui.scroll_area().classes('h-96 w-full'):
+                with ui.card().classes('w-full max-w-full'):
+                    with ui.scroll_area().classes('min-h-[calc(100vh-12rem)] w-full'):
                         self.log_display = ui.code().classes('w-full text-xs font-mono whitespace-pre-wrap')
                         self.log_display.props('language=text')
                 await self._load_logs()

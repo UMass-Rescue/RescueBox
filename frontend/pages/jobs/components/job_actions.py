@@ -50,25 +50,3 @@ def render_job_action_buttons(job_fields: Dict[str, Any]):
                 on_click=lambda: ui.navigate.to(f'/models/{model_uid}/run')
             ).classes('bg-green-600 text-white')
 
-        # Quick navigation buttons
-        # with ui.row().classes('gap-2'):
-        #     # Re-submit button for chatbot jobs (with endpoint)
-        #     if endpoint:
-        #         ui.button(
-        #             '🔄 Re-submit',
-        #             on_click=lambda ep=endpoint: ui.navigate.to(f'/chatbot?resubmit={job_uid}')
-        #         ).classes('bg-purple-600 text-white')
-        #         ui.button(
-        #             '➡️ Submit New',
-        #             on_click=lambda ep=endpoint: ui.navigate.to(f'/chatbot?endpoint={ep}')
-        #         ).classes('bg-green-600 text-white')
-        #     elif model_uid and task_uid:
-        #         # Re-submit for traditional jobs
-        #         ui.button(
-        #             '🔄 Re-submit',
-        #             on_click=lambda: ui.navigate.to(f'/models/{model_uid}/run?job_id={job_uid}')
-        #         ).classes('bg-purple-600 text-white')
-        #         ui.button(
-        #             '➡️ Submit New',
-        #             on_click=lambda: ui.navigate.to(f'/models/{model_uid}/run')
-        #         ).classes('bg-green-600 text-white')

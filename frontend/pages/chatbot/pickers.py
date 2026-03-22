@@ -73,60 +73,46 @@ class ToolPicker(BasePicker):
             with self.container:
                 with self.create_picker_card():
                     self.create_header('🛠️', 'purple')
-                    with ui.row().classes('gap-4 w-full'):
+                    with ui.row().classes('w-full'):
                         show_tool_picker_dialog(ui.column(), self.tool_registry, self.on_tool_selected)
-                        with ui.card().classes('bg-white p-4 flex-1'):
-                            self._create_input_form()
             logger.debug("Tool picker menu displayed (via component)")
         except Exception:
             logger.exception("Failed to render tool picker via component, falling back to inline")
             with self.container:
                 with self.create_picker_card():
                     self.create_header('🛠️', 'purple')
-                    
-                    with ui.row().classes('gap-4 w-full'):
+                    with ui.row().classes('w-full'):
                         with ui.card().classes('bg-white p-4 flex-1'):
                             self._create_tool_buttons()
-                        with ui.card().classes('bg-white p-4 flex-1'):
-                            self._create_input_form()
 
             logger.debug("Tool picker menu displayed")
 
     def _create_tool_buttons(self):
-        """Create clickable tool buttons on the left side."""
-        ui.label('Available Tools:').classes('font-semibold mb-3')
+        """Create clickable tool buttons."""
+        ui.label('Available Tools').classes('font-semibold')
+        ui.label('Click a tool to use').classes('text-sm text-gray-500 mb-2')
         with ui.column().classes('gap-2'):
             for num, tool in self.tool_registry.TOOL_MENU.items():
                 ui.button(
                     f'{num}. {tool["name"]} - {tool["desc"]}',
-                    on_click=lambda n=num: self._handle_selection(n)
-                ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm')
+                    on_click=lambda n=num: self._handle_tool_click(n)
+                ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200')
 
-    def _handle_selection(self, num: str):
-        """Handle the visual selection of a tool."""
-        self.input_field.set_value(str(num))
-        ui.notify(f'Selected tool {num}', type='info')
+    def _handle_tool_click(self, num: str):
+        """Load the tool form when user clicks a tool button."""
+        if num not in self.tool_registry.TOOL_MENU:
+            return
+        tool = self.tool_registry.TOOL_MENU[num]
+        import asyncio
 
-    def _create_input_form(self):
-        """Create the input form on the right side."""
-        self.input_field = ui.input(label='Select a Tool:', placeholder='Tool Number (1-7)').classes('w-full')
+        async def load():
+            loading = self.show_loading_indicator('Loading form...', 'purple')
+            try:
+                await self.on_tool_selected(tool['endpoint'], {})
+            finally:
+                loading.delete()
 
-        async def on_submit():
-            tool_num = self.input_field.value.strip()
-            if tool_num in self.tool_registry.TOOL_MENU:
-                tool = self.tool_registry.TOOL_MENU[tool_num]
-                endpoint = tool['endpoint']
-
-                loading_indicator = self.show_loading_indicator('Loading form...', 'purple')
-                try:
-                    await self.on_tool_selected(endpoint, {})
-                finally:
-                    loading_indicator.delete()
-            else:
-                max_val = len(self.tool_registry.TOOL_MENU)
-                ui.notify(f'Invalid tool number. Please enter 1-{max_val}.', type='negative')
-
-        self.create_submit_button('Select Tool', 'purple', on_submit)
+        asyncio.create_task(load())
 
 
 class AnalysisPicker(BasePicker):
@@ -171,7 +157,7 @@ class AnalysisPicker(BasePicker):
                 ui.button(
                     f'{num}. {option["name"]} - {option["desc"]}',
                     on_click=lambda n=num: self._handle_selection(n)
-                ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm')
+                ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200')
 
     def _handle_selection(self, num: int):
         """Handle the visual selection of an analysis option."""

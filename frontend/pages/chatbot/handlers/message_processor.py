@@ -69,12 +69,8 @@ class MessageProcessor:
             # Set processing state
             self.state_manager.set_processing(True)
             update_status_callback("Processing message...")
-            # Disable input field to prevent further input while processing
-            try:
-                if getattr(self.state_manager, 'input_field', None):
-                    self.state_manager.input_field.disable()
-            except Exception:
-                logger.debug("Could not disable input field (maybe not set)")
+            # Disable input area (rule: input enabled only when no pending chat interaction)
+            self.state_manager.set_input_enabled(False)
 
             # Create and add user message
             user_message = ChatMessage('user', message_text)
@@ -109,11 +105,7 @@ class MessageProcessor:
 
                 # Then reset processing state and update status
                 self.state_manager.set_processing(False)
-                try:
-                    if getattr(self.state_manager, 'input_field', None):
-                        self.state_manager.input_field.enable()
-                except Exception:
-                    logger.debug("Could not enable input field after processing")
+                self.state_manager.set_input_enabled(True)  # Terminal result: no pending interaction
                 update_status_callback("✅ Rescuebox waiting for user..")
                 return None  # Don't process this result further
 
@@ -124,12 +116,22 @@ class MessageProcessor:
                 try:
                     self.state_manager.clear_input()
                     self.state_manager.set_processing(False)
-                    try:
-                        if getattr(self.state_manager, 'input_field', None):
-                            self.state_manager.input_field.enable()
-                    except Exception:
-                        logger.debug("Could not enable input field after processing")
-                    update_status_callback("✅ Rescuebox waiting for user..")
+                    result_type = result.get('type', '')
+                    # Rule: input enabled only when no pending chat interaction.
+                    # Keep disabled for picker/form types; enable for error/help.
+                    if result_type in ('tool_picker', 'analysis_picker', 'show_form', 'multi_tool_calls'):
+                        self.state_manager.set_input_enabled(False)
+                    else:
+                        self.state_manager.set_input_enabled(True)
+                    # Use context-aware status
+                    if result_type == 'tool_picker':
+                        update_status_callback("Select a tool from the menu above", scroll_after=False)
+                    elif result_type == 'analysis_picker':
+                        update_status_callback("Choose an option from the menu above", scroll_after=False)
+                    elif result_type in ('show_form', 'multi_tool_calls'):
+                        update_status_callback("Fill the form above and click Submit Job", scroll_to_form=True)
+                    else:
+                        update_status_callback("Ready")
                 except Exception:
                     # Best-effort; don't raise UI errors here
                     logger.debug("Failed to clear input or reset processing state after result handling")
@@ -138,11 +140,7 @@ class MessageProcessor:
             # Clear input and reset processing state for flows that didn't return a 'result'
             self.state_manager.clear_input()
             self.state_manager.set_processing(False)
-            try:
-                if getattr(self.state_manager, 'input_field', None):
-                    self.state_manager.input_field.enable()
-            except Exception:
-                logger.debug("Could not enable input field after processing")
+            self.state_manager.set_input_enabled(True)
 
             update_status_callback("✅ Rescuebox waiting for user..")
             logger.info("Message processing completed")

@@ -96,6 +96,7 @@ class JobRecord(BaseModel):
     taskUid: Optional[str] = Field(None, description="Task UID for traditional jobs")
     endpoint: Optional[str] = Field(None, description="Endpoint name for chatbot jobs")
     filterId: Optional[str] = Field(None, description="Optional persisted filter id linking to file_filters")
+    caseNotes: Optional[str] = Field(None, description="User-entered case notes for the job")
     startTime: str = Field(..., description="Job start time in ISO format")
     endTime: Optional[str] = Field(None, description="Job end time in ISO format")
     status: JobStatus = Field(..., description="Job status")
@@ -182,9 +183,11 @@ class JobRecord(BaseModel):
         # Convert enum to string
         if isinstance(data.get('status'), JobStatus):
             data['status'] = data['status'].value
-        # Ensure filterId is present (may be None)
+        # Ensure optional fields are present (may be None)
         if 'filterId' not in data:
             data['filterId'] = None
+        if 'caseNotes' not in data:
+            data['caseNotes'] = None
 
         return data
     
@@ -210,9 +213,6 @@ class JobDB(BaseDatabase):
     - Jobs are stored with JSON serialization for request/response/taskSchema
     - Supports both modelUid/taskUid and endpoint-based jobs
     """
-
-    # Class variable to track job numbers for user-friendly IDs
-    _job_counter = 0
 
     def __init__(self, db_path: Optional[Path] = None):
         """
@@ -263,7 +263,24 @@ class JobDB(BaseDatabase):
             else:
                 # Other operational errors should be propagated
                 raise
-    
+
+    def _ensure_caseNotes_column(self, conn: sqlite3.Connection) -> None:
+        """Ensure the `caseNotes` column exists (migration for older DBs)."""
+        try:
+            conn.execute("SELECT caseNotes FROM jobs LIMIT 1")
+        except sqlite3.OperationalError as e:
+            if 'no such column' in str(e).lower():
+                logger.info("caseNotes column missing; adding column")
+                try:
+                    conn.execute("ALTER TABLE jobs ADD COLUMN caseNotes TEXT")
+                    conn.commit()
+                    logger.info("Added caseNotes column to jobs table")
+                except Exception as e_add:
+                    logger.exception("Failed to add caseNotes column: %s", e_add)
+                    raise
+            else:
+                raise
+
     def connect(self) -> sqlite3.Connection:
         """
         Connect to SQLite database.
@@ -318,7 +335,8 @@ class JobDB(BaseDatabase):
                 request TEXT NOT NULL,
                 response TEXT,
                 taskSchema TEXT NOT NULL,
-                filterId TEXT
+                filterId TEXT,
+                caseNotes TEXT
             )
         """)
         
@@ -331,12 +349,12 @@ class JobDB(BaseDatabase):
         
         conn.commit()
         logger.info("Database schema initialized successfully")
-        # Ensure userId column exists in case this is an upgrade from an older DB
+        # Ensure userId and caseNotes columns exist for older DBs
         try:
             self._ensure_userid_column(conn)
+            self._ensure_caseNotes_column(conn)
         except Exception:
-            # If ensure fails, log but allow startup to continue so errors surface in callers
-            logger.debug("ensure_userid_column encountered an error during initialization")
+            logger.debug("Column migration encountered an error during initialization")
     
     async def create_job(
         self,
@@ -344,7 +362,8 @@ class JobDB(BaseDatabase):
         task_schema: Union[TaskSchema, Dict[str, Any]],
         model_uid: Optional[str] = None,
         task_uid: Optional[str] = None,
-        endpoint: Optional[str] = None
+        endpoint: Optional[str] = None,
+        case_notes: Optional[str] = None
     ) -> JobRecord:
         """
         Create a new job record.
@@ -365,7 +384,7 @@ class JobDB(BaseDatabase):
             ValueError: If neither (model_uid/task_uid) nor endpoint is provided
         
         Tips:
-        - Generates sequential job number (JOB_1, JOB_2, etc.) for job uid
+        - Generates job uid as JOB_<uuid_hex> for consistency
         - Stores request_body and task_schema as JSON strings in database
         - Initial status is 'Running'
         - At least one of (model_uid/task_uid) or endpoint must be provided
@@ -382,32 +401,16 @@ class JobDB(BaseDatabase):
         except Exception:
             user_id = None
 
-        # Generate user-friendly sequential job number (retry on collision).
+        # Generate job uid consistently as JOB_<uuid_hex>
         start_time = datetime.now().isoformat()
-        # Ensure DB connection is available for existence checks
+        uid = f"JOB_{uuid.uuid4().hex[:6]}"
         conn = self.connect()
-        # Ensure userId column exists for older DBs
+        # Ensure userId and caseNotes columns exist for older DBs
         try:
             self._ensure_userid_column(conn)
+            self._ensure_caseNotes_column(conn)
         except Exception:
-            # If we fail to ensure the column here, let the subsequent insert surface the error
-            logger.debug("Failed to ensure userId column before insert")
-        max_seq_attempts = 10
-        seq_attempts = 0
-        uid = None
-        while seq_attempts < max_seq_attempts:
-            JobDB._job_counter += 1
-            candidate = f"JOB_{JobDB._job_counter}"
-            # quick existence check
-            cur = conn.execute("SELECT 1 FROM jobs WHERE uid = ?", (candidate,))
-            if cur.fetchone() is None:
-                uid = candidate
-                break
-            seq_attempts += 1
-
-        # Fallback to UUID if sequential attempts failed
-        if uid is None:
-            uid = f"JOB_{uuid.uuid4().hex}"
+            logger.debug("Failed to ensure columns before insert")
         
         # Create JobRecord with validation
         # Extract optional filterId from request body parameters (supports _meta convention)
@@ -433,6 +436,7 @@ class JobDB(BaseDatabase):
             taskUid=task_uid,
             endpoint=endpoint,
             filterId=maybe_filter_id,
+            caseNotes=case_notes or None,
             startTime=start_time,
             endTime=None,
             status=JobStatus.RUNNING,
@@ -448,9 +452,9 @@ class JobDB(BaseDatabase):
         logger.info("Creating job %s (model_uid=%s, task_uid=%s, endpoint=%s)", uid, model_uid, task_uid, endpoint)
 
         insert_sql = """
-            INSERT INTO jobs (uid, userId, modelUid, taskUid, endpoint, startTime, endTime, 
-                            status, statusText, request, response, taskSchema, filterId)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO jobs (uid, userId, modelUid, taskUid, endpoint, startTime, endTime,
+                            status, statusText, request, response, taskSchema, filterId, caseNotes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
             job_data['uid'],
@@ -465,7 +469,8 @@ class JobDB(BaseDatabase):
             job_data['request'],
             job_data['response'],
             job_data['taskSchema'],
-            job_data.get('filterId')
+            job_data.get('filterId'),
+            job_data.get('caseNotes')
         )
 
         # Try inserting with handling for IntegrityError and transient locking
@@ -518,11 +523,12 @@ class JobDB(BaseDatabase):
         - Returns JobRecord with validated RequestBody, ResponseBody, and TaskSchema
         """
         conn = self.connect()
-        # Ensure userId column exists for older DBs
+        # Ensure columns exist for older DBs
         try:
             self._ensure_userid_column(conn)
+            self._ensure_caseNotes_column(conn)
         except Exception:
-            logger.debug("Failed to ensure userId column before fetch by uid")
+            logger.debug("Failed to ensure columns before fetch by uid")
         logger.debug("Fetching job %s", uid)
         
         cursor = conn.execute("SELECT * FROM jobs WHERE uid = ?", (uid,))
@@ -570,8 +576,9 @@ class JobDB(BaseDatabase):
         # Ensure userId column exists for older DBs
         try:
             self._ensure_userid_column(conn)
+            self._ensure_caseNotes_column(conn)
         except Exception:
-            logger.debug("Failed to ensure userId column before fetching jobs; continuing without change")
+            logger.debug("Failed to ensure columns before fetching jobs; continuing without change")
         
         # Use a local import to avoid circular dependency issues
         # job_utils -> database -> job_db -> job_utils

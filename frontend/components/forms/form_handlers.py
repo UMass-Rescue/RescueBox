@@ -145,7 +145,7 @@ async def handle_form_submit(
     task_schema: TaskSchema,
     form_widgets: Dict,
     onSubmit: Callable
-) -> None:
+) -> bool:
     """
     Handle form submission.
     
@@ -158,7 +158,7 @@ async def handle_form_submit(
         onSubmit (Callable): Callback function to call with validated form data
     
     Returns:
-        None: Returns early if validation fails
+        bool: True if job was submitted, False if validation/collection failed or error (caller may re-enable submit button)
     
     Tips:
     - Validation must pass before onSubmit is called
@@ -173,7 +173,7 @@ async def handle_form_submit(
         if not is_valid:
             logger.warning("Form validation failed with %d errors", len(errors))
             handle_validation_error(errors, "Form submission validation")
-            return
+            return False
         
         # Collect form data
         logger.debug("Collecting form data from widgets")
@@ -184,21 +184,25 @@ async def handle_form_submit(
             error_msg = f'Failed to collect form data: {str(e)}'
             logger.error(error_msg, exc_info=True)
             show_error_to_user(error_msg)
-            return
+            return False
         
         # Call submit callback
         if onSubmit:
             try:
                 logger.info("Calling onSubmit callback")
-                await onSubmit(form_data)
+                result = await onSubmit(form_data)
+                return result if result is not None else True
             except Exception as e:
                 error_msg = f'Form submission failed: {str(e)}'
                 logger.error(error_msg, exc_info=True)
                 show_error_to_user(error_msg)
+                return False
         else:
             logger.warning("No onSubmit callback provided")
             show_error_to_user("Form submission handler not configured")
+            return False
     except Exception as e:
         error_msg = f'Unexpected error during form submission: {str(e)}'
         logger.error(error_msg, exc_info=True)
         show_error_to_user(error_msg)
+        return False

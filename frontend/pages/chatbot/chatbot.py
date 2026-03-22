@@ -126,7 +126,7 @@ class ChatbotPage:
         )
 
         # Create UI and bind events
-        self.chat_container, self.input_field, self.status_label = create_chat_ui(
+        self.chat_container, self.input_field, self.status_label, self.input_area = create_chat_ui(
             on_send=self.event_handler.handle_send_message,
             on_new_conversation=self._handle_new_conversation,
             tool_registry=self.tool_registry,
@@ -152,8 +152,8 @@ class ChatbotPage:
         self.event_handler.bind_events()
 
 
-        # Set input field in state manager
-        self.state_manager.set_input_field(self.input_field)
+        # Set input area in state manager (enables set_input_enabled for both field and send button)
+        self.state_manager.set_input_area(self.input_area)
 
         logger.info("Chatbot UI rendered successfully")
         # Ensure a conversation exists for this session (create if missing)
@@ -408,10 +408,12 @@ class ChatbotPage:
                         await show_results(self.chat_container, job.response, job_id)
                     except Exception as e:
                         logger.warning("Failed to render job results on poll for %s: %s", job_id, e)
+                    self.state_manager.set_input_enabled(True)
                     return
                 if status == 'Failed' or status == JobStatus.FAILED:
                     from frontend.pages.chatbot.chatbot_message import ChatMessage
                     self._add_message(ChatMessage('assistant', f"❌ Job {job_id} failed."))
+                    self.state_manager.set_input_enabled(True)
                     return
         except Exception as e:
             logger.debug("Polling job status failed for %s: %s", job_id, e)
@@ -449,6 +451,9 @@ class ChatbotPage:
                     request_body, ep, ts, self.chat_container, self.core, remaining_calls
                 )
 
+            def form_cancel_handler():
+                self.state_manager.set_input_enabled(True)
+
             use_container = container or self.chat_container
             logger.debug("load_and_show_form wrapper: endpoint=%s use_container=%r arguments=%s", endpoint, use_container, arguments)
             await load_and_show_form(
@@ -456,25 +461,27 @@ class ChatbotPage:
                 core=self.core,
                 endpoint=endpoint,
                 arguments=arguments,
-                on_form_submit=form_submit_handler
+                on_form_submit=form_submit_handler,
+                on_form_cancel=form_cancel_handler
             )
             logger.info("Form loaded and displayed for endpoint: %s", endpoint)
         except Exception as e:
             logger.error("Failed to load form for endpoint %s: %s", endpoint, str(e))
             await self._show_error(f'Failed to load form: {str(e)}')
     
-    def _add_message(self, message: ChatMessage):
+    def _add_message(self, message: ChatMessage, scroll_after: bool = True):
         """
         Add a message to the chat using the state manager.
 
         Args:
             message: ChatMessage to add
+            scroll_after: If True, scroll to bottom after adding (only useful when chat has significant content)
         """
         self.state_manager.add_message(message)
         # Render the message in the UI
         render_message(self.chat_container, message)
-        # Trigger scroll to ensure new message is visible
-        ui.timer(0.1, self.scroll_to_bottom, once=True)
+        if scroll_after:
+            ui.timer(0.1, self.scroll_to_bottom, once=True)
 
     async def _show_error(self, error_message: str):
         """
@@ -485,26 +492,29 @@ class ChatbotPage:
         """
         show_error_message(self.chat_container, error_message)
 
-    def _update_status(self, status: str):
+    def _update_status(self, status: str, scroll_after: bool = True, scroll_to_form: bool = False):
         """
         Update the status text.
 
         Args:
             status: Status text to display
+            scroll_after: If True, scroll after status update; if False, no scroll
+            scroll_to_form: If True (and scroll_after), scroll form into view instead of page bottom
         """
         self.state_manager.set_status(status)
-        # Trigger a scroll whenever status changes, as it often accompanies UI updates
-        ui.timer(0.1, self.scroll_to_bottom, once=True)
+        if scroll_after:
+            scroll_fn = (UIOperations.scroll_form_into_view if scroll_to_form else self.scroll_to_bottom)
+            ui.timer(0.15, scroll_fn, once=True)
 
 
     async def _handle_new_conversation(self):
         """Handle new conversation request."""
         self.state_manager.reset_conversation()
-        # Clear chat container and show welcome message
+        # Clear chat container and show welcome message (shared with Analyze mode & initial load)
         self.chat_container.clear()
-        welcome_message = ChatMessage('assistant', 'New conversation started. How can I help you?')
-        self._add_message(welcome_message)
-        #await self.scroll_to_bottom()
+        from frontend.components.chat.chat_window import render_welcome_message
+        render_welcome_message(self.chat_container)
+        self.state_manager.set_input_enabled(True)  # Ready for new prompt
 
 
 

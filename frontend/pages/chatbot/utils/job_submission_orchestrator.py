@@ -45,7 +45,7 @@ class JobSubmissionOrchestrator:
         self.conversation_manager = ConversationManager()
 
     async def submit_job(self, request_body, endpoint: str, task_schema, container, core,
-                        remaining_calls=None, conversation_id=None):
+                        remaining_calls=None, conversation_id=None, case_notes: str = None):
         """
         Submit a job and handle the complete workflow.
 
@@ -64,7 +64,7 @@ class JobSubmissionOrchestrator:
         try:
             await self._validate_and_prepare(request_body, endpoint, container)
             response_body, actual_conversation_id, job_info = await self._execute_job(
-                request_body, endpoint, task_schema, container, core, remaining_calls
+                request_body, endpoint, task_schema, container, core, remaining_calls, case_notes
             )
             # If the job was scheduled to run in background, _execute_job returns response_body=None.
             # In that case we should not call the immediate success handler (results will be shown when job completes).
@@ -83,7 +83,7 @@ class JobSubmissionOrchestrator:
             request_body, endpoint, self.form_handler.state_manager, container
         )
 
-    async def _execute_job(self, request_body, endpoint: str, task_schema, container, core, remaining_calls=None):
+    async def _execute_job(self, request_body, endpoint: str, task_schema, container, core, remaining_calls=None, case_notes: str = None):
         """Execute the actual job submission."""
         self.logger.info("Executing job submission for endpoint: %s", endpoint)
 
@@ -149,7 +149,9 @@ class JobSubmissionOrchestrator:
         # Save tool call to conversation history
         await self.conversation_manager.save_tool_call(conversation_id, request_body, endpoint)
         # Create job record (status=RUNNING) before submission so it can be recovered
-        job_info = await DatabaseService.create_and_track_job(request_body, endpoint, task_schema, response_body=None)
+        job_info = await DatabaseService.create_and_track_job(
+            request_body, endpoint, task_schema, response_body=None, case_notes=case_notes
+        )
         job_id = job_info.get('job_id') if job_info else None
         # Save a job-started marker in chat history for recovery
         try:
@@ -169,6 +171,28 @@ class JobSubmissionOrchestrator:
 
         # Build API endpoint path using helper
         api_endpoint = api_helpers.make_api_path(core.config.RESCUEBOX_HOST, endpoint)
+
+        # Create "Job running" message with updatable label (before _do_submit so closure captures it)
+        running_label_ref = []
+        try:
+            from frontend.pages.chatbot.chatbot_message import ChatMessage
+            from frontend.pages.chatbot.chatbot_forms import get_global_chat_container
+            target = get_global_chat_container() or container
+            if target is not None:
+                with target:
+                    with ui.row().classes('w-full items-start'):
+                        with ui.card().classes('bg-gray-200 max-w-sm shadow-sm'):
+                            with ui.column().classes('p-1.5 w-full gap-1'):
+                                ui.label('🤖 Assistant').classes('font-medium text-xs')
+                                content_label = ui.label("🔄 Job running...").classes('text-sm')
+                                running_label_ref.append(content_label)
+                try:
+                    self.form_handler.state_manager.add_message(ChatMessage('assistant', "🔄 Job running..."))
+                except Exception:
+                    pass
+                ui.timer(0.1, UIOperations.scroll_to_bottom, once=True)
+        except Exception as render_err:
+            self.logger.debug("Could not render job running message: %s", render_err)
 
         async def _do_submit():
             try:
@@ -193,6 +217,12 @@ class JobSubmissionOrchestrator:
                 try:
                     if container is not None:
                         _ = container.client
+                        # Update "Job running" to "Job completed" before showing results
+                        if running_label_ref:
+                            try:
+                                running_label_ref[0].text = "✅ Job completed"
+                            except Exception:
+                                pass
                         # show_results will handle container validity internally
                         logger.debug("job_submission_orchestrator: about to show_results container=%r job_id=%s", container, job_id)
                         await show_results(container=container, response_body=response_data, job_id=job_id)
@@ -203,6 +233,14 @@ class JobSubmissionOrchestrator:
                             await self.handle_remaining_calls(
                                 remaining_calls, resp, container, core
                             )
+                            # Next form is showing - stay disabled (rule: input only when no pending interaction)
+                        else:
+                            # No more forms - ready for new prompt
+                            try:
+                                if getattr(self.form_handler, 'state_manager', None):
+                                    self.form_handler.state_manager.set_input_enabled(True)
+                            except Exception:
+                                pass
                         # Ensure processing state cleared after background UI update
                         try:
                             if getattr(self.form_handler, 'state_manager', None):
@@ -234,7 +272,12 @@ class JobSubmissionOrchestrator:
                     # non-httpx errors or resolution failed, keep string representation
                     err_text = str(e)
 
-                # Render a friendly assistant message into the chat so the user sees the validation error
+                # Update "Job running" to "Job failed" and render error details
+                if running_label_ref:
+                    try:
+                        running_label_ref[0].text = "❌ Job failed"
+                    except Exception:
+                        pass
                 try:
                     from frontend.pages.chatbot.chatbot_message import ChatMessage, render_message
                     from frontend.pages.chatbot.chatbot_forms import get_global_chat_container
@@ -256,12 +299,13 @@ class JobSubmissionOrchestrator:
                     except Exception:
                         pass
 
-                # Ensure UI processing state cleared
+                # Ensure processing state cleared; enable input (no retry button - user starts new run)
                 try:
                     if getattr(self.form_handler, 'state_manager', None):
                         try:
                             self.form_handler.state_manager.set_processing(False)
                             self.form_handler.state_manager.set_status("Ready")
+                            self.form_handler.state_manager.set_input_enabled(True)
                         except Exception:
                             pass
                 except Exception:
@@ -274,12 +318,12 @@ class JobSubmissionOrchestrator:
             # Fallback to asyncio task if background_tasks not available
             asyncio.create_task(_do_submit())
 
-        # Background job scheduled; clear processing state for the UI and inform user
+        # Keep processing state and show "Job running" so user sees status (like smart analyze)
         try:
             if getattr(self.form_handler, 'state_manager', None):
                 try:
-                    self.form_handler.state_manager.set_processing(False)
-                    self.form_handler.state_manager.set_status("Background job scheduled")
+                    self.form_handler.state_manager.set_processing(True)
+                    self.form_handler.state_manager.set_status("🔄 Job running...")
                 except Exception:
                     pass
         except Exception:
@@ -314,6 +358,9 @@ class JobSubmissionOrchestrator:
             await self.handle_remaining_calls(
                 remaining_calls, response_body, container, core
             )
+            # Next form showing - stay disabled
+        else:
+            self.form_handler.state_manager.set_input_enabled(True)
 
         # Clear processing state
         self.form_handler.state_manager.set_processing(False)
@@ -397,6 +444,13 @@ class JobSubmissionOrchestrator:
                     self.logger.info("Filter applied: %d paths from %d items", len(filtered_paths), len(items))
 
             # All UI creation must run inside container (background task has no slot stack)
+            def _on_cancel():
+                try:
+                    if getattr(self.form_handler, 'state_manager', None):
+                        self.form_handler.state_manager.set_input_enabled(True)
+                except Exception:
+                    pass
+
             with container:
                 if next_schema:
                     notify_info(f"Proceeding to next tool: {next_endpoint}")
@@ -410,7 +464,8 @@ class JobSubmissionOrchestrator:
                         container,
                         core,
                         filtered_paths=filtered_paths
-                    )
+                    ),
+                    on_form_cancel=_on_cancel
                 )
 
         except Exception as e:

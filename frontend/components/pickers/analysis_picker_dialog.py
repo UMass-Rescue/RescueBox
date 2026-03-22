@@ -18,6 +18,6 @@ def show_analysis_picker_dialog(container: ui.element, options: Dict[int, Dict[s
                     ui.button(
                         f'{num}. {option["name"]} - {option["desc"]}',
                         on_click=lambda n=num: on_selected(option['name'])
-                    ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm')
+                    ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200')
     return container
 
