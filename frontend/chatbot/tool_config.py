@@ -193,7 +193,9 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             "1. CHAINING: If the user requests multiple actions, generate a LIST of tools.\n"
             "2. EXHAUSTIVE: You must generate a tool call for EVERY verb in the request. Do not stop until all actions are covered. Pick fuction name \"rescuebox/unknown\" when there is no clear match \n"
             "3. SHARED CONTEXT: If a path appears once, apply it to ALL relevant tools (Backward or Forward).\n"
-            "4. DEFAULTING: Infer required arguments (like output paths) from the input path.\n\n"
+            "4. DEFAULTING: Infer required arguments (like output paths) from the input path.\n"
+            "5. SUMMARIZE+SEARCH: If the user asks to summarize images AND search text/descriptions (e.g. \"search for boy\", \"find text about X\"), you MUST emit THREE tools in order: "
+            "age-gender/predict (if faces/age/gender mentioned), image_summary/summarize-images, then text_embeddings/search with input_dir set to the SAME output_dir used for summaries (e.g. /path/summary) and query set to the search phrase.\n\n"
             f"<tools>{json.dumps(tools_definitions)}</tools>"
         )
     }
@@ -293,6 +295,39 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             }
         ]
     }
+    # Same triple chain, phrasing close to real user prompts ("search text for …")
+    ex_e2_user = {
+        "role": "user",
+        "content": "detect age gender of faces and summarize and search text for boy in /evidence/batch2",
+    }
+    ex_e2_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "age-gender/predict",
+                    "arguments": {"image_directory": "/evidence/batch2"}
+                }
+            },
+            {
+                "function": {
+                    "name": "image_summary/summarize-images",
+                    "arguments": {
+                        "input_dir": "/evidence/batch2",
+                        "output_dir": "/evidence/batch2/summary",
+                        "model": "gemma3:4b",
+                    },
+                }
+            },
+            {
+                "function": {
+                    "name": "text_embeddings/search",
+                    "arguments": {"input_dir": "/evidence/batch2/summary", "query": "boy"},
+                }
+            },
+        ],
+    }
     ex_d_user = {"role": "user", "content": "Summarize images in /evidence/batch2"}
     ex_d_asst = {
         "role": "assistant",
@@ -314,6 +349,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ex_b_user, ex_b_asst,  # Teach Pattern B
         ex_c_user, ex_c_asst,  # Teach Pattern C
         ex_e_user, ex_e_asst,  # Teach Pattern E: age-gender + summarize + search
+        ex_e2_user, ex_e2_asst,
         ex_d_user, ex_d_asst,
         {"role": "user", "content": user_query}  # Real Query
     ]

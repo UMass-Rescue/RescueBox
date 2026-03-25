@@ -101,7 +101,7 @@ class LogsPage:
             if (scrollArea) {
                 scrollArea.scrollTop = scrollArea.scrollHeight;
             }
-        ''')
+        ''', timeout=10)
 
         logger.debug(f"Loaded log content from: {LOG_FILE}")
 

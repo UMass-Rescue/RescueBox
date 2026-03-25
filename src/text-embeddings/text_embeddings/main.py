@@ -316,7 +316,7 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         "min_similarity": min_similarity,
         "similarity_guidance": (
             f"Results with similarity >= {min_similarity} are marked as matches. "
-            "Chunk-level search improves recall (e.g. 'stones' matches 'pebbles')."
+            
         ),
         "results": search_results,
     }
@@ -344,7 +344,7 @@ def inputs_cli_parse(value: str) -> Inputs:
 
 def parameters_cli_parse(value: str) -> Parameters:
     parts = [p.strip() for p in value.split(",")]
-    top_k = int(parts[0]) if len(parts) > 0 and parts[0] else 5
+    top_k = int(parts[0]) if len(parts) > 0 and parts[0] else 3
     min_similarity = float(parts[1]) if len(parts) > 1 and parts[1] else 0.5
     return Parameters(top_k=top_k, min_similarity=min_similarity)
 
