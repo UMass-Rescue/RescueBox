@@ -15,7 +15,6 @@ Key Features:
 
 import json
 import logging
-from re import T
 from typing import List, Any, Optional, Literal
 from pydantic import BaseModel, Field
 
@@ -57,10 +56,21 @@ class DeepfakeDetection(BaseModel):
 
 class FileSystemScan(BaseModel):
     """
-    List files in a directory to check content types. 
+    List files in a directory to check content types.
     Use this when the user asks 'Is there a file?', 'Check folder content', or before running heavy tools.
     """
     directory_path: str = Field(..., description="The path to scan")
+
+
+class TextSearch(BaseModel):
+    """
+    Semantic search over text files. Use after image_summary to search image descriptions.
+    Chains from image_summary output_dir when user says 'summarize and search for X'.
+    """
+    input_dir: str = Field(..., description="Directory of text files (or image summary output)")
+    query: str = Field(..., description="Search query (e.g. 'kid with brown clothes')")
+
+
 # Legacy support for backward compatibility
 class RescueBoxToolCall(BaseModel):
     name: Literal[
@@ -68,6 +78,7 @@ class RescueBoxToolCall(BaseModel):
         "age-gender/predict",
         "text_summarization/summarize",
         "image_summary/summarize-images",
+        "text_embeddings/search",
         "face-match/findfacebulk",
         "face-match/bulkupload",
         "deepfake_detection/predict",
@@ -87,6 +98,7 @@ SCHEMA_MAP = {
     "age-gender/predict": AgeGenderPredict,
     "text_summarization/summarize": TextSummarize,
     "image_summary/summarize-images": ImageSummarize,
+    "text_embeddings/search": TextSearch,
     "face-match/findfacebulk": FaceFindBulk,
     "face-match/bulkupload": FaceBulkUpload,
     "deepfake_detection/predict": DeepfakeDetection,
@@ -254,6 +266,33 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             }
         ]
     }
+
+    # 5. Example E: Age-gender + Summarize + Search (image_summary -> text_embeddings pipeline)
+    ex_e_user = {"role": "user", "content": "detect age and gender of faces in /tmp, summarize, and search for a kid with brown clothes"}
+    ex_e_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "age-gender/predict",
+                    "arguments": {"image_directory": "/tmp"}
+                }
+            },
+            {
+                "function": {
+                    "name": "image_summary/summarize-images",
+                    "arguments": {"input_dir": "/tmp", "output_dir": "/tmp/summaries", "model": "gemma3:4b"}
+                }
+            },
+            {
+                "function": {
+                    "name": "text_embeddings/search",
+                    "arguments": {"input_dir": "/tmp/summaries", "query": "kid with brown clothes"}
+                }
+            }
+        ]
+    }
     ex_d_user = {"role": "user", "content": "Summarize images in /evidence/batch2"}
     ex_d_asst = {
         "role": "assistant",
@@ -274,6 +313,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ex_a_user, ex_a_asst,  # Teach Pattern A
         ex_b_user, ex_b_asst,  # Teach Pattern B
         ex_c_user, ex_c_asst,  # Teach Pattern C
+        ex_e_user, ex_e_asst,  # Teach Pattern E: age-gender + summarize + search
         ex_d_user, ex_d_asst,
         {"role": "user", "content": user_query}  # Real Query
     ]

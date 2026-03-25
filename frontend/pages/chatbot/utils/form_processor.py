@@ -57,6 +57,10 @@ class FormProcessor:
         """
         self.logger.info("Processing form submission for endpoint: %s", endpoint)
 
+        from frontend.utils.nicegui_storage import ensure_user_id
+        if ensure_user_id() is None:
+            return
+
         # Setup database and job
         job_db = await self._get_job_database()
         job = await self._create_job_record(job_db, request_body, task_schema, endpoint)

@@ -105,8 +105,8 @@ class TestModelsPage:
         
         await user.open('/models')
         
-        # Should see at least one model card with an Inspect button and version label
-        await user.should_see('Inspect')
+        # Should see at least one model card with a README button and version label
+        await user.should_see('README')
         await user.should_see('v')
 
 

@@ -153,15 +153,15 @@ class FormGenerator:
         with container:
             logger.debug("Creating form card container")
             # Form card (standard width)
-            with ui.card().classes('w-full bg-white border-2 border-blue-500'):
+            with ui.card().classes('w-full min-w-0 max-w-full bg-white border-2 border-blue-500'):
                 # Use compact spacing if requested
                 if compact:
-                    column_classes = 'p-3 space-y-2'
+                    column_classes = 'w-full min-w-0 p-3 space-y-2'
                     header_classes = 'text-lg font-bold'
                     section_classes = 'font-semibold text-base mt-2'
                     button_row_classes = 'mt-3 gap-2'
                 else:
-                    column_classes = 'p-6 space-y-4'
+                    column_classes = 'w-full min-w-0 p-6 space-y-4'
                     header_classes = 'text-xl font-bold'
                     section_classes = 'font-semibold text-lg mt-4'
                     button_row_classes = 'mt-6 gap-2'

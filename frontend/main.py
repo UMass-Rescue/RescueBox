@@ -29,7 +29,13 @@ from pathlib import Path
 from nicegui import ui, app, Client
 from frontend.config import APP_TITLE, APP_PORT, APP_FAVICON, APP_DARK_MODE, APP_SHOW_BROWSER, RECONNECT_TIMEOUT
 from frontend.components.shared import create_navbar
-from frontend.constants import UI_TITLES, UI_BUTTONS, NAV_LINKS
+from frontend.constants import UI_TITLES, UI_BUTTONS, NAV_LINKS, HOME_USER_ID
+from frontend.utils.nicegui_storage import (
+    clear_explicit_user_id,
+    ensure_explicit_user_id_for_tests,
+    get_explicit_user_id,
+    set_explicit_user_id,
+)
 from frontend.config import API_BASE_URL, BACKEND_URL, API_TIMEOUT, LOG_FILE, LOG_LEVEL
 from frontend.database import init_db, cache_models
 # Configure logging with context support
@@ -43,6 +49,7 @@ import frontend.pages.models
 import frontend.pages.chatbot
 import frontend.pages.jobs
 import frontend.pages.demo
+import frontend.pages.demo_quick_start
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -279,8 +286,8 @@ async def index():
     
     Page structure:
     1. Navigation bar (created via create_navbar())
-    2. Welcome message and description
-    3. Action buttons for quick navigation
+    2. User ID card: required on first visit (inline form); once set, shows current ID
+    3. Welcome message, description, and action buttons (only after User ID is set)
     
     Action buttons:
     - Browse Models: Navigate to models listing page
@@ -302,10 +309,10 @@ async def index():
     - For more complex navigation logic, define separate handler functions
     """
     logger.info("Rendering main dashboard page (index route)")
-    
-    # Apply saved theme preference
+
     from frontend.utils.theme import apply_saved_theme
     apply_saved_theme()
+
     logger.debug("Theme preference applied")
     
     # Inject global CSS to shrink the navbar and general UI elements
@@ -321,28 +328,70 @@ async def index():
 
     create_navbar()
     logger.debug("Navigation bar added to page")
-    
+
+    ensure_explicit_user_id_for_tests()
+    explicit_user_id = get_explicit_user_id()
+
     with ui.column().classes('container mx-auto p-8'):
         logger.debug("Creating main content container")
-        ui.label(UI_TITLES['home']).classes('text-4xl font-bold mb-4')
-        ui.label(UI_TITLES['home_subtitle']).classes('text-xl text-gray-600')
-        
-        with ui.row().classes('gap-4 mt-8'):
-            logger.debug("Creating action buttons")
-            
-            # Browse Models button
-            ui.button(
-                UI_BUTTONS['browse_models'],
-                on_click=lambda: ui.navigate.to(NAV_LINKS['models'])
-            ).classes('bg-blue-600 text-white px-6 py-3')
-            logger.debug("Browse Models button created")
-            
-            # Open Assistant button
-            ui.button(
-                UI_BUTTONS['open_assistant'],
-                on_click=lambda: ui.navigate.to(NAV_LINKS['chatbot'])
-            ).classes('bg-green-600 text-white px-6 py-3')
-            logger.debug("Open Assistant button created")
+        if explicit_user_id:
+            ui.label(UI_TITLES['home']).classes('text-4xl font-bold mb-4')
+            ui.label(UI_TITLES['home_subtitle']).classes('text-xl text-gray-600')
+            with ui.card().classes('w-full max-w-xl mt-4 p-4 bg-gray-50'):
+                ui.label(f"{HOME_USER_ID['current_prefix']} {explicit_user_id}").classes(
+                    'text-sm font-medium'
+                )
+                ui.label(HOME_USER_ID['change_user_hint']).classes('text-xs text-gray-500 mt-1')
+                with ui.row().classes('mt-3'):
+                    def _change_user_id():
+                        clear_explicit_user_id()
+                        ui.timer(0.2, lambda: ui.navigate.reload(), once=True)
+
+                    ui.button(
+                        HOME_USER_ID['change_user_button'],
+                        on_click=_change_user_id,
+                    ).classes('bg-gray-200 text-gray-800')
+
+            with ui.row().classes('gap-4 mt-8'):
+                logger.debug("Creating action buttons")
+
+                ui.button(
+                    UI_BUTTONS['browse_models'],
+                    on_click=lambda: ui.navigate.to(NAV_LINKS['models'])
+                ).classes('bg-blue-600 text-white px-6 py-3')
+                logger.debug("Browse Models button created")
+
+                ui.button(
+                    UI_BUTTONS['open_assistant'],
+                    on_click=lambda: ui.navigate.to(NAV_LINKS['chatbot'])
+                ).classes('bg-green-600 text-white px-6 py-3')
+                logger.debug("Open Assistant button created")
+        else:
+            with ui.card().classes('w-full max-w-xl p-6 shadow-md border'):
+                ui.label(HOME_USER_ID['title']).classes('text-xl font-semibold mb-2')
+                ui.label(HOME_USER_ID['blurb']).classes('text-gray-600 mb-4')
+                uid_input = ui.input(
+                    HOME_USER_ID['input_label'],
+                    placeholder=HOME_USER_ID['placeholder'],
+                ).classes('w-full')
+
+                def _save_home_user_id():
+                    val = (uid_input.value or "").strip()
+                    if not val:
+                        ui.notify('Please enter a User ID.', type='warning')
+                        return
+                    set_explicit_user_id(val)
+                    ui.timer(0.3, lambda: ui.navigate.reload(), once=True)
+
+                def _on_uid_keydown(e):
+                    if getattr(e, 'args', None) and e.args.get('key') == 'Enter':
+                        _save_home_user_id()
+
+                uid_input.on('keydown', _on_uid_keydown)
+                ui.button(
+                    HOME_USER_ID['save_button'],
+                    on_click=_save_home_user_id,
+                ).classes('mt-4 bg-blue-600 text-white')
     
     logger.info("Main dashboard page rendered successfully")
 
@@ -358,11 +407,16 @@ if __name__ in {"__main__", "__mp_main__"}:
     setup_backend_routes()
     logger.info("Backend API routes integrated: %s", BACKEND_AVAILABLE)
 
-    # Serve demo PDFs at /demo/...
+    # Serve demo static assets at /demo/... (screenshots for quick-start, etc.)
     demo_dir = Path(__file__).parent / 'demo'
     if demo_dir.exists():
         app.add_static_files(url_path='/demo', local_directory=str(demo_dir))
-        logger.info("Demo PDFs served at /demo/")
+        logger.info("Demo static files served at /demo/")
+
+    icons_dir = Path(__file__).parent / 'icons'
+    if icons_dir.is_dir():
+        app.add_static_files(url_path='/icons', local_directory=str(icons_dir))
+        logger.info("Icons served at /icons/")
     
     # Register the startup handler. This is the compatible way for older NiceGUI versions.
     app.on_startup(prefetch_and_cache_models)

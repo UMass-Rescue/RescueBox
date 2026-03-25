@@ -1,0 +1,122 @@
+"""
+Read-only explorer for the demo sample directory (e.g. Documents/demo) on the /demo page.
+Paths are constrained to DEMO_FILES_BROWSE_ROOT to avoid directory traversal.
+"""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import List, Tuple
+
+from nicegui import ui
+
+from frontend.config import DEMO_FILES_BROWSE_ROOT
+from frontend.components.results.results_utils import open_file
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+def _resolved_root() -> Path:
+    return DEMO_FILES_BROWSE_ROOT.expanduser().resolve()
+
+
+def _is_under_root(path: Path, root: Path) -> bool:
+    try:
+        path = path.resolve()
+        path.relative_to(root)
+        return True
+    except (ValueError, OSError, RuntimeError):
+        return False
+
+
+def _list_entries(directory: Path) -> List[Tuple[Path, bool]]:
+    """Sorted list of (path, is_dir)."""
+    try:
+        entries = list(directory.iterdir())
+    except OSError as e:
+        logger.warning('Cannot list %s: %s', directory, e)
+        return []
+    dirs = sorted((p for p in entries if p.is_dir()), key=lambda p: p.name.lower())
+    files = sorted((p for p in entries if p.is_file()), key=lambda p: p.name.lower())
+    return [(p, True) for p in dirs] + [(p, False) for p in files]
+
+
+def render_demo_files_explorer(container: ui.element) -> None:
+    """Render breadcrumb-style navigation and a clickable file/folder list."""
+    root = _resolved_root()
+
+    with container:
+        if not root.exists() or not root.is_dir():
+            ui.label(f'Demo files folder is not available: {root}').classes(
+                'text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-4'
+            )
+            ui.label(
+                'Create it or set RESCUEBOX_DEMO_FILES_DIR to an existing directory.'
+            ).classes('text-sm text-gray-600 mt-2')
+            return
+
+        state = {'current': str(root)}
+
+        list_holder = ui.column().classes('w-full min-w-0 gap-1')
+
+        def go_to(new_path: str) -> None:
+            target = Path(new_path).resolve()
+            if not _is_under_root(target, root):
+                ui.notify('Invalid path', type='negative')
+                return
+            if not target.is_dir():
+                ui.notify('Not a folder', type='negative')
+                return
+            state['current'] = str(target)
+            refresh()
+
+        def refresh() -> None:
+            list_holder.clear()
+            cur = Path(state['current'])
+            if not _is_under_root(cur, root):
+                state['current'] = str(root)
+                cur = root
+            if not cur.is_dir():
+                ui.notify('Invalid folder', type='negative')
+                state['current'] = str(root)
+                cur = root
+
+            with list_holder:
+                nav = ui.row().classes('w-full items-center gap-2 flex-wrap mb-2')
+                with nav:
+                    ui.button(
+                        'Demo root',
+                        on_click=lambda: go_to(str(root)),
+                    ).classes('text-xs').props('dense outline')
+                    if cur != root:
+                        parent = cur.parent
+                        if parent == root or _is_under_root(parent, root):
+                            ui.button(
+                                'Up one level',
+                                on_click=lambda p=str(parent): go_to(p),
+                            ).classes('text-xs').props('dense outline')
+
+                for path, is_dir in _list_entries(cur):
+                    name = path.name
+                    if name.startswith('.'):
+                        continue
+
+                    row = ui.row().classes(
+                        'w-full min-w-0 items-center gap-2 py-2 px-2 rounded '
+                        'hover:bg-gray-100 cursor-pointer border border-gray-100'
+                    )
+                    if is_dir:
+                        row.on('click', lambda *a, d=str(path): go_to(d))
+                        with row:
+                            ui.icon('folder', size='sm').classes('text-amber-600 shrink-0')
+                            ui.label(name).classes('text-sm font-medium text-gray-900 truncate flex-1 min-w-0')
+                            ui.icon('arrow_forward', size='sm').classes('text-gray-400 shrink-0')
+                    else:
+                        row.on('click', lambda *a, f=str(path): open_file(f))
+                        with row:
+                            ui.icon('insert_drive_file', size='sm').classes('text-blue-600 shrink-0')
+                            ui.label(name).classes('text-sm text-gray-800 truncate flex-1 min-w-0')
+
+        refresh()

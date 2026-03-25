@@ -363,7 +363,8 @@ class JobDB(BaseDatabase):
         model_uid: Optional[str] = None,
         task_uid: Optional[str] = None,
         endpoint: Optional[str] = None,
-        case_notes: Optional[str] = None
+        case_notes: Optional[str] = None,
+        user_id: Optional[str] = None
     ) -> JobRecord:
         """
         Create a new job record.
@@ -393,13 +394,13 @@ class JobDB(BaseDatabase):
         if not model_uid and not endpoint:
             raise ValueError("Either model_uid/task_uid or endpoint must be provided")
         
-        # Determine user/session id for this job (session-based auth)
-        try:
-            # Local import to avoid top-level dependency issues
-            from frontend.utils.nicegui_storage import get_user_id
-            user_id = get_user_id()
-        except Exception:
-            user_id = None
+        # Use explicit user_id if passed (from request context), else resolve from storage
+        if user_id is None:
+            try:
+                from frontend.utils.nicegui_storage import get_user_id_for_jobs
+                user_id = get_user_id_for_jobs()
+            except Exception:
+                user_id = None
 
         # Generate job uid consistently as JOB_<uuid_hex>
         start_time = datetime.now().isoformat()
@@ -536,10 +537,10 @@ class JobDB(BaseDatabase):
         
         if row:
             job_dict = self._row_to_dict(row)
-            # Enforce session-based access: only return job if user/session matches current session (if available)
+            # Allow access only if job matches current user ID (explicit user string)
             try:
-                from frontend.utils.nicegui_storage import get_user_id
-                current_user_id = get_user_id()
+                from frontend.utils.nicegui_storage import get_user_id_for_jobs
+                current_user_id = get_user_id_for_jobs()
             except Exception:
                 current_user_id = None
 
@@ -584,10 +585,10 @@ class JobDB(BaseDatabase):
         # job_utils -> database -> job_db -> job_utils
         from frontend.pages.jobs.job_utils import extract_job_fields
 
-        # If a NiceGUI session/user id is available, only return jobs for that session.
+        # Filter by explicit user ID only
         try:
-            from frontend.utils.nicegui_storage import get_user_id
-            current_user = get_user_id()
+            from frontend.utils.nicegui_storage import get_user_id_for_jobs
+            current_user = get_user_id_for_jobs()
         except Exception:
             current_user = None
 
@@ -598,10 +599,7 @@ class JobDB(BaseDatabase):
                 ORDER BY startTime DESC
             """, (current_user,))
         else:
-            cursor = conn.execute("""
-                SELECT * FROM jobs 
-                ORDER BY startTime DESC
-            """)
+            cursor = conn.execute("SELECT * FROM jobs WHERE 1=0")
         
         jobs = []
         for row in cursor.fetchall():
@@ -616,6 +614,23 @@ class JobDB(BaseDatabase):
         
         logger.info("Fetched %d jobs", len(jobs))
         return jobs
+
+    def get_job_count_for_user(self, user_id: Optional[str]) -> int:
+        """
+        Get count of jobs for a user (sync, lightweight).
+        Returns 0 if user_id is None or on error.
+        """
+        if not user_id:
+            return 0
+        try:
+            self._ensure_userid_column(self.connect())
+            cursor = self.connect().execute(
+                "SELECT COUNT(*) FROM jobs WHERE userId = ?", (user_id,)
+            )
+            return cursor.fetchone()[0] or 0
+        except Exception as e:
+            logger.debug("get_job_count_for_user failed: %s", e)
+            return 0
     
     async def update_job_status(
         self,

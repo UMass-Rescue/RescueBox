@@ -13,10 +13,10 @@ import sys
 from nicegui import ui
 from typing import TYPE_CHECKING
 from frontend.components.results.results_utils import open_file
+from frontend.components.results.image_bbox_preview import create_bbox_preview_row_click_handler
 from frontend.components.results.table_helpers import (
     create_sortable_table,
     create_metadata_table_columns,
-    create_file_row_click_handler,
 )
 
 if TYPE_CHECKING:
@@ -147,13 +147,19 @@ def _render_batch_file_with_metadata(container, files):
             row[field_name] = str(value)
         rows.append(row)
     
-    # Create table with click handler
-    on_row_click = create_file_row_click_handler(rows, open_file)
+    # Create table with click handler (image + bounding box preview when metadata includes box)
+    on_row_click = create_bbox_preview_row_click_handler(rows, open_file)
 
     # Use extracted table component
     try:
         from frontend.components.results.batch_file_table import render_batch_file_table
-        render_batch_file_table(container, columns, rows, on_row_click, tip_message='Tip: Click on any row to open the file')
+        render_batch_file_table(
+            container,
+            columns,
+            rows,
+            on_row_click,
+            tip_message='Tip: Click a row to preview the image with a highlighted region when a bounding box is present, or open the file.',
+        )
     except Exception:
         # Fallback to inline creation if component fails
         with container:
@@ -167,7 +173,7 @@ def _render_batch_file_with_metadata(container, files):
                     row_key='path',
                     show_row_labels=False,
                     on_row_click=on_row_click,
-                    tip_message='Tip: Click on any row to open the file'
+                    tip_message='Tip: Click a row to preview the image with a highlighted region when a bounding box is present, or open the file.',
                 )
                 # Plain per-row labels removed to avoid duplication below the table
 

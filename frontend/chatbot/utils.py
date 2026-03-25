@@ -84,9 +84,12 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
     for key, value in user_args.items():
         key_lower = key.lower()
         new_key = key_mappings.get(key_lower, key)
-        
+
+        # text_embeddings/search: "query" is search text, not query_directory - preserve it
+        if "text_embeddings" in endpoint and key_lower == "query":
+            new_key = "query"
         # Endpoint-specific overrides (from rescuebox_tool.py)
-        if ("age_gender" in endpoint or "age-gender" in endpoint) and new_key == "input_dir":
+        elif ("age_gender" in endpoint or "age-gender" in endpoint) and new_key == "input_dir":
             new_key = "image_directory"
             logger.debug("Applied age-gender override: %s -> %s", key, new_key)
         elif "deepfake" in endpoint and new_key == "input_dir":
@@ -100,7 +103,7 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
             logger.debug("Applied find_face override: %s -> %s", key, new_key)
         elif key != new_key:
             logger.debug("Mapped key: %s -> %s", key, new_key)
-        
+
         normalized[new_key] = value
     
     logger.info("Normalization complete. Output keys: %s", list(normalized.keys()))

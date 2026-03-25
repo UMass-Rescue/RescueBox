@@ -122,7 +122,7 @@ class ChatUIBuilder:
                     ui.label('RescueBox Assistant').classes('text-sm text-gray-600')
                     mode_indicator = ui.badge('Assistant', color='green').classes('text-xs')
                 with ui.row().classes('items-center gap-3'):
-                    models_btn = ui.button('📋 Models').classes(UIStyling.BUTTON_ENABLED)
+                    models_btn = ui.button('📋 Plugins').classes(UIStyling.BUTTON_ENABLED)
                     analyze_btn = ui.button('🧠 Assistant').classes(UIStyling.BUTTON_ENABLED)
                     ui.button('📜 History', on_click=self._show_history_dialog).classes(UIStyling.BUTTON_ENABLED)
                     ui.button('New Conversation', on_click=self.on_new_conversation).classes(UIStyling.BUTTON_ENABLED)

@@ -2,6 +2,9 @@ import logging
 from nicegui import ui
 from rb.api.models import TaskSchema, RequestBody, ResponseBody
 from frontend.components.results import ResultsPreview
+from frontend.components.results.image_summary_results_view import (
+    augment_response_model_dump_for_image_summary,
+)
 from frontend.components.shared import create_breadcrumbs
 from frontend.pages.jobs.job_utils import extract_job_fields
 from frontend.pages.jobs.components import render_error_status, render_job_action_buttons, render_compact_inputs_summary
@@ -40,7 +43,7 @@ async def render_job_outputs_card(container, api_client, job):
         ui.label(f'Invalid response format: {str(e)}').classes('text-red-600')
         return
 
-    with ui.card().classes('bg-white border border-gray-300 p-6'):
+    with ui.card().classes('w-full min-w-0 max-w-full self-stretch bg-white border border-gray-300 p-6'):
         create_breadcrumbs([
             {'label': 'Jobs', 'link': '/jobs'},
             {'label': f'Job {job_uid[:8]}...', 'link': f'/jobs/{job_uid}'},
@@ -51,7 +54,7 @@ async def render_job_outputs_card(container, api_client, job):
         with ui.row().classes('items-center justify-between mb-4'):
             try:
                 task_schema = TaskSchema(**task_schema_dict) if isinstance(task_schema_dict, dict) else task_schema_dict
-                task_title = 'Results ' + endpoint
+                task_title = 'Results for ' + endpoint
             except Exception:
                 task_title = task_schema_dict.get('shortTitle', 'Results') if isinstance(task_schema_dict, dict) else 'Results'
 
@@ -78,7 +81,10 @@ async def render_job_outputs_card(container, api_client, job):
 
         # Results preview
         logger.debug("Rendering results preview in outputs card")
-        results_container = ui.column().classes('gap-4')
-        ResultsPreview.render(results_container, response_body.model_dump())
+        results_container = ui.column().classes('w-full gap-4')
+        preview_dump = augment_response_model_dump_for_image_summary(
+            response_body.model_dump(), job_fields
+        )
+        ResultsPreview.render(results_container, preview_dump)
         logger.info("Job outputs rendered successfully (component)")
 

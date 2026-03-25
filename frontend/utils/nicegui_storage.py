@@ -13,11 +13,16 @@ Usage:
     from frontend.utils.nicegui_storage import (
         get_current_conversation_id,
         set_current_conversation_id,
-        get_user_id
+        get_user_id,
+        get_user_id_for_jobs,
+        get_client_ip
     )
     
-    # Get NiceGUI user ID
+    # Get NiceGUI user ID (session-based)
     user_id = get_user_id()
+    
+    # Get user ID for jobs (IP-based when available, persists across sessions)
+    user_id = get_user_id_for_jobs()
     
     # Manage current conversation
     conv_id = get_current_conversation_id()
@@ -27,7 +32,7 @@ Usage:
 import logging
 import threading
 from typing import Optional
-from nicegui import app
+from nicegui import app, ui
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -37,6 +42,182 @@ _demo_folder_lock = threading.Lock()
 
 # Fallback storage used by tests when NiceGUI's app.storage isn't available
 _test_fallback_storage: dict = {}
+
+def get_client_ip() -> Optional[str]:
+    """
+    Get the client IP address from the current NiceGUI request context.
+
+    Uses context.client.ip when available (after WebSocket connection).
+    Jobs are associated with this IP so they persist across session changes
+    when users return from the same machine (e.g. same LAN/DHCP).
+
+    Returns:
+        Optional[str]: Client IP if available, None otherwise
+    """
+    try:
+        from nicegui import context
+        client = getattr(context, "client", None)
+        if client is not None:
+            ip = getattr(client, "ip", None)
+            if ip:
+                return str(ip).strip()
+    except Exception as e:
+        err_msg = str(e)
+        if "UI context" not in err_msg and "ui context" not in err_msg.lower():
+            logger.debug("Could not get client IP: %s", e)
+    return None
+
+
+# Storage key for explicit user ID (prompted on each new session)
+_EXPLICIT_USER_ID_KEY = "explicit_job_user_id"
+
+
+def get_explicit_user_id() -> Optional[str]:
+    """
+    Get the user-entered ID for job/history association (from startup dialog).
+    Returns None when not yet set (new session).
+    Checks app.storage.user first, then app.storage.browser (cookie) for cross-session persistence.
+    """
+    # Try app.storage.user (session-bound, persists across reloads)
+    try:
+        val = app.storage.user.get(_EXPLICIT_USER_ID_KEY)
+        if val and isinstance(val, str) and val.strip():
+            return val.strip()
+    except Exception:
+        pass
+    # Fallback: app.storage.browser (cookie) - persists across reloads and sometimes survives session
+    try:
+        val = app.storage.browser.get(_EXPLICIT_USER_ID_KEY)
+        if val and isinstance(val, str) and val.strip():
+            return val.strip()
+    except Exception:
+        pass
+    return _test_fallback_storage.get(_EXPLICIT_USER_ID_KEY)
+
+
+def set_explicit_user_id(value: str) -> None:
+    """
+    Store the user-entered ID for job/history association.
+    Persists in app.storage.user and app.storage.browser for cross-session persistence.
+    """
+    if not value or not isinstance(value, str):
+        return
+    v = value.strip()
+    if not v:
+        return
+    try:
+        app.storage.user[_EXPLICIT_USER_ID_KEY] = v
+        logger.info("Stored explicit user ID in app.storage.user")
+    except Exception as e:
+        logger.warning("Failed to store explicit user ID in user storage: %s", e)
+    try:
+        app.storage.browser[_EXPLICIT_USER_ID_KEY] = v
+        logger.info("Stored explicit user ID in app.storage.browser")
+    except Exception as e:
+        logger.debug("Could not store in browser storage (optional): %s", e)
+    try:
+        import os
+        if "PYTEST_CURRENT_TEST" in os.environ or "PYTEST_XDIST_WORKER" in os.environ:
+            _test_fallback_storage[_EXPLICIT_USER_ID_KEY] = v
+    except Exception:
+        pass
+
+
+def clear_explicit_user_id() -> None:
+    """
+    Clear the stored user ID so the dialog will show again on next page load.
+    Use when the user wants to switch to a different ID (e.g. entered wrong one).
+    """
+    try:
+        if _EXPLICIT_USER_ID_KEY in app.storage.user:
+            del app.storage.user[_EXPLICIT_USER_ID_KEY]
+            logger.info("Cleared explicit user ID from app.storage.user")
+    except Exception as e:
+        logger.debug("Could not clear from user storage: %s", e)
+    try:
+        if _EXPLICIT_USER_ID_KEY in app.storage.browser:
+            del app.storage.browser[_EXPLICIT_USER_ID_KEY]
+            logger.info("Cleared explicit user ID from app.storage.browser")
+    except Exception as e:
+        logger.debug("Could not clear from browser storage: %s", e)
+    try:
+        import os
+        if "PYTEST_CURRENT_TEST" in os.environ or "PYTEST_XDIST_WORKER" in os.environ:
+            _test_fallback_storage.pop(_EXPLICIT_USER_ID_KEY, None)
+    except Exception:
+        pass
+
+
+def ensure_explicit_user_id_for_tests() -> None:
+    """
+    Under pytest, set a default explicit user ID when unset so pages that read
+    storage stay consistent with patched get_user_id_for_jobs.
+    """
+    try:
+        import os
+        if "PYTEST_CURRENT_TEST" not in os.environ and "PYTEST_XDIST_WORKER" not in os.environ:
+            return
+        if get_explicit_user_id():
+            return
+        set_explicit_user_id("test-user-1")
+    except Exception:
+        pass
+
+
+def ensure_user_id() -> Optional[str]:
+    """
+    Ensure we have an explicit user ID for job/history association.
+    If not set, shows a modal dialog and returns None. The dialog callback
+    will store the ID and reload the page, so the handler should return
+    immediately when None is returned (page will reload on submit).
+    Call when an action needs a stable user id (e.g. jobs list, first chat
+    send, or job form submit), not on every page load.
+    """
+    ensure_explicit_user_id_for_tests()
+
+    existing = get_explicit_user_id()
+    if existing:
+        return existing
+
+    def on_submit():
+        val = (input_field.value or "").strip()
+        if val:
+            set_explicit_user_id(val)
+            dialog.close()
+            # Delay reload so storage writes can persist before new request
+            ui.timer(0.3, lambda: ui.navigate.reload(), once=True)
+
+    def on_keydown(e):
+        if getattr(e, "args", None) and e.args.get("key") == "Enter":
+            on_submit()
+
+    with ui.dialog() as dialog, ui.card().classes("p-6 min-w-[320px]"):
+        ui.label("Enter your User ID").classes("text-lg font-semibold")
+        ui.label(
+            "Use this to access your jobs and chat history. Enter the same ID each time you open RescueBox."
+        ).classes("text-gray-600 mb-4")
+        input_field = ui.input(
+            "User ID",
+            placeholder="e.g. your name or case number",
+        ).classes("w-full")
+        input_field.on("keydown", on_keydown)
+        with ui.row().classes("mt-4 justify-end gap-2"):
+            ui.button("Continue", on_click=on_submit).classes("bg-blue-600 text-white")
+
+    dialog.open()
+    return None
+
+
+def get_user_id_for_jobs() -> Optional[str]:
+    """
+    Get user ID for job association. Returns explicit user ID from startup dialog only.
+    All jobs are associated with this ID; no IP or session fallback.
+    """
+    explicit = get_explicit_user_id()
+    if explicit:
+        return f"user-{explicit}"
+    return None
+
 
 def get_user_id() -> Optional[str]:
     """
@@ -93,7 +274,8 @@ def get_user_id() -> Optional[str]:
         # "can only be used within a UI context" is expected when called from background
         # tasks, timers, or after request context ends - use debug to avoid noisy warnings
         if 'UI context' in err_msg or 'ui context' in err_msg.lower():
-            logger.debug("User ID unavailable (no UI context): %s", err_msg)
+            # logger.debug("User ID unavailable (no UI context): %s", err_msg)
+            pass
         else:
             logger.warning("Error getting user ID: %s", e)
         # In test environments (pytest / no ui.run storage_secret), provide a stable test id

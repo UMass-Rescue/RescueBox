@@ -15,6 +15,8 @@ Key features:
 import logging
 from nicegui import ui
 
+from frontend.config import APP_TITLE
+
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -33,7 +35,7 @@ def create_navbar():
     - High z-index: Ensures navbar appears above other content (z-50)
     - Blue theme: Matches RescueBox branding (bg-blue-600)
     - Shadow: Adds depth with shadow-lg
-    - Responsive: Container centers content and adjusts to screen size
+    - Full-width inner row with fixed height (``h-12`` / ``sm:h-14``): slim bar; logo scales to fit inside it
     
     Navigation Links:
     - Models: Browse available ML models (/models)
@@ -56,51 +58,63 @@ def create_navbar():
     Tips:
     - The navbar is sticky, so it will remain visible when scrolling
     - Links use hover effects (hover:underline, hover:bg-blue-700)
-    - ui.space() pushes navigation links to the right side
+    - Brand row (logo + title) is left-aligned; links use a tight row with ``flex-1 justify-end``
     - Use consistent styling classes for new navigation links
     """
     logger.info("Creating navigation bar component")
     
-    with ui.header().classes('bg-blue-600 text-white shadow-lg sticky top-0 z-50'):
+    with ui.header(wrap=False).classes(
+        'bg-blue-600 text-white shadow-lg sticky top-0 z-50 w-full max-w-[100vw] overflow-hidden'
+    ):
         logger.debug("Header created with sticky positioning and blue theme")
-        
-        with ui.row().classes('container mx-auto items-center w-full px-4'):
+
+        _logo_px = '11.25rem'
+        _logo_style = (
+            f'width:{_logo_px};height:{_logo_px};max-width:{_logo_px};max-height:{_logo_px};'
+            'min-width:0;min-height:0;display:block;object-fit:contain;'
+        )
+
+        _link_cls = (
+            'text-white hover:underline px-1 py-0 sm:px-1.5 sm:py-0.5 rounded '
+            'hover:bg-blue-700 text-xs whitespace-nowrap leading-none'
+        )
+
+        with ui.row().classes(
+            'w-full min-w-0 min-h-12 h-auto sm:h-14 px-2 sm:px-3 py-0 items-center gap-2 sm:gap-3 '
+            'box-border flex-wrap sm:flex-nowrap justify-start'
+        ):
             logger.debug("Creating navbar container with responsive layout")
-            
-            # Application branding
-            ui.label('🚑 RescueBox Desktop').classes('text-2xl font-bold')
-            logger.debug("Brand label added")
-            
-            # Push navigation links to the right
-            ui.space()
-            logger.debug("Space added to push navigation links right")
-            
-            # Navigation links
-            with ui.row().classes('gap-4 items-center'):
-                logger.debug("Creating navigation links row")
 
-                ui.link('Plugin Details', '/models').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
-                logger.debug("Models link created")
+            with ui.row().classes('shrink-0 items-center gap-2 min-w-0'):
+                (
+                    ui.element('img')
+                    .props(f'src=/icons/rb.webp alt="{APP_TITLE}"')
+                    .classes('shrink-0 object-contain')
+                    .style(_logo_style)
+                )
+                ui.label(APP_TITLE).classes(
+                    'text-sm sm:text-base font-bold leading-tight text-white '
+                    'truncate min-w-0 max-w-[10rem] sm:max-w-[14rem]'
+                )
 
-                ui.link('Assistant', '/chatbot').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
-                logger.debug("chatbot link created")
-                
-                ui.link('Jobs', '/jobs').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
-                logger.debug("Jobs link created")
-                
-                ui.link('Logs', '/logs').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
-                logger.debug("Logs link created")
+            with ui.row().classes('min-w-0 flex-1 justify-end items-center'):
+                with ui.row().classes(
+                    'inline-flex flex-wrap items-center justify-end gap-x-0.5 gap-y-0 '
+                    'max-w-full py-0'
+                ):
+                    logger.debug("Creating navigation links row")
 
-                ui.link('Demo', '/demo').classes('text-white hover:underline px-3 py-2 rounded hover:bg-blue-700')
-                logger.debug("Demo link created")
+                    ui.link('Plugins', '/models').classes(_link_cls)
+                    ui.link('Assistant', '/chatbot').classes(_link_cls)
+                    ui.link('Jobs', '/jobs').classes(_link_cls)
+                    ui.link('Logs', '/logs').classes(_link_cls)
+                    ui.link('Demo', '/demo').classes(_link_cls)
 
-                # Theme toggle
-                from frontend.utils.theme import create_theme_toggle
-                theme_toggle = create_theme_toggle()
-                # Style the toggle for navbar (white text/label for visibility)
-                theme_toggle.classes('ml-4 items-center')
-                theme_toggle.props('color=white')
-                logger.debug("Theme toggle added to navbar")
+                    from frontend.utils.theme import create_theme_toggle
+                    theme_toggle = create_theme_toggle()
+                    theme_toggle.classes('ml-0.5 items-center shrink-0')
+                    theme_toggle.props('color=white')
+                    logger.debug("Theme toggle added to navbar")
 
                 # Session display removed for demo safety (avoids accidental user actions)
 

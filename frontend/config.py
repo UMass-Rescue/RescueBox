@@ -24,9 +24,10 @@ API_BASE_URL = os.getenv('RESCUEBOX_API_URL', f"{_DEFAULT_API_URL}/api")
 API_TIMEOUT = float(os.getenv('RESCUEBOX_API_TIMEOUT', '30.0'))
 
 # Application Configuration
-APP_TITLE = os.getenv('RESCUEBOX_APP_TITLE', 'RescueBox Desktop')
+APP_TITLE = os.getenv('RESCUEBOX_APP_TITLE', 'RescueBox')
 APP_PORT = int(os.getenv('RESCUEBOX_PORT', '8080'))
-APP_FAVICON = '🚑'  # RescueBox icon
+# Tab icon: filesystem path so NiceGUI can serve it at /favicon.ico (webp is fine for modern browsers)
+APP_FAVICON = Path(__file__).resolve().parent / 'icons' / 'rb.webp'
 APP_DARK_MODE = os.getenv('RESCUEBOX_DARK_MODE', 'false').lower() == 'true'
 APP_SHOW_BROWSER = os.getenv('RESCUEBOX_SHOW_BROWSER', 'false').lower() == 'true'
 
@@ -42,6 +43,11 @@ LOG_FILE = DATA_DIR / 'rescuebox.log'
 # Demo folders: each browser session gets one folder from this pool (Option 1 auto-assign)
 DEMO_FOLDERS_BASE = Path(os.getenv('RESCUEBOX_DEMO_FOLDERS_BASE', '/home/tester/Documents'))
 DEMO_FOLDER_NAMES = ['demo1', 'demo2', 'demo3', 'demo4', 'demo5', 'demo6', 'demo7', 'demo8', 'demo9', 'demo10']
+
+# Browsable tree on /demo (inputs/outputs samples). Override with RESCUEBOX_DEMO_FILES_DIR.
+DEMO_FILES_BROWSE_ROOT = Path(
+    os.getenv('RESCUEBOX_DEMO_FILES_DIR', str(DEMO_FOLDERS_BASE / 'demo'))
+).expanduser()
 
 # Reconnect timeout (seconds) before client is deleted; 1 hour keeps demo folder for entire demo
 RECONNECT_TIMEOUT = float(os.getenv('RESCUEBOX_RECONNECT_TIMEOUT', '3600'))

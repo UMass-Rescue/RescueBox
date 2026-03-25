@@ -10,6 +10,8 @@ import logging
 from nicegui import ui
 from typing import Dict, Optional, Callable
 
+from frontend.constants import UI_BUTTONS
+
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -27,8 +29,7 @@ def render_model_card(
     
     This function creates a visually appealing card component displaying model
     information including name, version, author, GPU requirements, and status.
-    The card includes action buttons for inspecting, running, or connecting to
-    the model based on its online status.
+    The card includes README (plugin details) and, when offline, Connect.
     
     Design Features:
     - Color-coded borders: Green for online, red for offline
@@ -47,7 +48,7 @@ def render_model_card(
             - 'gpu' (bool): Whether GPU is required
             - 'category' (str, optional): Model category
         is_online (bool): Whether the model server is currently online/available
-        on_inspect (Optional[Callable]): Callback function called when Inspect button is clicked.
+        on_inspect (Optional[Callable]): Callback when the README button is clicked.
             Receives model UID as argument: on_inspect(model['uid'])
         on_connect (Optional[Callable]): Callback function called when Connect button is clicked.
             Only shown if model is offline. Receives model UID: on_connect(model['uid'])
@@ -123,10 +124,10 @@ def render_model_card(
                         logger.debug("Creating action buttons")
                         if on_inspect:
                             ui.button(
-                                'Inspect',
+                                UI_BUTTONS['plugin_readme'],
                                 on_click=lambda m=model: on_inspect(m['uid']) if on_inspect else None
                             ).classes('bg-blue-600 text-white')
-                            logger.debug("Inspect button added")
+                            logger.debug("README button added")
                         
                         if not is_online and on_connect:
                             ui.button(

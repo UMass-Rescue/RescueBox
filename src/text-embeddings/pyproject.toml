@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "text-embeddings"
+version = "0.1.0"
+description = "Text embeddings plugin for RescueBox"
+authors = ["RescueBox Team"]
+packages = [{include = "text_embeddings"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+typer = "^0.12.5"
+pydantic = "^2.9.0"
+sentence-transformers = "*"
+langchain-text-splitters = "*"
+sqlmodel = "*"
+sqlalchemy = "*"
+pgvector = "*"
+rb-api = { path = "../rb-api", develop = true }
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+

@@ -64,7 +64,7 @@ async def create_input_field(
 
     initial_value = initial_values.get(field_id, {})
 
-    with ui.column().classes('gap-2'):
+    with ui.column().classes('gap-2 w-full min-w-0'):
         label_text = label
         if subtitle:
             ui.label(label_text).classes('font-semibold')
@@ -75,13 +75,10 @@ async def create_input_field(
         # Handle InputType enum
         if isinstance(input_type, InputType):
             if input_type == InputType.DIRECTORY:
-                # Stack label/input and browse button vertically to avoid inline truncation
-                with ui.column().classes('w-full'):
+                with ui.column().classes('w-full min-w-0'):
                     try:
                         from frontend.components.forms.fields.input_widgets import create_directory_input
-                        # Ensure the directory input occupies the full form width
-                        with ui.row().classes('w-full'):
-                            create_directory_input(field_id, initial_value, form_widgets)
+                        create_directory_input(field_id, initial_value, form_widgets)
                     except Exception:
                         # Fallback to inline behavior if component load fails
                         # Make the directory input occupy full width and move the Browse button to its own row
@@ -138,48 +135,48 @@ async def create_input_field(
                         form_widgets[field_id] = dir_input
 
             elif input_type == InputType.FILE:
-                # Stack file input and browse button vertically
-                with ui.column().classes('gap-2'):
+                with ui.column().classes('w-full min-w-0 gap-2'):
                     try:
                         from frontend.components.forms.fields.input_widgets import create_file_input
                         create_file_input(field_id, initial_value, form_widgets)
                     except Exception:
-                        file_input = ui.input(
-                            label='File path',
-                            placeholder='/path/to/file',
-                            value=initial_value.get('path', '') if isinstance(initial_value, dict) else ''
-                        ).classes('flex-1')
+                        with ui.column().classes('w-full min-w-0 gap-1'):
+                            ui.label('File path').classes('text-sm font-medium text-gray-700')
+                            with ui.row().classes('w-full min-w-0 items-center gap-2 flex-nowrap'):
+                                file_input = ui.input(
+                                    label='',
+                                    placeholder='/path/to/file',
+                                    value=initial_value.get('path', '') if isinstance(initial_value, dict) else ''
+                                ).classes('flex-1 min-w-0').props('outlined dense')
 
-                        # Add validation feedback
-                        file_validation_status = ui.icon('').classes('text-gray-400 q-mr-sm')
-                        file_validation_status.hide()
-
-                        def validate_file_path():
-                            path = file_input.value.strip()
-                            if not path:
-                                file_validation_status.name = ''
+                                file_validation_status = ui.icon('').classes('text-gray-400 shrink-0')
                                 file_validation_status.hide()
-                                return
 
-                            p = Path(path)
-                            if p.exists() and p.is_file():
-                                file_validation_status.name = 'check_circle'
-                                file_validation_status.classes('text-green-500 q-mr-sm', remove='text-red-500 text-gray-400')
-                                file_validation_status.show()
-                            else:
-                                file_validation_status.name = 'error'
-                                file_validation_status.classes('text-red-500 q-mr-sm', remove='text-green-500 text-gray-400')
-                                file_validation_status.show()
+                                def validate_file_path():
+                                    path = file_input.value.strip()
+                                    if not path:
+                                        file_validation_status.name = ''
+                                        file_validation_status.hide()
+                                        return
 
-                        file_input.on('change', validate_file_path)
-                        # Initial validation if there's a value
-                        if file_input.value:
-                            validate_file_path()
+                                    p = Path(path)
+                                    if p.exists() and p.is_file():
+                                        file_validation_status.name = 'check_circle'
+                                        file_validation_status.classes('text-green-500', remove='text-red-500 text-gray-400')
+                                        file_validation_status.show()
+                                    else:
+                                        file_validation_status.name = 'error'
+                                        file_validation_status.classes('text-red-500', remove='text-green-500 text-gray-400')
+                                        file_validation_status.show()
 
-                        ui.button(
-                            'Browse',
-                            on_click=lambda: browse_file_simple(file_input)
-                        ).classes('bg-gray-300')
+                                file_input.on('change', validate_file_path)
+                                if file_input.value:
+                                    validate_file_path()
+
+                                ui.button(
+                                    'Browse',
+                                    on_click=lambda: browse_file_simple(file_input)
+                                ).classes('shrink-0 bg-gray-300')
                         form_widgets[field_id] = file_input
 
             elif input_type == InputType.TEXTAREA:

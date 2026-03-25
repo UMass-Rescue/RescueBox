@@ -25,7 +25,7 @@ from rb.api.models import (
 )
 
 from .model import SUPPORTED_MODELS
-from .process import process_images
+from .process import process_images_batch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,8 +35,7 @@ APP_NAME = "image_summary"
 
 class Inputs(TypedDict):
     input_dir: DirectoryInput
-    output_dir: DirectoryInput
-    file_filter: NotRequired[BatchFileInput]  # Optional: from chained BatchFileResponse filter
+    output_dir: DirectoryInput # Optional: from chained BatchFileResponse filter
 
 
 class Parameters(TypedDict):
@@ -54,11 +53,6 @@ def task_schema() -> TaskSchema:
         label="Path to the directory for the output summaries",
         input_type=InputType.DIRECTORY,
     )
-    file_filter_schema = InputSchema(
-        key="file_filter",
-        label="Optional: filter to specific files (from previous step)",
-        input_type=InputType.BATCHFILE,
-    )
     parameter_schema = ParameterSchema(
         key="model",
         label="Model to use for image description",
@@ -72,7 +66,7 @@ def task_schema() -> TaskSchema:
         ),
     )
     return TaskSchema(
-        inputs=[input_dir_schema, output_dir_schema, file_filter_schema],
+        inputs=[input_dir_schema, output_dir_schema],
         parameters=[parameter_schema],
     )
 
@@ -125,7 +119,7 @@ def summarize_images(
         "ImageSummary API: received request | model=%s | input_dir=%s | output_dir=%s | file_filter=%s",
         model, input_dir, output_dir, has_ff
     )
-    processed_files = process_images(model, input_dir, output_dir, file_filter)
+    processed_files = process_images_batch(model, input_dir, output_dir, file_filter)
 
     # If output patterns were not obtained from a persisted filter, collect them from uploaded files
     if not output_patterns:
@@ -165,7 +159,12 @@ def summarize_images(
     else:
         result_files = processed_files
 
-    response = TextResponse(value=json.dumps(list(result_files)))
+    payload = {
+        "image_summary": True,
+        "input_dir": str(Path(input_dir).resolve()),
+        "files": sorted(result_files),
+    }
+    response = TextResponse(value=json.dumps(payload))
     logger.info(f"ImageSummary API: response ready | files={len(result_files)}")
     return ResponseBody(root=response)
 

@@ -289,10 +289,11 @@ async def user():
             ui.ref = _simple_ref
     except Exception:
         pass
-    # Patch frontend.utils.nicegui_storage.get_user_id to provide a stable test id when real storage is unavailable.
+    # Patch get_user_id and get_user_id_for_jobs to provide stable test ids when storage/IP unavailable.
     try:
         import frontend.utils.nicegui_storage as _ngs
         _orig_get_user_id = _ngs.get_user_id
+        _orig_get_user_id_for_jobs = _ngs.get_user_id_for_jobs
 
         def _test_get_user_id():
             try:
@@ -303,7 +304,22 @@ async def user():
                 pass
             return 'test-user-1'
 
+        def _test_get_user_id_for_jobs():
+            try:
+                val = _orig_get_user_id_for_jobs()
+                if val:
+                    return val
+            except Exception:
+                pass
+            return 'test-user-1'
+
+        def _test_ensure_user_id():
+            _ngs.set_explicit_user_id('test-user-1')
+            return 'test-user-1'
+
         _ngs.get_user_id = _test_get_user_id
+        _ngs.get_user_id_for_jobs = _test_get_user_id_for_jobs
+        _ngs.ensure_user_id = _test_ensure_user_id
     except Exception:
         pass
     # Ensure rb.api.models.FileType has TXT alias for compatibility with older tests

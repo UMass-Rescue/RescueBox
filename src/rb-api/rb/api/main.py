@@ -1,11 +1,18 @@
 import multiprocessing
 import os
 import sys
+
+# Standalone API process: file logging before routes import (routes must not reconfigure).
+from rb.api.logging_setup import configure_backend_logging
+
+configure_backend_logging()
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from rb.api import routes
+from rb.api.database import create_db_and_tables
 
 app = FastAPI(
     title="RescueBoxAPI",
@@ -24,6 +31,14 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+@app.on_event("startup")
+def on_startup():
+    # Uvicorn applies dictConfig after import; re-apply our root handlers so
+    # plugin and cli DEBUG/INFO lines keep going to file + stderr.
+    configure_backend_logging()
+    print("Creating database and tables")
+    create_db_and_tables()
 
 app.mount(
     "/static",

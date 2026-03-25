@@ -172,11 +172,30 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
     Returns:
         Optional[str]: Output path if found, None otherwise
     """
-    from rb.api.models import BatchDirectoryResponse, DirectoryResponse, BatchFileResponse, FileResponse
-    
+    from rb.api.models import BatchDirectoryResponse, DirectoryResponse, BatchFileResponse, FileResponse, TextResponse
+
     try:
         root = response_body.root
-        
+
+        # TextResponse - e.g. image_summary returns JSON array of output file paths
+        if isinstance(root, TextResponse) and root.value:
+            try:
+                import json
+                parsed = json.loads(root.value)
+                file_list = None
+                if isinstance(parsed, dict) and parsed.get("image_summary"):
+                    file_list = parsed.get("files")
+                elif isinstance(parsed, list):
+                    file_list = parsed
+                if file_list and isinstance(file_list, list):
+                    first_path = file_list[0]
+                    if isinstance(first_path, str):
+                        output_path = Path(first_path).parent
+                        logger.debug("Extracted output path from TextResponse (file list): %s", output_path)
+                        return output_path.as_posix()
+            except (json.JSONDecodeError, TypeError, IndexError):
+                pass
+
         # BatchDirectoryResponse
         if isinstance(root, BatchDirectoryResponse) and root.directories:
             output_path = root.directories[0].path
@@ -261,9 +280,37 @@ def chain_output_to_input(
         logger.info("Chaining output path '%s' to input '%s'", output_path, input_dir_key)
         current_arguments = current_arguments.copy()
         current_arguments[input_dir_key] = output_path
+
+        # If previous response is TextResponse with file list, also inject file_filter for pipelines
+        # (e.g. image_summary -> text_embeddings)
+        from rb.api.models import TextResponse
+        root = previous_output.root
+        if isinstance(root, TextResponse) and root.value:
+            try:
+                import json
+                parsed = json.loads(root.value)
+                if isinstance(parsed, dict) and parsed.get("image_summary"):
+                    raw_paths = parsed.get("files") or []
+                elif isinstance(parsed, list):
+                    raw_paths = parsed
+                else:
+                    raw_paths = []
+                if raw_paths:
+                    has_file_filter = any(
+                        inp.key == "file_filter" for inp in current_schema.inputs
+                    )
+                    if has_file_filter:
+                        file_paths = [p for p in raw_paths if isinstance(p, str)]
+                        if file_paths:
+                            current_arguments["file_filter"] = {
+                                "files": [{"path": p} for p in file_paths]
+                            }
+                            logger.info("Chained %d files to file_filter", len(file_paths))
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                pass
     else:
         logger.debug("No input directory field found in schema, skipping chaining")
-    
+
     return current_arguments
 
 

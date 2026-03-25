@@ -27,7 +27,7 @@ def create_chat_header(on_new_conversation: Callable, ui_state: dict, ui_styling
 
         # Right side - Action buttons
         with ui.row().classes('items-center gap-3'):
-            models_btn = ui.button('📋 Models').classes('bg-blue-500 text-white px-4 py-2 rounded-lg')
+            models_btn = ui.button('📋 Plugins').classes('bg-blue-500 text-white px-4 py-2 rounded-lg')
             analyze_btn = ui.button('🧠 Assistant').classes('bg-blue-500 text-white px-4 py-2 rounded-lg')
             if on_show_history:
                 ui.button('📜 History', on_click=on_show_history).classes('bg-gray-200')

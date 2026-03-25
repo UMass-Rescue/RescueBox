@@ -160,26 +160,15 @@ async def fetch_task_schema(api_client, http_client, config, endpoint: str):
 async def post_job(api_client, http_client, config, api_endpoint: str, request_dict: Dict[str, Any]):
     """
     Submit a job payload and return the resolved response dict.
+
+    Uses the endpoint path as registered by Typer/MLService (e.g.
+    ``/image_summary/summarize-images``). We do not rewrite underscores to
+    hyphens—plugin URLs use underscores in the path segment (``image_summary``).
     """
-    # Prepare candidate endpoints to try (most-specific first)
-    candidates = []
-    # ensure we have leading slash on candidates
     def norm(p: str) -> str:
         return p if p.startswith('/') else f'/{p}'
 
-    # normalize primary candidate (ensure leading slash)
-    candidates.append(norm(api_endpoint))
-    # add underscore->hyphen variant (keep same leading slash)
-    if '_' in api_endpoint:
-        candidates.append(norm(api_endpoint.replace('_', '-')))
-
-    # de-duplicate while preserving order
-    seen = set()
-    uniq_candidates = []
-    for c in candidates:
-        if c not in seen:
-            uniq_candidates.append(c)
-            seen.add(c)
+    uniq_candidates = [norm(api_endpoint)]
 
     last_exc = None
     response = None

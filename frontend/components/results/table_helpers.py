@@ -112,6 +112,51 @@ def create_metadata_table_columns(
     return columns
 
 
+def resolve_table_row_index(e, rows: List[Dict]) -> Optional[int]:
+    """
+    Resolve the clicked row index from a NiceGUI table rowClick event.
+
+    Args:
+        e: Event from table.on('rowClick', ...)
+        rows: Same list passed to ui.table(rows=...)
+
+    Returns:
+        Row index or None if it could not be resolved.
+    """
+    try:
+        candidate = e.args[1] if len(e.args) > 1 else None
+        row_index = None
+
+        if isinstance(candidate, int):
+            row_index = candidate
+        elif isinstance(candidate, dict):
+            try:
+                row_index = rows.index(candidate)
+            except ValueError:
+                for key in ('index', 'rowIndex', 'row_idx'):
+                    try:
+                        maybe = candidate.get(key)
+                        if isinstance(maybe, int):
+                            row_index = maybe
+                            break
+                    except Exception:
+                        continue
+        else:
+            try:
+                for i, r in enumerate(rows):
+                    if candidate == r or candidate == r.get('id') or candidate == r.get('uid'):
+                        row_index = i
+                        break
+            except Exception:
+                row_index = None
+
+        if row_index is not None and isinstance(row_index, int) and 0 <= row_index < len(rows):
+            return row_index
+    except Exception:
+        pass
+    return None
+
+
 def create_file_row_click_handler(rows: List[Dict], open_file_func: Callable):
     """
     Create a row click handler that opens files.
@@ -124,45 +169,15 @@ def create_file_row_click_handler(rows: List[Dict], open_file_func: Callable):
         Callable: Event handler function
     
     Tips:
-    - Rows should have 'path_full' or 'path' key containing the file path
-    - Handler expects e.args[1] to be the row index
-    - Errors are logged but don't interrupt execution
+        - Rows should have 'path_full' or 'path' key containing the file path
+        - Handler expects e.args[1] to be the row index
+        - Errors are logged but don't interrupt execution
     """
     def on_row_click(e):
         """Handle row click to open file"""
         try:
-            # event args may vary between versions: sometimes index (int), sometimes row dict/object
-            candidate = e.args[1] if len(e.args) > 1 else None
-            row_index = None
-
-            # If candidate is an int, use directly (guarded)
-            if isinstance(candidate, int):
-                row_index = candidate
-            # If candidate is a mapping/object, try to resolve its index in rows
-            elif isinstance(candidate, dict):
-                try:
-                    row_index = rows.index(candidate)
-                except ValueError:
-                    # try common keys that may contain the index
-                    for key in ('index', 'rowIndex', 'row_idx'):
-                        try:
-                            maybe = candidate.get(key)
-                            if isinstance(maybe, int):
-                                row_index = maybe
-                                break
-                        except Exception:
-                            continue
-            # As a last resort, candidate might be the row key value; try to match by 'id' or 'uid'
-            else:
-                try:
-                    for i, r in enumerate(rows):
-                        if candidate == r or candidate == r.get('id') or candidate == r.get('uid'):
-                            row_index = i
-                            break
-                except Exception:
-                    row_index = None
-
-            if row_index is not None and isinstance(row_index, int) and 0 <= row_index < len(rows):
+            row_index = resolve_table_row_index(e, rows)
+            if row_index is not None:
                 file_path = rows[row_index].get('path_full') or rows[row_index].get('path')
                 if file_path:
                     open_file_func(file_path)
@@ -191,32 +206,8 @@ def create_directory_row_click_handler(rows: List[Dict], open_folder_func: Calla
     def on_row_click(e):
         """Handle row click to open directory"""
         try:
-            candidate = e.args[1] if len(e.args) > 1 else None
-            row_index = None
-            if isinstance(candidate, int):
-                row_index = candidate
-            elif isinstance(candidate, dict):
-                try:
-                    row_index = rows.index(candidate)
-                except ValueError:
-                    for key in ('index', 'rowIndex', 'row_idx'):
-                        try:
-                            maybe = candidate.get(key)
-                            if isinstance(maybe, int):
-                                row_index = maybe
-                                break
-                        except Exception:
-                            continue
-            else:
-                try:
-                    for i, r in enumerate(rows):
-                        if candidate == r or candidate == r.get('id') or candidate == r.get('uid'):
-                            row_index = i
-                            break
-                except Exception:
-                    row_index = None
-
-            if row_index is not None and isinstance(row_index, int) and 0 <= row_index < len(rows):
+            row_index = resolve_table_row_index(e, rows)
+            if row_index is not None:
                 dir_path = rows[row_index].get('path_full') or rows[row_index].get('path')
                 if dir_path:
                     open_folder_func(dir_path)

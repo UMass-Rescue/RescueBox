@@ -60,7 +60,7 @@ class ToolPicker(BasePicker):
 
     def __init__(self, container: ui.element, tool_registry: ToolRegistry,
                  on_tool_selected: Callable[[str, dict], None]):
-        super().__init__(container, 'RescueBox Tool Picker', FormConfig.TOOL_PICKER_CLASSES)
+        super().__init__(container, 'RescueBox Plugin Selector', FormConfig.TOOL_PICKER_CLASSES)
         self.tool_registry = tool_registry
         self.on_tool_selected = on_tool_selected
 
@@ -82,21 +82,31 @@ class ToolPicker(BasePicker):
                 with self.create_picker_card():
                     self.create_header('🛠️', 'purple')
                     with ui.row().classes('w-full'):
-                        with ui.card().classes('bg-white p-4 flex-1'):
+                        with ui.card().classes(
+                            'w-full max-w-md min-w-0 mx-auto p-4 rounded-xl border-2 border-violet-200 '
+                            'bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100 shadow-sm'
+                        ):
                             self._create_tool_buttons()
 
             logger.debug("Tool picker menu displayed")
 
     def _create_tool_buttons(self):
         """Create clickable tool buttons."""
-        ui.label('Available Tools').classes('font-semibold')
-        ui.label('Click a tool to use').classes('text-sm text-gray-500 mb-2')
-        with ui.column().classes('gap-2'):
+        ui.label('Available Tools').classes('text-xl font-bold text-slate-800 tracking-tight')
+        ui.label('Click a tool to use').classes('text-base text-slate-600 mb-4')
+        with ui.column().classes('gap-2 w-full'):
             for num, tool in self.tool_registry.TOOL_MENU.items():
-                ui.button(
-                    f'{num}. {tool["name"]} - {tool["desc"]}',
-                    on_click=lambda n=num: self._handle_tool_click(n)
-                ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200')
+                row = ui.row().classes(
+                    'w-full min-w-0 py-5 px-5 rounded-xl border-2 border-violet-200/90 '
+                    'bg-white shadow-sm hover:bg-violet-50 hover:border-violet-400 '
+                    'cursor-pointer transition-colors duration-150 items-start'
+                )
+                row.on('click', lambda *a, n=num: self._handle_tool_click(n))
+                with row:
+                    ui.label(f'{num}. {tool["name"]} — {tool["desc"]}').classes(
+                        'w-full text-left text-sm leading-snug font-medium text-slate-900 '
+                        'whitespace-normal break-words'
+                    )
 
     def _handle_tool_click(self, num: str):
         """Load the tool form when user clicks a tool button."""

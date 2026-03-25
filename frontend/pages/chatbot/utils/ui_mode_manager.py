@@ -24,7 +24,7 @@ class UIModeManager:
 
         Args:
             mode_indicator: UI element showing current mode
-            models_btn: Models mode button
+            models_btn: Plugins mode button (browse plugins / tool picker)
             analyze_btn: Assistant mode button
             chat_container: Chat messages container
             status_text_ref: Status text reference (optional)
@@ -85,7 +85,7 @@ class UIModeManager:
                     self.state_manager.set_input_enabled(True)  # Ready for new prompt
 
         elif mode == 'models':
-            self.mode_indicator.text = 'Models'
+            self.mode_indicator.text = 'Plugins'
             self.mode_indicator.props('color=purple')
 
             # Update button styles
@@ -98,5 +98,6 @@ class UIModeManager:
                 input_area.classes('hidden')
 
         self.logger.info("Switched to %s mode", mode)
-        UIOperations.safe_notify(f'Switched to {mode.capitalize()} mode', type='info', timeout=1000)
+        mode_label = 'Plugins' if mode == 'models' else 'Assistant'
+        UIOperations.safe_notify(f'Switched to {mode_label} mode', type='info', timeout=1000)
 

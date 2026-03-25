@@ -20,8 +20,23 @@ UI_TITLES = {
     'logs': 'Application Logs',
     'model_details': 'Plugin Details',
     'job_details': 'Job Details',
-    'home': 'Welcome to RescueBox Desktop',
-    'home_subtitle': 'Select a model or use the Assistant to get started',
+    'home': 'Welcome to RescueBox',
+    'home_subtitle': 'Browse rescuebox plugin details or Use the Assistant to get started',
+}
+
+# Home page: inline User ID (required before using jobs / persistent chat)
+HOME_USER_ID = {
+    'title': 'Set your User ID',
+    'blurb': (
+        'Enter a new or existing ID to link your jobs and chat history. '
+        'Use the same ID each time you open RescueBox.'
+    ),
+    'input_label': 'User ID',
+    'placeholder': 'e.g. your name or case number',
+    'save_button': 'Save and continue',
+    'current_prefix': 'User ID:',
+    'change_user_button': 'Change User ID',
+    'change_user_hint': 'Use this if you need to sign in with a different ID. Empty job history is normal for a new ID.',
 }
 
 # UI Button Labels
@@ -32,6 +47,7 @@ UI_BUTTONS = {
     'delete': 'Delete',
     'view': 'View',
     'inspect': 'Inspect',
+    'plugin_readme': 'README',  # Browse Plugins model card → plugin details / app-info
     'run': 'Run Model',
     'connect': 'Connect',
     'browse_models': 'Browse Plugins',

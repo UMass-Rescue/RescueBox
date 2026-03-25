@@ -236,6 +236,9 @@ async def jobs_page():
         None: Page is rendered directly
     """
     logger.info("Jobs page route accessed")
+    from frontend.utils.nicegui_storage import ensure_user_id
+    if ensure_user_id() is None:
+        return
     from frontend.utils.theme import apply_saved_theme
     apply_saved_theme()
     create_navbar()

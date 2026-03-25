@@ -62,6 +62,10 @@ class JobSubmissionOrchestrator:
             None
         """
         try:
+            from frontend.utils.nicegui_storage import ensure_user_id
+            if ensure_user_id() is None:
+                return
+
             await self._validate_and_prepare(request_body, endpoint, container)
             response_body, actual_conversation_id, job_info = await self._execute_job(
                 request_body, endpoint, task_schema, container, core, remaining_calls, case_notes
@@ -148,9 +152,15 @@ class JobSubmissionOrchestrator:
 
         # Save tool call to conversation history
         await self.conversation_manager.save_tool_call(conversation_id, request_body, endpoint)
+        # Capture user_id while we have request context (before any background tasks)
+        try:
+            from frontend.utils.nicegui_storage import get_user_id_for_jobs
+            user_id = get_user_id_for_jobs()
+        except Exception:
+            user_id = None
         # Create job record (status=RUNNING) before submission so it can be recovered
         job_info = await DatabaseService.create_and_track_job(
-            request_body, endpoint, task_schema, response_body=None, case_notes=case_notes
+            request_body, endpoint, task_schema, response_body=None, case_notes=case_notes, user_id=user_id
         )
         job_id = job_info.get('job_id') if job_info else None
         # Save a job-started marker in chat history for recovery

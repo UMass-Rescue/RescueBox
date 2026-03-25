@@ -13,8 +13,8 @@ async def create_input_form(task_schema: TaskSchema, endpoint: str, initial_valu
     """
     Create input form card using FormGenerator. Returns the created card element.
     """
-    # Allow wider form cards so input fields (paths) are not cramped on small screens
-    form_card = ui.card().classes('w-full max-w-2xl bg-white border-2 border-blue-500 text-sm')
+    # Full-width card so directory/file path fields use available horizontal space
+    form_card = ui.card().classes('w-full max-w-full min-w-0 bg-white border-2 border-blue-500 text-sm')
     with form_card:
         form_generator = FormGenerator()
 

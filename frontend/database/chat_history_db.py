@@ -191,8 +191,8 @@ class ChatHistoryDB(BaseDatabase):
     def _get_current_user(self) -> Optional[str]:
         """Return current NiceGUI session/user id or None."""
         try:
-            from frontend.utils.nicegui_storage import get_user_id
-            return get_user_id()
+            from frontend.utils.nicegui_storage import get_user_id_for_jobs
+            return get_user_id_for_jobs()
         except Exception:
             return None
 
@@ -240,8 +240,8 @@ class ChatHistoryDB(BaseDatabase):
 
             # Determine current session/user id if available
             try:
-                from frontend.utils.nicegui_storage import get_user_id
-                user_id = get_user_id()
+                from frontend.utils.nicegui_storage import get_user_id_for_jobs
+                user_id = get_user_id_for_jobs()
             except Exception:
                 user_id = None
 
@@ -317,8 +317,8 @@ class ChatHistoryDB(BaseDatabase):
             logger.debug("Failed to ensure conversations.userId column before fetching conversations")
 
         try:
-            from frontend.utils.nicegui_storage import get_user_id
-            current_user = get_user_id()
+            from frontend.utils.nicegui_storage import get_user_id_for_jobs
+            current_user = get_user_id_for_jobs()
         except Exception:
             current_user = None
 

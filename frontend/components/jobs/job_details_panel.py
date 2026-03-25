@@ -22,7 +22,7 @@ async def render_job_details_panel(container: ui.element, api_client, job_fields
     case_notes = job_fields.get('caseNotes')
 
     with container:
-        with ui.card().classes('bg-white border border-gray-300 p-6'):
+        with ui.card().classes('w-full min-w-0 max-w-full self-stretch bg-white border border-gray-300 p-6'):
             # Job metadata header
             with ui.column().classes('gap-4'):
                 ui.label('Job Information').classes('text-2xl font-bold')

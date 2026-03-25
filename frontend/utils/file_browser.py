@@ -200,7 +200,7 @@ class DirectoryBrowser:
             parent_path = str(path_obj.parent)
             with self.file_list:
                 ui.button(
-                    'arrow_upward',
+                    'navigate_up',
                     on_click=lambda p=parent_path: self._navigate_to_directory(p)
                 ).classes('w-full justify-start p-3 hover:bg-blue-50 border-b border-gray-100 text-blue-600').props('flat icon=arrow_upward prepend-icon')
 

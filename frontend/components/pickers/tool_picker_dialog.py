@@ -12,15 +12,27 @@ def show_tool_picker_dialog(container: ui.element, tool_registry: ToolRegistry, 
     Show the tool picker UI inside provided container.
     """
     with container:
-        with ui.card().classes('bg-white p-4 flex-1'):
-            ui.label('Available Tools').classes('font-semibold')
-            ui.label('Click a tool to use').classes('text-sm text-gray-500 mb-3')
-            with ui.column().classes('gap-2'):
+        with ui.card().classes(
+            'w-full max-w-md min-w-0 mx-auto p-4 rounded-xl border-2 border-violet-200 '
+            'bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100 shadow-sm'
+        ):
+            ui.label('Click on a plugin to use').classes('text-sm text-slate-600 mb-2')
+            with ui.column().classes('gap-1.5 w-full'):
                 for num, tool in tool_registry.TOOL_MENU.items():
-                    ui.button(
-                        f'{num}. {tool["name"]} - {tool["desc"]}',
-                        on_click=lambda n=num, t=tool: on_tool_selected(t['endpoint'], {})
-                    ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200')
+                    row = ui.row().classes(
+                        'w-full min-w-0 py-3 px-3 rounded-lg border-2 border-violet-200/90 '
+                        'bg-white shadow-sm hover:bg-violet-50 hover:border-violet-400 '
+                        'cursor-pointer transition-colors duration-150 items-start'
+                    )
+                    row.on(
+                        'click',
+                        lambda *a, t=tool: on_tool_selected(t['endpoint'], {}),
+                    )
+                    with row:
+                        ui.label(f'{num}. {tool["name"]} — {tool["desc"]}').classes(
+                            'w-full text-left text-sm leading-snug font-medium text-slate-900 '
+                            'whitespace-normal break-words'
+                        )
 
     return container
 

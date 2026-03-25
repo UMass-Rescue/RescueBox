@@ -28,7 +28,6 @@ pypdf2 = ">=3.0.1,<4.0.0"
 chromadb = "^1.0.4"
 pandas = ">=2.2.3,<3.0.0"
 pillow = ">=11.2.1,<12.0.0"
-fusepy = ">=3.0.1,<4.0.0"
 
 rb-lib = { path = "src/rb-lib", develop = true }
 
@@ -41,6 +40,8 @@ face-match = {path = "src/face-detection-recognition", develop = true }
 deepfake-detection = {path = "src/deepfake-detection", develop = true}
 ufdr-mounter = { path = "src/ufdr-mounter", develop = true }
 image-summary = { path = "src/image-summary", develop = true }
+text-embeddings = { path = "src/text-embeddings", develop = true }
+image-embeddings = { path = "src/image-embeddings", develop = true }
 
 # Don't add new packages here, add them appropriately in the list above
 beautifulsoup4 = "^4.13.3"

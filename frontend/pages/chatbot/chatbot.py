@@ -235,6 +235,10 @@ class ChatbotPage:
         if not message_text:
             return
 
+        from frontend.utils.nicegui_storage import ensure_user_id
+        if ensure_user_id() is None:
+            return
+
         # Scroll to bottom immediately when send is clicked
         await self.scroll_to_bottom()
 

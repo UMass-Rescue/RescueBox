@@ -111,6 +111,7 @@ class ToolRegistry:
         '/upload-faces': 'face-match/bulkupload',
         '/find-faces': 'face-match/findfacebulk',
         '/summarize': 'text_summarization/summarize',
+        '/search-text': 'text_embeddings/search',
         '/models': 'pick_tool',
         '/assistant': 'smart_analyze',
         '/help': 'help',
@@ -125,6 +126,7 @@ class ToolRegistry:
         "5": {"name": "📤 Upload Faces", "endpoint": "face-match/bulkupload", "desc": "Build face collection"},
         "6": {"name": "🔎 Find Faces", "endpoint": "face-match/findfacebulk", "desc": "Search face collection"},
         "7": {"name": "📝 Summarize Text", "endpoint": "text_summarization/summarize", "desc": "Document summaries"},
+        "8": {"name": "🔍 Search Text", "endpoint": "text_embeddings/search", "desc": "Semantic search text files"},
     }
     
     # Fallback endpoints for tool picker (when Granite model unavailable)
@@ -136,6 +138,7 @@ class ToolRegistry:
         "5": "face-match/bulkupload",
         "6": "face-match/findfacebulk",
         "7": "text_summarization/summarize",
+        "8": "text_embeddings/search",
     }
     
     # Enhanced blocked patterns (non-forensic requests to reject)
@@ -165,6 +168,8 @@ class ToolRegistry:
         "suspect", "missing person", "match",
         # Text
         "summarize", "summary", "document", "text", "report",
+        # Text embeddings & semantic search
+        "embed", "embedding", "semantic search", "vector search", "similar text",
         # General forensic
         "forensic", "evidence", "analyze", "analysis", "investigate", "case",
         "detect", "scan", "process", "extract",

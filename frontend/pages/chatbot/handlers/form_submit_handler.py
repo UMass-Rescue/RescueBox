@@ -60,6 +60,10 @@ class FormSubmitHandler:
             remaining_calls: Remaining tool calls in sequence
             conversation_id: Conversation ID for message saving
         """
+        from frontend.utils.nicegui_storage import ensure_user_id
+        if ensure_user_id() is None:
+            return False
+
         # Show case notes modal before submitting
         case_notes = await show_case_notes_dialog()
         if case_notes is None:

@@ -31,8 +31,11 @@ class TestImageSummary(RBAppTest):
         ]
 
     @patch("image_summary.process.ensure_model_exists")
-    @patch("image_summary.process.describe_image", return_value="Mocked summary")
-    def test_summarize_images_command(self, describe_mock, ensure_model_exists_mock):
+    @patch(
+        "image_summary.process.describe_images_batch",
+        side_effect=lambda model, paths, **kwargs: {p: "Mocked summary" for p in paths},
+    )
+    def test_summarize_images_command(self, describe_batch_mock, ensure_model_exists_mock):
         summarize_api = f"/{APP_NAME}/summarize-images"
         full_path = Path.cwd() / "src" / "image-summary" / "test_input"
         output_path = Path.cwd() / "src" / "image-summary" / "test_output"
@@ -70,8 +73,11 @@ class TestImageSummary(RBAppTest):
                 assert "Mocked summary" == content
 
     @patch("image_summary.process.ensure_model_exists")
-    @patch("image_summary.process.describe_image", return_value="Mocked summary")
-    def test_api_summarize(self, describe_mock, ensure_model_exists_mock):
+    @patch(
+        "image_summary.process.describe_images_batch",
+        side_effect=lambda model, paths, **kwargs: {p: "Mocked summary" for p in paths},
+    )
+    def test_api_summarize(self, describe_batch_mock, ensure_model_exists_mock):
         summarize_api = f"/{APP_NAME}/summarize-images"
         full_path = Path.cwd() / "src" / "image-summary" / "test_input"
         output_path = Path.cwd() / "src" / "image-summary" / "test_output"
@@ -94,7 +100,11 @@ class TestImageSummary(RBAppTest):
         expected_files = [
             str(output_path / (str(file.name) + ".txt")) for file in input_files
         ]
-        results = json.loads(body["value"])
+        parsed = json.loads(body["value"])
+        assert isinstance(parsed, dict)
+        assert parsed.get("image_summary") is True
+        assert "input_dir" in parsed
+        results = parsed["files"]
         assert results is not None
         assert len(results) == len(expected_files)
         assert set(expected_files) == set(results)

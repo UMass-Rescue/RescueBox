@@ -9,7 +9,8 @@ logger.setLevel(logging.INFO)
 
 def render_model_info_card(container: ui.element, model_info: Any, model_info_dict: Dict[str, Any], server_status: str) -> None:
     """
-    Render the right-column model information card used on the model details page.
+    Render the right-column model information card used on the model details page
+    (metadata and status only; no run action).
     """
     try:
         with container:
@@ -58,13 +59,6 @@ def render_model_info_card(container: ui.element, model_info: Any, model_info_di
                 if gpu_required:
                     with ui.column().classes('gap-2 mb-4'):
                         ui.badge('GPU Required', color='red').classes('text-xs')
-
-                # Run button
-                ui.separator().classes('my-4')
-                ui.button(
-                    '▶ Run Model',
-                    on_click=lambda: ui.navigate.to(f'/models/{model_info_dict.get("uid", "")}/run')
-                ).classes('w-full bg-green-600 text-white').props('disable' if server_status != 'Online' else '')
     except Exception as e:
         logger.exception("Error rendering model info card: %s", e)
         with container:

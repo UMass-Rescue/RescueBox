@@ -164,6 +164,49 @@ class TestTextRenderers:
     
     @pytest.mark.asyncio
     @pytest.mark.integration
+    async def test_render_text_search_results_as_table(self, user: User):
+        """Text embeddings /search JSON is shown as summary + table, not raw JSON."""
+        payload = {
+            "query": "stones",
+            "model": "BAAI/bge-small-en-v1.5",
+            "top_k": 5,
+            "min_similarity": 0.5,
+            "similarity_guidance": "Results with similarity >= 0.5 are marked as matches.",
+            "results": [
+                {
+                    "id": 1,
+                    "path": "/tmp/story.txt",
+                    "chunk_index": 0,
+                    "similarity": 0.53,
+                    "is_match": True,
+                    "matching_text": "finding pretty pebbles and tiny fish",
+                },
+            ],
+        }
+        response = TextResponse(
+            output_type="text",
+            value=json.dumps(payload),
+            title="Text Search Results",
+        )
+
+        @ui.page("/test")
+        def test_page():
+            container = ui.column()
+            render_text(container, response)
+
+        await user.open("/test")
+        await user.should_see("Text Search Results")
+        await user.should_see("Query: stones")
+        await user.should_see("stones")
+        await user.should_see("Match")
+        await user.should_see("Similarity")
+        await user.should_see("File")
+        await user.should_see("Matching text")
+        await user.should_see("story.txt")
+        await user.should_see("pebbles")
+
+    @pytest.mark.asyncio
+    @pytest.mark.integration
     async def test_render_text_search_input_present(self, user: User):
         """Test that search input is present in searchable file list"""
         with tempfile.TemporaryDirectory() as tmpdir:

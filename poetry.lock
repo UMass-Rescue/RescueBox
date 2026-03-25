@@ -1673,6 +1673,31 @@ files = [
 ]
 
 [[package]]
+name = "image-embeddings"
+version = "0.1.0"
+description = "Image embeddings plugin for RescueBox using CLIP"
+optional = false
+python-versions = ">=3.11,<3.13"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+pgvector = "*"
+pillow = "*"
+pydantic = "^2.9.0"
+rb-api = {path = "../rb-api", develop = true}
+sqlalchemy = "*"
+sqlmodel = "*"
+torch = "*"
+transformers = "*"
+typer = "^0.12.5"
+
+[package.source]
+type = "directory"
+url = "src/image-embeddings"
+
+[[package]]
 name = "image-summary"
 version = "1.0.0"
 description = "Describe images in a directory using an LLM."
@@ -2185,7 +2210,7 @@ version = "1.16.0"
 description = "Small library to dynamically create python functions."
 optional = false
 python-versions = "*"
-groups = ["api"]
+groups = ["main", "api"]
 files = [
     {file = "makefun-1.16.0-py2.py3-none-any.whl", hash = "sha256:43baa4c3e7ae2b17de9ceac20b669e9a67ceeadff31581007cca20a07bbe42c4"},
     {file = "makefun-1.16.0.tar.gz", hash = "sha256:e14601831570bff1f6d7e68828bcd30d2f5856f24bad5de0ccb22921ceebc947"},
@@ -4796,7 +4821,7 @@ version = "2.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
-groups = ["api"]
+groups = ["main", "api"]
 files = []
 develop = true
 
@@ -5663,6 +5688,30 @@ files = [
 [package.extras]
 doc = ["reno", "sphinx"]
 test = ["pytest", "tornado (>=4.5)", "typeguard"]
+
+[[package]]
+name = "text-embeddings"
+version = "0.1.0"
+description = "Text embeddings plugin for RescueBox"
+optional = false
+python-versions = ">=3.11,<3.13"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+langchain-text-splitters = "*"
+pgvector = "*"
+pydantic = "^2.9.0"
+rb-api = {path = "../rb-api", develop = true}
+sentence-transformers = "*"
+sqlalchemy = "*"
+sqlmodel = "*"
+typer = "^0.12.5"
+
+[package.source]
+type = "directory"
+url = "src/text-embeddings"
 
 [[package]]
 name = "text-summary"
@@ -6917,4 +6966,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "8ac5672dbe43c762976e96bed6882cb3e606987f783132036aa684ebe2bce990"
+content-hash = "4a04ccf8d2c62de4a79e8150a7c6acc693721e29940806c82975e68ccc07a839"

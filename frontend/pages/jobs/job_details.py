@@ -70,7 +70,8 @@ async def job_details_page(job_id: str):
         ui.label(f'Error loading job: {str(e)}').classes('text-red-600')
         return
     
-    with ui.column().classes('container mx-auto p-8'):
+    # items-stretch overrides NiceGUI .nicegui-tab-panel { align-items: flex-start } so tab content fills width
+    with ui.column().classes('w-full max-w-full min-w-0 items-stretch px-4 sm:px-6 lg:px-8 py-8'):
         # Breadcrumbs
         job_fields = extract_job_fields(job)
         endpoint = job_fields.get('endpoint')
@@ -98,19 +99,19 @@ async def job_details_page(job_id: str):
             ui.tab('Outputs')
             ui.tab('Details')
         
-        tab_panels = ui.tab_panels(tabs, value='Outputs').classes('w-full')
+        tab_panels = ui.tab_panels(tabs, value='Outputs').classes('w-full max-w-full min-w-0')
         
         # Create API client
         api_client = httpx.AsyncClient()
         
         # Outputs tab
         with tab_panels:
-            with ui.tab_panel('Outputs'):
+            with ui.tab_panel('Outputs').classes('w-full max-w-full min-w-0 !items-stretch'):
                 await render_job_outputs(api_client, job)
         
         # Details tab
         with tab_panels:
-            with ui.tab_panel('Details'):
+            with ui.tab_panel('Details').classes('w-full max-w-full min-w-0 !items-stretch'):
                 await render_job_details(api_client, job)
 
 async def render_job_outputs(api_client, job):
@@ -143,7 +144,9 @@ async def render_job_outputs(api_client, job):
     # Delegate to extracted component
     try:
         from frontend.components.jobs.job_outputs_card import render_job_outputs_card
-        await render_job_outputs_card(ui.column(), api_client, job)
+        await render_job_outputs_card(
+            ui.column().classes('w-full min-w-0 self-stretch'), api_client, job
+        )
     except Exception as e:
         logger.exception("Failed to render job outputs via component: %s", e)
         # Fallback to inline renderer
@@ -184,7 +187,7 @@ async def render_job_details(api_client, job):
     try:
         # Delegate to extracted job details panel component
         from frontend.components.jobs.job_details_panel import render_job_details_panel
-        await render_job_details_panel(ui.column(), api_client, job_fields)
+        await render_job_details_panel(ui.column().classes('w-full max-w-full min-w-0'), api_client, job_fields)
     except Exception as e:
         logger.exception("Failed to render job details via component: %s", e)
         # Fallback inline rendering for compatibility

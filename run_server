@@ -5,6 +5,13 @@ export CUDNN_HOME=~/cudnn/cudnn-linux-aarch64-9.13.1.26_cuda13-archive
 export LD_LIBRARY_PATH=$CUDNN_HOME/lib:$LD_LIBRARY_PATH
 ls $CUDNN_HOME/lib/libcudnn.so
 
+docker compose up -d
+
+ID=`docker ps -a |  awk -F" " '{print $1}' | grep -v CONT`
+docker exec -it $ID psql -U rbuser -d rescuebox -c "CREATE EXTENSION IF NOT EXISTS vector; SELECT extversion FROM pg_extension WHERE extname = 'vector';"
+
+pgcli -h 127.0.0.1 -p 5433 -u rbuser -d rescuebox
+
 
 
 poetry run python -m src.rb-api.rb.api.main

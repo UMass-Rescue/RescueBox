@@ -19,9 +19,6 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / 'src'))
 
-from frontend.config import LOG_FILE, LOG_LEVEL
-from frontend.utils.logging_context import configure_logging_with_context
-
 # Register UI pages
 import frontend.pages.models
 import frontend.pages.chatbot
@@ -29,8 +26,7 @@ import frontend.pages.jobs
 
 logger = logging.getLogger(__name__)
 
-# Configure root logger with context filter and file handler
-configure_logging_with_context(log_file_path=str(LOG_FILE), log_level=LOG_LEVEL)
+# Logging: configured in ``frontend.main`` (unified app) or ``rb.api.main`` (standalone API).
 
 models_router = APIRouter()
 
