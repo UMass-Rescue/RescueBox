@@ -89,7 +89,13 @@ class FormProcessor:
                 # We pass None as the handler since we are providing the load_form_func callback
                 orchestrator = JobSubmissionOrchestrator(None)
                 await orchestrator.handle_remaining_calls(
-                    remaining_calls, response_body, chat_container, core, load_and_show_form_func)
+                    remaining_calls,
+                    response_body,
+                    chat_container,
+                    core,
+                    load_and_show_form_func,
+                    accumulated_endpoint_chain=[endpoint],
+                )
 
         except Exception as e:
             self.logger.error("Form processing failed for endpoint %s: %s", endpoint, str(e))

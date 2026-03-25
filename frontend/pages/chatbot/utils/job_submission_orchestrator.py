@@ -45,7 +45,8 @@ class JobSubmissionOrchestrator:
         self.conversation_manager = ConversationManager()
 
     async def submit_job(self, request_body, endpoint: str, task_schema, container, core,
-                        remaining_calls=None, conversation_id=None, case_notes: str = None):
+                        remaining_calls=None, conversation_id=None, case_notes: str = None,
+                        endpoint_chain: Optional[List[str]] = None):
         """
         Submit a job and handle the complete workflow.
 
@@ -87,7 +88,8 @@ class JobSubmissionOrchestrator:
             request_body, endpoint, self.form_handler.state_manager, container
         )
 
-    async def _execute_job(self, request_body, endpoint: str, task_schema, container, core, remaining_calls=None, case_notes: str = None):
+    async def _execute_job(self, request_body, endpoint: str, task_schema, container, core, remaining_calls=None, case_notes: str = None,
+                           endpoint_chain: Optional[List[str]] = None):
         """Execute the actual job submission."""
         self.logger.info("Executing job submission for endpoint: %s", endpoint)
 
@@ -160,7 +162,8 @@ class JobSubmissionOrchestrator:
             user_id = None
         # Create job record (status=RUNNING) before submission so it can be recovered
         job_info = await DatabaseService.create_and_track_job(
-            request_body, endpoint, task_schema, response_body=None, case_notes=case_notes, user_id=user_id
+            request_body, endpoint, task_schema, response_body=None, case_notes=case_notes, user_id=user_id,
+            endpoint_chain=endpoint_chain,
         )
         job_id = job_info.get('job_id') if job_info else None
         # Save a job-started marker in chat history for recovery
@@ -240,8 +243,21 @@ class JobSubmissionOrchestrator:
                         if remaining_calls:
                             from rb.api.models import ResponseBody
                             resp = ResponseBody(**response_data) if isinstance(response_data, dict) else response_data
+                            accumulated: Optional[List[str]] = None
+                            if job_id:
+                                try:
+                                    from frontend.database import get_job_db
+                                    jdb = get_job_db()
+                                    rec = await jdb.get_job_by_uid(job_id)
+                                    if rec and getattr(rec, 'endpointChain', None):
+                                        accumulated = list(rec.endpointChain)
+                                except Exception:
+                                    accumulated = None
+                            if not accumulated:
+                                accumulated = [endpoint]
                             await self.handle_remaining_calls(
-                                remaining_calls, resp, container, core
+                                remaining_calls, resp, container, core,
+                                accumulated_endpoint_chain=accumulated,
                             )
                             # Next form is showing - stay disabled (rule: input only when no pending interaction)
                         else:
@@ -365,8 +381,21 @@ class JobSubmissionOrchestrator:
 
         # Handle remaining calls in multi-call sequence
         if remaining_calls:
+            accumulated: Optional[List[str]] = None
+            if job_id:
+                try:
+                    from frontend.database import get_job_db
+                    jdb = get_job_db()
+                    rec = await jdb.get_job_by_uid(job_id)
+                    if rec and getattr(rec, 'endpointChain', None):
+                        accumulated = list(rec.endpointChain)
+                except Exception:
+                    accumulated = None
+            if not accumulated:
+                accumulated = [endpoint]
             await self.handle_remaining_calls(
-                remaining_calls, response_body, container, core
+                remaining_calls, response_body, container, core,
+                accumulated_endpoint_chain=accumulated,
             )
             # Next form showing - stay disabled
         else:
@@ -413,7 +442,8 @@ class JobSubmissionOrchestrator:
                                      response_body,
                                      container,
                                      core,
-                                     load_form_func: Optional[Callable] = None):
+                                     load_form_func: Optional[Callable] = None,
+                                     accumulated_endpoint_chain: Optional[List[str]] = None):
         """
         Handle remaining calls in a multi-call sequence.
 
@@ -473,7 +503,8 @@ class JobSubmissionOrchestrator:
                         remaining_calls[1:] if len(remaining_calls) > 1 else None,
                         container,
                         core,
-                        filtered_paths=filtered_paths
+                        filtered_paths=filtered_paths,
+                        accumulated_endpoint_chain=accumulated_endpoint_chain,
                     ),
                     on_form_cancel=_on_cancel
                 )
@@ -498,7 +529,8 @@ class JobSubmissionOrchestrator:
         """Clean up error message to make it more user-friendly."""
         return self.error_handler.clean_error_message(raw_error)
 
-    def _create_next_form_handler(self, remaining_calls, container, core, filtered_paths: Optional[List[str]] = None):
+    def _create_next_form_handler(self, remaining_calls, container, core, filtered_paths: Optional[List[str]] = None,
+                                  accumulated_endpoint_chain: Optional[List[str]] = None):
         """Create a form handler for the next call in sequence."""
         async def handle_next_form(request_body, next_endpoint, task_schema):
             # Inject file_filter (hidden) when we have filtered paths from previous BatchFileResponse
@@ -507,8 +539,10 @@ class JobSubmissionOrchestrator:
                     request_body.inputs["file_filter"] = {"files": [{"path": p} for p in filtered_paths]}
                     self.logger.info("Filter applied: %d paths", len(filtered_paths))
             conversation_id = self.form_handler.state_manager.conversation_id
+            chain = list(accumulated_endpoint_chain or []) + [next_endpoint]
             await self.submit_job(
                 request_body, next_endpoint, task_schema,
-                container, core, remaining_calls, conversation_id
+                container, core, remaining_calls, conversation_id,
+                endpoint_chain=chain,
             )
         return handle_next_form

@@ -31,6 +31,7 @@ def extract_job_fields(job) -> Dict[str, Any]:
             - modelUid (Optional[str])
             - taskUid (Optional[str])
             - endpoint (Optional[str])
+            - endpointChain (Optional[list[str]]): ordered endpoints for multi-step chatbot jobs
             - startTime (Optional[str])
             - endTime (Optional[str])
             - status (str)
@@ -55,6 +56,7 @@ def extract_job_fields(job) -> Dict[str, Any]:
             'modelUid': job.modelUid,
             'taskUid': job.taskUid,
             'endpoint': job.endpoint,
+            'endpointChain': getattr(job, 'endpointChain', None),
             'startTime': job.startTime,
             'endTime': job.endTime,
             'status': job.status.value if hasattr(job.status, 'value') else str(job.status),
@@ -71,6 +73,7 @@ def extract_job_fields(job) -> Dict[str, Any]:
             'modelUid': job.get('modelUid'),
             'taskUid': job.get('taskUid'),
             'endpoint': job.get('endpoint'),
+            'endpointChain': job.get('endpointChain'),
             'startTime': job.get('startTime'),
             'endTime': job.get('endTime'),
             'status': job.get('status', 'Unknown'),

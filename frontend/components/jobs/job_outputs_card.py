@@ -25,6 +25,7 @@ async def render_job_outputs_card(container, api_client, job):
     status_text = job_fields['statusText']
     task_schema_dict = job_fields['taskSchema']
     endpoint = job_fields['endpoint']
+    endpoint_chain = job_fields.get('endpointChain')
 
     logger.info("Rendering job outputs for job: %s", job_uid)
 
@@ -54,7 +55,17 @@ async def render_job_outputs_card(container, api_client, job):
         with ui.row().classes('items-center justify-between mb-4'):
             try:
                 task_schema = TaskSchema(**task_schema_dict) if isinstance(task_schema_dict, dict) else task_schema_dict
-                task_title = 'Results for ' + endpoint
+                chain = endpoint_chain if isinstance(endpoint_chain, list) and endpoint_chain else None
+                if not chain and endpoint:
+                    chain = [endpoint]
+                if chain and len(chain) > 1:
+                    task_title = 'Results for: ' + ' → '.join(chain)
+                elif chain:
+                    task_title = 'Results for ' + chain[0]
+                elif endpoint:
+                    task_title = 'Results for ' + endpoint
+                else:
+                    task_title = 'Results'
             except Exception:
                 task_title = task_schema_dict.get('shortTitle', 'Results') if isinstance(task_schema_dict, dict) else 'Results'
 

@@ -95,6 +95,9 @@ class JobRecord(BaseModel):
     modelUid: Optional[str] = Field(None, description="Model UID for traditional jobs")
     taskUid: Optional[str] = Field(None, description="Task UID for traditional jobs")
     endpoint: Optional[str] = Field(None, description="Endpoint name for chatbot jobs")
+    endpointChain: Optional[List[str]] = Field(
+        None, description="Ordered endpoints for multi-step chatbot pipelines (includes current job endpoint)"
+    )
     filterId: Optional[str] = Field(None, description="Optional persisted filter id linking to file_filters")
     caseNotes: Optional[str] = Field(None, description="User-entered case notes for the job")
     startTime: str = Field(..., description="Job start time in ISO format")
@@ -142,7 +145,22 @@ class JobRecord(BaseModel):
                 logger.warning("Could not validate taskSchema as TaskSchema, keeping as dict: %s", e)
                 return v
         return v
-    
+
+    @field_validator('endpointChain', mode='before')
+    @classmethod
+    def validate_endpoint_chain(cls, v):
+        if v is None or v == '':
+            return None
+        if isinstance(v, list):
+            return [str(x) for x in v]
+        if isinstance(v, str):
+            try:
+                data = json.loads(v)
+                return [str(x) for x in data] if isinstance(data, list) else None
+            except json.JSONDecodeError:
+                return None
+        return None
+
     @field_validator('status', mode='before')
     @classmethod
     def validate_status(cls, v):
@@ -188,6 +206,10 @@ class JobRecord(BaseModel):
             data['filterId'] = None
         if 'caseNotes' not in data:
             data['caseNotes'] = None
+        if data.get('endpointChain') is not None:
+            data['endpointChain'] = json.dumps(data['endpointChain'])
+        else:
+            data['endpointChain'] = None
 
         return data
     
@@ -281,6 +303,23 @@ class JobDB(BaseDatabase):
             else:
                 raise
 
+    def _ensure_endpoint_chain_column(self, conn: sqlite3.Connection) -> None:
+        """Ensure `endpointChain` JSON column exists (multi-step chatbot jobs)."""
+        try:
+            conn.execute("SELECT endpointChain FROM jobs LIMIT 1")
+        except sqlite3.OperationalError as e:
+            if 'no such column' in str(e).lower():
+                logger.info("endpointChain column missing; adding column")
+                try:
+                    conn.execute("ALTER TABLE jobs ADD COLUMN endpointChain TEXT")
+                    conn.commit()
+                    logger.info("Added endpointChain column to jobs table")
+                except Exception as e_add:
+                    logger.exception("Failed to add endpointChain column: %s", e_add)
+                    raise
+            else:
+                raise
+
     def connect(self) -> sqlite3.Connection:
         """
         Connect to SQLite database.
@@ -353,6 +392,7 @@ class JobDB(BaseDatabase):
         try:
             self._ensure_userid_column(conn)
             self._ensure_caseNotes_column(conn)
+            self._ensure_endpoint_chain_column(conn)
         except Exception:
             logger.debug("Column migration encountered an error during initialization")
     
@@ -364,7 +404,8 @@ class JobDB(BaseDatabase):
         task_uid: Optional[str] = None,
         endpoint: Optional[str] = None,
         case_notes: Optional[str] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        endpoint_chain: Optional[List[str]] = None,
     ) -> JobRecord:
         """
         Create a new job record.
@@ -410,6 +451,7 @@ class JobDB(BaseDatabase):
         try:
             self._ensure_userid_column(conn)
             self._ensure_caseNotes_column(conn)
+            self._ensure_endpoint_chain_column(conn)
         except Exception:
             logger.debug("Failed to ensure columns before insert")
         
@@ -430,12 +472,19 @@ class JobDB(BaseDatabase):
         except Exception:
             maybe_filter_id = None
 
+        chain: Optional[List[str]] = None
+        if endpoint_chain:
+            chain = [str(x) for x in endpoint_chain]
+        elif endpoint:
+            chain = [endpoint]
+
         job_record = JobRecord(
             uid=uid,
             userId=user_id,
             modelUid=model_uid,
             taskUid=task_uid,
             endpoint=endpoint,
+            endpointChain=chain,
             filterId=maybe_filter_id,
             caseNotes=case_notes or None,
             startTime=start_time,
@@ -453,9 +502,9 @@ class JobDB(BaseDatabase):
         logger.info("Creating job %s (model_uid=%s, task_uid=%s, endpoint=%s)", uid, model_uid, task_uid, endpoint)
 
         insert_sql = """
-            INSERT INTO jobs (uid, userId, modelUid, taskUid, endpoint, startTime, endTime,
+            INSERT INTO jobs (uid, userId, modelUid, taskUid, endpoint, endpointChain, startTime, endTime,
                             status, statusText, request, response, taskSchema, filterId, caseNotes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
             job_data['uid'],
@@ -463,6 +512,7 @@ class JobDB(BaseDatabase):
             job_data['modelUid'],
             job_data['taskUid'],
             job_data['endpoint'],
+            job_data.get('endpointChain'),
             job_data['startTime'],
             job_data['endTime'],
             job_data['status'],
@@ -528,6 +578,7 @@ class JobDB(BaseDatabase):
         try:
             self._ensure_userid_column(conn)
             self._ensure_caseNotes_column(conn)
+            self._ensure_endpoint_chain_column(conn)
         except Exception:
             logger.debug("Failed to ensure columns before fetch by uid")
         logger.debug("Fetching job %s", uid)
@@ -578,6 +629,7 @@ class JobDB(BaseDatabase):
         try:
             self._ensure_userid_column(conn)
             self._ensure_caseNotes_column(conn)
+            self._ensure_endpoint_chain_column(conn)
         except Exception:
             logger.debug("Failed to ensure columns before fetching jobs; continuing without change")
         
