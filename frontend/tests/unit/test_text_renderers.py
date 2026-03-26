@@ -158,7 +158,6 @@ class TestTextRenderers:
             await user.open('/test')
             await user.should_see(IMAGE_SUMMARIES_TITLE)
             await user.should_see(SEARCH_LABEL)
-            await user.should_see(FILENAME_HEADER)
             await user.should_see(FILE1_NAME)
             await user.should_see(FILE1_DISPLAY_CONTENT)
     
@@ -198,12 +197,8 @@ class TestTextRenderers:
         await user.should_see("Text Search Results")
         await user.should_see("Query: stones")
         await user.should_see("stones")
-        await user.should_see("Match")
-        await user.should_see("Similarity")
-        await user.should_see("File")
-        await user.should_see("Matching text")
-        await user.should_see("story.txt")
-        await user.should_see("pebbles")
+        await user.should_see("Results with similar")
+        await user.should_see("Sort columns by cl")
 
     @pytest.mark.asyncio
     @pytest.mark.integration

@@ -136,10 +136,12 @@ class TestFileRenderers:
 
         await user.open('/test')
         await user.should_see('Batch File Result')
-        await user.should_see('Path')
-        await user.should_see('Title')
-        await user.should_see('Age')
-        await user.should_see('Gender')
+        from pathlib import Path
+
+        await user.should_see(Path(TEST_BATCH_PATH_1).name)
+        await user.should_see(BATCH_IMAGE_TITLE_1)
+        await user.should_see('25')
+        await user.should_see('Male')
         await user.should_see(BATCH_IMAGE_TITLE_1)
     
     @pytest.mark.asyncio

@@ -8,6 +8,7 @@ and file systems.
 """
 
 import pytest
+import httpx
 import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, patch, MagicMock, Mock
@@ -240,13 +241,13 @@ class TestChatbotCore:
         }
         
         mock_response = AsyncMock()
+        mock_response.status_code = 200
         mock_response.json = Mock(return_value={
-            "response": f'<tool_code>{json.dumps(tool_call_json)}</tool_code>'
+            "message": {"content": f'<tool_code>{json.dumps(tool_call_json)}</tool_code>'},
         })
-        mock_response.raise_for_status = Mock()
-        
+
         core.ollama_client.post = AsyncMock(return_value=mock_response)
-        
+
         result = await core.call_granite_model("test prompt")
         
         assert result is not None
@@ -266,10 +267,10 @@ class TestChatbotCore:
         }
         
         mock_response = AsyncMock()
+        mock_response.status_code = 200
         mock_response.json = Mock(return_value={
-            "response": json.dumps(tool_call_json)
+            "message": {"content": json.dumps(tool_call_json)},
         })
-        mock_response.raise_for_status = Mock()
         
         core.ollama_client.post = AsyncMock(return_value=mock_response)
         
@@ -284,10 +285,8 @@ class TestChatbotCore:
     async def test_call_granite_model_no_tool_call(self, core):
         """Test Granite model call with no tool call in response"""
         mock_response = AsyncMock()
-        mock_response.json = Mock(return_value={
-            "response": "No tool call here"
-        })
-        mock_response.raise_for_status = Mock()
+        mock_response.status_code = 200
+        mock_response.json = Mock(return_value={"message": {"content": "No tool call here"}})
         
         core.ollama_client.post = AsyncMock(return_value=mock_response)
         
@@ -304,74 +303,24 @@ class TestChatbotCore:
         
         assert result is None
     
-    # Tests for call_granite_model_direct
-    @pytest.mark.asyncio
-    async def test_call_granite_model_direct_import_error(self, core):
-        """Test call_granite_model_direct when llama-cpp-python is not installed"""
-        # Patch the import statement inside the method to raise ImportError
-        import builtins
-        original_import = builtins.__import__
-        
-        def mock_import(name, *args, **kwargs):
-            if name == 'llama_cpp':
-                raise ImportError("No module named 'llama_cpp'")
-            return original_import(name, *args, **kwargs)
-        
-        with patch.object(builtins, '__import__', side_effect=mock_import):
-            result = await core.call_granite_model_direct("test prompt", use_advanced=True)
-            assert result is None
+    # Tests for call_granite_model_direct (Ollama /api/chat)
+    @staticmethod
+    def _ollama_ok(content: str):
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        mock_response.json = Mock(return_value={"message": {"content": content}})
+        return mock_response
 
     @pytest.mark.asyncio
-    async def test_call_granite_model_direct_file_not_found(self, core, tmp_path):
-        """Test call_granite_model_direct when model file doesn't exist"""
-        non_existent_path = tmp_path / "non_existent_model.gguf"
-        
-        with patch('llama_cpp.Llama', create=True):
-            result = await core.call_granite_model_direct("test prompt", use_advanced=True)
-            assert result is None
-
-    @pytest.mark.asyncio
-    async def test_call_granite_model_direct_success_tool_code_tags(self, core, tmp_path):
-        """Test call_granite_model_direct with successful response containing tool_code tags"""
+    async def test_call_granite_model_direct_success_tool_code_tags(self, core):
         import json
-        from pathlib import Path
-        
-        # Create a mock model file
-        model_file = tmp_path / "test_model.gguf"
-        model_file.touch()
-        
-        tool_call_json = {
-            "name": "audio/transcribe",
-            "arguments": {"input_dir": "/tmp/audio"}
-        }
 
-        mock_response_text = f'<tool_code>{json.dumps(tool_call_json)}</tool_code>'
+        tool_call_json = {"name": "audio/transcribe", "arguments": {"input_dir": "/tmp/audio"}}
+        content = f'<tool_code>{json.dumps(tool_call_json)}</tool_code>'
+        core.ollama_client.post = AsyncMock(return_value=self._ollama_ok(content))
 
-        # Mock the Llama model
-        mock_model = MagicMock()
-        mock_completion = {
-            'choices': [{'message': {'content': mock_response_text}}]
-        }
-        mock_model.create_chat_completion.return_value = mock_completion
-        
-        with patch('llama_cpp.Llama', return_value=mock_model):
-            with patch('llama_cpp.llama_supports_gpu_offload', return_value=False):
-                with patch('pathlib.Path.exists', return_value=True):
-                    import asyncio
-                    # Create a mock loop that properly handles run_in_executor
-                    mock_loop = MagicMock()
-                    
-                    async def mock_run_in_executor(executor, func, *args):
-                        # Execute function immediately and return result
-                        if args:
-                            return func(*args)
-                        return func()
-                    
-                    mock_loop.run_in_executor = mock_run_in_executor
-                    
-                    with patch('asyncio.get_event_loop', return_value=mock_loop):
-                        result = await core.call_granite_model_direct("transcribe audio", use_advanced=False)
-        
+        result = await core.call_granite_model_direct("transcribe audio", use_advanced=False)
+
         assert result is not None
         assert isinstance(result, list)
         assert len(result) == 1
@@ -379,253 +328,90 @@ class TestChatbotCore:
         assert result[0]["arguments"]["input_dir"] == "/tmp/audio"
 
     @pytest.mark.asyncio
-    async def test_call_granite_model_direct_success_json_fallback(self, core, tmp_path):
-        """Test call_granite_model_direct with JSON fallback parsing"""
+    async def test_call_granite_model_direct_success_json_fallback(self, core):
         import json
-        from pathlib import Path
-        
-        # Create a mock model file
-        model_file = tmp_path / "test_model.gguf"
-        model_file.touch()
-        
+
         tool_calls_data = {
-            "calls": [
-                {
-                    "name": "image_summary/summarize-images",
-                    "arguments": {"input_dir": "/tmp/images"}
-                }
-            ]
+            "calls": [{"name": "image_summary/summarize-images", "arguments": {"input_dir": "/tmp/images"}}]
         }
+        core.ollama_client.post = AsyncMock(return_value=self._ollama_ok(json.dumps(tool_calls_data)))
 
-        mock_response_content = json.dumps(tool_calls_data)
+        result = await core.call_granite_model_direct("summarize images", use_advanced=True)
 
-        # Mock the Llama model
-        mock_model = MagicMock()
-        mock_completion = {
-            'choices': [{'message': {'content': mock_response_content}}]
-        }
-        mock_model.create_chat_completion.return_value = mock_completion
-        
-        with patch('llama_cpp.Llama', return_value=mock_model):
-            with patch('llama_cpp.llama_supports_gpu_offload', return_value=False):
-                with patch('pathlib.Path.exists', return_value=True):
-                    import asyncio
-                    mock_loop = MagicMock()
-                    async def mock_run_in_executor(executor, func, *args):
-                        if args:
-                            return func(*args)
-                        return func()
-                    mock_loop.run_in_executor = mock_run_in_executor
-                    
-                    with patch('asyncio.get_event_loop', return_value=mock_loop):
-                        result = await core.call_granite_model_direct("summarize images", use_advanced=True)
-        
         assert result is not None
         assert isinstance(result, list)
         assert len(result) >= 1
         assert result[0]["name"] == "image_summary/summarize-images"
         assert result[0]["arguments"]["input_dir"] == "/tmp/images"
-    
+
     @pytest.mark.asyncio
-    async def test_call_granite_model_direct_multiple_tool_calls(self, core, tmp_path):
-        """Test call_granite_model_direct with multiple tool calls"""
+    async def test_call_granite_model_direct_multiple_tool_calls(self, core):
         import json
-        from pathlib import Path
-        
-        # Create a mock model file
-        model_file = tmp_path / "test_model.gguf"
-        model_file.touch()
-        
+
         tool_calls_data = {
             "calls": [
                 {"name": "audio/transcribe", "arguments": {"input_dir": "/tmp/audio"}},
-                {"name": "image_summary/summarize-images", "arguments": {"input_dir": "/tmp/images"}}
+                {"name": "image_summary/summarize-images", "arguments": {"input_dir": "/tmp/images"}},
             ]
         }
+        core.ollama_client.post = AsyncMock(return_value=self._ollama_ok(json.dumps(tool_calls_data)))
 
-        mock_response_content = json.dumps(tool_calls_data)
+        result = await core.call_granite_model_direct("transcribe and summarize", use_advanced=True)
 
-        # Mock the Llama model
-        mock_model = MagicMock()
-        mock_completion = {
-            'choices': [{'message': {'content': mock_response_content}}]
-        }
-        mock_model.create_chat_completion.return_value = mock_completion
-        
-        with patch('llama_cpp.Llama', return_value=mock_model):
-            with patch('llama_cpp.llama_supports_gpu_offload', return_value=False):
-                with patch('pathlib.Path.exists', return_value=True):
-                    import asyncio
-                    mock_loop = MagicMock()
-                    
-                    async def mock_run_in_executor(executor, func, *args):
-                        if args:
-                            return func(*args)
-                        return func()
-                    
-                    mock_loop.run_in_executor = mock_run_in_executor
-                    
-                    with patch('asyncio.get_event_loop', return_value=mock_loop):
-                        result = await core.call_granite_model_direct("transcribe and summarize", use_advanced=True)
-        
         assert result is not None
         assert isinstance(result, list)
         assert len(result) == 2
         assert result[0]["name"] == "audio/transcribe"
         assert result[1]["name"] == "image_summary/summarize-images"
-    
+
     @pytest.mark.asyncio
-    async def test_call_granite_model_direct_no_tool_call(self, core, tmp_path):
-        """Test call_granite_model_direct when response contains no tool calls"""
-        from pathlib import Path
-        
-        # Create a mock model file
-        model_file = tmp_path / "test_model.gguf"
-        model_file.touch()
-        
-        # Response with no tool calls - just regular text
-        mock_response_content = "This is just regular text without any tool calls"
-
-        # Mock the Llama model
-        mock_model = MagicMock()
-        mock_completion = {
-            'choices': [{'message': {'content': mock_response_content}}]
-        }
-        mock_model.create_chat_completion.return_value = mock_completion
-        
-        with patch('llama_cpp.Llama', return_value=mock_model):
-            with patch('llama_cpp.llama_supports_gpu_offload', return_value=False):
-                with patch('pathlib.Path.exists', return_value=True):
-                    with patch('asyncio.get_event_loop') as mock_loop:
-                        def mock_run_in_executor(executor, func):
-                            return func()
-                        mock_loop.return_value.run_in_executor = lambda executor, func: func()
-
-                        result = await core.call_granite_model_direct("test prompt", use_advanced=True)
-
+    async def test_call_granite_model_direct_no_tool_call(self, core):
+        core.ollama_client.post = AsyncMock(
+            return_value=self._ollama_ok("This is just regular text without any tool calls")
+        )
+        result = await core.call_granite_model_direct("test prompt", use_advanced=False)
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_call_granite_model_direct_empty_response(self, core, tmp_path):
-        """Test call_granite_model_direct when model returns empty response"""
-        from pathlib import Path
-        
-        # Create a mock model file
-        model_file = tmp_path / "test_model.gguf"
-        model_file.touch()
-        
-        # Mock the Llama model with empty response
-        mock_model = MagicMock()
-        mock_completion = {
-            'choices': []
-        }
-        mock_model.create_chat_completion.return_value = mock_completion
-        
-        with patch('llama_cpp.Llama', return_value=mock_model):
-            with patch('llama_cpp.llama_supports_gpu_offload', return_value=False):
-                with patch('pathlib.Path.exists', return_value=True):
-                    with patch('asyncio.get_event_loop') as mock_loop:
-                        def mock_run_in_executor(executor, func):
-                            return func()
-                        mock_loop.return_value.run_in_executor = lambda executor, func: func()
-
-                        result = await core.call_granite_model_direct("test prompt", use_advanced=True)
-
+    async def test_call_granite_model_direct_empty_response(self, core):
+        core.ollama_client.post = AsyncMock(return_value=self._ollama_ok(""))
+        result = await core.call_granite_model_direct("test prompt", use_advanced=False)
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_call_granite_model_direct_inference_error(self, core, tmp_path):
-        """Test call_granite_model_direct when inference fails"""
-        from pathlib import Path
-        
-        # Create a mock model file
-        model_file = tmp_path / "test_model.gguf"
-        model_file.touch()
-        
-        # Mock the Llama model to raise an error during inference
-        mock_model = MagicMock()
-        mock_model.create_chat_completion.side_effect = Exception("Inference error")
-        
-        with patch('llama_cpp.Llama', return_value=mock_model):
-            with patch('llama_cpp.llama_supports_gpu_offload', return_value=False):
-                with patch('pathlib.Path.exists', return_value=True):
-                    with patch('asyncio.get_event_loop') as mock_loop:
-                        def mock_run_in_executor(executor, func):
-                            return func()
-                        mock_loop.return_value.run_in_executor = lambda executor, func: func()
-
-                        result = await core.call_granite_model_direct("test prompt", use_advanced=True)
-
+    async def test_call_granite_model_direct_inference_error(self, core):
+        core.ollama_client.post = AsyncMock(side_effect=httpx.RequestError("Inference transport error"))
+        result = await core.call_granite_model_direct("test prompt", use_advanced=False)
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_call_granite_model_direct_model_caching(self, core, tmp_path):
-        """Test that call_granite_model_direct caches the model instance"""
+    async def test_call_granite_model_direct_model_caching(self, core):
         import json
-        from pathlib import Path
-        
-        # Create a mock model file
-        model_file = tmp_path / "test_model.gguf"
-        model_file.touch()
-        
-        tool_calls_data = {
-            "calls": [{"name": "audio/transcribe", "arguments": {}}]
-        }
-        mock_response_content = json.dumps(tool_calls_data)
 
-        # Mock the Llama model
-        mock_model = MagicMock()
-        mock_completion = {
-            'choices': [{'message': {'content': mock_response_content}}]
-        }
-        mock_model.create_chat_completion.return_value = mock_completion
-        
-        llama_constructor = MagicMock(return_value=mock_model)
-        
-        with patch('llama_cpp.Llama', llama_constructor):
-            with patch('llama_cpp.llama_supports_gpu_offload', return_value=False):
-                with patch('pathlib.Path.exists', return_value=True):
-                    import asyncio
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    
-                    # Mock run_in_executor to execute function immediately
-                    original_run_in_executor = loop.run_in_executor
-                    def mock_run_in_executor(executor, func, *args):
-                        # Execute function synchronously for testing
-                        if args:
-                            return func(*args)
-                        return func()
-                    loop.run_in_executor = mock_run_in_executor
-                    
-                    try:
-                        # First call - should load model
-                        result1 = await core.call_granite_model_direct("test prompt 1", str(model_file), use_advanced=True)
-                        assert result1 is not None
+        payload = json.dumps({"calls": [{"name": "audio/transcribe", "arguments": {}}]})
+        mock_post = AsyncMock(return_value=self._ollama_ok(payload))
+        core.ollama_client.post = mock_post
 
-                        # Second call - should reuse cached model
-                        result2 = await core.call_granite_model_direct("test prompt 2", use_advanced=True)
-                        assert result2 is not None
-                        
-                        # Llama constructor should only be called once (model caching)
-                        assert llama_constructor.call_count == 1
-                    finally:
-                        # Restore original run_in_executor
-                        loop.run_in_executor = original_run_in_executor
-                        loop.close()
+        result1 = await core.call_granite_model_direct("test prompt 1", use_advanced=True)
+        result2 = await core.call_granite_model_direct("test prompt 2", use_advanced=True)
+        assert result1 is not None
+        assert result2 is not None
+        assert mock_post.await_count == 2
 
     @pytest.mark.asyncio
     async def test_close(self, core):
         """Test closing HTTP clients and llama model"""
         core.api_client.aclose = AsyncMock()
         core.ollama_client.aclose = AsyncMock()
-        
+        core.api.aclose = AsyncMock()
+
         # Set up legacy attribute to test cleanup
         core._llama_model = MagicMock()
-        
+
         await core.close()
-        
+
         core.api_client.aclose.assert_called_once()
         core.ollama_client.aclose.assert_called_once()
+        core.api.aclose.assert_called_once()
         assert core._llama_model is None
 

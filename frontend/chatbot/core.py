@@ -69,6 +69,10 @@ class ThinChatbotCore:
         return await submit_job_orchestrator(self.api if hasattr(self, 'api') else None, self.api_client, self.config, request_dict, api_endpoint)
 
 
+    async def call_granite_model(self, prompt: str, use_advanced: bool = True, update_status_callback=None):
+        """Backward-compatible alias for :meth:`call_granite_model_direct` (Ollama-backed)."""
+        return await self.call_granite_model_direct(prompt, use_advanced=use_advanced, update_status_callback=update_status_callback)
+
     async def call_granite_model_direct(self, prompt: str, use_advanced: bool = True, update_status_callback=None):
         """Call Granite model via Ollama API for tool selection."""
         return await self._call_ollama(prompt, use_advanced, update_status_callback)

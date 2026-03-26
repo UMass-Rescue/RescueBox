@@ -32,7 +32,7 @@ logger.setLevel(logging.INFO)
 # Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-GRANITE_MODEL = os.getenv("GRANITE_MODEL", "rescuebox_model:latest")
+GRANITE_MODEL = os.getenv("GRANITE_MODEL", "granite4:micro")
 
 
 @pytest_asyncio.fixture
@@ -57,7 +57,10 @@ async def ollama_available():
             response.raise_for_status()
             models = response.json().get("models", [])
             plugin_names = [model.get("name", "") for model in models]
-            if GRANITE_MODEL not in plugin_names:
+            if not any(
+                installed == GRANITE_MODEL or (GRANITE_MODEL and GRANITE_MODEL in installed)
+                for installed in plugin_names
+            ):
                 pytest.skip(f"Granite model '{GRANITE_MODEL}' not found. Available: {plugin_names}")
             yield True
         except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
@@ -219,7 +222,7 @@ class TestChatbotFlowIntegration:
         
         assert result["type"] == "help"
         assert "RescueBox Assistant" in result["content"]
-        assert "Slash Commands" in result["content"]
+        assert "Shortcut Commands" in result["content"]
     
     @pytest.mark.asyncio
     async def test_tool_picker_flow(self, core: ChatbotCore, config: ChatbotConfig):
@@ -236,9 +239,10 @@ class TestChatbotFlowIntegration:
         prompt = "transcribe audio files"
         tool_calls = await core.call_granite_model_direct(prompt)
         
-        if tool_calls is None:
-            pytest.skip("Granite model did not return tool calls (may be model-specific behavior)")
-        
+        assert tool_calls is not None, (
+            "Granite did not return tool calls; check Ollama and that GRANITE_MODEL matches "
+            "an installed model (default granite4:micro)."
+        )
         assert isinstance(tool_calls, list), f"Expected list, got {type(tool_calls)}"
         assert len(tool_calls) > 0, "Expected at least one tool call"
         

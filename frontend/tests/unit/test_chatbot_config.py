@@ -40,7 +40,7 @@ DESCRIBE_IMAGES_COMMAND = "/describe-images"
 DETECT_DEEPFAKES_COMMAND = "/detect-deepfakes"
 AGE_GENDER_COMMAND = "/age-gender"
 MODELS_COMMAND = "/models"
-ANALYZE_COMMAND = "/analyze"
+ASSISTANT_COMMAND = "/assistant"
 HELP_COMMAND = "/help"
 SUMMARIZE_COMMAND = "/summarize"
 
@@ -54,7 +54,7 @@ TOOL_MENU_KEY_7 = "7"
 
 # Help text constants
 RESCUEBOX_ASSISTANT_TEXT = "RescueBox Assistant"
-SLASH_COMMANDS_TEXT = "Slash Commands"
+SLASH_COMMANDS_TEXT = "Shortcut Commands"
 NATURAL_LANGUAGE_TEXT = "Natural Language"
 THREE_WAYS_TEXT = "Three different ways"
 
@@ -152,7 +152,7 @@ class TestToolRegistry:
         assert DETECT_DEEPFAKES_COMMAND in ToolRegistry.SLASH_COMMANDS
         assert AGE_GENDER_COMMAND in ToolRegistry.SLASH_COMMANDS
         assert MODELS_COMMAND in ToolRegistry.SLASH_COMMANDS
-        assert ANALYZE_COMMAND in ToolRegistry.SLASH_COMMANDS
+        assert ASSISTANT_COMMAND in ToolRegistry.SLASH_COMMANDS
         assert HELP_COMMAND in ToolRegistry.SLASH_COMMANDS
 
     def test_slash_command_endpoints(self):
@@ -165,7 +165,7 @@ class TestToolRegistry:
         assert ToolRegistry.SLASH_COMMANDS[TRANSCRIBE_COMMAND] == TRANSCRIBE_ENDPOINT
         assert ToolRegistry.SLASH_COMMANDS[SUMMARIZE_COMMAND] == SUMMARIZE_ENDPOINT
         assert ToolRegistry.SLASH_COMMANDS[MODELS_COMMAND] == PICK_TOOL_ENDPOINT
-        assert ToolRegistry.SLASH_COMMANDS[ANALYZE_COMMAND] == SMART_ANALYZE_ENDPOINT
+        assert ToolRegistry.SLASH_COMMANDS[ASSISTANT_COMMAND] == SMART_ANALYZE_ENDPOINT
     
     def test_tool_menu_structure(self):
         """Test that tool menu has correct structure and required fields.
@@ -230,14 +230,14 @@ class TestToolRegistry:
         assert RESCUEBOX_ASSISTANT_TEXT in help_text
         assert SLASH_COMMANDS_TEXT in help_text
         assert TRANSCRIBE_COMMAND in help_text or TRANSCRIBE_KEYWORD in help_text
-        assert NATURAL_LANGUAGE_TEXT in help_text
+        assert "natural language" in help_text.lower()
         assert THREE_WAYS_TEXT in help_text
     
     def test_help_text_contains_all_commands(self):
         """Test that help text contains all slash commands"""
         help_text = ToolRegistry.get_help_text()
         for cmd in ToolRegistry.SLASH_COMMANDS.keys():
-            if cmd not in ['/models', '/analyze', '/help']:
+            if cmd not in ['/models', '/assistant', '/help']:
                 assert cmd in help_text or cmd.replace('/', '') in help_text.lower()
     
     def test_tool_menu_consistency(self):

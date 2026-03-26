@@ -365,101 +365,80 @@ class TestMultiToolCallResult:
 
 class TestCallGraniteModelMultipleCalls:
     """Tests for call_granite_model with multiple tool calls"""
-    
+
+    @staticmethod
+    def _ollama_resp(content: str):
+        m = MagicMock()
+        m.status_code = 200
+        m.json.return_value = {"message": {"content": content}}
+        return m
+
     @pytest.fixture
     def core(self):
         """Create ChatbotCore instance"""
         config = ChatbotConfig()
         return ChatbotCore(config)
-    
+
     @pytest.mark.asyncio
     async def test_extract_multiple_tool_calls_from_tags(self, core):
         """Test extracting multiple tool calls from <tool_code> tags"""
-        # Mock Ollama response with multiple tool calls
-        mock_response_data = {
-            "response": """
+        content = """
             Here are the tool calls:
-            <tool_code>{"name": "image_summary/summarize_images", "arguments": {"input_dir": "/tmp"}}</tool_code>
-            <tool_code>{"name": "deepfake_detection/give_prediction", "arguments": {"input_dataset": "/tmp"}}</tool_code>
+            <tool_code>{"name": "image_summary/summarize-images", "arguments": {"input_dir": "/tmp"}}</tool_code>
+            <tool_code>{"name": "deepfake_detection/predict", "arguments": {"input_dataset": "/tmp"}}</tool_code>
             """
-        }
-        
-        with patch.object(core.ollama_client, 'post', new_callable=AsyncMock) as mock_post:
-            mock_response = MagicMock()
-            mock_response.json.return_value = mock_response_data
-            mock_response.raise_for_status = MagicMock()
-            mock_post.return_value = mock_response
-            
-            result = await core.call_granite_model("summarize and detect fakes")
-            
-            assert result is not None
-            assert isinstance(result, list)
-            assert len(result) == 2
-            assert result[0]['name'] == 'image_summary/summarize_images'
-            assert result[0]['arguments']['input_dir'] == '/tmp'
-            assert result[1]['name'] == 'deepfake_detection/give_prediction'
-            assert result[1]['arguments']['input_dataset'] == '/tmp'
-    
+        core.ollama_client.post = AsyncMock(return_value=self._ollama_resp(content))
+
+        result = await core.call_granite_model("summarize and detect fakes")
+
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert result[0]["name"] == "image_summary/summarize-images"
+        assert result[0]["arguments"]["input_dir"] == "/tmp"
+        assert result[1]["name"] == "deepfake_detection/predict"
+        assert result[1]["arguments"]["input_dataset"] == "/tmp"
+
     @pytest.mark.asyncio
     async def test_extract_single_tool_call(self, core):
         """Test backward compatibility with single tool call"""
-        mock_response_data = {
-            "response": """
+        content = """
             <tool_code>{"name": "audio/transcribe", "arguments": {"input_dir": "/tmp"}}</tool_code>
             """
-        }
-        
-        with patch.object(core.ollama_client, 'post', new_callable=AsyncMock) as mock_post:
-            mock_response = MagicMock()
-            mock_response.json.return_value = mock_response_data
-            mock_response.raise_for_status = MagicMock()
-            mock_post.return_value = mock_response
-            
-            result = await core.call_granite_model("transcribe audio")
-            
-            assert result is not None
-            assert isinstance(result, list)
-            assert len(result) == 1
-            assert result[0]['name'] == 'audio/transcribe'
-    
+        core.ollama_client.post = AsyncMock(return_value=self._ollama_resp(content))
+
+        result = await core.call_granite_model("transcribe audio")
+
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["name"] == "audio/transcribe"
+
     @pytest.mark.asyncio
     async def test_no_tool_calls_found(self, core):
         """Test when no tool calls are found"""
-        mock_response_data = {
-            "response": "I cannot help with that request."
-        }
-        
-        with patch.object(core.ollama_client, 'post', new_callable=AsyncMock) as mock_post:
-            mock_response = MagicMock()
-            mock_response.json.return_value = mock_response_data
-            mock_response.raise_for_status = MagicMock()
-            mock_post.return_value = mock_response
-            
-            result = await core.call_granite_model("some request")
-            
-            assert result is None
-    
+        core.ollama_client.post = AsyncMock(
+            return_value=self._ollama_resp("I cannot help with that request.")
+        )
+
+        result = await core.call_granite_model("some request")
+
+        assert result is None
+
     @pytest.mark.asyncio
     async def test_extract_multiple_json_objects(self, core):
-        """Test extracting multiple tool calls from raw JSON format"""
-        mock_response_data = {
-            "response": """
-            {"name": "image_summary/summarize_images", "arguments": {"input_dir": "/tmp"}}
-            {"name": "deepfake_detection/give_prediction", "arguments": {"input_dataset": "/tmp"}}
+        """Test extracting multiple tool calls from raw JSON format (brace scan)."""
+        content = """
+            {"name": "image_summary/summarize-images", "arguments": {"input_dir": "/tmp"}}
+            {"name": "deepfake_detection/predict", "arguments": {"input_dataset": "/tmp"}}
             """
-        }
-        
-        with patch.object(core.ollama_client, 'post', new_callable=AsyncMock) as mock_post:
-            mock_response = MagicMock()
-            mock_response.json.return_value = mock_response_data
-            mock_response.raise_for_status = MagicMock()
-            mock_post.return_value = mock_response
-            
-            result = await core.call_granite_model("summarize and detect")
-            
-            assert result is not None
-            assert isinstance(result, list)
-            assert len(result) >= 1  # May extract one or both depending on regex matching
+        core.ollama_client.post = AsyncMock(return_value=self._ollama_resp(content))
+
+        result = await core.call_granite_model("summarize and detect")
+
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 2
 
 
 class TestMessageHandlerMultipleCalls:
@@ -481,20 +460,20 @@ class TestMessageHandlerMultipleCalls:
         """Test handling multiple tool calls"""
         # Mock call_granite_model to return multiple tool calls
         multiple_calls = [
-            {'name': 'image_summary/summarize_images', 'arguments': {'input_dir': '/tmp'}},
-            {'name': 'deepfake_detection/give_prediction', 'arguments': {'input_dataset': '/tmp'}}
+            {"name": "image_summary/summarize-images", "arguments": {"input_dir": "/tmp"}},
+            {"name": "deepfake_detection/predict", "arguments": {"input_dataset": "/tmp"}},
         ]
-        
-        with patch.object(handler.core, 'call_granite_model_direct', new_callable=AsyncMock) as mock_call:
+
+        with patch.object(handler.core, "call_granite_model_direct", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = multiple_calls
-            
+
             result = await handler.handle_smart_analyze("summarize images and detect fakes")
-            
-            assert result['type'] == 'multi_tool_calls'
-            assert 'tool_calls' in result
-            assert len(result['tool_calls']) == 2
-            assert result['tool_calls'][0]['endpoint'] == 'image_summary/summarize_images'
-            assert result['tool_calls'][1]['endpoint'] == 'deepfake_detection/give_prediction'
+
+            assert result["type"] == "multi_tool_calls"
+            assert "tool_calls" in result
+            assert len(result["tool_calls"]) == 2
+            assert result["tool_calls"][0]["endpoint"] == "image_summary/summarize-images"
+            assert result["tool_calls"][1]["endpoint"] == "deepfake_detection/predict"
     
     @pytest.mark.asyncio
     async def test_handle_single_tool_call_backward_compat(self, handler):

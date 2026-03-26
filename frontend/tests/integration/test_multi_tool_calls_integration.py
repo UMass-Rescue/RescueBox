@@ -69,7 +69,7 @@ async def test_chain_output_to_input_integration():
         
         # Get real schema for deepfake detection (which has input_dataset)
         try:
-            schema = await core.get_task_schema_from_endpoint('deepfake_detection/give_prediction')
+            schema = await core.get_task_schema_from_endpoint('deepfake_detection/predict')
             
             if schema:
                 current_arguments = {'input_dataset': '/tmp'}
@@ -77,18 +77,9 @@ async def test_chain_output_to_input_integration():
                 # Chain output
                 result = chain_output_to_input(previous_output, current_arguments, schema)
                 
-                # Should chain to input_dataset if it's a directory input
-                input_dir_found = False
-                for input_schema in schema.inputs:
-                    if input_schema.input_type.value == 'directory' and 'input' in input_schema.key.lower() and 'dir' in input_schema.key.lower():
-                        input_dir_found = True
-                        # If we found an input directory field, it should be chained
-                        if input_schema.key in result:
-                            assert result[input_schema.key] == '/output/summaries'
-                        break
-                
-                if not input_dir_found:
-                    pytest.skip("Schema does not have input directory field")
+                # deepfake_detection/predict uses input_dataset (directory); chain_output_to_input
+                # matches keys containing "dataset" as well as "dir" (see multi_tool_handler).
+                assert result.get("input_dataset") == "/output/summaries"
         except Exception as e:
             pytest.skip(f"Could not load schema: {str(e)}")
             

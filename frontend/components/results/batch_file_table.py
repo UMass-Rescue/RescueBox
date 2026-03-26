@@ -23,10 +23,9 @@ def render_batch_file_table(container: ui.element, columns: List[Dict[str, Any]]
                     rows,
                     row_key='path',
                     on_row_click=on_row_click,
-                    show_row_labels=False,
+                    show_row_labels=True,
                     tip_message=tip_message
                 )
-                # plain labels removed to avoid duplication; table alone is sufficient
     except Exception as e:
         logger.exception("Error rendering batch file table: %s", e)
         with container:

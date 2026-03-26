@@ -7,12 +7,34 @@ and model name fetching.
 
 import logging
 import httpx
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from frontend.database import JobRecord
 from frontend.api_client import APIClient
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def compute_job_results_title(
+    endpoint: Optional[str],
+    endpoint_chain: Optional[List[str]],
+) -> str:
+    """
+    Build the job results card heading for single-endpoint vs multi-step pipelines.
+
+    When ``endpoint_chain`` is set (ordered steps), the title lists the full chain.
+    Otherwise falls back to ``endpoint`` alone.
+    """
+    chain = endpoint_chain if isinstance(endpoint_chain, list) and endpoint_chain else None
+    if not chain and endpoint:
+        chain = [endpoint]
+    if chain and len(chain) > 1:
+        return "Results for: " + " → ".join(chain)
+    if chain:
+        return "Results for " + chain[0]
+    if endpoint:
+        return "Results for " + endpoint
+    return "Results"
 
 
 def extract_job_fields(job) -> Dict[str, Any]:

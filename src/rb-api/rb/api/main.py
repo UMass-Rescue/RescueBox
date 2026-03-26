@@ -62,6 +62,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 app.include_router(routes.probes_router, prefix="/probes")
 app.include_router(routes.cli_to_api_router)
+# Match unified frontend app (frontend/main.py): /api/models, /api/servers, etc.
+app.include_router(routes.models_router, prefix="/api")
 app.include_router(routes.ui_router)
 
 

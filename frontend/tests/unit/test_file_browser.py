@@ -345,6 +345,7 @@ class TestFileBrowser:
     @pytest.mark.integration
     @patch('platform.system')
     async def test_windows_drive_detection_mock(self, mock_system, user: User):
+        pytest.importorskip("win32api", reason="pywin32 not installed")
         """Test Windows drive detection (mocked for cross-platform testing)"""
         from nicegui import ui
         

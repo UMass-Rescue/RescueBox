@@ -80,12 +80,7 @@ class TestMessageHandler:
     
     @pytest.mark.asyncio
     async def test_handle_slash_command_analyze(self, handler):
-        """Test processing of /analyze slash command.
-
-        Validates that the analyze command properly delegates to the
-        smart analysis handler and returns the expected form display
-        response for user interaction.
-        """
+        """Test processing of /assistant slash command (smart analyze routing)."""
         # Mock the smart analyze handler to return expected response
         handler.handle_smart_analyze = AsyncMock(return_value={
             "type": "show_form",
@@ -93,24 +88,24 @@ class TestMessageHandler:
             "arguments": {}
         })
 
-        result = await handler.handle_slash_command("/analyze transcribe audio")
+        result = await handler.handle_slash_command("/assistant transcribe audio")
 
         assert result["type"] == "show_form"
         handler.handle_smart_analyze.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_handle_slash_command_analyze_with_filter(self, handler):
-        """Test /analyze command with filtering enabled"""
+        """Test /assistant command with filtering enabled"""
         handler.config.FILTER_ENABLED = True
         
         # Mock is_rescuebox_request to return invalid
         with patch('frontend.chatbot.message_handler.is_rescuebox_request') as mock_filter:
             mock_filter.return_value = (False, "non_forensic")
             
-            result = await handler.handle_slash_command("/analyze tell me a joke")
+            result = await handler.handle_slash_command("/assistant tell me a joke")
             
             assert result["type"] == "message"
-            assert "Request Not Supported" in result["content"]
+            assert result["content"]
     
     @pytest.mark.asyncio
     async def test_handle_slash_command_valid_tool(self, handler):

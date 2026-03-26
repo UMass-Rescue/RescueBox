@@ -25,7 +25,7 @@ exposing sensitive technical details.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from nicegui import ui
 
 # Mock ui.ref before importing modules that use it
@@ -128,7 +128,7 @@ class TestChatbotFormsErrorHandling:
         """
         container = Mock()
 
-        with patch.object(core, 'get_task_schema_from_endpoint', side_effect=Exception(SCHEMA_FETCH_ERROR_MSG)):
+        with patch.object(core, 'get_task_schema_from_endpoint', side_effect=OSError(SCHEMA_FETCH_ERROR_MSG)):
             with patch('frontend.pages.chatbot.chatbot_forms.handle_api_error') as mock_handle_error:
                 result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, Mock())
 
@@ -151,15 +151,15 @@ class TestChatbotFormsErrorHandling:
         container.__exit__ = Mock(return_value=False)
 
         with patch.object(core, 'get_task_schema_from_endpoint', return_value=sample_task_schema):
-            with patch.object(core, 'convert_arguments_to_initial_values', side_effect=Exception(CONVERSION_ERROR_MSG)):
+            with patch.object(core, 'convert_arguments_to_initial_values', side_effect=ValueError(CONVERSION_ERROR_MSG)):
                 with patch('frontend.pages.chatbot.chatbot_forms.show_tool_selection'):
-                    with patch.object(core, 'create_input_form', return_value=Mock()):
-                        # Should handle error gracefully and use empty initial values
-                        result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, Mock())
-
-                        # Should still create form (with empty initial values)
-                        # The function should handle the error and continue
-                        assert result is not None
+                    with patch(
+                        'frontend.components.results.tool_selection_card.render_tool_selection_message',
+                        return_value=None,
+                    ):
+                        with patch.object(core, 'create_input_form', new_callable=AsyncMock, return_value=Mock()):
+                            result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, Mock())
+                            assert result is not None
     
     @pytest.mark.asyncio
     async def test_load_and_show_form_create_form_error(self, core, sample_task_schema):
@@ -169,19 +169,31 @@ class TestChatbotFormsErrorHandling:
         providing users with clear feedback when the UI components cannot be
         generated due to rendering or configuration issues.
         """
-        container = Mock()
+        container = MagicMock()
+        container.client = MagicMock()
+        col_cm = MagicMock()
+        col_cm.__enter__ = MagicMock(return_value=col_cm)
+        col_cm.__exit__ = MagicMock(return_value=False)
 
         with patch.object(core, 'get_task_schema_from_endpoint', return_value=sample_task_schema):
             with patch.object(core, 'convert_arguments_to_initial_values', return_value={}):
                 with patch('frontend.pages.chatbot.chatbot_forms.show_tool_selection'):
-                    with patch.object(core, 'create_input_form', side_effect=Exception(FORM_CREATION_ERROR_MSG)):
-                        with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
-                            result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, Mock())
+                    with patch(
+                        'frontend.components.results.tool_selection_card.render_tool_selection_message',
+                        return_value=None,
+                    ):
+                        with patch('frontend.pages.chatbot.chatbot_forms.ui.column', return_value=col_cm):
+                            with patch.object(
+                                core,
+                                'create_input_form',
+                                new_callable=AsyncMock,
+                                side_effect=RuntimeError(FORM_CREATION_ERROR_MSG),
+                            ):
+                                with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
+                                    result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, Mock())
 
-                            # Should return None indicating form creation failed
-                            assert result is None
-                            # Should show error to user about form creation failure
-                            mock_show_error.assert_called_once()
+                                    assert result is None
+                                    mock_show_error.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_show_results_invalid_response_body(self):
@@ -221,8 +233,8 @@ class TestChatbotFormsErrorHandling:
             )
         )
 
-        # Mock ResultRenderer.get_result_count to raise an exception during rendering
-        with patch('frontend.pages.chatbot.results.ResultRenderer.get_result_count', side_effect=Exception(RENDERING_ERROR_MSG)):
+        # Mock ResultRenderer.get_result_count to raise during rendering (show_results catches ValueError)
+        with patch('frontend.pages.chatbot.results.ResultRenderer.get_result_count', side_effect=ValueError(RENDERING_ERROR_MSG)):
             with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
                 with patch('frontend.pages.chatbot.chatbot_forms.ui') as mock_ui:
                     await show_results(container, response_body, None)

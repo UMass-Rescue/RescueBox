@@ -268,45 +268,22 @@ class TestLoadConversationIntegration:
         return mock_db
 
     @pytest.mark.asyncio
-    @patch('frontend.components.chat.panels.conversation_actions.get_chat_history_db')
-    async def test_load_conversation_success(self, mock_get_db, mock_chat_history):
-        """Test the complete load conversation flow."""
-        mock_get_db.return_value = mock_chat_history
+    async def test_load_conversation_success(self):
+        """load_conversation navigates with load_conversation= query param (full page reload)."""
+        with patch(
+            "frontend.components.chat.panels.conversation_actions.ui.navigate.to"
+        ) as mock_nav:
+            await load_conversation("conv-123")
+        mock_nav.assert_called_once_with("/chatbot?load_conversation=conv-123")
 
-        # Call load_conversation
-        with patch('nicegui.ui') as mock_ui, \
-             patch('frontend.tests.unit.test_conversation_loading.app') as mock_app:
-            mock_app.storage.client.get.return_value = {
-                'conversation_id': 'conv-123',
-                'conversation_data': {'title': 'Test Conversation'},
-                'messages': [{'role': 'user', 'content': 'Hello'}]
-            }
-            await load_conversation('conv-123')
-
-        # Verify database calls
-        mock_chat_history.get_conversation.assert_called_once_with('conv-123')
-        mock_chat_history.get_messages.assert_called_once_with('conv-123')
-
-        # Verify navigation occurred (ui.navigate.to is mocked)
-        # The navigation calls are mocked, so we can't verify the exact calls
-        # but the function completed without errors
-
-    @patch('frontend.components.chat.panels.conversation_actions.get_chat_history_db')
     @pytest.mark.asyncio
-    async def test_load_conversation_not_found(self, mock_get_db, mock_chat_history):
-        """Test loading a conversation that doesn't exist."""
-        from unittest.mock import AsyncMock
-
-        mock_get_db.return_value = mock_chat_history
-        # Set up async mock returns
-        mock_chat_history.get_conversation = AsyncMock(return_value=None)
-        mock_chat_history.get_messages = AsyncMock(return_value=None)
-
-        with patch('nicegui.ui') as mock_ui, \
-             patch('frontend.components.chat.panels.conversation_actions.ui') as mock_ui_local:
-            await load_conversation('nonexistent')
-
-            mock_ui_local.notify.assert_called_once_with('Conversation not found or empty', type='negative')
+    async def test_load_conversation_navigates_even_if_unknown_id(self):
+        """Same navigation path regardless of DB state (page loads conversation)."""
+        with patch(
+            "frontend.components.chat.panels.conversation_actions.ui.navigate.to"
+        ) as mock_nav:
+            await load_conversation("nonexistent")
+        mock_nav.assert_called_once_with("/chatbot?load_conversation=nonexistent")
 
 
 class TestRerunFunctionality:
@@ -457,22 +434,18 @@ class TestChatbotPageRerun:
 class TestErrorHandling:
     """Test error handling in conversation loading."""
 
-    @patch('frontend.components.chat.panels.conversation_actions.set_conversation_to_load',
-           side_effect=Exception("Storage error"))
-    @patch('frontend.components.chat.panels.conversation_actions.ui.navigate')
-    @patch('frontend.components.chat.panels.conversation_actions.ui.notify')
-    @patch('frontend.components.chat.panels.conversation_actions.get_chat_history_db')
+    @patch("frontend.components.chat.panels.conversation_actions.ui.navigate.to")
+    @patch("frontend.components.chat.panels.conversation_actions.ui.notify")
     @pytest.mark.asyncio
-    async def test_load_conversation_storage_error(self, mock_get_db, mock_notify, mock_navigate, mock_set_storage, mock_database):
-        """Test handling storage errors during conversation loading."""
-        mock_get_db.return_value = mock_database
+    async def test_load_conversation_navigation_error(self, mock_notify, mock_nav_to):
+        """If navigate fails, user sees an error notification."""
+        mock_nav_to.side_effect = Exception("Storage error")
 
         await load_conversation(TEST_CONVERSATION_ID)
 
-        # Verify error was handled and user was notified
         mock_notify.assert_called_with(
-            'Error loading conversation: Storage error',
-            type='negative'
+            "Error loading conversation: Storage error",
+            type="negative",
         )
 
     @patch('frontend.utils.nicegui_storage.get_conversation_to_load')

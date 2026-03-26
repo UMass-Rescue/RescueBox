@@ -6,7 +6,7 @@ from frontend.components.results.image_summary_results_view import (
     augment_response_model_dump_for_image_summary,
 )
 from frontend.components.shared import create_breadcrumbs
-from frontend.pages.jobs.job_utils import extract_job_fields
+from frontend.pages.jobs.job_utils import extract_job_fields, compute_job_results_title
 from frontend.pages.jobs.components import render_error_status, render_job_action_buttons, render_compact_inputs_summary
 
 logger = logging.getLogger(__name__)
@@ -54,18 +54,9 @@ async def render_job_outputs_card(container, api_client, job):
         # Header and action buttons
         with ui.row().classes('items-center justify-between mb-4'):
             try:
-                task_schema = TaskSchema(**task_schema_dict) if isinstance(task_schema_dict, dict) else task_schema_dict
-                chain = endpoint_chain if isinstance(endpoint_chain, list) and endpoint_chain else None
-                if not chain and endpoint:
-                    chain = [endpoint]
-                if chain and len(chain) > 1:
-                    task_title = 'Results for: ' + ' → '.join(chain)
-                elif chain:
-                    task_title = 'Results for ' + chain[0]
-                elif endpoint:
-                    task_title = 'Results for ' + endpoint
-                else:
-                    task_title = 'Results'
+                if isinstance(task_schema_dict, dict):
+                    TaskSchema(**task_schema_dict)
+                task_title = compute_job_results_title(endpoint, endpoint_chain)
             except Exception:
                 task_title = task_schema_dict.get('shortTitle', 'Results') if isinstance(task_schema_dict, dict) else 'Results'
 

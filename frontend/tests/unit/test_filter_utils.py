@@ -47,7 +47,7 @@ async def test_resolve_and_persist_input_filter(tmp_path):
     assert paths and isinstance(paths[0], Path)
     assert fid is not None
     loaded = load_filter(fid)
-    assert loaded and str(f) in loaded.get("paths_json", [])
+    assert loaded and "img2.jpg" in loaded.get("paths_json", [])
 
 
 @pytest.mark.asyncio

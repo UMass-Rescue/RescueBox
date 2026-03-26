@@ -48,9 +48,10 @@ class TestTableHelpers:
             )
         
         await user.open('/test')
-        await user.should_see('Column 1')
-        await user.should_see('Column 2')
+        # Column header labels are not duplicated as visible text; row labels are.
         await user.should_see('value1')
+        await user.should_see('value2')
+        await user.should_see('value3')
     
     @pytest.mark.asyncio
     @pytest.mark.integration

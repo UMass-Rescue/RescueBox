@@ -9,7 +9,7 @@ This file is kept for fast unit-style testing of chatbot flow logic.
 
 import pytest
 import json
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 from pathlib import Path
 from frontend.chatbot.config import ChatbotConfig
 from frontend.chatbot.core import ChatbotCore
@@ -66,12 +66,15 @@ class TestChatbotFlow:
             "name": "audio/transcribe",
             "arguments": {"input_dir": "/tmp/audio"}
         }
-        mock_ollama_response = AsyncMock()
-        mock_ollama_response.json.return_value = {
-            "response": f'<tool_code>{json.dumps(tool_call)}</tool_code>'
-        }
+        mock_ollama_response = MagicMock()
+        mock_ollama_response.status_code = 200
+        mock_ollama_response.json = Mock(
+            return_value={
+                "message": {"content": f'<tool_code>{json.dumps(tool_call)}</tool_code>'},
+            }
+        )
         mock_ollama_response.raise_for_status = Mock()
-        mock_core.ollama_client.post.return_value = mock_ollama_response
+        mock_core.ollama_client.post = AsyncMock(return_value=mock_ollama_response)
         
         # Mock schema response
         mock_schema_response = AsyncMock()
@@ -103,12 +106,15 @@ class TestChatbotFlow:
             "name": "audio/transcribe",
             "arguments": {"input_directory": "/tmp/audio"}  # Should normalize to input_dir
         }
-        mock_ollama_response = AsyncMock()
-        mock_ollama_response.json.return_value = {
-            "response": f'<tool_code>{json.dumps(tool_call)}</tool_code>'
-        }
+        mock_ollama_response = MagicMock()
+        mock_ollama_response.status_code = 200
+        mock_ollama_response.json = Mock(
+            return_value={
+                "message": {"content": f'<tool_code>{json.dumps(tool_call)}</tool_code>'},
+            }
+        )
         mock_ollama_response.raise_for_status = Mock()
-        mock_core.ollama_client.post.return_value = mock_ollama_response
+        mock_core.ollama_client.post = AsyncMock(return_value=mock_ollama_response)
         
         result = await handler.handle_message("transcribe audio in /tmp")
         
@@ -152,7 +158,17 @@ class TestChatbotFlow:
         })
         mock_job_response.raise_for_status = Mock()
         mock_core.api_client.post.return_value = mock_job_response
-        
+        mock_core.api = AsyncMock()
+        mock_core.api.post = AsyncMock(return_value=mock_job_response)
+        mock_core.api.json = AsyncMock(
+            return_value={
+                "root": {
+                    "output_type": "text",
+                    "value": "Job completed successfully",
+                }
+            }
+        )
+
         # Create request body
         text_path = Path.cwd() 
         request_body = RequestBody(
@@ -167,7 +183,7 @@ class TestChatbotFlow:
         response = await mock_core.submit_job(request_body, "audio/transcribe")
         
         assert isinstance(response, ResponseBody)
-        mock_core.api_client.post.assert_called_once()
+        mock_core.api.post.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_help_command_flow(self, mock_core, config):
@@ -178,7 +194,7 @@ class TestChatbotFlow:
         
         assert result["type"] == "help"
         assert "RescueBox Assistant" in result["content"]
-        assert "Slash Commands" in result["content"]
+        assert "Shortcut Commands" in result["content"]
     
     @pytest.mark.asyncio
     async def test_tool_picker_flow(self, mock_core, config):
@@ -199,12 +215,15 @@ class TestChatbotFlow:
             "name": "age-gender/predict",
             "arguments": {"input_dir": "/tmp/images"}
         }
-        mock_ollama_response = AsyncMock()
-        mock_ollama_response.json.return_value = {
-            "response": f'<tool_code>{json.dumps(tool_call)}</tool_code>'
-        }
+        mock_ollama_response = MagicMock()
+        mock_ollama_response.status_code = 200
+        mock_ollama_response.json = Mock(
+            return_value={
+                "message": {"content": f'<tool_code>{json.dumps(tool_call)}</tool_code>'},
+            }
+        )
         mock_ollama_response.raise_for_status = Mock()
-        mock_core.ollama_client.post.return_value = mock_ollama_response
+        mock_core.ollama_client.post = AsyncMock(return_value=mock_ollama_response)
         
         result = await handler.handle_message("classify age and gender")
         

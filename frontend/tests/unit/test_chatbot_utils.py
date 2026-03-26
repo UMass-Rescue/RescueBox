@@ -373,7 +373,7 @@ class TestGetRejectionMessage:
     def test_no_match_rejection(self):
         """Test rejection message for unmatched requests"""
         message = get_rejection_message("no_match")
-        assert "❓ RescueBox did not Understand Your Request" in message
+        assert "RescueBox Forensic Assistant" in message or "Examples:" in message
         assert "RescueBox Forensic Assistant" in message
         assert "Examples:" in message
     

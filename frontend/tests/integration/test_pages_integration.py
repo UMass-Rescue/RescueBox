@@ -16,6 +16,12 @@ import logging
 import os
 from nicegui.testing import User  # type: ignore
 
+from frontend.tests.integration.chatbot_ui_helpers import (
+    assert_chatbot_header_visible,
+    find_chat_textarea,
+    open_chatbot_and_wait_for_ready,
+)
+
 # Configure logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -27,7 +33,7 @@ API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 # async fixture resolution issues in environments where the API isn't running.
 try:
     with httpx.Client(base_url=API_BASE_URL, timeout=5.0) as _sync_check_client:
-        _resp = _sync_check_client.get("/models")
+        _resp = _sync_check_client.get("/api/models")
         _resp.raise_for_status()
 except Exception as _e:
     pytest.skip(f"Backend API not available at {API_BASE_URL}: {_e}", allow_module_level=True)
@@ -53,6 +59,73 @@ async def api_client():
             pytest.skip(f"Backend API not available at {API_BASE_URL}: {e}")
 
 
+@pytest.mark.integration
+class TestChatbotPageIntegration:
+    """Chatbot UI tests run early so the NiceGUI client is fresh (see test_pages.py)."""
+
+    @pytest.mark.asyncio
+    async def test_chatbot_page_loads(self, user: User):
+        """Test chatbot page loads correctly"""
+        await open_chatbot_and_wait_for_ready(user)
+        await assert_chatbot_header_visible(user)
+        try:
+            await user.should_see('Type your request')
+        except AssertionError:
+            await user.should_see('Type in a rescuebox')
+        await user.should_see('Send')
+        await user.should_see('New Conversation')
+
+    @pytest.mark.asyncio
+    async def test_chatbot_creates_conversation(self, user: User):
+        """Test that chatbot creates conversation on load"""
+        from frontend.utils.nicegui_storage import get_current_conversation_id
+        from frontend.database import get_chat_history_db
+
+        await user.open('/chatbot')
+
+        # Wait a moment for async initialization
+        import asyncio
+        await asyncio.sleep(0.1)
+
+        # Check that conversation ID is stored
+        conv_id = get_current_conversation_id()
+        assert conv_id is not None
+
+        # Verify conversation exists in database
+        chat_history_db = get_chat_history_db()
+        conversation = await chat_history_db.get_conversation(conv_id)
+        assert conversation is not None
+
+    @pytest.mark.asyncio
+    async def test_chatbot_help_command(self, user: User):
+        """Test help command in chatbot"""
+        await open_chatbot_and_wait_for_ready(user)
+        textarea = find_chat_textarea(user)
+        textarea.type('/help')
+
+        # Click send button
+        send_button = user.find('Send')
+        send_button.click()
+
+        # Should see help content
+        await user.should_see('RescueBox Assistant')
+        await user.should_see('Shortcut Commands')
+
+    @pytest.mark.asyncio
+    async def test_chatbot_tool_picker_command(self, user: User):
+        """Test tool picker command"""
+        await open_chatbot_and_wait_for_ready(user)
+        textarea = find_chat_textarea(user)
+        textarea.type('/models')
+
+        # Click send button
+        send_button = user.find('Send')
+        send_button.click()
+
+        await user.should_see('Plugin Selector')
+        await user.should_see('Click on a plugin')
+
+
 @pytest.mark.api
 @pytest.mark.integration
 class TestModelsPageIntegration:
@@ -70,7 +143,7 @@ class TestModelsPageIntegration:
             pytest.skip("No models available for testing")
         
         await user.open('/models')
-        await user.should_see('Available Models')
+        await user.should_see('Available Plugins')
         await user.should_see('Refresh')
     
     @pytest.mark.asyncio
@@ -134,8 +207,8 @@ class TestIndexPageIntegration:
     async def test_index_page_loads(self, user: User):
         """Test index page loads correctly"""
         await user.open('/')
-        await user.should_see('Welcome to RescueBox Desktop')
-        await user.should_see('Browse Models')
+        await user.should_see('Welcome to RescueBox')
+        await user.should_see('Browse Plugins')
         await user.should_see('Open Assistant')
     
     @pytest.mark.asyncio
@@ -144,99 +217,9 @@ class TestIndexPageIntegration:
         await user.open('/')
         
         # Check that navigation links exist
-        browse_button = user.find('Browse Models')
+        browse_button = user.find('Browse Plugins')
         assert browse_button is not None
         
         assistant_button = user.find('Open Assistant')
         assert assistant_button is not None
-
-
-@pytest.mark.integration
-class TestChatbotPageIntegration:
-    """Integration tests for chatbot page (no external API dependencies for basic functionality)"""
-    
-    @pytest.mark.asyncio
-    async def test_chatbot_page_loads(self, user: User):
-        """Test chatbot page loads correctly"""
-        await user.open('/chatbot')
-        # Allow a short moment for asynchronous page rendering tasks to complete
-        import asyncio as _asyncio
-        await _asyncio.sleep(0.2)
-        try:
-            await user.should_see('🤖 Assistant')
-        except AssertionError:
-            try:
-                await user.should_see('RescueBox Assistant')
-            except AssertionError:
-                pytest.skip("Chatbot header not reliably rendered in this run")
-        try:
-            await user.should_see('Type your request')
-        except AssertionError:
-            try:
-                await user.should_see('Type in a rescuebox task')
-            except AssertionError:
-                pytest.skip("Chatbot input not reliably rendered in this run")
-        await user.should_see('Send')
-        await user.should_see('New Conversation')
-    
-    @pytest.mark.asyncio
-    async def test_chatbot_creates_conversation(self, user: User):
-        """Test that chatbot creates conversation on load"""
-        from frontend.utils.nicegui_storage import get_current_conversation_id
-        from frontend.database import get_chat_history_db
-        
-        await user.open('/chatbot')
-        
-        # Wait a moment for async initialization
-        import asyncio
-        await asyncio.sleep(0.1)
-        
-        # Check that conversation ID is stored
-        conv_id = get_current_conversation_id()
-        assert conv_id is not None
-        
-        # Verify conversation exists in database
-        chat_history_db = get_chat_history_db()
-        conversation = await chat_history_db.get_conversation(conv_id)
-        assert conversation is not None
-    
-    @pytest.mark.asyncio
-    async def test_chatbot_help_command(self, user: User):
-        """Test help command in chatbot"""
-        await user.open('/chatbot')
-        
-        # Find textarea and type help command (skip if input not present)
-        try:
-            textarea = user.find('Type your request')
-        except AssertionError:
-            pytest.skip("Chatbot input not available in this run")
-        textarea.type('/help')
-        
-        # Click send button
-        send_button = user.find('Send')
-        send_button.click()
-        
-        # Should see help content
-        await user.should_see('RescueBox Assistant')
-        await user.should_see('Slash Commands')
-    
-    @pytest.mark.asyncio
-    async def test_chatbot_tool_picker_command(self, user: User):
-        """Test tool picker command"""
-        await user.open('/chatbot')
-        
-        # Find textarea and type tools command (skip if input not present)
-        try:
-            textarea = user.find('Type your request')
-        except AssertionError:
-            pytest.skip("Chatbot input not available in this run")
-        textarea.type('/models')
-        
-        # Click send button
-        send_button = user.find('Send')
-        send_button.click()
-        
-        # Should see tool picker
-        await user.should_see('RescueBox Tool Picker')
-        await user.should_see('Available Tools')
 
