@@ -18,7 +18,13 @@
  - without gpu works however its very slow
 
 
-### concurrent users can open rescuebox server and run jobs , these are saved based on browser session id, hence each user will only see their executions
+### refer run_backend_server
+    -script to check for cuda /cudnn / onnxruntime-gpu / docker / pgvector dependecies
+    -starts the fastapi server and a developer-ui at http://localhost:8000 . Use this to test new plugin
+
+### refer run_ui_server
+   -script to start frontend ui for customer scenarios. for plugin developer this is really not needed
+ 
 
 
 
