@@ -59,7 +59,7 @@ server.add_app_metadata(
     plugin_name=APP_NAME,
     name="Age and Gender Classifier",
     author="UMass Rescue",
-    version="2.1.0",
+    version="3.0.0",
     info=info,
     gpu=True,
 )

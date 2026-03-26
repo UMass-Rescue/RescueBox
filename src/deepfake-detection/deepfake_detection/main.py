@@ -188,9 +188,13 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         try:
             model_dir = Path(__file__).resolve().parent / "onnx_models"
             available = ort.get_available_providers()
-            providers = ["CPUExecutionProvider"]
-            if "CUDAExecutionProvider" in available:
+            # Provider order: first match wins; prefer accelerators when present.
+            providers = ["CPUExecutionProvider"]  # baseline; always in ORT
+            if "CUDAExecutionProvider" in available:  # NVIDIA GPU if ORT built with CUDA
                 providers.insert(0, "CUDAExecutionProvider")
+            # macOS / Apple: CoreML EP only appears when onnxruntime was built with CoreML support
+            if "CoreMLExecutionProvider" in available:
+                providers.insert(0, "CoreMLExecutionProvider")
             facecropper = ort.InferenceSession(
                 str(model_dir / "face_detector.onnx"),
                 providers=providers,
@@ -252,7 +256,7 @@ with open(info_file_path, "r", encoding="utf-8") as f:
 server.add_app_metadata(
     name="Image DeepFake Detector",
     author="UMass Rescue",
-    version="2.1.0",
+    version="3.0.0",
     info=app_info,
     plugin_name=APP_NAME,
     gpu=True,

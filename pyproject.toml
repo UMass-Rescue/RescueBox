@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rescuebox"
-version = "2.1.0"
+version = "3.0.0"
 description = ""
 authors = ["RescueBox Team"]
 packages = [{include = "rescuebox"}]
@@ -62,6 +62,14 @@ pgvector = "^0.4.1"
 
 # ONNX Runtime: use manual pip install for GPU on arm64 (chromadb pulls CPU version, overwrites GPU)
 # See docs/DGX_SPARK.md for: pip install https://github.com/ultralytics/assets/releases/download/v0.0.0/onnxruntime_gpu-1.24.0-cp312-cp312-linux_aarch64.whl
+
+# current environment is ARM aarch64 !!
+
+# macOS: install CPU onnxruntime from PyPI. Linux aarch64: use manual GPU wheel (see comment above).
+onnxruntime = { version = "1.24.4", markers = "sys_platform == 'darwin'" }
+
+# for linux and windows refer to pyproject.toml in main branch and inlcude it here
+
 
 cmake = "^4.2.3"
 ninja = "^1.13.0"

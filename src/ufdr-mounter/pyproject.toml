@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ufdr-mounter"
-version = "2.0.0"
+version = "3.0.0"
 description = "Mount UFDR forensic archives using FUSE"
 authors = ["Sribatscha Maharana <sribatscha.maharana@gmail.com>"]
 packages = [{include = "ufdr_mounter"}]

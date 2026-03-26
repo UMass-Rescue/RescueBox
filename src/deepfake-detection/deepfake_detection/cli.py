@@ -134,9 +134,13 @@ if __name__ == "__main__":
     if args.facecrop:
         try:
             available = ort.get_available_providers()
-            providers = ["CPUExecutionProvider"]
-            if "CUDAExecutionProvider" in available:
+            # Provider order: first match wins; prefer accelerators when present.
+            providers = ["CPUExecutionProvider"]  # baseline; always in ORT
+            if "CUDAExecutionProvider" in available:  # NVIDIA GPU if ORT built with CUDA
                 providers.insert(0, "CUDAExecutionProvider")
+            # macOS / Apple: CoreML EP only appears when onnxruntime was built with CoreML support
+            if "CoreMLExecutionProvider" in available:
+                providers.insert(0, "CoreMLExecutionProvider")
             facecropper = ort.InferenceSession(
                 str(Path(__file__).parent / "onnx_models/face_detector.onnx"),
                 providers=providers,

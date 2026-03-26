@@ -61,7 +61,7 @@ server.add_app_metadata(
     plugin_name=APP_NAME,
     name="UFDR Mount Service",
     author="Sribatscha Maharana",
-    version="2.0.0",
+    version="3.0.0",
     info=app_info,
 )
 

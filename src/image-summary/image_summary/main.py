@@ -82,7 +82,7 @@ server.add_app_metadata(
     plugin_name=APP_NAME,
     name="Image Summary",
     author="UMass Rescue",
-    version="1.0.0",
+    version="3.0.0",
     info=info,
     gpu=True,
 )

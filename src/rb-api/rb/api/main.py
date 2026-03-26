@@ -17,7 +17,7 @@ from rb.api.database import create_db_and_tables
 app = FastAPI(
     title="RescueBoxAPI",
     summary="RescueBox is a set of tools for file system investigations.",
-    version="2.0.0",
+    version="3.0.0",
     debug=True,
     contact={
         "name": "Umass Amherst RescuBox Team",

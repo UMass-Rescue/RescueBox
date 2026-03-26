@@ -15,7 +15,7 @@ Key features:
 import logging
 from nicegui import ui
 
-from frontend.config import APP_TITLE
+from frontend.config import APP_TITLE, APP_VERSION
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -92,10 +92,14 @@ def create_navbar():
                     .classes('shrink-0 object-contain')
                     .style(_logo_style)
                 )
-                ui.label(APP_TITLE).classes(
-                    'text-sm sm:text-base font-bold leading-tight text-white '
-                    'truncate min-w-0 max-w-[10rem] sm:max-w-[14rem]'
-                )
+                with ui.row().classes('items-baseline gap-2 min-w-0'):
+                    ui.label(APP_TITLE).classes(
+                        'text-sm sm:text-base font-bold leading-tight text-white '
+                        'truncate min-w-0 max-w-[10rem] sm:max-w-[14rem]'
+                    )
+                    ui.label(APP_VERSION).classes(
+                        'text-xs sm:text-sm font-medium text-blue-100 shrink-0'
+                    )
 
             with ui.row().classes('min-w-0 flex-1 justify-end items-center'):
                 with ui.row().classes(

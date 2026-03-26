@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "image-embeddings"
-version = "0.1.0"
+version = "3.0.0"
 description = "Image embeddings plugin for RescueBox using CLIP"
 authors = ["RescueBox Team"]
 packages = [{include = "image_embeddings"}]

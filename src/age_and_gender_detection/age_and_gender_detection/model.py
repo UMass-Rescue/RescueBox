@@ -71,6 +71,8 @@ class AgeGenderDetector:
         self.runtime_providers = ["CPUExecutionProvider"]
         if "CUDAExecutionProvider" in available:
             self.runtime_providers.insert(0, "CUDAExecutionProvider")
+        if "CoreMLExecutionProvider" in available:
+            self.runtime_providers.insert(0, "CoreMLExecutionProvider")
         self.genderList = ["Male", "Female"]
         self.image_file_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "text-embeddings"
-version = "0.1.0"
+version = "3.0.0"
 description = "Text embeddings plugin for RescueBox"
 authors = ["RescueBox Team"]
 packages = [{include = "text_embeddings"}]

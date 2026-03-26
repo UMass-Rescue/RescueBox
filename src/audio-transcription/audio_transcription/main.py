@@ -38,7 +38,7 @@ ml_service.add_app_metadata(
     plugin_name=APP_NAME,
     name="Audio Transcription",
     author="RescueBox Team",
-    version="2.0.0",
+    version="3.0.0",
     info=info,
 )
 

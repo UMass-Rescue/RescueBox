@@ -27,7 +27,15 @@ import httpx
 import sys
 from pathlib import Path
 from nicegui import ui, app, Client
-from frontend.config import APP_TITLE, APP_PORT, APP_FAVICON, APP_DARK_MODE, APP_SHOW_BROWSER, RECONNECT_TIMEOUT
+from frontend.config import (
+    APP_TITLE,
+    APP_VERSION,
+    APP_PORT,
+    APP_FAVICON,
+    APP_DARK_MODE,
+    APP_SHOW_BROWSER,
+    RECONNECT_TIMEOUT,
+)
 from frontend.components.shared import create_navbar
 from frontend.constants import UI_TITLES, UI_BUTTONS, NAV_LINKS, HOME_USER_ID
 from frontend.utils.nicegui_storage import (
@@ -468,7 +476,7 @@ if __name__ in {"__main__", "__mp_main__"}:
     # Start the unified server
     # This runs both NiceGUI frontend and backend API on the same port
     ui.run(
-        title=APP_TITLE,
+        title=f"{APP_TITLE} · {APP_VERSION}",
         port=APP_PORT,
         dark=APP_DARK_MODE,
         favicon=APP_FAVICON,

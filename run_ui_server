@@ -1,0 +1,16 @@
+
+VER=`poetry install | grep 'rescuebox (3.0.0)'`
+if [[ "$VER" == "" ]];then
+   echo "rescuebox poetry install not setup correct ? fix and re run"
+   exit 1
+fi
+
+if [[ "$VIRTUAL_ENV" == "" ]]; then
+    echo "\n"
+    echo "start ui with poetry.."
+    poetry run python frontend/main.py
+    echo "\n"
+else
+  echo "start ui with active poetry venv python.."
+  python frontend/main.py
+fi

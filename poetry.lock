@@ -2,7 +2,7 @@
 
 [[package]]
 name = "age-and-gender-detection"
-version = "2.0.0"
+version = "3.0.0"
 description = "Age and Gender Classification"
 optional = false
 python-versions = "*"
@@ -270,7 +270,7 @@ files = [
 
 [[package]]
 name = "audio-transcription"
-version = "2.0.0"
+version = "3.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -842,7 +842,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "deepfake-detection"
-version = "2.0.0"
+version = "3.0.0"
 description = ""
 optional = false
 python-versions = "*"
@@ -886,7 +886,7 @@ files = [
 
 [[package]]
 name = "doc-parser"
-version = "2.0.0"
+version = "3.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -930,7 +930,7 @@ files = [
 
 [[package]]
 name = "face-match"
-version = "2.0.0"
+version = "3.0.0"
 description = ""
 optional = false
 python-versions = "*"
@@ -975,7 +975,7 @@ standard = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.5)", "htt
 
 [[package]]
 name = "file-utils"
-version = "2.0.0"
+version = "3.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -1674,7 +1674,7 @@ files = [
 
 [[package]]
 name = "image-embeddings"
-version = "0.1.0"
+version = "3.0.0"
 description = "Image embeddings plugin for RescueBox using CLIP"
 optional = false
 python-versions = ">=3.11,<3.13"
@@ -1699,7 +1699,7 @@ url = "src/image-embeddings"
 
 [[package]]
 name = "image-summary"
-version = "1.0.0"
+version = "3.0.0"
 description = "Describe images in a directory using an LLM."
 optional = false
 python-versions = "*"
@@ -4837,7 +4837,7 @@ files = [
 
 [[package]]
 name = "rb-api"
-version = "2.0.0"
+version = "3.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -4860,7 +4860,7 @@ url = "src/rb-api"
 
 [[package]]
 name = "rb-lib"
-version = "2.0.0"
+version = "3.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -5711,7 +5711,7 @@ test = ["pytest", "tornado (>=4.5)", "typeguard"]
 
 [[package]]
 name = "text-embeddings"
-version = "0.1.0"
+version = "3.0.0"
 description = "Text embeddings plugin for RescueBox"
 optional = false
 python-versions = ">=3.11,<3.13"
@@ -5735,7 +5735,7 @@ url = "src/text-embeddings"
 
 [[package]]
 name = "text-summary"
-version = "2.0.0"
+version = "3.0.0"
 description = "A project that helps summarize text."
 optional = false
 python-versions = "*"
@@ -6122,7 +6122,7 @@ files = [
 
 [[package]]
 name = "ufdr-mounter"
-version = "2.0.0"
+version = "3.0.0"
 description = "Mount UFDR forensic archives using FUSE"
 optional = false
 python-versions = "*"
@@ -6986,4 +6986,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "fd1e7a8d7a4580eb6dc181efe955f6542fd51f6449bfa37d7b6bfa4be4c40c44"
+content-hash = "0cbe93cf0caf564033c750685f178008faa545586c15495ddac041b6741dd6d3"

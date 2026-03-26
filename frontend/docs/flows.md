@@ -66,7 +66,7 @@
 │ ┌───────────────────────────────────┐ │
 │ │ 📊 Previous Job (2 hours ago)     │ │
 │ │ • 24 faces detected               │ │
-│ │ • Model: face-detection v2.1      │ │
+│ │ • Model: face-detection v3.0      │ │
 │ │ [👁️ View] [🔄 Re-run]             │ │
 │ └───────────────────────────────────┘ │
 └────────────────────────────────────────┘
@@ -324,7 +324,7 @@ Flow 5: Error Handling Flow
        "uid": "audio_transcription",
        "name": "Audio transcription library",
        "plugin_name": "audio_transcription",
-       "version": "2.0.0",
+       "version": "3.0.0",
        "author": "Rescue Lab",
        "info": "Markdown documentation...",
        "gpu": false
@@ -370,7 +370,7 @@ Flow 5: Error Handling Flow
      "uid": "audio_transcription",
      "name": "Audio transcription library",
      "plugin_name": "audio_transcription",
-     "version": "2.0.0",
+     "version": "3.0.0",
      "author": "Rescue Lab",
      "info": "Markdown documentation...",
      "gpu": false

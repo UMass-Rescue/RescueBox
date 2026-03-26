@@ -29,7 +29,7 @@ Returns list of all plugins as models:
     "uid": "audio_transcription",
     "name": "Audio transcription library",
     "plugin_name": "audio_transcription",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "author": "Rescue Lab",
     "info": "Markdown documentation...",
     "gpu": false
@@ -45,7 +45,7 @@ Returns metadata for a specific plugin:
   "uid": "audio_transcription",
   "name": "Audio transcription library",
   "plugin_name": "audio_transcription",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "author": "Rescue Lab",
   "info": "Markdown documentation...",
   "gpu": false

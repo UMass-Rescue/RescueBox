@@ -32,9 +32,13 @@ class BNext_M_ModelONNX:
             / "bnext_M_dffd_model.onnx"
         )
         available = ort.get_available_providers()
-        providers = ["CPUExecutionProvider"]
-        if "CUDAExecutionProvider" in available:
+        # Provider order: first match wins; prefer accelerators when present.
+        providers = ["CPUExecutionProvider"]  # baseline; always in ORT
+        if "CUDAExecutionProvider" in available:  # NVIDIA GPU if ORT built with CUDA
             providers.insert(0, "CUDAExecutionProvider")
+        # macOS / Apple: CoreML EP only appears when onnxruntime was built with CoreML support
+        if "CoreMLExecutionProvider" in available:
+            providers.insert(0, "CoreMLExecutionProvider")
         session_options = ort.SessionOptions()
         session_options.inter_op_num_threads = 4
         session_options.intra_op_num_threads = 4

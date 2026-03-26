@@ -66,7 +66,7 @@ server.add_app_metadata(
     plugin_name=APP_NAME,
     name="Image Embeddings",
     author="UMass Rescue",
-    version="1.0.0",
+    version="3.0.0",
     info="Create embeddings for images using CLIP models.",
 )
 

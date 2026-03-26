@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "image-summary"
-version = "1.0.0"
+version = "3.0.0"
 description = "Describe images in a directory using an LLM."
 authors = ["Prasanna <prasanna.lakkur@gmail.com>"]
 packages = [{include = "image_summary"}]
