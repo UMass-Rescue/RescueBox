@@ -1,9 +1,23 @@
 import logging
 from nicegui import ui
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def user_has_job_history() -> bool:
+    """True when the current user has at least one job row (any status)."""
+    try:
+        from frontend.database import get_job_db
+        from frontend.utils.nicegui_storage import get_user_id_for_jobs
+
+        uid = get_user_id_for_jobs()
+        if not uid:
+            return False
+        return get_job_db().get_job_count_for_user(uid) > 0
+    except Exception:
+        return False
 
 
 def create_chat_header(on_new_conversation: Callable, ui_state: dict, ui_styling: Any = None, on_show_history: Callable = None):
@@ -30,11 +44,14 @@ def create_chat_header(on_new_conversation: Callable, ui_state: dict, ui_styling
             models_btn = ui.button('📋 Plugins').classes('bg-blue-500 text-white px-4 py-2 rounded-lg')
             analyze_btn = ui.button('🧠 Assistant').classes('bg-blue-500 text-white px-4 py-2 rounded-lg')
             if on_show_history:
-                ui.button('📜 History', on_click=on_show_history).classes('bg-gray-200')
+                history_btn = ui.button('📜 History', on_click=on_show_history).classes('bg-gray-200')
             else:
-                # Fallback: inform user that history is unavailable
-                ui.button('📜 History', on_click=lambda: ui.notify('No history available', type='info')).classes('bg-gray-200')
+                history_btn = ui.button(
+                    '📜 History',
+                    on_click=lambda: ui.notify('No history available', type='info'),
+                ).classes('bg-gray-200')
+            history_btn.visible = user_has_job_history()
             ui.button('New Conversation', on_click=on_new_conversation).classes('bg-blue-600 text-white')
 
-    return mode_indicator, models_btn, analyze_btn
+    return mode_indicator, models_btn, analyze_btn, history_btn
 

@@ -112,6 +112,7 @@ class ToolRegistry:
         '/find-faces': 'face-match/findfacebulk',
         '/summarize': 'text_summarization/summarize',
         '/search-text': 'text_embeddings/search',
+        '/ufdr-mount': 'ufdr_mounter/mount',
         '/models': 'pick_tool',
         '/assistant': 'smart_analyze',
         '/help': 'help',
@@ -127,6 +128,7 @@ class ToolRegistry:
         "6": {"name": "🔎 Find Faces", "endpoint": "face-match/findfacebulk", "desc": "Search face collection"},
         "7": {"name": "📝 Summarize Text", "endpoint": "text_summarization/summarize", "desc": "Document summaries"},
         "8": {"name": "🔍 Search Text", "endpoint": "text_embeddings/search", "desc": "Semantic search text files"},
+        "9": {"name": "🔍 UFDR Mount", "endpoint": "ufdr_mounter/mount", "desc": "Mount UFDR files"},
     }
     
     # Fallback endpoints for tool picker (when Granite model unavailable)
@@ -139,6 +141,7 @@ class ToolRegistry:
         "6": "face-match/findfacebulk",
         "7": "text_summarization/summarize",
         "8": "text_embeddings/search",
+        "9": "ufdr_mounter/mount",
     }
     
     # Enhanced blocked patterns (non-forensic requests to reject)
@@ -173,6 +176,8 @@ class ToolRegistry:
         # General forensic
         "forensic", "evidence", "analyze", "analysis", "investigate", "case",
         "detect", "scan", "process", "extract",
+        # UFDR / mobile forensics
+        "ufdr", "cellebrite",
         # Common paths (indicator of tool usage)
         "/tmp", "/data", "/evidence", "/home", "/case",
     ]
@@ -213,13 +218,13 @@ class ToolRegistry:
         help_text = """
 
 #### Three different ways to use RescueBox Assistant
-1. **Model Picker** - **Type `/models`** to see all the models and you pick one
-2. **Assistant** - Enter a **prompt model task in natural language**
+1. **Tool Picker** - **Type `/models`** to see all the plugins and you pick one
+2. **Assistant** - Enter a **prompt plugin task in natural language**
 -**Transcribe** audio files in /evidence/recordings
 or
 -**Summarize** photos in /images/case456
 
-3. **Shortcut Commands** - For Advanced users type model eg. `/transcribe` to transcribe audio files
+3. **Shortcut Commands** - For Advanced users eg. `/transcribe` to transcribe audio files
 """
         #help_text += """#### Shortcut model commands"""
         logger.debug("Processing %d slash commands", len(ToolRegistry.SLASH_COMMANDS))

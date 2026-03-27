@@ -106,7 +106,8 @@ class JobSubmissionOrchestrator:
                     conversation_id,
                     role='assistant',
                     content=f"I'll use {endpoint} to help you.",
-                    message_type='tool_selection'
+                    message_type='tool_selection',
+                    tool_call_endpoint=endpoint,
                 )
         except Exception:
             # Non-fatal: continue even if we cannot write to history
@@ -115,7 +116,8 @@ class JobSubmissionOrchestrator:
         # Also show the assistant message immediately in the live chat UI so the user
         # sees confirmation without waiting for the job to complete.
         try:
-            from frontend.pages.chatbot.chatbot_message import ChatMessage, render_message
+            from frontend.pages.chatbot.chatbot_message import ChatMessage
+            from frontend.components.results.tool_selection_card import render_tool_selection_message
             import nicegui
             # Create message and add to in-memory state manager for UI rendering
             assistant_msg = ChatMessage('assistant', f"I'll use {endpoint} to help you.", message_type='tool_selection')
@@ -127,6 +129,7 @@ class JobSubmissionOrchestrator:
                     pass
             # Render into the main chat container (prefer global chat container) so the assistant
             # selection message appears in the conversation rather than inside any input-area wrapper.
+            gc = None
             try:
                 from frontend.pages.chatbot.chatbot_forms import get_global_chat_container
                 gc = get_global_chat_container()
@@ -137,8 +140,8 @@ class JobSubmissionOrchestrator:
             if target_container is not None:
                 try:
                     logger.info("Rendering assistant selection message into container=%r (global_chat_container=%r provided_container=%r)",
-                                target_container, getattr(gc, '__repr__', lambda: gc)(), container)
-                    render_message(target_container, assistant_msg)
+                                target_container, gc, container)
+                    render_tool_selection_message(target_container, endpoint)
                     # Schedule scroll to bottom (use ui.timer from NiceGUI)
                     try:
                         ui = nicegui.ui
@@ -166,6 +169,12 @@ class JobSubmissionOrchestrator:
             endpoint_chain=endpoint_chain,
         )
         job_id = job_info.get('job_id') if job_info else None
+        try:
+            from frontend.pages.chatbot.utils.chat_ui_builder import refresh_chat_history_button_visibility
+
+            refresh_chat_history_button_visibility()
+        except Exception:
+            pass
         # Save a job-started marker in chat history for recovery
         try:
             await DatabaseService.save_job_started_to_history(conversation_id, endpoint, job_id)

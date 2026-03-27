@@ -137,7 +137,22 @@ class MessageService:
                 # best-effort; keep original if prettify fails
                 pass
 
-        if message_type == 'tool_call' and tool_calls:
+        if message_type == 'tool_selection':
+            try:
+                from frontend.components.results.tool_selection_card import render_tool_selection_message
+                ep = endpoint
+                if not ep and message and getattr(message, 'content', None):
+                    import re
+                    m = re.search(r"I'll use (.+?) to help you\.", message.content, re.DOTALL)
+                    ep = m.group(1).strip() if m else None
+                if ep:
+                    render_tool_selection_message(container, ep)
+                else:
+                    render_message(container, message)
+            except Exception:
+                render_message(container, message)
+
+        elif message_type == 'tool_call' and tool_calls:
             # Use extracted ToolCallCard component when available
             try:
                 from frontend.components.chat.tool_call_card import render_tool_call_card

@@ -46,10 +46,11 @@ Tip : http://localhost:11000/ **to see GPU usage metrics**
 
 Open **[Jobs](/jobs)** for results and status. Open a job to see **results** (files, text, tables, previews).
 
-- When a job is submitted, **case notes** can be added; they appear in the job output.
-- Deleting a job removes its results permanently.
 - When you **start RescueBox for the first time**, enter a **unique user id**. It ties jobs to you. 
    If you use another browser or machine and need the same history, enter that same id again. {{SCREENSHOT:user_id.png}}
+
+- When a job is submitted, **case notes** can be added; they appear in the job output.
+- Deleting a job removes its results permanently.
 
 ---
 

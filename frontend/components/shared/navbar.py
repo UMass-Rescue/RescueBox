@@ -108,17 +108,11 @@ def create_navbar():
                 ):
                     logger.debug("Creating navigation links row")
 
-                    ui.link('Plugins', '/models').classes(_link_cls)
+                    ui.link('Browse Plugins', '/models').classes(_link_cls)
                     ui.link('Assistant', '/chatbot').classes(_link_cls)
                     ui.link('Jobs', '/jobs').classes(_link_cls)
                     ui.link('Logs', '/logs').classes(_link_cls)
                     ui.link('Demo', '/demo').classes(_link_cls)
-
-                    from frontend.utils.theme import create_theme_toggle
-                    theme_toggle = create_theme_toggle()
-                    theme_toggle.classes('ml-0.5 items-center shrink-0')
-                    theme_toggle.props('color=white')
-                    logger.debug("Theme toggle added to navbar")
 
                 # Session display removed for demo safety (avoids accidental user actions)
 

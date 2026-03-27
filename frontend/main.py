@@ -58,6 +58,8 @@ import frontend.pages.chatbot
 import frontend.pages.jobs
 import frontend.pages.demo
 import frontend.pages.demo_quick_start
+import frontend.pages.demo_transcribe_walkthrough
+import frontend.pages.demo_image_summary_walkthrough
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent

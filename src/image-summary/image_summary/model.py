@@ -18,15 +18,18 @@ _ENV_PARALLEL_KEY: Final[str] = "IMAGE_SUMMARY_BATCH_PARALLEL_WORKERS"
 _DEFAULT_PARALLEL_WORKERS: Final[int] = 5
 
 SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
-    "gemma3:4b": {"display_name": "Gemma3 4B: Small, runs on more hardware"},
+    "gemma3:4b": {"display_name": "Gemma3 4B: Small, runs on most hardware"},
     "llama3.2-vision:11b": {
         "display_name": "Llama 3.2 11B: More performant, still fits into consumer GPUs",
     },
-    "gemma3:27b": {"display_name": "Gemma3 27B: Larger, powerful model"},
-    "llama3.2-vision:90b": {
+    "gemma3:27b": {"display_name": "Gemma3 27B: Larger, powerful model, runs on more powerful hardware"},
+}
+
+'''
+ "llama3.2-vision:90b": {
         "display_name": "LLAMA 3.2 90B: Most performant, needs plenty of VRAM",
     },
-}
+'''
 
 IMAGE_PROMPT: Final[str] = (
     "You are a vision model. Provide a detailed description of the image. "

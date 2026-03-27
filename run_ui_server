@@ -1,5 +1,5 @@
 
-VER=`poetry install | grep 'rescuebox (3.0.0)'`
+VER=`poetry install --dry-run | grep 'rescuebox (3.0.0)'`
 if [[ "$VER" == "" ]];then
    echo "rescuebox poetry install not setup correct ? fix and re run"
    exit 1

@@ -17,6 +17,32 @@ from frontend.components.chat.input_area import create_input_area
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# Single reference for the chat header History button (one client / builder instance at a time per page)
+_chat_history_button_ref = None
+
+
+def register_chat_history_button(btn) -> None:
+    """Remember the History button so we can show it after the first job is created."""
+    global _chat_history_button_ref
+    if btn is None:
+        return
+    _chat_history_button_ref = btn
+
+
+def refresh_chat_history_button_visibility() -> None:
+    """Show 📜 History only when the current user has at least one job."""
+    global _chat_history_button_ref
+    btn = _chat_history_button_ref
+    if btn is None:
+        return
+    try:
+        from frontend.components.chat.chat_header import user_has_job_history
+
+        btn.visible = user_has_job_history()
+    except Exception:
+        pass
+
+
 class ChatUIBuilder:
     """Builds the complete chat UI with proper separation of concerns."""
 
@@ -104,13 +130,17 @@ class ChatUIBuilder:
         """Build the toolbar header."""
         try:
             from frontend.components.chat.chat_header import create_chat_header
-            mode_indicator, models_btn, analyze_btn = create_chat_header(
+            mode_indicator, models_btn, analyze_btn, history_btn = create_chat_header(
                 self.on_new_conversation, ui_state, UIStyling, on_show_history=self._show_history_dialog
             )
             # Store references for mode switching
             self.mode_indicator = mode_indicator
             self.models_btn = models_btn
             self.analyze_btn = analyze_btn
+            self.history_btn = history_btn
+            register_chat_history_button(history_btn)
+            ui.timer(0.35, refresh_chat_history_button_visibility, once=True)
+            ui.timer(1.5, refresh_chat_history_button_visibility, once=True)
             self.ui_state = ui_state
         except Exception as e:
             logger.exception("Failed to create chat header component: %s", e)
@@ -124,11 +154,20 @@ class ChatUIBuilder:
                 with ui.row().classes('items-center gap-3'):
                     models_btn = ui.button('📋 Plugins').classes(UIStyling.BUTTON_ENABLED)
                     analyze_btn = ui.button('🧠 Assistant').classes(UIStyling.BUTTON_ENABLED)
-                    ui.button('📜 History', on_click=self._show_history_dialog).classes(UIStyling.BUTTON_ENABLED)
+                    from frontend.components.chat.chat_header import user_has_job_history
+
+                    history_btn = ui.button('📜 History', on_click=self._show_history_dialog).classes(
+                        UIStyling.BUTTON_ENABLED
+                    )
+                    history_btn.visible = user_has_job_history()
+                    register_chat_history_button(history_btn)
+                    ui.timer(0.35, refresh_chat_history_button_visibility, once=True)
+                    ui.timer(1.5, refresh_chat_history_button_visibility, once=True)
                     ui.button('New Conversation', on_click=self.on_new_conversation).classes(UIStyling.BUTTON_ENABLED)
             self.mode_indicator = mode_indicator
             self.models_btn = models_btn
             self.analyze_btn = analyze_btn
+            self.history_btn = history_btn
             self.ui_state = ui_state
 
     def _build_chat_area(self):

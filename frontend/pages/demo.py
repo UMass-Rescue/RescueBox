@@ -18,10 +18,19 @@ async def demo_page():
     with ui.column().classes('container mx-auto p-8 max-w-5xl w-full min-w-0'):
         ui.label('RescueBox Demo').classes('text-3xl font-bold mb-4')
         ui.label('Follow the step-by-step guide to learn RescueBox.').classes('text-gray-600 mb-6')
-        ui.button(
-            'Open quick start guide',
-            on_click=lambda: ui.navigate.to('/demo/quick-start'),
-        ).classes('bg-blue-600 text-white px-6 py-3')
+        with ui.column().classes('gap-3 items-start'):
+            ui.button(
+                'Open quick start guide',
+                on_click=lambda: ui.navigate.to('/demo/quick-start'),
+            ).classes('bg-blue-600 text-white px-6 py-3')
+            ui.button(
+                'Transcribe walkthrough (using tool picker)',
+                on_click=lambda: ui.navigate.to('/demo/transcribe-walkthrough'),
+            ).classes('bg-green-600 text-white px-6 py-3')
+            ui.button(
+                'Image summary walkthrough (Assistant prompt)',
+                on_click=lambda: ui.navigate.to('/demo/image-summary-walkthrough'),
+            ).classes('bg-violet-600 text-white px-6 py-3')
 
         ui.separator().classes('my-8')
         ui.label('Sample inputs & outputs').classes('text-2xl font-bold mb-2')

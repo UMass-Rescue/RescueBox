@@ -5,11 +5,14 @@ Handles rendering of different message types in the chat interface.
 """
 
 import logging
+import re
 from frontend.pages.chatbot.utils.message_service import MessageService
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+_TOOL_SELECTION_CONTENT = re.compile(r"I'll use (.+?) to help you\.", re.DOTALL)
+
 
 class MessageRenderer:
     """Handles rendering of different message types in the chat interface."""
@@ -54,6 +57,17 @@ class MessageRenderer:
                 message_type='error'
             )
             return False
+        elif message_type == 'tool_selection':
+            ep = getattr(msg_record, 'tool_call_endpoint', None) or MessageRenderer._endpoint_from_tool_selection_content(
+                getattr(msg_record, 'content', '') or ''
+            )
+            MessageService.render_message_in_chat(
+                container=self.chatbot_page.chat_container,
+                message=self._create_chat_message(msg_record),
+                message_type='tool_selection',
+                endpoint=ep,
+            )
+            return False
         else:
             # Regular text message
             MessageService.render_message_in_chat(
@@ -62,6 +76,11 @@ class MessageRenderer:
                 message_type='text'
             )
             return False
+
+    @staticmethod
+    def _endpoint_from_tool_selection_content(content: str):
+        m = _TOOL_SELECTION_CONTENT.search((content or "").strip())
+        return m.group(1).strip() if m else None
 
     async def _render_tool_call_with_context(self, msg_record, index: int, all_messages: list):
         """

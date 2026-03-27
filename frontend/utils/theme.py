@@ -17,6 +17,8 @@ Usage:
 import logging
 from nicegui import ui, app
 
+from frontend.config import APP_DARK_MODE
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -53,14 +55,17 @@ def create_theme_toggle():
 
 
 def apply_saved_theme():
-    """Applies the saved dark mode preference on page load."""
+    """Apply theme: default is light unless RESCUEBOX_DARK_MODE=true.
+
+    The navbar dark-mode toggle was removed; a stale ``dark_mode`` flag in
+    user storage could still force dark UI—clear it when app default is light.
+    """
     try:
-        is_dark = app.storage.user.get('dark_mode', False)
-        if is_dark:
-            # CORRECT: Call enable() on the instance from ui.dark_mode()
+        if APP_DARK_MODE:
+            app.storage.user['dark_mode'] = True
             ui.dark_mode().enable()
-        else:
-            # CORRECT: Call disable() on the instance from ui.dark_mode()
-            ui.dark_mode().disable()
+            return
+        app.storage.user['dark_mode'] = False
+        ui.dark_mode().disable()
     except Exception as e:
         logger.warning("Could not apply saved theme: %s", str(e))
