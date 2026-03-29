@@ -67,11 +67,10 @@ class FormGenerator:
         
         Creates internal storage for form data, widgets, and validation errors.
         """
-        logger.info("Initializing FormGenerator")
+        logger.debug("Initializing FormGenerator")
         self.form_data = {}
         self.form_widgets = {}
         self.validation_errors = {}
-        logger.debug("FormGenerator initialized successfully")
     
     async def generate_form(
         self,
@@ -148,7 +147,7 @@ class FormGenerator:
         self.form_data = initial_values or {}
         self.form_widgets = {}
         self.validation_errors = {}
-        logger.debug("Form initialized with %d inputs and %d parameters", len(task_schema.inputs), len(task_schema.parameters))
+        
         
         with container:
             logger.debug("Creating form card container")

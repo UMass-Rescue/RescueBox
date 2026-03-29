@@ -31,16 +31,20 @@ async def demo_page():
                 'Image summary walkthrough (Assistant prompt)',
                 on_click=lambda: ui.navigate.to('/demo/image-summary-walkthrough'),
             ).classes('bg-violet-600 text-white px-6 py-3')
+            ui.button(
+                'More Scenarios (age/gender, deepfakes, pipeline)',
+                on_click=lambda: ui.navigate.to('/demo/other-walkthrough'),
+            ).classes('bg-amber-600 text-white px-6 py-3')
 
         ui.separator().classes('my-8')
         ui.label('Sample inputs & outputs').classes('text-2xl font-bold mb-2')
         ui.label(
-            'Open folders and files from the demo directory on this machine '
-            '(inputs, outputs, and other samples). Files open in the browser when possible.'
+            'Open folders and files from the demo directory on the rescuebox server '
+            '(review inputs, outputs for walkthroughs).'
         ).classes('text-gray-600 mb-4')
 
         from frontend.components.demo.demo_files_explorer import render_demo_files_explorer
 
         render_demo_files_explorer(ui.column().classes('w-full min-w-0'))
 
-        ui.link('Back to Home', NAV_LINKS['home']).classes('mt-8 text-blue-600 hover:underline')
+        ui.link('Rescuebox Home', NAV_LINKS['home']).classes('mt-8 text-blue-600 hover:underline')

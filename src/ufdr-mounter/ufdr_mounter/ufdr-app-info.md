@@ -37,7 +37,7 @@ Then log out and log back in to apply group changes.
         Use an absolute path (e.g., /mnt/test1)
         or a short name like test1 (which will be mounted inside the repo's mnt/ folder)
 
-Note:  When you exit the RescueBox desktop the path will be un-mounted. Unmount task is not supported in this version.
-
+Note:   **Unmount task is not supported in this version**, suggest manually unmount.
+On windows when you exit the RescueBox desktop the path will be un-mounted.
 
 

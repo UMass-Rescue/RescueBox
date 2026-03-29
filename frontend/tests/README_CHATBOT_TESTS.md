@@ -1,5 +1,7 @@
 # Chatbot Module Tests
 
+**Overview:** See **`../docs/testing.md`**. Below is module-specific detail.
+
 This document describes the test suite for the refactored chatbot module.
 
 ## Test Structure

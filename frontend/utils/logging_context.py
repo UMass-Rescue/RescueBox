@@ -232,7 +232,41 @@ def configure_logging_with_context(log_file_path: Optional[str] = None, log_leve
                             logger_obj.setLevel(logging.NOTSET)
                         except Exception:
                             pass
-            for noisy in ('socketio.server', 'socketio', 'engineio.server', 'engineio'):
+            for noisy in (
+                'socketio.server',
+                'socketio',
+                'engineio.server',
+                'engineio',
+                # FUSE / python-fuse: getattr/getxattr DEBUG noise on UFDR mounts
+                'fuse',
+                'fuse.log-mixin',
+                'ufdr_mounter.utils.ufdr_mount_unix',
+                # Chatbot page load / conversation init (verbose INFO+DEBUG)
+                'frontend.pages.chatbot',
+                'frontend.database.chat_history_db',
+                'frontend.utils.nicegui_storage',
+                # HTTP client stack (httpx/httpcore DEBUG)
+                'httpcore',
+                'httpcore.http11',
+                'httpx',
+                # Chatbot package (schema_utils, utils) — not under pages.chatbot
+                'frontend.chatbot',
+                # Forms / validators / file browser (normal-path INFO+DEBUG)
+                'frontend.components.forms',
+                'frontend.components.results.tool_selection_card',
+                'frontend.utils.validators',
+                'frontend.utils.file_browser',
+                'nicegui',
+                # Per-module logger.setLevel(DEBUG) overrides parents — force quiet explicitly
+                'frontend.pages.chatbot.chatbot_forms',
+                'frontend.pages.chatbot.chatbot',
+                'frontend.pages.chatbot.state.state_manager',
+                'frontend.pages.chatbot.utils.form_validator',
+                'frontend.components.forms.form_generator',
+                'frontend.components.forms.form_handlers',
+                'frontend.components.forms.builders.input_field_builder',
+                'frontend.components.forms.case_notes_dialog',
+            ):
                 logging.getLogger(noisy).setLevel(logging.WARNING)
         except Exception:
             # best-effort; don't fail logging setup if introspection fails

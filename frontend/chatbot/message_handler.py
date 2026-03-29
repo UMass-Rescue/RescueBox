@@ -262,7 +262,12 @@ class MessageHandler:
         # Call Granite model to get tool call(s)
         if update_status_callback:
             update_status_callback("🤖 AI analyzing request...")
-        logger.info("Calling ollama Granite model for tool selection")
+        _p = user_message if len(user_message) <= 2000 else user_message[:2000] + "…"
+        logger.info(
+            "Smart analyze: calling Granite for tool selection (prompt_len=%d prompt=%r)",
+            len(user_message),
+            _p,
+        )
         tool_calls = await self.core.call_granite_model_direct(user_message, update_status_callback=update_status_callback)
         
         if not tool_calls:
@@ -298,6 +303,11 @@ class MessageHandler:
         if not validated_calls:
             logger.error("No valid tool calls found")
             return {'type': 'error', 'content': 'No valid tool calls found in model response'}
+
+        logger.info(
+            "Smart analyze: validated endpoints after Granite: %s",
+            [c["endpoint"] for c in validated_calls],
+        )
         
         # Try to detect and resolve any input/output filters referenced by the tool calls.
         # Resolve but do not persist by default (persist_if_requested=False). Persisting should

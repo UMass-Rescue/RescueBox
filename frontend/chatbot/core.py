@@ -81,6 +81,14 @@ class ThinChatbotCore:
         """Call Ollama API for Granite model tool selection."""
         if update_status_callback:
             update_status_callback("🧠 RescueBox working with AI model...")
+        _preview = prompt if len(prompt) <= 1200 else prompt[:1200] + "…"
+        logger.info(
+            "Granite tool selection request: model=%s use_advanced=%s prompt_len=%d prompt_preview=%r",
+            self.config.GRANITE_MODEL,
+            use_advanced,
+            len(prompt),
+            _preview,
+        )
         try:
             if use_advanced:
                 messages = create_advanced_granite_prompt(prompt)
@@ -114,10 +122,25 @@ class ThinChatbotCore:
             data = resp.json()
             model_text = data.get("message", {}).get("content", "")
             if model_text:
+                logger.debug(
+                    "Granite raw response preview (first 800 chars): %s",
+                    model_text[:800] + ("…" if len(model_text) > 800 else ""),
+                )
                 result = parse_fine_tune_tool_response(model_text)
                 if result:
-                    logger.info("Ollama returned %d tool call(s)", len(result))
+                    names = [tc.get("name") for tc in result if isinstance(tc, dict)]
+                    logger.info(
+                        "Granite tool selection result: parsed_tool_count=%d selected_tools=%s",
+                        len(result),
+                        names,
+                    )
                     return result
+                logger.warning(
+                    "Granite returned text but no parseable tool calls; preview=%r",
+                    model_text[:500],
+                )
+            else:
+                logger.warning("Granite /api/chat returned empty message.content")
         except Exception as e:
             logger.debug("Ollama error: %s", e)
         return None

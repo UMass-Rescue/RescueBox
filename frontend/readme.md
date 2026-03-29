@@ -1,9 +1,11 @@
 # RescueBox Desktop - NiceGUI Frontend Design Document
 
+**Up-to-date documentation:** [`docs/README.md`](docs/README.md) (workflow, theme, chat history, jobs, database, results, pipeline/filter, testing). The sections below mix **implemented behavior** with older design notes—when in doubt, trust **`docs/`** and the code.
+
 **Version:** 2.0.0  
 **Date:** 2024  
 **Framework:** NiceGUI (Python Web UI Framework)  
-**Status:** Design Specification
+**Status:** Design Specification (partially superseded by `docs/`)
 
 ## Table of Contents
 
@@ -50,15 +52,12 @@ The NiceGUI-based frontend provides a modern web interface for RescueBox Desktop
 │
 ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ FastAPI Backend │
-│ (Existing Infrastructure) │
+│ FastAPI Backend (rb-api) + Typer plugin routes │
 │ │
 │ ┌──────────────────────────────────────────────────────┐ │
-│ │ • Agent Plugin (/agent/chat) │ │
-│ │ • Model Management │ │
-│ │ • Job Management │ │
-│ │ • Task Execution │ │
-│ │ • Results Storage │ │
+│ │ • Models / servers aggregation (`/api/models`, …) │ │
+│ │ • Per-plugin POST/GET (e.g. `/audio/transcribe`, …) │ │
+│ │ • Chatbot uses Ollama separately for Granite LLM │ │
 │ └──────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────
 
@@ -365,7 +364,7 @@ Since there is **no user authentication/login system**, NiceGUI storage has the 
 - **NiceGUI Storage**: Provides seamless UX (preferences, drafts) without requiring authentication
 - **Combination**: Best of both worlds - data persistence + user convenience
 
-See `docs/NICEGUI_STORAGE_INTEGRATION.md` for detailed technical integration guide.
+Session storage vs SQLite: see `docs/database.md`.
 
 **Note**: State is managed locally within each page component. NiceGUI storage complements local state by providing session persistence and user-specific preferences without requiring a login system.
 
@@ -373,11 +372,11 @@ See `docs/NICEGUI_STORAGE_INTEGRATION.md` for detailed technical integration gui
 
 The frontend implements three major UI workflows for different user interaction patterns:
 
-- **Chat Workflow (`/analyze`)**: Natural language processing with AI-driven tool selection
-- **Models Workflow (Tool Picker)**: Manual tool browsing and selection
-- **Load Conversation Workflow (History)**: Conversation restoration and continuation
+- **Assistant / chat (`/chatbot`)**: Natural language processing with Granite (Ollama) tool selection and plugin job execution
+- **Models (`/models`)**: Manual tool browsing and selection
+- **History**: Conversation restoration, load, and re-run (`?load_conversation=`, `?rerun=`)
 
-See `docs/UI_WORKFLOWS.md` for detailed workflow documentation including state transitions, error handling, and implementation patterns.
+Canonical documentation lives under **`docs/README.md`** (workflow, theme, chat history, jobs, DB, results, pipeline/filter, testing).
 
 ## API Integration
 
@@ -387,9 +386,9 @@ The frontend communicates with the FastAPI backend through standardized REST end
 
 #### Model Management Endpoints
 
-The backend (`src/rb-api/rb/api/routes/models.py`) provides unified endpoints for model/plugin discovery:
+The backend (`src/rb-api/rb/api/routes/models.py`) provides unified endpoints for model/plugin discovery. The frontend **`ApiClient`** uses **`API_BASE_URL`** (default includes **`/api`**), so calls are typically **`GET /api/models`**, **`GET /api/servers`**, etc.
 
-- **`GET /models`** - Returns list of all available plugins as models
+- **`GET /api/models`** (via client) — Returns list of all available plugins as models
   ```json
   [
     {
@@ -404,12 +403,12 @@ The backend (`src/rb-api/rb/api/routes/models.py`) provides unified endpoints fo
   ]
   ```
 
-- **`GET /models/{model_uid}`** - Returns metadata for a specific plugin
-- **`GET /models/{model_uid}/info`** - Alternative endpoint for model metadata (alias)
+- **`GET /api/models/{model_uid}`** — Returns metadata for a specific plugin
+- **`GET /api/models/{model_uid}/info`** — Alternative endpoint for model metadata (alias)
 
 #### Server Status Endpoints
 
-- **`GET /servers`** - Returns list of all registered servers
+- **`GET /api/servers`** — Returns list of all registered servers
   ```json
   [
     {
@@ -423,7 +422,7 @@ The backend (`src/rb-api/rb/api/routes/models.py`) provides unified endpoints fo
   ```
   All plugins are served by the same backend server (localhost:8000), so each plugin gets one server entry.
 
-- **`GET /servers/{model_uid}/status`** - Returns server status for a specific model
+- **`GET /api/servers/{model_uid}/status`** — Returns server status for a specific model
   ```json
   {
     "status": "Online",
@@ -449,10 +448,7 @@ This approach provides a clean abstraction layer that:
 - ✅ Allows backend optimization/caching in the future
 - ✅ Provides consistent data format across all plugins
 
-For detailed information, see:
-- `docs/BACKEND_API_CALLS.md` - Backend API documentation
-- `docs/API_CALLS_SUMMARY.md` - API calls summary
-- `docs/BACKEND_UPDATES.md` - Backend updates documentation
+For API usage from the UI, see `docs/workflow.md` and `src/rb-api/`.
 
 ### Local Database Storage
 
@@ -557,9 +553,7 @@ Audit trails can be exported from the job details page as Markdown files. The au
 2. Click the "📋 Export Audit Trail" button
 3. A Markdown file will be downloaded with all job information
 
-For detailed documentation, see:
-- `docs/AUDIT_TRAIL_GUIDE.md` - Complete audit trail feature guide
-- `docs/LOGGING_GUIDE.md` - Contextual logging system
+Audit trail UI: `frontend/pages/jobs/job_audit.py`. Contextual logging: `frontend/utils/logging_context.py`.
 
 ### Contextual Logging
 
@@ -576,11 +570,9 @@ Logs are written to `frontend/data/rescuebox.log` with the format:
 
 The logging context is automatically set when jobs are created, ensuring all subsequent logs include the relevant IDs.
 
-For detailed documentation, see `docs/LOGGING_GUIDE.md`.
-
 ### API Client Usage
 
-All pages use direct `httpx.AsyncClient` instances for API calls. Each page creates its own client instance with the base URL `http://localhost:8000`.
+Shared **`ApiClient`** (`frontend/api_client.py`) with **`API_BASE_URL`** from `frontend/config.py` (default `http://localhost:<RESCUEBOX_PORT>/api`). Chatbot plugin calls use **`ChatbotConfig.RESCUEBOX_HOST`** and raw paths in `api_helpers.post_job` / `fetch_task_schema`.
 
 ## File Structure
 
@@ -833,7 +825,7 @@ def my_function(param1: str, param2: int = 10) -> Dict[str, Any]:
     """
 ```
 
-For more details, see `docs/LOGGING_GUIDE.md`.
+For logging behavior, see `frontend/main.py` and `frontend/utils/logging_context.py`.
 
 ## Development Guidelines
 
@@ -915,4 +907,4 @@ poetry run pytest frontend/tests/integration/test_ui_integration.py
 - **Assertion Patterns**: Comprehensive assertions for component behavior
 - **CI/CD Integration**: All tests designed to run in automated environments
 
-See `frontend/tests/README.md` and `frontend/tests/pytest.ini` for detailed configuration.
+See **`docs/testing.md`**, **`frontend/tests/pytest.ini`**, and **`frontend/tests/integration/README.md`**.

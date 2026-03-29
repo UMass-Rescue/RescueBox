@@ -60,6 +60,7 @@ import frontend.pages.demo
 import frontend.pages.demo_quick_start
 import frontend.pages.demo_transcribe_walkthrough
 import frontend.pages.demo_image_summary_walkthrough
+import frontend.pages.demo_other_walkthrough
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -80,12 +81,40 @@ logger.setLevel(logging.DEBUG)
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.DEBUG)
 
-# Quiet noisy socket/engineio logs
+# Quiet noisy socket/engineio and FUSE (UFDR mount) logs
 try:
     logging.getLogger('socketio.server').setLevel(logging.WARNING)
     logging.getLogger('socketio').setLevel(logging.WARNING)
     logging.getLogger('engineio.server').setLevel(logging.WARNING)
     logging.getLogger('engineio').setLevel(logging.WARNING)
+    logging.getLogger('fuse').setLevel(logging.WARNING)
+    logging.getLogger('fuse.log-mixin').setLevel(logging.WARNING)
+    logging.getLogger('ufdr_mounter.utils.ufdr_mount_unix').setLevel(logging.WARNING)
+    logging.getLogger('frontend.pages.chatbot').setLevel(logging.WARNING)
+    logging.getLogger('frontend.database.chat_history_db').setLevel(logging.WARNING)
+    logging.getLogger('frontend.utils.nicegui_storage').setLevel(logging.WARNING)
+    logging.getLogger('httpcore').setLevel(logging.WARNING)
+    logging.getLogger('httpcore.http11').setLevel(logging.WARNING)
+    logging.getLogger('httpx').setLevel(logging.WARNING)
+    logging.getLogger('frontend.chatbot').setLevel(logging.WARNING)
+    logging.getLogger('frontend.components.forms').setLevel(logging.WARNING)
+    logging.getLogger('frontend.components.results.tool_selection_card').setLevel(
+        logging.WARNING
+    )
+    logging.getLogger('frontend.utils.validators').setLevel(logging.WARNING)
+    logging.getLogger('frontend.utils.file_browser').setLevel(logging.WARNING)
+    logging.getLogger('nicegui').setLevel(logging.WARNING)
+    for _name in (
+        'frontend.pages.chatbot.chatbot_forms',
+        'frontend.pages.chatbot.chatbot',
+        'frontend.pages.chatbot.state.state_manager',
+        'frontend.pages.chatbot.utils.form_validator',
+        'frontend.components.forms.form_generator',
+        'frontend.components.forms.form_handlers',
+        'frontend.components.forms.builders.input_field_builder',
+        'frontend.components.forms.case_notes_dialog',
+    ):
+        logging.getLogger(_name).setLevel(logging.WARNING)
 except Exception:
     pass
 

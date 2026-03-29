@@ -10,6 +10,7 @@ ufdr-mounter = "ufdr_mounter.ufdr_server:app"
 
 [tool.poetry.dependencies]
 fusepy = "*"
+fastapi = ">=0.115.0"
 
 
 [build-system]

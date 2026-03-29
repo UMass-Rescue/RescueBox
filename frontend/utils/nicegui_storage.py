@@ -247,7 +247,6 @@ def get_user_id() -> Optional[str]:
                 user_id = None
 
         if user_id:
-            logger.debug("Retrieved user ID: %s", user_id)
             return user_id
 
         # If no ID exists, generate a persistent one for this client and store it.

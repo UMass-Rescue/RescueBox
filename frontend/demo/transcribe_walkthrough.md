@@ -28,8 +28,11 @@ This walkthrough is for a **demo user** running **Transcribe Audio** through the
 ### Step 2 — Open the transcribe tool picker (Plugins)
 
 1. In the Assistant toolbar, click **📋 Plugins**.
+
 2. The **tool picker** menu appears in the chat area with numbered options.
+
 3. Click **🎤 Transcribe Audio** — it is option **1** in the picker (`audio/transcribe`).
+
 4. The **input form** for transcription loads **inline** in the chat.
 
 ---
@@ -56,7 +59,9 @@ An input form opens with typical inputs , a folder of files saved on rescuebox s
 ### Step 4 — Track and open results later.
 
 1. Open **[Jobs](/jobs)** from the nav.
+
 2. For the job # , review case notes for model **audio/transcribe** and view details.
+
 3. If you **delete** this result all information is removed from rescuebox about this job.
 
 
@@ -67,4 +72,5 @@ An input form opens with typical inputs , a folder of files saved on rescuebox s
 
 - [Demo home](/demo) — quick start and sample files  
 - [Image summary walkthrough](/demo/image-summary-walkthrough) — Assistant + prompt  
+- [Other walkthrough](/demo/other-walkthrough) — age/gender, deepfakes, pipelines  
 - [Quick start guide](/demo/quick-start) — general RescueBox overview  

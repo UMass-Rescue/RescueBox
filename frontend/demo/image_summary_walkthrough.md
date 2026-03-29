@@ -2,14 +2,11 @@
   Image summary walkthrough — /demo/image-summary-walkthrough
 -->
 
-Run **Describe Images** (`image_summary/summarize-images`) from the **Assistant** using a **natural-language prompt**. The model proposes the tool; you confirm inputs, submit the job, then open results.
+Run **describe Images** (`image_summary/summarize-images`) from the **Assistant** using a **natural-language prompt**. 
+
+The model proposes the tool; you confirm inputs, submit the job, then open results.
 
 ---
-
-### Before you start
-
-1. **[User ID](/)** — Enter a **User ID** on Home if asked (jobs bind to this session).
-2. **Server paths** — File/folder picks resolve on the **RescueBox host** (use demo folders if you follow the paths below).
 
 ---
 
@@ -22,11 +19,12 @@ Run **Describe Images** (`image_summary/summarize-images`) from the **Assistant*
 ### Step 2 — Prompt for image summary
 
 1. In the chat input, ("Type your request") type a clear request, for example:
-   - *summarize the images in /tmp*  
-   - or *describe photos under the /data/case123*
-2. Send the message. The assistant should respond with a **form** for **Describe Images**  **`image_summary/summarize-images`**).
+   - **summarize the images in /tmp**
+   - or **describe photos under the /data/case123**
+2. Send the message. The assistant should respond with an input form for Describe Images plugin  **`image_summary/summarize-images`**.
 
-note: if you type something not understood by rescuebox, you should see a help
+note: if you type something not understood by rescuebox, you should see a help output
+
 ---
 
 ### Step 3 — Fill the form and submit
@@ -39,7 +37,7 @@ note: if you type something not understood by rescuebox, you should see a help
 
 ---
 
-### Step 4 — Results and history
+### Step 4 — Job Results
 
 1. **[Jobs](/jobs)** — View the run details by endpoint **image_summary/summarize-images**, case notes.
 2. Open the job to read **summaries / outputs**. Deleting the job removes its stored results.
@@ -48,4 +46,5 @@ note: if you type something not understood by rescuebox, you should see a help
 
 ### See also
 
+- [Other walkthrough](/demo/other-walkthrough) — age/gender, deepfakes, Assistant prompts, multi-step filter dialog  
 - [Demo](/demo) · [Transcribe walkthrough](/demo/transcribe-walkthrough) · [Quick start](/demo/quick-start)

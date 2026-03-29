@@ -1,8 +1,16 @@
-from ufdr_mounter.ufdr_server import app as cli_app, APP_NAME, ufdr_task_schema, server
+from ufdr_mounter.ufdr_server import (
+    app as cli_app,
+    APP_NAME,
+    ufdr_task_schema,
+    server,
+    validate_mount_folder,
+)
 from rb.lib.common_tests import RBAppTest
 from rb.api.models import AppMetadata, ResponseBody
 from pathlib import Path
 import os
+
+import pytest
 
 # Note : pre req libfuse library must be available in the test environment
 
@@ -28,21 +36,21 @@ class TestUFDRMounter(RBAppTest):
             result.exit_code != 0
         ), f"Expected failure for bad path, got: {result.output}"
 
-    def test_mount_command(self, caplog):
+    def test_mount_command(self, caplog, tmp_path):
         mount_api = f"/{APP_NAME}/mount"
-        test_file = Path("src/ufdr_mounter/ufdr_mounter/testdata/test.ufdr").resolve()
-        mount_dir = Path("mnt/test_mount").resolve()
+        test_file = Path("src/ufdr-mounter/ufdr_mounter/testdata/test.ufdr").resolve()
+        mount_dir = tmp_path / "test_mount"
+        mount_dir.mkdir()
 
-        # ensure directory exists
-        os.makedirs(mount_dir, exist_ok=True)
         input_str = f"{test_file},{mount_dir}"
         result = self.runner.invoke(self.cli_app, [mount_api, input_str, ""])
         print("debug", result)
 
-    def test_mount_api(self):
+    def test_mount_api(self, tmp_path):
         mount_api = f"/{APP_NAME}/mount"
-        test_file = Path("src/ufdr_mounter/ufdr_mounter/testdata/test.ufdr").resolve()
-        mount_dir = Path("mnt/test_mount").resolve()
+        test_file = Path("src/ufdr-mounter/ufdr_mounter/testdata/test.ufdr").resolve()
+        mount_dir = tmp_path / "test_mount"
+        mount_dir.mkdir()
 
         input_json = {
             "inputs": {
@@ -53,3 +61,61 @@ class TestUFDRMounter(RBAppTest):
         }
         response = self.client.post(mount_api, json=input_json)
         print("debug", response)
+
+    @pytest.mark.skipif(
+        os.name == "nt",
+        reason="POSIX: / is always a mount point",
+    )
+    def test_mount_api_validation_returns_400(self):
+        """Invalid mount folder must be HTTP 400, not 200 with an error body."""
+        mount_api = f"/{APP_NAME}/mount"
+        test_file = Path("src/ufdr-mounter/ufdr_mounter/testdata/test.ufdr").resolve()
+        input_json = {
+            "inputs": {
+                "ufdr_file": {"path": str(test_file)},
+                "mount_name": {"text": "/"},
+            },
+            "parameters": {},
+        }
+        response = self.client.post(mount_api, json=input_json)
+        assert response.status_code == 400
+        detail = response.json().get("detail", "")
+        assert isinstance(detail, str)
+        assert "mount point" in detail.lower()
+
+
+class TestValidateMountFolder:
+    def test_empty_path(self):
+        ok, msg = validate_mount_folder("")
+        assert ok is False
+        assert "empty" in msg.lower()
+
+    def test_empty_dir_ok(self, tmp_path):
+        d = tmp_path / "empty_mount"
+        d.mkdir()
+        ok, msg = validate_mount_folder(str(d))
+        assert ok is True
+        assert msg == ""
+
+    def test_nonempty_dir_rejected(self, tmp_path):
+        d = tmp_path / "has_files"
+        d.mkdir()
+        (d / "x.txt").write_text("x")
+        ok, msg = validate_mount_folder(str(d))
+        assert ok is False
+        assert "empty" in msg.lower()
+
+    def test_creatable_under_tmp_ok(self, tmp_path):
+        new_dir = tmp_path / "new" / "nested" / "mount"
+        ok, msg = validate_mount_folder(str(new_dir))
+        assert ok is True
+        assert msg == ""
+
+    @pytest.mark.skipif(
+        os.name == "nt",
+        reason="POSIX mount-point checks",
+    )
+    def test_root_is_mount_rejected(self):
+        ok, msg = validate_mount_folder("/")
+        assert ok is False
+        assert "mount point" in msg.lower()

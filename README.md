@@ -21,6 +21,8 @@ Notes for Developers Only:
 
 Please refer to the [CONTRIBUTING](CONTRIBUTING.md) file for more information on how to contribute to this project.
 
+**Frontend (NiceGUI) developer docs:** [frontend/docs/README.md](frontend/docs/README.md) — workflow, database, tests, and related topics.
+
 Documentation is available on the [Wiki](https://github.com/UMass-Rescue/RescueBox/wiki)
 
 See the [LICENSE](LICENSE) file for license details.
