@@ -144,31 +144,6 @@ class ChatUIBuilder:
             self.ui_state = ui_state
         except Exception as e:
             logger.exception("Failed to create chat header component: %s", e)
-            # Fallback to inline header
-            with ui.row().classes('bg-white border-b shadow-sm items-center justify-between w-full px-4 py-3 sticky top-0 z-10'):
-                with ui.row().classes('items-center gap-3'):
-                    ui.icon('smart_toy', size='1.5rem').classes('text-blue-600')
-                    # ui.label('🤖 Assistant').classes('text-lg font-semibold text-gray-800 mr-2')
-                    ui.label('RescueBox Assistant').classes('text-sm text-gray-600')
-                    mode_indicator = ui.badge('Assistant', color='green').classes('text-xs')
-                with ui.row().classes('items-center gap-3'):
-                    models_btn = ui.button('📋 Plugins').classes(UIStyling.BUTTON_ENABLED)
-                    analyze_btn = ui.button('🧠 Assistant').classes(UIStyling.BUTTON_ENABLED)
-                    from frontend.components.chat.chat_header import user_has_job_history
-
-                    history_btn = ui.button('📜 History', on_click=self._show_history_dialog).classes(
-                        UIStyling.BUTTON_ENABLED
-                    )
-                    history_btn.visible = user_has_job_history()
-                    register_chat_history_button(history_btn)
-                    ui.timer(0.35, refresh_chat_history_button_visibility, once=True)
-                    ui.timer(1.5, refresh_chat_history_button_visibility, once=True)
-                    ui.button('New Conversation', on_click=self.on_new_conversation).classes(UIStyling.BUTTON_ENABLED)
-            self.mode_indicator = mode_indicator
-            self.models_btn = models_btn
-            self.analyze_btn = analyze_btn
-            self.history_btn = history_btn
-            self.ui_state = ui_state
 
     def _build_chat_area(self):
         """Build the main chat container using a reusable ChatWindow component."""

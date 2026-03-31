@@ -38,7 +38,6 @@ APP_NAME = "text_embeddings"
 class Inputs(TypedDict):
     input_dir: DirectoryInput
     query: TextInput
-    file_filter: NotRequired[BatchFileInput]  # Optional: from chained image_summary output
 
 
 class Parameters(TypedDict):
@@ -57,11 +56,6 @@ def task_schema() -> TaskSchema:
         label="Search query",
         input_type=InputType.TEXT,
     )
-    file_filter_schema = InputSchema(
-        key="file_filter",
-        label="Optional: specific files from previous step (e.g. image summaries)",
-        input_type=InputType.BATCHFILE,
-    )
 
     top_k_desc = RangedIntParameterDescriptor(
         range=IntRangeDescriptor(min=1, max=20),
@@ -73,7 +67,7 @@ def task_schema() -> TaskSchema:
     )
 
     return TaskSchema(
-        inputs=[input_dir_schema, query_schema, file_filter_schema],
+        inputs=[input_dir_schema, query_schema],
         parameters=[
             ParameterSchema(
                 key="top_k",

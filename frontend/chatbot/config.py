@@ -60,7 +60,7 @@ class ChatbotConfig(BaseModel):
         )
     
     Tips:
-    - Increase TIMEOUT for very long-running operations
+    - Increase TIMEOUT for very long-running operations (or set ``RESCUEBOX_CHATBOT_TIMEOUT``)
     - Set FILTER_ENABLED=False during development for easier testing
     - Ensure OLLAMA_HOST is accessible from the frontend
     - The GRANITE_MODEL must be available in your Ollama instance
@@ -68,7 +68,7 @@ class ChatbotConfig(BaseModel):
     OLLAMA_HOST: str = Field(default="http://localhost:11434", description="Ollama API base URL")
     GRANITE_MODEL: str = Field(default="granite4:micro", description="Granite model name for tool calling")
     RESCUEBOX_HOST: str = Field(default="http://localhost:8000", description="RescueBox API base URL")
-    TIMEOUT: int = Field(default=300, description="HTTP request timeout in seconds")
+    TIMEOUT: int = Field(default=60*60*24*7, description="HTTP request timeout in seconds")
     FILTER_ENABLED: bool = Field(default=True, description="Enable input filtering for non-forensic requests")
     POLL_INTERVAL: float = Field(default=5.0, description="Polling interval (seconds) for checking running jobs on page load")
     
@@ -93,6 +93,15 @@ class ChatbotConfig(BaseModel):
             data['OLLAMA_HOST'] = env_ollama
         if env_granite and 'GRANITE_MODEL' not in data:
             data['GRANITE_MODEL'] = env_granite
+
+        # Long-running jobs (e.g. image_summary) — override default TIMEOUT without code changes
+        if 'TIMEOUT' not in data:
+            env_job_timeout = os.getenv('RESCUEBOX_CHATBOT_TIMEOUT')
+            if env_job_timeout:
+                try:
+                    data['TIMEOUT'] = int(float(env_job_timeout))
+                except ValueError:
+                    pass
 
         super().__init__(**data)
         logger.info("ChatbotConfig initialized: RESCUEBOX_HOST=%s, GRANITE_MODEL=%s, TIMEOUT=%s, FILTER_ENABLED=%s",

@@ -71,7 +71,7 @@ def render_job_row(
     - Buttons are conditionally rendered based on callbacks and job status
     - Row uses hover effects for better user experience
     """
-    logger.info("Rendering job row for job: %s (Status: %s)", job.get('uid', 'Unknown'), job.get('status', 'Unknown'))
+    #logger.info("Rendering job row for job: %s (Status: %s)", job.get('uid', 'Unknown'), job.get('status', 'Unknown'))
     
     status = job.get('status', 'Unknown')
     status_colors = {
@@ -81,7 +81,7 @@ def render_job_row(
         'Canceled': 'text-gray-600'
     }
     status_color = status_colors.get(status, 'text-gray-600')
-    logger.debug("Job status: %s, color class: %s", status, status_color)
+    #logger.debug("Job status: %s, color class: %s", status, status_color)
     
     # Format timestamps
     start_time_str = 'N/A'
@@ -89,7 +89,7 @@ def render_job_row(
         try:
             start_time = datetime.fromisoformat(job['startTime'].replace('Z', '+00:00'))
             start_time_str = start_time.strftime('%Y-%m-%d %H:%M')
-            logger.debug("Formatted start time: %s", start_time_str)
+            #logger.debug("Formatted start time: %s", start_time_str)
         except Exception as e:
             logger.warning("Failed to parse start time: %s, error: %s", job['startTime'], e)
             start_time_str = job['startTime']
@@ -99,7 +99,7 @@ def render_job_row(
         try:
             end_time = datetime.fromisoformat(job['endTime'].replace('Z', '+00:00'))
             end_time_str = end_time.strftime('%Y-%m-%d %H:%M')
-            logger.debug("Formatted end time: %s", end_time_str)
+            #logger.debug("Formatted end time: %s", end_time_str)
         except Exception as e:
             logger.warning("Failed to parse end time: %s, error: %s", job['endTime'], e)
             end_time_str = job['endTime']
@@ -147,6 +147,6 @@ def render_job_row(
                         'Delete',
                         on_click=lambda j=job: on_delete(j['uid']) if on_delete else None
                     ).classes('bg-gray-600 text-white text-sm')
-                    logger.debug("Delete button added")
+                    #logger.debug("Delete button added")
     
-    logger.info("Job row rendered successfully")
+  

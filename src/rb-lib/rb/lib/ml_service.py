@@ -7,10 +7,11 @@ import typer
 
 from rb.api.models import (
     APIRoutes,
+    AppMetadata,
+    PipelineFileFilterInputMixin,
     ResponseBody,
     SchemaAPIRoute,
     TaskSchema,
-    AppMetadata,
 )
 from rb.lib.utils import (
     ensure_ml_func_hinting_and_task_schemas_are_valid,
@@ -127,6 +128,16 @@ class MLService(object):
         self.endpoints.append(endpoint)
         type_hints = get_type_hints(ml_function)
         input_type = type_hints["inputs"]
+        input_field_hints = get_type_hints(input_type)
+        if "file_filter" in input_field_hints:
+            merged_inputs_type = input_type
+        else:
+
+            class MergedInputs(input_type, PipelineFileFilterInputMixin):
+                """Plugin Inputs plus optional pipeline keys (e.g. file_filter) for HTTP bodies."""
+
+            merged_inputs_type = MergedInputs
+
         parameter_type = type_hints.get("parameters", None)
         if parameter_type and not parameters_cli_parser:
             raise ValueError(
@@ -135,7 +146,12 @@ class MLService(object):
 
         @self.app.command(endpoint.task_schema_rule)
         def get_task_schema():
-            res = endpoint.task_schema_func().model_dump(mode="json")
+            res = (
+                endpoint.task_schema_func()
+                .with_default_pipeline_inputs()
+                .for_public_api()
+                .model_dump(mode="json")
+            )
             logger.info(res)
             return res
 
@@ -146,7 +162,7 @@ class MLService(object):
             @self.app.command(f"/{self.name}" + rule)
             def run(
                 inputs: Annotated[
-                    input_type,
+                    merged_inputs_type,
                     inputs_cli_parser,
                     Body(embed=True),
                 ],
@@ -165,7 +181,7 @@ class MLService(object):
             @self.app.command(f"/{self.name}" + rule)
             def run(
                 inputs: Annotated[
-                    input_type,
+                    merged_inputs_type,
                     inputs_cli_parser,
                     Body(embed=True),
                 ],

@@ -27,7 +27,7 @@ This walkthrough is for a **demo user** running **Transcribe Audio** through the
 
 ### Step 2 — Open the transcribe tool picker (Plugins)
 
-1. In the Assistant toolbar, click **📋 Plugins**.
+1. In the Assistant toolbar, clic the  **📋 Menu** button.
 
 2. The **tool picker** menu appears in the chat area with numbered options.
 

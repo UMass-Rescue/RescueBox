@@ -13,12 +13,13 @@ The model proposes the tool; you confirm inputs, submit the job, then open resul
 ### Step 1 — Open Assistant
 
 1. Go to **[Assistant](/chatbot)** (nav or Home).
+2. click on **chat** button.
 
 ---
 
 ### Step 2 — Prompt for image summary
 
-1. In the chat input, ("Type your request") type a clear request, for example:
+1. In the chat input, ("Type your request") type a request prompt, for example:
    - **summarize the images in /tmp**
    - or **describe photos under the /data/case123**
 2. Send the message. The assistant should respond with an input form for Describe Images plugin  **`image_summary/summarize-images`**.

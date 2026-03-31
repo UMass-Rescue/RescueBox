@@ -21,7 +21,7 @@ def create_sortable_table(
     row_key: str = 'id',
     on_row_click: Optional[Callable] = None,
     tip_message: Optional[str] = None,
-    show_row_labels: bool = True
+    show_row_labels: bool = False
 ):
     """
     Create a sortable table with consistent styling.
@@ -33,6 +33,8 @@ def create_sortable_table(
         row_key (str): Key to use as unique identifier for rows. Defaults to 'id'.
         on_row_click (Optional[Callable]): Callback function for row click events. Receives event args.
         tip_message (Optional[str]): Optional tip message to display below table
+        show_row_labels: If True, duplicate each cell as a plain label below the table (for tests only;
+            otherwise the table alone shows the data and duplicate blocks look like broken UI).
     
     Returns:
         ui.table: The created table component
@@ -55,8 +57,7 @@ def create_sortable_table(
 
         # Range-detection and range-sort UI removed — keep table simple and rely on built-in column sorting.
 
-        # Also render readable labels for row values so test runners can find cell content
-        # (Some test runners don't index table cell text; duplicating as labels makes assertions reliable)
+        # Optional: duplicate each cell as labels (e.g. integration tests that don't read table DOM)
         if show_row_labels:
             for r in rows:
                 with ui.row().classes('gap-2 mt-1'):

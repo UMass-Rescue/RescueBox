@@ -126,14 +126,14 @@ async def get_plugin_name(api_client: APIClient, model_uid: Optional[str]) -> Op
     - Used for displaying model names in job rows and details
     """
     if not model_uid:
-        logger.debug("No model_uid provided, returning None")
+        #logger.debug("No model_uid provided, returning None")
         return None
     try:
-        logger.debug("Fetching model name for UID: %s", model_uid)
+        #logger.debug("Fetching model name for UID: %s", model_uid)
         response = await api_client.get(f'/models/{model_uid}')
         if response.status_code == 200:
             plugin_name = response.json().get('name')
-            logger.debug("Model name fetched: %s", plugin_name)
+            #logger.debug("Model name fetched: %s", plugin_name)
             return plugin_name
     except Exception as e:
         logger.warning("Error fetching model name for %s: %s", model_uid, str(e))

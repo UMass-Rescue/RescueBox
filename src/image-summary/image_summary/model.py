@@ -11,11 +11,11 @@ from typing import Final
 import ollama
 
 # Max images per single Ollama generate() call (JSON + context limits; large batches drop entries).
-DEFAULT_MAX_IMAGES_PER_BATCH: Final[int] = 16
+DEFAULT_MAX_IMAGES_PER_BATCH: Final[int] = 6
 _ENV_CHUNK_KEY: Final[str] = "IMAGE_SUMMARY_MAX_IMAGES_PER_BATCH"
 _MAX_CHUNK_CAP: Final[int] = 200
 _ENV_PARALLEL_KEY: Final[str] = "IMAGE_SUMMARY_BATCH_PARALLEL_WORKERS"
-_DEFAULT_PARALLEL_WORKERS: Final[int] = 5
+_DEFAULT_PARALLEL_WORKERS: Final[int] = 6
 
 SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
     "gemma3:4b": {"display_name": "Gemma3 4B: Small, runs on most hardware"},

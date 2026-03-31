@@ -11,8 +11,14 @@ SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"}
 
 
 def iter_image_files(directory: Path, file_filter: List[Path]) -> Iterable[Path]:
+    # Resolve paths so chained pipeline paths match directory.iterdir() reliably.
+    allowed = {p.resolve() for p in file_filter}
     for path in directory.iterdir():
-        if path in file_filter and path.is_file() and path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS:
+        if (
+            path.is_file()
+            and path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
+            and path.resolve() in allowed
+        ):
             yield path
 
 

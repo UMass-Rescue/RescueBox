@@ -24,11 +24,11 @@ async def demo_page():
                 on_click=lambda: ui.navigate.to('/demo/quick-start'),
             ).classes('bg-blue-600 text-white px-6 py-3')
             ui.button(
-                'Transcribe walkthrough (using tool picker)',
+                'Plugins menu walkthrough',
                 on_click=lambda: ui.navigate.to('/demo/transcribe-walkthrough'),
             ).classes('bg-green-600 text-white px-6 py-3')
             ui.button(
-                'Image summary walkthrough (Assistant prompt)',
+                'Chat mode walkthrough (Assistant prompt)',
                 on_click=lambda: ui.navigate.to('/demo/image-summary-walkthrough'),
             ).classes('bg-violet-600 text-white px-6 py-3')
             ui.button(

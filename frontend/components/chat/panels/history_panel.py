@@ -100,7 +100,7 @@ async def refresh_conversations(container: ui.column):
         chat_history = get_chat_history_db()
         logger.info("Got chat history database, calling get_all_conversations")
         conversations = await chat_history.get_all_conversations()
-        logger.info("get_all_conversations returned: %s", conversations)
+        # logger.info("get_all_conversations returned: %s", conversations)
 
         if not conversations:
             with conversations_container:
@@ -108,7 +108,6 @@ async def refresh_conversations(container: ui.column):
             logger.info("No conversations found - displaying empty message")
             return
 
-        logger.info("Displaying %d conversations", len(conversations))
 
         for conv in conversations:
             try:
@@ -118,7 +117,6 @@ async def refresh_conversations(container: ui.column):
                 except Exception:
                     msg_count = 0
                 if msg_count == 0:
-                    logger.debug("Skipping conversation %s with zero messages", getattr(conv, 'conversation_id', '<unknown>'))
                     continue
 
                 from frontend.components.chat.conversation_card import render_conversation_card as _render_conv
@@ -148,7 +146,7 @@ def render_conversation_card(container: ui.column, conversation: ConversationRec
     from .conversation_utils import _format_timestamp
     from .conversation_actions import view_conversation, load_conversation
 
-    logger.debug("Rendering conversation card: %s", conversation.conversation_id)
+    # logger.debug("Rendering conversation card: %s", conversation.conversation_id)
 
     try:
         from frontend.components.chat.conversation_card import render_conversation_card as _render_conv
@@ -192,7 +190,7 @@ def filter_conversations(container: ui.column, search_term: str):
         container: History panel container
         search_term: Search term to filter by
     """
-    logger.debug("Filtering conversations: %s", search_term)
+    # logger.debug("Filtering conversations: %s", search_term)
     # Implementation: filter displayed conversations
     # For now, just refresh (full implementation would filter in memory)
     if not search_term:

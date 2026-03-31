@@ -13,14 +13,17 @@ A `.ufdr` file is a Cellebrite forensic export that combines an XML metadata blo
 ### OS-Specific Notes
 
 #### Linux 
-Install FUSE via your package manager:
+Install FUSE (latest) via your package manager:
 
 ```bash
-sudo apt update && sudo apt install fuse
+sudo apt update && sudo apt install fuse3
 ```
 If needed, also allow non-root FUSE mounts (depending on distro):
 ```bash
 sudo usermod -a -G fuse $(whoami)
+
+Note: do not install fuse , its broken. install fuse3 only
+      python fusepy is used by this plugin.
 ```
 
 Then log out and log back in to apply group changes.
@@ -31,11 +34,15 @@ Then log out and log back in to apply group changes.
 ### Using the Frontend (RescueBox)
 
 1. Open the RescueBox model interface and run the UFDR Mount Service
-2. Specify the mount point:
+2. Select the ufdr file , "Path to the UFDR File"
+    eg. /home/tester/Documents/demo1/udfr-mount-service/test.ufdr
+3. Specify the mount folder(mount point):
    - **Linux**:
      Specify the mount point:
-        Use an absolute path (e.g., /mnt/test1)
-        or a short name like test1 (which will be mounted inside the repo's mnt/ folder)
+        Use an absolute path (e.g., /tmp/test_ufdr or /tmp/a/b/c)
+        make sure this folder can be created by the unix user. the rescuebox mount plugin will create the subfolder path in /tmp.
+
+4. After this operation completes the ufdr file contents can be accessed at the mount point.
 
 Note:   **Unmount task is not supported in this version**, suggest manually unmount.
 On windows when you exit the RescueBox desktop the path will be un-mounted.

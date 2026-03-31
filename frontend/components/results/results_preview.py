@@ -100,8 +100,8 @@ class ResultsPreview:
             BatchDirectoryResponse,
         )
 
-        logger.info("Rendering results preview")
-        logger.debug("Response type: %s", type(response).__name__)
+        #logger.info("Rendering results preview")
+        #logger.debug("Response type: %s", type(response).__name__)
         
         # Convert dict to ResponseBody if needed
         if isinstance(response, dict):
@@ -118,7 +118,7 @@ class ResultsPreview:
         # Extract the root union type
         root = response_body.root
         root_type = type(root).__name__
-        logger.debug("Response root type: %s", root_type)
+        #logger.debug("Response root type: %s", root_type)
         
         # Dispatch using centralized dispatcher
         try:
@@ -131,5 +131,3 @@ class ResultsPreview:
         except Exception as e:
             logger.exception("Dispatcher rendering failed: %s", e)
             ui.label(f'Error rendering result: {e}').classes('text-red-600')
-        
-        logger.info("Results preview rendered successfully")

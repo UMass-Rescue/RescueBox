@@ -55,7 +55,11 @@ async def submit_job_orchestrator(api_wrapper, http_client, config, request_body
             except Exception:
                 raise ValueError("Could not coerce job response to dict")
 
-    # Build ResponseBody model
-    response_body = ResponseBody(**response_data)
+    # Build ResponseBody model (coercion handles legacy / batchfile wire shapes)
+    from frontend.chatbot.multi_tool_handler import coerce_pipeline_response
+
+    response_body = coerce_pipeline_response(response_data)
+    if not isinstance(response_body, ResponseBody):
+        response_body = ResponseBody(**response_data)
     return response_body
 

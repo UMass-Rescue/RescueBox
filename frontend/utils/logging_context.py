@@ -268,6 +268,11 @@ def configure_logging_with_context(log_file_path: Optional[str] = None, log_leve
                 'frontend.components.forms.case_notes_dialog',
             ):
                 logging.getLogger(noisy).setLevel(logging.WARNING)
+            # Allow pipeline / metadata-filter diagnostics (otherwise hidden by parent WARNING)
+            logging.getLogger(
+                'frontend.pages.chatbot.utils.job_submission_orchestrator'
+            ).setLevel(logging.INFO)
+            logging.getLogger('frontend.chatbot.multi_tool_handler').setLevel(logging.INFO)
         except Exception:
             # best-effort; don't fail logging setup if introspection fails
             pass

@@ -54,7 +54,7 @@ def render_text(container, response):
     # Lazy import to avoid circular dependencies
     from rb.api.models import TextResponse
 
-    logger.debug("Rendering text result")
+    # logger.debug("Rendering text result")
     text = response.value
     title = response.title or 'Text Result'
 
@@ -63,7 +63,7 @@ def render_text(container, response):
         parsed = json.loads(text)
         if is_text_search_payload(parsed):
             render_text_search_json(container, parsed, title=title)
-            logger.debug("Rendered as text search results table")
+            # logger.debug("Rendered as text search results table")
             return
     except (json.JSONDecodeError, ValueError, TypeError):
         pass
@@ -76,7 +76,7 @@ def render_text(container, response):
                 render_image_summary_file_list,
             )
             render_image_summary_file_list(container, parsed_paths, title)
-            logger.debug('Rendered as image summary with thumbnails')
+            # logger.debug('Rendered as image summary with thumbnails')
             return
     except (json.JSONDecodeError, ValueError, TypeError, ImportError):
         pass
@@ -88,7 +88,7 @@ def render_text(container, response):
             try:
                 from frontend.components.results.searchable_file_list import render_searchable_file_list
                 render_searchable_file_list(container, file_paths, title)
-                logger.debug("Rendered as searchable file list (via component)")
+                # logger.debug("Rendered as searchable file list (via component)")
                 return
             except Exception:
                 pass
@@ -98,7 +98,7 @@ def render_text(container, response):
     # Use reusable text card component for rendering
     try:
         render_text_card(container, text, title)
-        logger.debug("Text result rendered successfully (via text_card)")
+        # logger.debug("Text result rendered successfully (via text_card)")
     except Exception as e:
         logger.exception("Failed to render text via text_card: %s", e)
         # Fallback to inline rendering

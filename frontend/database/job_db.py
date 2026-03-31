@@ -581,7 +581,6 @@ class JobDB(BaseDatabase):
             self._ensure_endpoint_chain_column(conn)
         except Exception:
             logger.debug("Failed to ensure columns before fetch by uid")
-        logger.debug("Fetching job %s", uid)
         
         cursor = conn.execute("SELECT * FROM jobs WHERE uid = ?", (uid,))
         row = cursor.fetchone()
@@ -600,7 +599,6 @@ class JobDB(BaseDatabase):
                 return None
             try:
                 job_record = JobRecord(**job_dict)
-                logger.debug("Job %s found and validated", uid)
                 return job_record
             except Exception as e:
                 logger.error("Failed to validate job %s as JobRecord: %s", uid, e)
@@ -624,7 +622,6 @@ class JobDB(BaseDatabase):
         - Job data is validated and then converted to a dictionary using extract_job_fields
         """
         conn = self.connect()
-        logger.debug("Fetching all jobs")
         # Ensure userId column exists for older DBs
         try:
             self._ensure_userid_column(conn)
@@ -664,7 +661,6 @@ class JobDB(BaseDatabase):
             except Exception as e:
                 logger.warning("Failed to validate job %s as JobRecord: %s, skipping", job_dict.get('uid', 'unknown'), e)
         
-        logger.info("Fetched %d jobs", len(jobs))
         return jobs
 
     def get_job_count_for_user(self, user_id: Optional[str]) -> int:
@@ -832,10 +828,8 @@ async def init_database(db_path: Optional[Path] = None) -> JobDB:
     global _job_db
     
     if _job_db is None:
-        logger.info("Initializing job database")
         _job_db = JobDB(db_path)
         await _job_db.initialize_schema()
-        logger.info("Job database initialized successfully")
     
     return _job_db
 

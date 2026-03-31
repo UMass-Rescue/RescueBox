@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 from rb.api.models import ResponseBody, TaskSchema, RequestBody, InputType
 from frontend.chatbot.core import ChatbotCore
 from frontend.chatbot.utils import normalize_arguments
-from frontend.utils.validators import validate_request_body
+from frontend.utils.validators import validate_request_body, validate_response_body
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -46,24 +46,93 @@ class MultiToolCallResult:
             self.completed_count += 1
 
 
-def extract_batch_file_items(response_body: ResponseBody) -> List[Dict[str, Any]]:
+def coerce_pipeline_response(raw: Any) -> Any:
     """
-    Extract path and metadata from each FileResponse in a BatchFileResponse.
+    Normalize a job POST JSON dict into ResponseBody when possible.
+
+    ``ResponseBody(**dict)`` alone can fail or mis-parse some wire shapes; the
+    same ``validate_response_body`` path used elsewhere also applies legacy
+    ``output_type=batchfile`` handling.
+    """
+    from rb.api.models import BatchFileResponse
+
+    if isinstance(raw, ResponseBody):
+        return raw
+    if not isinstance(raw, dict):
+        return raw
+    validated = validate_response_body(raw)
+    if isinstance(validated, ResponseBody):
+        return validated
+    inner = raw.get("root")
+    if isinstance(inner, dict):
+        validated_inner = validate_response_body(inner)
+        if isinstance(validated_inner, ResponseBody):
+            return validated_inner
+        # Some APIs wrap only the inner union member
+        try:
+            return ResponseBody(root=BatchFileResponse.model_validate(inner))
+        except Exception:
+            pass
+    try:
+        return ResponseBody(**raw)
+    except Exception as e:
+        logger.warning(
+            "coerce_pipeline_response: could not build ResponseBody (%s); keys=%s",
+            e,
+            list(raw.keys())[:24],
+        )
+        return raw
+
+
+def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
+    """
+    Extract path and metadata from each file in a BatchFileResponse-shaped payload.
     Returns list of dicts: [{"path": str, "metadata": dict}, ...].
-    Returns empty list if not BatchFileResponse or no files.
+    Returns empty list if not batch files or no usable file rows.
+    Accepts ResponseBody or plain dict (e.g. before coercion).
     """
     from rb.api.models import BatchFileResponse, FileResponse
     try:
-        root = response_body.root
-        if not isinstance(root, BatchFileResponse) or not root.files:
+        root: Any = None
+        if isinstance(response_body, ResponseBody):
+            root = response_body.root
+        elif isinstance(response_body, dict):
+            root = response_body.get("root", response_body)
+
+        files: List[Any] = []
+        if isinstance(root, BatchFileResponse) and root.files:
+            files = list(root.files)
+        elif isinstance(root, dict) and root.get("output_type") == "batchfile":
+            files = list(root.get("files") or [])
+
+        if not files:
             return []
-        items = []
-        for fr in root.files:
+
+        items: List[Dict[str, Any]] = []
+        for fr in files:
             if isinstance(fr, FileResponse):
                 items.append({
                     "path": str(fr.path),
                     "metadata": dict(fr.metadata) if fr.metadata else {},
                 })
+            elif isinstance(fr, dict):
+                path = fr.get("path")
+                if not path:
+                    continue
+                meta = fr.get("metadata")
+                items.append({
+                    "path": str(path),
+                    "metadata": dict(meta) if isinstance(meta, dict) else {},
+                })
+            else:
+                logger.debug("extract_batch_file_items: skipping unknown file entry type=%s", type(fr))
+
+        if not items and files:
+            logger.warning(
+                "extract_batch_file_items: %d file row(s) present but none produced items (first type=%s)",
+                len(files),
+                type(files[0]),
+            )
         return items
     except Exception as e:
         logger.warning("Error extracting batch file items: %s", e)
@@ -82,6 +151,18 @@ def _parse_age_range_for_comparison(mval_str: str) -> Optional[float]:
     return 0
 
 
+def _meta_get(meta: Dict[str, Any], key: str) -> Optional[Any]:
+    """Resolve metadata value with case-insensitive key (Age/Gender classifier uses 'Gender', 'Age')."""
+    k = key.strip()
+    if k in meta:
+        return meta[k]
+    kl = k.lower()
+    for mk, mv in meta.items():
+        if str(mk).lower() == kl:
+            return mv
+    return None
+
+
 def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> List[str]:
     """
     Filter items by metadata criteria. criteria_str format: "Key:value" or "Key=value", comma-separated.
@@ -92,13 +173,30 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
     Returns list of paths for items that match. Empty criteria = all items.
     """
     if not criteria_str or not criteria_str.strip():
-        return [it["path"] for it in items]
+        paths = [it["path"] for it in items]
+        logger.info(
+            "apply_metadata_filter: empty criteria — passing all %d file(s): %s",
+            len(paths),
+            paths,
+        )
+        return paths
     criteria = [c.strip() for c in criteria_str.split(",") if c.strip()]
     if not criteria:
-        return [it["path"] for it in items]
+        paths = [it["path"] for it in items]
+        logger.info(
+            "apply_metadata_filter: no parseable criteria tokens — passing all %d file(s): %s",
+            len(paths),
+            paths,
+        )
+        return paths
+    logger.info(
+        "apply_metadata_filter: criteria_str=%r parsed_clauses=%s evaluating %d item(s)",
+        criteria_str,
+        criteria,
+        len(items),
+    )
     result = []
     for it in items:
-        logger.info("items path has %s", it["path"]) 
         meta = it.get("metadata") or {}
         match = True
         for c in criteria:
@@ -111,7 +209,7 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
                 continue
             key = key.strip()
             val = val.strip()
-            mval = meta.get(key)
+            mval = _meta_get(meta, key)
             if mval is None:
                 match = False
                 break
@@ -145,15 +243,29 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
                         match = age_num == float(val)
                     except (ValueError, TypeError):
                         match = mval_str == val
+                elif key_lower == "gender":
+                    # Classifier returns "Male" / "Female"; allow case-insensitive match
+                    match = mval_str.strip().lower() == val.strip().lower()
                 else:
                     match = mval_str == val
             if not match:
                 break
         if match:
             result.append(it["path"])
-            logger.info("result path is %s", it["path"]) 
-    logger.info("Metadata filter applied: %d paths from %d items", len(result), len(items))
-    return list(dict.fromkeys(result))  # deduplicate paths
+        logger.info(
+            "apply_metadata_filter row: path=%s matched=%s metadata=%s",
+            it.get("path"),
+            match,
+            meta,
+        )
+    result = list(dict.fromkeys(result))
+    logger.info(
+        "apply_metadata_filter: done — %d matched path(s) of %d: %s",
+        len(result),
+        len(items),
+        result,
+    )
+    return result
 
 
 def extract_output_path(response_body: ResponseBody) -> Optional[str]:

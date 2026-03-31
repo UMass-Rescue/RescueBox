@@ -178,16 +178,24 @@ async def post_job(api_client, http_client, config, api_endpoint: str, request_d
             if api_client is not None:
                 try:
                     response = await api_client.post(candidate, json=request_dict, use_api_prefix=False)
+                except httpx.TimeoutException:
+                    # Do not fall through to http_client/sync: each attempt uses full TIMEOUT (e.g. 300s).
+                    # Three chained attempts => 900s wall time for one logical POST (ReadTimeout on long jobs).
+                    raise
                 except Exception:
                     response = None
             if response is None:
                 try:
                     response = await http_client.post(candidate, json=request_dict)
+                except httpx.TimeoutException:
+                    raise
                 except Exception:
-                    # sync fallback
+                    # sync fallback (e.g. tests patch httpx.Client)
                     try:
                         with httpx.Client(base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT) as c:
                             response = c.post(candidate, json=request_dict)
+                    except httpx.TimeoutException:
+                        raise
                     except Exception as exc:
                         last_exc = exc
                         response = None

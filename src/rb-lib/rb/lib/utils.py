@@ -202,6 +202,10 @@ def load_saved_filter(filter_id: str, input_dir: Path) -> Tuple[List[Path], List
 def collect_inline_file_filter(inputs: dict, input_dir: Path) -> List[Path]:
     """Collect input file list from uploaded BatchFileInput in the request (inline).
     Supports both Pydantic model (.files) and plain dict (["files"]) for file_filter.
+
+    If ``file_filter`` is present with ``files: []``, returns an empty list (process no files).
+    Do not treat an empty list as "missing filter" — that would incorrectly process every file
+    in the directory (e.g. after a pipeline filter matched nothing).
     """
     try:
         ff = inputs.get("file_filter")
@@ -209,14 +213,15 @@ def collect_inline_file_filter(inputs: dict, input_dir: Path) -> List[Path]:
             return [Path(f) for f in input_dir.iterdir() if f.is_file()]
         # Support both Pydantic model (.files) and plain dict (["files"])
         if isinstance(ff, dict):
-            files = ff.get("files") or []
+            files = ff.get("files")
         else:
-            files = getattr(ff, "files", None) or []
-        if files:
-            return [
-                Path(f.get("path") if isinstance(f, dict) else getattr(f, "path", f))
-                for f in files
-            ]
+            files = getattr(ff, "files", None)
+        if files is None:
+            files = []
+        return [
+            Path(f.get("path") if isinstance(f, dict) else getattr(f, "path", f))
+            for f in files
+        ]
     except Exception:
         pass
     return [Path(f) for f in input_dir.iterdir() if f.is_file()]

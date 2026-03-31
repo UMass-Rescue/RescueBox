@@ -30,12 +30,6 @@ def create_navbar():
     of every page. It includes the RescueBox branding and navigation links
     to major sections of the application.
     
-    Design Features:
-    - Sticky positioning: Navbar remains visible while scrolling (sticky top-0)
-    - High z-index: Ensures navbar appears above other content (z-50)
-    - Blue theme: Matches RescueBox branding (bg-blue-600)
-    - Shadow: Adds depth with shadow-lg
-    - Full-width inner row with fixed height (``h-12`` / ``sm:h-14``): slim bar; logo scales to fit inside it
     
     Navigation Links:
     - Models: Browse available ML models (/models)
@@ -45,15 +39,6 @@ def create_navbar():
     
     Returns:
         None: This function directly modifies the UI context
-        
-    Usage:
-        Import and call at the start of any page:
-        from frontend.components.shared import create_navbar
-        
-        @ui.page('/mypage')
-        async def my_page():
-            create_navbar()
-            # ... rest of page content
     
     Tips:
     - The navbar is sticky, so it will remain visible when scrolling
@@ -61,12 +46,12 @@ def create_navbar():
     - Brand row (logo + title) is left-aligned; links use a tight row with ``flex-1 justify-end``
     - Use consistent styling classes for new navigation links
     """
-    logger.info("Creating navigation bar component")
+    #logger.info("Creating navigation bar component")
     
     with ui.header(wrap=False).classes(
         'bg-blue-600 text-white shadow-lg sticky top-0 z-50 w-full max-w-[100vw] overflow-hidden'
     ):
-        logger.debug("Header created with sticky positioning and blue theme")
+        #logger.debug("Header created with sticky positioning and blue theme")
 
         _logo_px = '11.25rem'
         _logo_style = (
@@ -83,7 +68,7 @@ def create_navbar():
             'w-full min-w-0 min-h-12 h-auto sm:h-14 px-2 sm:px-3 py-0 items-center gap-2 sm:gap-3 '
             'box-border flex-wrap sm:flex-nowrap justify-start'
         ):
-            logger.debug("Creating navbar container with responsive layout")
+            #logger.debug("Creating navbar container with responsive layout")
 
             with ui.row().classes('shrink-0 items-center gap-2 min-w-0'):
                 (
@@ -106,7 +91,7 @@ def create_navbar():
                     'inline-flex flex-wrap items-center justify-end gap-x-0.5 gap-y-0 '
                     'max-w-full py-0'
                 ):
-                    logger.debug("Creating navigation links row")
+                    #logger.debug("Creating navigation links row")
 
                     ui.link('Browse Plugins', '/models').classes(_link_cls)
                     ui.link('Assistant', '/chatbot').classes(_link_cls)
@@ -118,4 +103,4 @@ def create_navbar():
 
                 # Clear Session button removed to avoid accidental data loss
     
-    logger.info("Navigation bar created successfully")
+ 

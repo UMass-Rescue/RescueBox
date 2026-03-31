@@ -63,7 +63,7 @@ class UIModeManager:
         self.logger.debug("Cleared chat container when switching to %s mode", mode)
 
         if mode == 'assistant':
-            self.mode_indicator.text = 'Assistant'
+            self.mode_indicator.text = 'Chat mode'
             self.mode_indicator.props('color=green')
 
             # Show welcome message (same as New Conversation & initial load)
@@ -85,7 +85,7 @@ class UIModeManager:
                     self.state_manager.set_input_enabled(True)  # Ready for new prompt
 
         elif mode == 'models':
-            self.mode_indicator.text = 'Plugins'
+            self.mode_indicator.text = 'Plugins mode'
             self.mode_indicator.props('color=purple')
 
             # Update button styles

@@ -115,6 +115,11 @@ try:
         'frontend.components.forms.case_notes_dialog',
     ):
         logging.getLogger(_name).setLevel(logging.WARNING)
+    # Multi-tool pipeline (metadata filter + chaining): INFO must be visible under chatbot namespaces
+    logging.getLogger(
+        'frontend.pages.chatbot.utils.job_submission_orchestrator'
+    ).setLevel(logging.INFO)
+    logging.getLogger('frontend.chatbot.multi_tool_handler').setLevel(logging.INFO)
 except Exception:
     pass
 

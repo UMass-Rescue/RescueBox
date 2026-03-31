@@ -16,6 +16,11 @@ pyyaml = "^6.0.2"
 typer = "^0.12.5"
 llvmlite = "^0.44.0"
 pytest = "^8.3.4"
+pydantic = "^2.12.5"
+fastapi = "^0.115.14"
+uvicorn = "^0.32.1"
+jinja2 = "^3.1.6"
+makefun = "^1.16.0"
 httpx = "^0.28.1"
 # add dependencies common to all plugins here
 numpy = "2.1"
@@ -28,6 +33,7 @@ pypdf2 = ">=3.0.1,<4.0.0"
 chromadb = "^1.0.4"
 pandas = ">=2.2.3,<3.0.0"
 pillow = ">=11.2.1,<12.0.0"
+fusepy = "^3.0.1"
 
 rb-lib = { path = "src/rb-lib", develop = true }
 
@@ -60,22 +66,30 @@ sqlmodel = "^0.0.27"
 psycopg2-binary = "^2.9.11"
 pgvector = "^0.4.1"
 
-# ONNX Runtime: use manual pip install for GPU on arm64 (chromadb pulls CPU version, overwrites GPU)
+# ONNX Runtime: use manual pip install for GPU on arm aarch64 (chromadb pulls CPU version, overwrites GPU)
+
+# every time "poetry install" is run , the onnxruntime for arm aarch64 has to be executed.
+
 # See docs/DGX_SPARK.md for: pip install https://github.com/ultralytics/assets/releases/download/v0.0.0/onnxruntime_gpu-1.24.0-cp312-cp312-linux_aarch64.whl
 
 # current environment is ARM aarch64 !!
 
 # macOS: install CPU onnxruntime from PyPI. Linux aarch64: use manual GPU wheel (see comment above).
-onnxruntime = { version = "1.24.4", markers = "sys_platform == 'darwin'" }
+onnxruntime = { version = "1.24.4", markers = "sys_platform != 'linux' or platform_machine != 'x86_64'" }
 
-# for linux and windows refer to pyproject.toml in main branch and inlcude it here
+# For Linux amd64 dev machine
+onnxruntime-gpu = [
+    { version = "1.24.4", markers = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+]
+
+
+# refer to pyproject.toml in main branch and inlcude it here
 
 
 cmake = "^4.2.3"
 ninja = "^1.13.0"
 packaging = ">=23.2"
 wheel = "^0.46.3"
-llama-cpp-python = "^0.3.16"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"

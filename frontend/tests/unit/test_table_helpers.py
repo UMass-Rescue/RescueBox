@@ -44,7 +44,8 @@ class TestTableHelpers:
                 container,
                 columns,
                 rows,
-                row_key='col1'
+                row_key='col1',
+                show_row_labels=True,
             )
         
         await user.open('/test')

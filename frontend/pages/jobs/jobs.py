@@ -45,7 +45,7 @@ class JobsPage:
         
         Sets up API client and initializes empty jobs list.
         """
-        logger.info("Initializing JobsPage")
+        #logger.info("Initializing JobsPage")
         self.api_client = api_client
         self.jobs: List[JobRecord] = []
         logger.debug("JobsPage initialized successfully")
@@ -60,7 +60,7 @@ class JobsPage:
         Returns:
             None: UI is added directly to the current context
         """
-        logger.info("Rendering jobs page")
+        #logger.info("Rendering jobs page")
         with ui.column().classes('container mx-auto p-8'):
             try:
                 from frontend.components.jobs.jobs_header import render_jobs_header
@@ -71,10 +71,9 @@ class JobsPage:
                 ui.button(UI_BUTTONS['refresh'], on_click=self.load_jobs).classes('mb-4 bg-blue-600 text-white')
 
             # Jobs table
-            logger.debug("Creating jobs container")
+            #logger.debug("Creating jobs container")
             self.jobs_container = ui.column().classes('space-y-2 w-full')
             await self.load_jobs()
-        logger.info("Jobs page rendered successfully")
     
     async def load_jobs(self):
         """
@@ -91,21 +90,21 @@ class JobsPage:
         - Jobs are already sorted by startTime descending (newest first)
         - UI is automatically refreshed after loading
         """
-        logger.info("Loading jobs from database")
+        #logger.info("Loading jobs from database")
         try:
             from frontend.database import get_job_db
             job_db = get_job_db()
             jobs_data = await job_db.get_all_jobs()
-            logger.info("Loaded %d jobs from database", len(jobs_data))
+            #logger.info("Loaded %d jobs from database", len(jobs_data))
             # Ensure newest first (by startTime descending)
             self.jobs = sorted(
                 jobs_data,
                 key=lambda j: j.get('startTime') or '',
                 reverse=True
             )
-            logger.debug("Jobs sorted by start time (newest first)")
+            #logger.debug("Jobs sorted by start time (newest first)")
             await self.render_jobs()
-            logger.info("Jobs loaded and rendered successfully")
+            #logger.info("Jobs loaded and rendered successfully")
         except Exception as e:
             await handle_api_error(e, "Error loading jobs", user_message=ERROR_MESSAGES['load_jobs'])
     
@@ -125,12 +124,12 @@ class JobsPage:
         - Model names are fetched asynchronously for each job
         - Action buttons vary based on job status
         """
-        logger.info("Rendering jobs in table")
+        #logger.info("Rendering jobs in table")
         self.jobs_container.clear()
         
         with self.jobs_container:
             # Table header
-            logger.debug("Creating table header")
+            #logger.debug("Creating table header")
             with ui.row().classes('bg-gray-200 p-4 font-bold border-b w-full flex-nowrap'):
                 ui.label('Job ID').classes('w-40 shrink-0')
                 ui.label('Model').classes('flex-1 min-w-0')
@@ -139,11 +138,11 @@ class JobsPage:
                 ui.label('Actions').classes('w-48 shrink-0')
         
             # Job rows
-            logger.debug("Rendering %d job rows", len(self.jobs))
+            #logger.debug("Rendering %d job rows", len(self.jobs))
             for job in self.jobs:
                 job_fields = extract_job_fields(job)
                 job_uid = job_fields['uid']
-                logger.debug("Rendering job: %s", job_uid)
+                #logger.debug("Rendering job: %s", job_uid)
                 
                 # Get model name or endpoint name
                 plugin_name = await get_plugin_name(self.api_client, job_fields['modelUid'])
@@ -158,7 +157,6 @@ class JobsPage:
                     on_cancel=self.cancel_job,
                     on_delete=self.delete_job
                 )
-        logger.info("Jobs rendered successfully")
     
     async def cancel_job(self, job_id: str):
         """
@@ -235,7 +233,7 @@ async def jobs_page():
     Returns:
         None: Page is rendered directly
     """
-    logger.info("Jobs page route accessed")
+    #logger.info("Jobs page route accessed")
     from frontend.utils.nicegui_storage import ensure_user_id
     if ensure_user_id() is None:
         return
@@ -244,4 +242,4 @@ async def jobs_page():
     create_navbar()
     jobs_page_instance = JobsPage()
     await jobs_page_instance.render()
-    logger.debug("Jobs page route completed")
+    #logger.debug("Jobs page route completed")

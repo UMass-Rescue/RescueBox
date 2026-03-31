@@ -36,3 +36,11 @@ The composition is centered, with warm afternoon lighting.
 - Descriptions are factual and avoid speculation; visible text is quoted verbatim when detected.
 - Output files include the original image filename and extension to avoid naming collisions across formats.
 - This plugin requires a GPU for reasonable performance; CPU-only hardware will run very slowly.
+
+## Model Performance 
+
+- gemma3:27b : slow , higher accuracy , about 5 sec/image
+
+- gemma3:4b : fast , reasonable accuracy   2 sec / image
+
+- llama3.2-vision:11b this model only supports one image while more than one image requested

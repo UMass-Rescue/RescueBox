@@ -82,11 +82,11 @@ async def render_job_outputs_card(container, api_client, job):
             logger.debug("Could not render inputs summary: %s", str(e))
 
         # Results preview
-        logger.debug("Rendering results preview in outputs card")
+        #logger.debug("Rendering results preview in outputs card")
         results_container = ui.column().classes('w-full gap-4')
         preview_dump = augment_response_model_dump_for_image_summary(
             response_body.model_dump(), job_fields
         )
         ResultsPreview.render(results_container, preview_dump)
-        logger.info("Job outputs rendered successfully (component)")
+        #logger.info("Job outputs rendered successfully (component)")
 

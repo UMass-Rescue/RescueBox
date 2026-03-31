@@ -23,7 +23,7 @@ def render_batch_file_table(container: ui.element, columns: List[Dict[str, Any]]
                     rows,
                     row_key='path',
                     on_row_click=on_row_click,
-                    show_row_labels=True,
+                    show_row_labels=False,
                     tip_message=tip_message
                 )
     except Exception as e:

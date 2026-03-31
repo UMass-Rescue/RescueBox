@@ -1,4 +1,4 @@
-from typing import List, TypedDict, NotRequired
+from typing import Any, List, Mapping, TypedDict, cast
 from pathlib import Path
 import logging
 import json
@@ -12,6 +12,7 @@ from rb.lib.utils import (
     collect_inline_file_filter,
 )
 from rb.api.models import (
+    BatchFileInput,
     BatchFileInput,
     InputSchema,
     InputType,
@@ -95,11 +96,12 @@ def summarize_images(
     inputs: Inputs,
     parameters: Parameters,
 ) -> ResponseBody:
+    raw = cast(Mapping[str, Any], inputs)
     input_dir = inputs["input_dir"].path
     output_dir = inputs["output_dir"].path
     model = parameters["model"]
-    if "file_filter" in inputs:
-        files = inputs["file_filter"].files
+    if "file_filter" in raw:
+        files = raw["file_filter"].files
     else:
         files = []
     logger.info("files are %s", files)
@@ -114,7 +116,7 @@ def summarize_images(
         if saved_patterns:
             output_patterns = saved_patterns
 
-    has_ff = "file_filter" in (inputs if isinstance(inputs, dict) else {})
+    has_ff = "file_filter" in raw
     logger.info(
         "ImageSummary API: received request | model=%s | input_dir=%s | output_dir=%s | file_filter=%s",
         model, input_dir, output_dir, has_ff
@@ -124,7 +126,7 @@ def summarize_images(
     # If output patterns were not obtained from a persisted filter, collect them from uploaded files
     if not output_patterns:
         try:
-            output_filter_files = inputs.get("output_filter").files
+            output_filter_files = raw.get("output_filter").files
         except (AttributeError, KeyError, TypeError):
             output_filter_files = []
 
@@ -177,14 +179,14 @@ def inputs_cli_parse(input: str) -> Inputs:
         raise ValueError("Input directory does not exist.")
     if not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
-    return Inputs(
-        input_dir=DirectoryInput(path=input_dir),
-        output_dir=DirectoryInput(path=output_dir),
-    )
+    return {
+        "input_dir": DirectoryInput(path=input_dir),
+        "output_dir": DirectoryInput(path=output_dir),
+    }
 
 
 def parameters_cli_parse(model: str) -> Parameters:
-    return Parameters(model=model)
+    return {"model": model}
 
 
 server.add_ml_service(

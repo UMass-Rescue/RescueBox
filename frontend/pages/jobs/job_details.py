@@ -51,20 +51,20 @@ async def job_details_page(job_id: str):
     Returns:
         None: Page is rendered directly
     """
-    logger.info("Job details page accessed for job: %s", job_id)
+    #logger.info("Job details page accessed for job: %s", job_id)
     apply_saved_theme()
     create_navbar()
     
     # Load job data from local database
     try:
-        logger.debug("Fetching job data for job_id: %s", job_id)
+        #logger.debug("Fetching job data for job_id: %s", job_id)
         job_db = get_job_db()
         job = await job_db.get_job_by_uid(job_id)
         if not job:
             logger.error("Job %s not found", job_id)
             ui.label(f'Job not found: {job_id}').classes('text-red-600')
             return
-        logger.info("Job data loaded successfully")
+        #logger.info("Job data loaded successfully")
     except Exception as e:
         logger.error("Error loading job %s: %s", job_id, str(e))
         ui.label(f'Error loading job: {str(e)}').classes('text-red-600')
@@ -183,7 +183,7 @@ async def render_job_details(api_client, job):
     request_body_dict = job_fields['request']
     task_schema_dict = job_fields['taskSchema']
     
-    logger.info("Rendering job details for job: %s", job_uid)
+    #logger.info("Rendering job details for job: %s", job_uid)
     try:
         # Delegate to extracted job details panel component
         from frontend.components.jobs.job_details_panel import render_job_details_panel

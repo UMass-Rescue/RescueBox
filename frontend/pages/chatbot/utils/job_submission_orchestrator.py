@@ -15,10 +15,11 @@ from frontend.pages.chatbot.utils.form_validator import FormValidator
 from frontend.pages.chatbot.utils.conversation_manager import ConversationManager
 from frontend.chatbot.multi_tool_handler import (
     chain_output_to_input,
+    coerce_pipeline_response,
     extract_batch_file_items,
     apply_metadata_filter,
 )
-from frontend.components.shared.notifications import notify_info
+from frontend.components.shared.notifications import notify_info, notify_warning
 from frontend.pages.chatbot.chatbot_forms import show_results, load_and_show_form
 from frontend.chatbot import api_helpers
 from nicegui import background_tasks, ui
@@ -246,12 +247,11 @@ class JobSubmissionOrchestrator:
                             except Exception:
                                 pass
                         # show_results will handle container validity internally
-                        logger.debug("job_submission_orchestrator: about to show_results container=%r job_id=%s", container, job_id)
+                        logger.info("job_submission_orchestrator: about to show_results container=%r job_id=%s", container, job_id)
                         await show_results(container=container, response_body=response_data, job_id=job_id)
                         # Handle remaining calls in multi-call sequence (filter dialog + next form)
                         if remaining_calls:
-                            from rb.api.models import ResponseBody
-                            resp = ResponseBody(**response_data) if isinstance(response_data, dict) else response_data
+                            resp = coerce_pipeline_response(response_data) if isinstance(response_data, dict) else response_data
                             accumulated: Optional[List[str]] = None
                             if job_id:
                                 try:
@@ -430,7 +430,12 @@ class JobSubmissionOrchestrator:
 
     async def _show_filter_criteria_dialog(self, container) -> str:
         """Show dialog to collect filter criteria; returns criteria string or empty for all."""
-        future: asyncio.Future[str] = asyncio.get_event_loop().create_future()
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[str] = loop.create_future()
+
+        def _finish(value: str) -> None:
+            if not future.done():
+                future.set_result(value.strip())
 
         with container:
             with ui.dialog() as dialog, ui.card().classes('w-[400px]'):
@@ -438,8 +443,12 @@ class JobSubmissionOrchestrator:
                 ui.label('e.g. Gender:Female, Age:>30. Leave empty to use all.').classes('text-sm text-gray-600')
                 inp = ui.input(placeholder='Gender:Female, Age:>30').classes('w-full mt-2')
                 with ui.row().classes('mt-4 gap-2'):
-                    ui.button('Use all', on_click=lambda: [dialog.close(), future.set_result('')])
-                    ui.button('Apply filter', on_click=lambda: [dialog.close(), future.set_result(inp.value or '')])
+                    # Resolve value before closing so NiceGUI does not drop input state on close
+                    ui.button('Use all', on_click=lambda: (_finish(''), dialog.close()))
+                    ui.button(
+                        'Apply filter',
+                        on_click=lambda: (_finish(inp.value or ''), dialog.close()),
+                    )
             dialog.open()
         try:
             return await asyncio.wait_for(future, timeout=120.0)
@@ -463,12 +472,20 @@ class JobSubmissionOrchestrator:
             core: ChatbotCore instance
             load_form_func: Optional function to load next form
         """
-        from rb.api.models import BatchFileResponse
-
         if not remaining_calls:
             return
 
         try:
+            response_body = coerce_pipeline_response(response_body)
+            self.logger.info(
+                "handle_remaining_calls: next=%s response_class=%s root_class=%s",
+                remaining_calls[0].get("endpoint") if remaining_calls else None,
+                type(response_body).__name__,
+                type(getattr(response_body, "root", None)).__name__
+                if getattr(response_body, "root", None) is not None
+                else "None",
+            )
+
             next_call = remaining_calls[0]
             next_endpoint = next_call['endpoint']
             next_arguments = next_call['arguments']
@@ -481,16 +498,40 @@ class JobSubmissionOrchestrator:
             else:
                 self.logger.warning("Could not get schema for next endpoint: %s", next_endpoint)
 
-            # If previous response is BatchFileResponse, ask for filter criteria
+            # If previous step produced batch files with metadata, ask for filter criteria
             filtered_paths: Optional[List[str]] = None
-            if hasattr(response_body, 'root') and isinstance(response_body.root, BatchFileResponse):
-                items = extract_batch_file_items(response_body)
-                if items:
-                    criteria = await self._show_filter_criteria_dialog(container)
-                    filtered_paths = apply_metadata_filter(items, criteria)
-                    if not filtered_paths:
-                        filtered_paths = [it["path"] for it in items]
-                    self.logger.info("Filter applied: %d paths from %d items", len(filtered_paths), len(items))
+            items = extract_batch_file_items(response_body)
+            if items:
+                criteria = await self._show_filter_criteria_dialog(container)
+                self.logger.info(
+                    "Pipeline metadata filter (user input): next_endpoint=%s criteria=%r "
+                    "(empty means pass all files) batch_item_count=%d",
+                    next_endpoint,
+                    criteria,
+                    len(items),
+                )
+                filtered_paths = apply_metadata_filter(items, criteria)
+                # Empty criteria => apply_metadata_filter already returns all paths.
+                # Non-empty criteria with no matches => keep [] (do not fall back to all files).
+                if criteria and criteria.strip() and not filtered_paths:
+                    notify_warning(
+                        "No files matched your filter; the next step will process no images.",
+                    )
+                self.logger.info(
+                    "Pipeline metadata filter (result): matched_count=%d matched_paths=%s",
+                    len(filtered_paths),
+                    filtered_paths,
+                )
+            else:
+                self.logger.warning(
+                    "Pipeline metadata filter skipped: no batch file items extracted for chaining step "
+                    "(next_endpoint=%s). Chaining still proceeds; file_filter will not be applied.",
+                    next_endpoint,
+                )
+                notify_warning(
+                    "Previous step did not return per-file metadata; the next job will use all images "
+                    "(pipeline filter unavailable).",
+                )
 
             # All UI creation must run inside container (background task has no slot stack)
             def _on_cancel():
@@ -542,11 +583,17 @@ class JobSubmissionOrchestrator:
                                   accumulated_endpoint_chain: Optional[List[str]] = None):
         """Create a form handler for the next call in sequence."""
         async def handle_next_form(request_body, next_endpoint, task_schema):
-            # Inject file_filter (hidden) when we have filtered paths from previous BatchFileResponse
-            if filtered_paths:
+            # Inject file_filter (hidden) when previous step was BatchFileResponse + filter dialog.
+            # Use ``is not None`` so an empty list still sends files: [] (process no images), not "all files".
+            if filtered_paths is not None:
                 if isinstance(request_body.inputs, dict):
                     request_body.inputs["file_filter"] = {"files": [{"path": p} for p in filtered_paths]}
-                    self.logger.info("Filter applied: %d paths", len(filtered_paths))
+                    self.logger.info(
+                        "Pipeline file_filter injection for next job: endpoint=%s file_count=%d paths=%s",
+                        next_endpoint,
+                        len(filtered_paths),
+                        filtered_paths,
+                    )
             conversation_id = self.form_handler.state_manager.conversation_id
             chain = list(accumulated_endpoint_chain or []) + [next_endpoint]
             await self.submit_job(

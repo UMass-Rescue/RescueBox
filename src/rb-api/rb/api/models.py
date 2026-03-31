@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, TypedDict, Union
 
 from pydantic import (
     BaseModel,
@@ -110,6 +110,12 @@ class BatchFileInput(BaseModel):
         populate_by_name=True,
     )
     files: List[FileInput]
+
+
+class PipelineFileFilterInputMixin(TypedDict, total=False):
+    """Optional pipeline file_filter; merged onto plugin Inputs by MLService for HTTP bodies."""
+
+    file_filter: BatchFileInput
 
 
 class BatchTextInput(BaseModel):
@@ -344,6 +350,22 @@ class InputSchema(BaseModel):
     label: str
     subtitle: Optional[str] = ""
     input_type: Annotated[Union[InputType, NewFileInputType], Field(alias="inputType")]
+    # When True, omitted from GET .../task_schema via TaskSchema.for_public_api().
+    # Not serialized in schema JSON (exclude=True); POST may still accept the key per plugin TypedDict.
+    exclude_from_client_schema: bool = Field(default=False, exclude=True)
+
+
+# Shared optional input for pipeline-injected file lists (e.g. chatbot after metadata filter).
+# Appended by TaskSchema.with_default_pipeline_inputs() when the plugin omits it; omit from
+# GET task_schema via TaskSchema.for_public_api(). ensure_ml_func_hinting_* uses plugin-only
+# task_schema() so plugin Inputs TypedDict need not declare file_filter.
+PIPELINE_FILE_FILTER_INPUT_SCHEMA = InputSchema(
+    key="file_filter",
+    label="File filter",
+    subtitle="Optional; used by pipeline.",
+    input_type=InputType.BATCHFILE,
+    exclude_from_client_schema=True,
+)
 
 
 class RangedFloatParameterDescriptor(BaseModel):
@@ -426,3 +448,28 @@ class TaskSchema(BaseModel):
     )
     inputs: List[InputSchema]
     parameters: List[ParameterSchema]
+
+    def with_default_pipeline_inputs(self) -> TaskSchema:
+        """Append standard pipeline-only inputs (e.g. file_filter) when not declared by the plugin."""
+        if any(i.key == "file_filter" for i in self.inputs):
+            return self
+        return TaskSchema(
+            inputs=[*self.inputs, PIPELINE_FILE_FILTER_INPUT_SCHEMA],
+            parameters=list(self.parameters),
+        )
+
+    def for_public_api(self) -> TaskSchema:
+        """
+        Copy of this schema for client-facing GET .../task_schema responses:
+        drops inputs with ``exclude_from_client_schema=True`` (server / pipeline only).
+        Plugin registration and ``ensure_ml_func_hinting_*`` use the schema from ``task_schema()``
+        without pipeline-appended inputs.
+        """
+        return TaskSchema(
+            inputs=[
+                s
+                for s in self.inputs
+                if not getattr(s, "exclude_from_client_schema", False)
+            ],
+            parameters=list(self.parameters),
+        )
