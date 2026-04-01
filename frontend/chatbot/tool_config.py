@@ -70,6 +70,14 @@ class TextSearch(BaseModel):
     input_dir: str = Field(..., description="Directory of text files (or image summary output)")
     query: str = Field(..., description="Search query (e.g. 'kid with brown clothes')")
 
+class ImageSearch(BaseModel):
+    """
+    CLIP text-to-image search over images in a folder. Use when the user asks to search images,
+    image search, find pictures matching a description, or visual similarity by text query.
+    Same input_dir as other image tasks when one path applies to multiple actions; does not require image_summary first.
+    """
+    input_dir: str = Field(..., description="Directory of image files to embed and search within")
+    query: str = Field(..., description="Natural-language search query (e.g. 'kid', 'person in red jacket')")
 
 # Legacy support for backward compatibility
 class RescueBoxToolCall(BaseModel):
@@ -79,6 +87,7 @@ class RescueBoxToolCall(BaseModel):
         "text_summarization/summarize",
         "image_summary/summarize-images",
         "text_embeddings/search",
+        "image_embeddings/search_images",  
         "face-match/findfacebulk",
         "face-match/bulkupload",
         "deepfake_detection/predict",
@@ -99,6 +108,7 @@ SCHEMA_MAP = {
     "text_summarization/summarize": TextSummarize,
     "image_summary/summarize-images": ImageSummarize,
     "text_embeddings/search": TextSearch,
+    "image_embeddings/search_images": ImageSearch,
     "face-match/findfacebulk": FaceFindBulk,
     "face-match/bulkupload": FaceBulkUpload,
     "deepfake_detection/predict": DeepfakeDetection,
@@ -342,6 +352,27 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ]
     }
 
+    # Age-gender + CLIP image search (same folder; no summarize required)
+    ex_f_user = {"role": "user", "content": "detect age gender in /tmp and image search for kid"}
+    ex_f_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "age-gender/predict",
+                    "arguments": {"image_directory": "/tmp"},
+                }
+            },
+            {
+                "function": {
+                    "name": "image_embeddings/search_images",
+                    "arguments": {"input_dir": "/tmp", "query": "kid"},
+                }
+            },
+        ],
+    }
+
     # Build complete message list
     messages = [
         system_msg,
@@ -350,6 +381,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ex_c_user, ex_c_asst,  # Teach Pattern C
         ex_e_user, ex_e_asst,  # Teach Pattern E: age-gender + summarize + search
         ex_e2_user, ex_e2_asst,
+        ex_f_user, ex_f_asst,  # age-gender + image_embeddings (parallel path)
         ex_d_user, ex_d_asst,
         {"role": "user", "content": user_query}  # Real Query
     ]

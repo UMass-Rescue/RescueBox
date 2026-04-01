@@ -10,6 +10,7 @@ from nicegui import ui
 
 from frontend.pages.chatbot.utils.database_service import DatabaseService
 from frontend.pages.chatbot.utils.ui_operations import UIOperations
+from frontend.pages.chatbot.chatbot_forms import show_results
 from frontend.pages.chatbot.utils.job_submission_orchestrator import JobSubmissionOrchestrator
 from frontend.pages.chatbot.utils.form_error_handler import FormErrorHandler
 from frontend.chatbot.config import ChatbotConfig
@@ -76,8 +77,14 @@ class FormProcessor:
             # Save results to chat history
             await self._save_success_to_history(conversation_id_ref, job_uid)
 
-            # Show results
-            await show_results_func(chat_container, response_body, None)
+            pipeline_total = 1 + len(remaining_calls) if remaining_calls else None
+            await show_results(
+                chat_container,
+                response_body,
+                job_uid,
+                pipeline_total_steps=pipeline_total,
+                remaining_calls_after_step=remaining_calls,
+            )
             self.logger.info("Results displayed successfully")
 
             # Scroll to bottom after results are rendered
@@ -95,6 +102,7 @@ class FormProcessor:
                     core,
                     load_and_show_form_func,
                     accumulated_endpoint_chain=[endpoint],
+                    pipeline_total_steps=pipeline_total,
                 )
 
         except Exception as e:

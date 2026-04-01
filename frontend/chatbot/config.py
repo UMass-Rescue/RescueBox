@@ -121,6 +121,7 @@ class ToolRegistry:
         '/find-faces': 'face-match/findfacebulk',
         '/summarize': 'text_summarization/summarize',
         '/search-text': 'text_embeddings/search',
+        '/image-search': 'image_embeddings/search_images',
         '/ufdr-mount': 'ufdr_mounter/mount',
         '/models': 'pick_tool',
         '/assistant': 'smart_analyze',
@@ -133,24 +134,13 @@ class ToolRegistry:
         "2": {"name": "🖼️ Describe Images", "endpoint": "image_summary/summarize-images", "desc": "AI descriptions of photos"},
         "3": {"name": "👤 Age & Gender", "endpoint": "age-gender/predict", "desc": "Classify faces"},
         "4": {"name": "🔍 Detect Deepfakes", "endpoint": "deepfake_detection/predict", "desc": "Find manipulated media"},
-        "5": {"name": "📤 Upload Faces", "endpoint": "face-match/bulkupload", "desc": "Build face collection"},
-        "6": {"name": "🔎 Find Faces", "endpoint": "face-match/findfacebulk", "desc": "Search face collection"},
-        "7": {"name": "📝 Summarize Text", "endpoint": "text_summarization/summarize", "desc": "Document summaries"},
-        "8": {"name": "🔍 Search Text", "endpoint": "text_embeddings/search", "desc": "Semantic search text files"},
-        "9": {"name": "🔍 UFDR Mount", "endpoint": "ufdr_mounter/mount", "desc": "Mount UFDR files"},
-    }
-    
-    # Fallback endpoints for tool picker (when Granite model unavailable)
-    FALLBACK_ENDPOINTS: Dict[str, str] = {
-        "1": "audio/transcribe",
-        "2": "image_summary/summarize-images",
-        "3": "age-gender/predict",
-        "4": "deepfake_detection/predict",
-        "5": "face-match/bulkupload",
-        "6": "face-match/findfacebulk",
-        "7": "text_summarization/summarize",
-        "8": "text_embeddings/search",
-        "9": "ufdr_mounter/mount",
+        "5": {"name": "🔍Search Image", "endpoint": "image_embeddings/search_images", "desc": "search images"}, 
+        "6": {"name": "📤 Upload Faces", "endpoint": "face-match/bulkupload", "desc": "Build face collection"},
+        "7": {"name": "🔎 Find Faces", "endpoint": "face-match/findfacebulk", "desc": "Search face collection"},
+        "8": {"name": "📝 Summarize Text", "endpoint": "text_summarization/summarize", "desc": "Document summaries"},
+        "9": {"name": "🔍 Search Text", "endpoint": "text_embeddings/search", "desc": "search text files"},
+        "10": {"name": "📂 UFDR Mount", "endpoint": "ufdr_mounter/mount", "desc": "Mount UFDR files"},
+       
     }
     
     # Enhanced blocked patterns (non-forensic requests to reject)
@@ -187,8 +177,10 @@ class ToolRegistry:
         "detect", "scan", "process", "extract",
         # UFDR / mobile forensics
         "ufdr", "cellebrite",
+        # Image embeddings & semantic search
+        "image search", "vector search", "similar image",
         # Common paths (indicator of tool usage)
-        "/tmp", "/data", "/evidence", "/home", "/case",
+        "/tmp", "/data", "/evidence", "/home", "/case", "/images",
     ]
     
     @staticmethod

@@ -4,96 +4,49 @@ This plugin generates image embeddings using OpenAI's CLIP (Contrastive Language
 
 ## Features
 
-### 1. Image Embedding Generation (`/embed_images`)
-- Process all images in a directory
-- Support for multiple image formats (JPG, PNG, BMP, GIF, TIFF, WebP)
-- Two CLIP model options:
-  - `openai/clip-vit-base-patch32` (Base model, 512-dim, faster)
-  - `openai/clip-vit-large-patch14` (Large model, 768-dim, more accurate)
-- Returns normalized embeddings for each image as JSON
-- Automatic storage in PostgreSQL with pgvector
+### Embed + search (`/search_images`)
 
-### 2. Text-to-Image Search (`/search_images`)
-- **Cross-modal search**: Use text queries to find similar images
-- Fast similarity search using pgvector's optimized cosine distance
-- Returns top-k most similar images
-- Configurable result count (1-20)
-- Uses CLIP's text encoder to bridge text and image modalities
+Single endpoint that:
+
+1. For each image file in the directory: if a row for that **path** already exists in `image_embeddings`, it **reuses** it (no re-encode). Otherwise it **embeds**, normalizes, and **stores** the vector (PostgreSQL / pgvector). This supports the same folder with **new text queries** on repeat jobs without redoing CLIP on every file.
+2. **Encodes** your text query with CLIP’s text encoder.
+3. **Ranks** those folder images (reused + newly embedded) with pgvector and returns the **top_k** paths.
+
+The table does not store CLIP `model_name` per row; reuse is by **path string** only. If you change `model_name` for the same files, delete or re-embed as needed so vectors stay consistent.
+
+CLIP model options:
+
+- `openai/clip-vit-base-patch32` (Base, 512-dim, faster)
+- `openai/clip-vit-large-patch14` (Large, 768-dim, more accurate)
 
 ## Usage
 
-### Embedding Images
+**CLI:** pass folder and query as `input_dir|||query`. Parameters: `model_name,top_k,min_similarity` (omit trailing values for defaults).
 
-**CLI:**
 ```bash
-rescuebox image_embeddings /embed_images /path/to/images "openai/clip-vit-base-patch32"
+rescuebox image_embeddings /search_images "/path/to/images|||a cat sitting on a couch" "openai/clip-vit-base-patch32,5,0.21"
 ```
+
+**Inputs (HTTP/UI):**
+
+- `input_dir` — directory of images to embed and search within
+- `query` — natural language description
 
 **Parameters:**
-- Directory path with image files
-- Model name (default: openai/clip-vit-base-patch32)
 
-**Output:**
-```json
-{
-  "/path/to/image1.jpg": [0.123, 0.456, ...],
-  "/path/to/image2.png": [0.789, 0.012, ...]
-}
-```
+- `model_name` (default: `openai/clip-vit-base-patch32`)
+- `top_k` (1–20, default: 5) — number of highest-similarity images to return
+- `min_similarity` (0–1, default ~0.21) — Match column uses this floor
 
-### Searching Images with Text
-
-**CLI:**
-```bash
-rescuebox image_embeddings /search_images "a cat sitting on a couch" "openai/clip-vit-base-patch32,5"
-```
-
-**Parameters:**
-- Query text (natural language description)
-- Model name (must match embedding model, default: openai/clip-vit-base-patch32)
-- Top K results (default: 5)
-
-**Output:**
-```json
-{
-  "query": "a cat sitting on a couch",
-  "model": "openai/clip-vit-base-patch32",
-  "top_k": 5,
-  "results": [
-    {
-      "id": 42,
-      "path": "/images/cat_couch_1.jpg",
-      "similarity": 0.8932
-    },
-    {
-      "id": 89,
-      "path": "/images/cat_furniture.png",
-      "similarity": 0.8654
-    },
-    {
-      "id": 156,
-      "path": "/images/pet_sofa.jpg",
-      "similarity": 0.8421
-    }
-  ]
-}
-```
+**Output:** `BatchFileResponse` (`output_type`: `batchfile`) — one `FileResponse` per ranked hit (image path, title with rank/similarity, metadata: Query, Similarity, Match, Model, id). The RescueBox UI renders this like other batch image results: **sortable table, click a row to open/preview the image**. If there are no hits, `files` is an empty list.
 
 ## How It Works
 
-### Image Embedding Generation
-1. Scans directory for image files
-2. Loads and converts each image to RGB
-3. Processes through CLIP's image encoder
-4. Normalizes the embedding vector
-5. Stores in PostgreSQL with pgvector for efficient similarity search
+1. **Embed**: Scan the input directory, encode each image with CLIP, normalize vectors, and **persist** rows in PostgreSQL.
+2. **Query**: Encode the text with the **same** CLIP model and normalize.
+3. **Rank**: Score **only the images embedded in this request** with dot product (cosine similarity on normalized vectors), sort descending, return **top_k**.
 
-### Cross-Modal Text-to-Image Search
-1. **Text Encoding**: Encodes query text using CLIP's text encoder
-2. **Normalization**: Normalizes text embedding (same as image embeddings)
-3. **Vector Search**: Uses pgvector's `<=>` operator for cosine distance
-4. **Cross-Modal Matching**: Finds images whose embeddings are closest to the text embedding
-5. **Returns Results**: Top-k most similar images with similarity scores
+Global search across older rows in the table is not used for ranking; each run searches within the folder batch you just embedded.
 
 ### Why CLIP Enables Text-to-Image Search
 
@@ -103,28 +56,11 @@ CLIP is uniquely designed for cross-modal search:
 - **Zero-Shot**: Works on arbitrary text queries without fine-tuning
 - **Semantic Understanding**: Captures high-level semantic meaning, not just keywords
 
-## Performance Optimization
+## Performance notes
 
-### pgvector Integration
-```sql
-SELECT path, 1 - (embedding <=> text_query_embedding) as similarity
-FROM image_embeddings
-ORDER BY embedding <=> text_query_embedding
-LIMIT k
-```
-
-**Benefits:**
-- ✅ **Fast**: Index-accelerated vector search
-- ✅ **Scalable**: Handles millions of images efficiently
-- ✅ **Cross-modal**: Same infrastructure for text and image queries
-- ✅ **Memory efficient**: Optimized C implementation
-
-### Indexing
-For better performance with large image collections:
-```sql
-CREATE INDEX ON image_embeddings USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100);
-```
+- **Storage**: Embeddings are still stored in PostgreSQL for reuse and tooling.
+- **Ranking**: After commit, top‑`k` matches are resolved with **pgvector** (`<=>`), restricted with `WHERE path IN (...)` to **only** the paths embedded in this request (so the index still helps on large batches).
+- **pgvector**: Table and indexes remain useful if you add other SQL-driven search later.
 
 ## Model Information
 
@@ -168,31 +104,27 @@ CREATE INDEX ON image_embeddings USING ivfflat (embedding vector_cosine_ops);
 
 ### 1. Content-Based Image Search
 ```bash
-# Find images of specific objects or scenes
-rescuebox image_embeddings /search_images "sunset over mountains" "openai/clip-vit-base-patch32,10"
+rescuebox image_embeddings /search_images "./photos|||sunset over mountains" "openai/clip-vit-base-patch32,10"
 ```
 
 ### 2. Semantic Image Discovery
 ```bash
-# Find images matching abstract concepts
-rescuebox image_embeddings /search_images "happiness and joy" "openai/clip-vit-base-patch32,5"
+rescuebox image_embeddings /search_images "./photos|||happiness and joy" "openai/clip-vit-base-patch32,5"
 ```
 
 ### 3. Visual Forensics
 ```bash
-# Search for images with specific characteristics
-rescuebox image_embeddings /search_images "outdoor crime scene at night" "openai/clip-vit-base-patch32,20"
+rescuebox image_embeddings /search_images "./case_photos|||outdoor crime scene at night" "openai/clip-vit-base-patch32,20"
 ```
 
 ### 4. Dataset Exploration
 ```bash
-# Find similar images without manual tagging
-rescuebox image_embeddings /search_images "person wearing blue jacket" "openai/clip-vit-base-patch32,15"
+rescuebox image_embeddings /search_images "./dataset|||person wearing blue jacket" "openai/clip-vit-base-patch32,15"
 ```
 
 ## Tips for Best Results
 
-1. **Model Consistency**: Always use the same CLIP model for embedding and search
+1. **Model Consistency**: Use one CLIP model per run (embedding and query share the same weights)
 2. **Descriptive Queries**: Use natural language descriptions, not just keywords
    - ✅ Good: "a red car parked in front of a house"
    - ❌ Less effective: "car red house"
@@ -214,27 +146,21 @@ rescuebox image_embeddings /search_images "person wearing blue jacket" "openai/c
 ## Example Workflow
 
 ```bash
-# 1. Embed all images in a directory
-rescuebox image_embeddings /embed_images ./crime_scene_photos "openai/clip-vit-base-patch32"
+# Embed images under ./crime_scene_photos and rank by text query (same call)
+rescuebox image_embeddings /search_images "./crime_scene_photos|||damaged vehicle front view" "openai/clip-vit-base-patch32,10"
 
-# 2. Search for relevant images using natural language
-rescuebox image_embeddings /search_images "damaged vehicle front view" "openai/clip-vit-base-patch32,10"
-
-# 3. Results show most similar images with similarity scores
-# 4. Can refine query based on results
-rescuebox image_embeddings /search_images "vehicle with broken windshield" "openai/clip-vit-base-patch32,5"
+# Refine with another query on the same folder (re-embeds then searches)
+rescuebox image_embeddings /search_images "./crime_scene_photos|||vehicle with broken windshield" "openai/clip-vit-base-patch32,5"
 ```
 
 ## Advanced: Multi-Modal Search Pipeline
 
-Combine text and image embeddings for comprehensive forensic analysis:
+Combine text and image workflows:
 
 ```bash
 # Search documents
 rescuebox text_embeddings /search_text "vehicle collision report" "all-MiniLM-L6-v2,5"
 
-# Search images
-rescuebox image_embeddings /search_images "car accident aftermath" "openai/clip-vit-base-patch32,5"
-
-# Results can be correlated for comprehensive case analysis
+# Embed a folder of images and search by description
+rescuebox image_embeddings /search_images "./evidence/photos|||car accident aftermath" "openai/clip-vit-base-patch32,5"
 ```

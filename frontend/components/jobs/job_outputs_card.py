@@ -68,6 +68,11 @@ async def render_job_outputs_card(container, api_client, job):
                 except Exception:
                     # Fallback to original behavior
                     render_job_action_buttons(job_fields)
+                try:
+                    from frontend.components.jobs.case_export_button import render_case_export_button
+                    render_case_export_button(job_fields)
+                except Exception as e:
+                    logger.debug("CASE export button not shown: %s", e)
                 # audit trail button may be async; caller handles if needed
                 # kept out of component for now
 

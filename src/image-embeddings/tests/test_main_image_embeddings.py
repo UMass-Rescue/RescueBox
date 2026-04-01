@@ -1,32 +1,50 @@
 """Tests for image embeddings plugin"""
 
 import pytest
-from pathlib import Path
-from image_embeddings.main import embed_images, task_schema, Inputs, Parameters
-from rb.api.models import DirectoryInput, ResponseBody
+from image_embeddings.main import search_images, task_schema, Inputs, Parameters
+from rb.api.models import DirectoryInput, TextInput, ResponseBody
 
 
 def test_task_schema():
-    """Test that task schema is properly defined"""
+    """Test task schema keys."""
     schema = task_schema()
     assert schema is not None
-    assert len(schema.inputs) == 1
+    assert len(schema.inputs) == 2
     assert schema.inputs[0].key == "input_dir"
-    assert len(schema.parameters) == 1
-    assert schema.parameters[0].key == "model_name"
+    assert schema.inputs[1].key == "query"
+    assert len(schema.parameters) == 3
+    keys = [p.key for p in schema.parameters]
+    assert keys == ["model_name", "top_k", "min_similarity"]
 
 
-def test_embed_images_types():
+def test_search_images_types():
     """Test input/output types"""
-    # This test verifies the function signature without running it
-    # since we don't have test images readily available
-    assert callable(embed_images)
-    
-    # Verify the function takes correct types
+    assert callable(search_images)
+
     import inspect
-    sig = inspect.signature(embed_images)
+    sig = inspect.signature(search_images)
     assert "inputs" in sig.parameters
     assert "parameters" in sig.parameters
+
+
+def test_inputs_structure(tmp_path):
+    d = tmp_path / "img"
+    d.mkdir()
+    inputs = Inputs(
+        input_dir=DirectoryInput(path=d),
+        query=TextInput(text="a person"),
+    )
+    assert inputs["query"].text == "a person"
+
+
+def test_parameters_structure():
+    params = Parameters(
+        model_name="openai/clip-vit-base-patch32",
+        top_k=5,
+        min_similarity=0.25,
+    )
+    assert params["top_k"] == 5
+    assert params["min_similarity"] == 0.25
 
 
 if __name__ == "__main__":

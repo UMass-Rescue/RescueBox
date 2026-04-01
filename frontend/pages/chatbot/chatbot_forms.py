@@ -12,7 +12,7 @@ Components have been extracted to separate modules:
 
 import logging
 from nicegui import ui
-from typing import Optional, Callable
+from typing import Any, Callable, List, Optional
 from frontend.chatbot.core import ChatbotCore
 from frontend.chatbot.config import ToolRegistry
 from frontend.utils.error_handling import handle_api_error, show_error_to_user
@@ -222,10 +222,15 @@ async def load_and_show_form(
         try:
             from frontend.components.results.tool_selection_card import render_tool_selection_message
             try:
-                # Determine render container (prefer global chat container)
+                # Prefer explicit container (page chat area); global is fallback for callers that only have input area.
                 global_container = get_global_chat_container()
-                target_for_selection = global_container or container
-                logger.info("Rendering tool selection message into container=%r (global_in_use=%s)", target_for_selection, bool(global_container))
+                target_for_selection = container or global_container
+                logger.info(
+                    "Rendering tool selection message into container=%r (explicit=%s global_fallback=%s)",
+                    target_for_selection,
+                    container is not None,
+                    bool(global_container) and container is None,
+                )
                 selection_card = render_tool_selection_message(target_for_selection, endpoint)
             except (RuntimeError, AttributeError, OSError) as e:
                 logger.warning("Failed to render tool selection card component: %s", str(e))
@@ -234,14 +239,14 @@ async def load_and_show_form(
             logger.debug("Tool selection component not available: %s", e)
             try:
                 # Fallback: render into container (or global container if available)
-                await show_tool_selection(get_global_chat_container() or container, endpoint)
+                await show_tool_selection(container or get_global_chat_container(), endpoint)
             except RuntimeError:
                 logger.warning("Failed to show tool selection message: fallback also failed")
 
         # Now create a dedicated wrapper so the selection message and form are grouped together,
         # and the wrapper is inserted immediately after the selection card in the same container.
         try:
-            render_container = get_global_chat_container() or container
+            render_container = container or get_global_chat_container()
             if render_container is not None:
                 with render_container:
                     wrapper = ui.column().classes('w-full rb-form-wrapper')
@@ -331,7 +336,10 @@ async def load_and_show_form(
 async def show_results(
     container: ui.element,
     response_body,
-    job_id: Optional[str] = None
+    job_id: Optional[str] = None,
+    *,
+    pipeline_total_steps: Optional[int] = None,
+    remaining_calls_after_step: Optional[List[Any]] = None,
 ):
     """
     Show job results with modern expandable interface using ResultRenderer.
@@ -342,7 +350,9 @@ async def show_results(
     Args:
         container (ui.element): Container to add results to
         response_body: ResponseBody Pydantic model with results
-        job_id (Optional[str]): Job ID (currently unused, for future use)
+        job_id (Optional[str]): Job ID for inline View Job (final pipeline step only)
+        pipeline_total_steps: Total steps in a multi-tool pipeline (optional)
+        remaining_calls_after_step: Remaining tool calls after this step
 
     Returns:
         None
@@ -352,7 +362,25 @@ async def show_results(
         - Each result type has its own popup dialog for detailed viewing
         - Modern card design with hover effects and smooth transitions
     """
-    logger.info("Showing results with modern interface (job_id: %s)", job_id)
+    is_intermediate = bool(
+        pipeline_total_steps
+        and pipeline_total_steps >= 2
+        and remaining_calls_after_step is not None
+        and len(remaining_calls_after_step) > 0
+    )
+    completed_step = None
+    next_step = None
+    if is_intermediate and pipeline_total_steps is not None and remaining_calls_after_step is not None:
+        completed_step = pipeline_total_steps - len(remaining_calls_after_step)
+        next_step = completed_step + 1
+    show_view_job = bool(job_id and not is_intermediate)
+
+    logger.info(
+        "Showing results (job_id: %s, intermediate_pipeline: %s, show_view_job: %s)",
+        job_id,
+        is_intermediate,
+        show_view_job,
+    )
     # Safety check: ensure the container is still valid (client not deleted)
     try:
         if container is not None:
@@ -369,7 +397,22 @@ async def show_results(
             with ui.card().classes(FormConfig.SUCCESS_CARD_CLASSES):
                 with ui.column().classes('p-6'):
                     # Success header with icon and job info
-                    ResultRenderer.create_success_header(job_id)
+                    ResultRenderer.create_success_header(
+                        job_id,
+                        pipeline_intermediate=is_intermediate,
+                        pipeline_completed_step=completed_step,
+                        pipeline_total_steps=pipeline_total_steps if is_intermediate else None,
+                    )
+
+                    if is_intermediate and completed_step and pipeline_total_steps and next_step:
+                        with ui.row().classes('w-full items-start mb-4'):
+                            with ui.card().classes('bg-gray-100 max-w-2xl border border-gray-200'):
+                                with ui.column().classes('p-3 gap-1'):
+                                    ui.label('🤖 Assistant').classes('font-medium text-xs text-gray-600')
+                                    ui.label(
+                                        f'Step {completed_step} of {pipeline_total_steps} completed successfully. '
+                                        f'Proceeding to step {next_step}.'
+                                    ).classes('text-sm text-gray-800')
 
                     # Get response data
                     response_dict = response_body.model_dump() if hasattr(response_body, 'model_dump') else response_body
@@ -423,8 +466,13 @@ async def show_results(
                     if job_id:
                         try:
                             from frontend.components.chat.tool_result_card import render_tool_result_card
-                            # render the tool result card and include the inline View Job button
-                            render_tool_result_card(ui.column(), result_title, UIStyling, job_id=job_id)
+                            render_tool_result_card(
+                                ui.column(),
+                                result_title,
+                                UIStyling,
+                                job_id=job_id,
+                                show_view_job=show_view_job,
+                            )
                         except (ImportError, RuntimeError, AttributeError) as e:
                             logger.debug("Failed to render tool_result_card for job_id %s: %s", job_id, e)
                             ResultRenderer.create_result_card(result_type, result_title, result_count, show_result_details)

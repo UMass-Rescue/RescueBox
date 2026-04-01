@@ -85,14 +85,17 @@ def render_message(container: ui.element, message: ChatMessage):
                 with ui.card().classes(f'{bg_color} max-w-sm shadow-sm'):
                     with ui.row().classes('p-1.5 items-center gap-2 flex-wrap'):
                         if message.role == 'user':
-                            ui.label('You').classes('font-medium text-xs')
+                            ui.label('YOU:').classes('font-medium text-xs')
                         else:
                             ui.label('🤖 Assistant').classes('font-medium text-xs')
 
                         if message.content.startswith('##'):
                             ui.markdown(message.content).classes('text-sm')
                         else:
-                            ui.label(message.content).classes('text-sm')
+                            body_cls = 'text-sm'
+                            if '\n' in (message.content or ''):
+                                body_cls += ' whitespace-pre-line'
+                            ui.label(message.content).classes(body_cls)
                         ui.label(message.timestamp.strftime('%H:%M')).classes('text-xs opacity-70')
 
     logger.debug("Message rendered successfully")

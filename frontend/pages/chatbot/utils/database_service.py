@@ -190,6 +190,14 @@ class DatabaseService:
                     response_body=job_response_body
                 )
 
+                if final_status == JobStatus.COMPLETED:
+                    try:
+                        from case_export.hooks import on_job_completed as _case_export_on_complete
+
+                        await _case_export_on_complete(job_record.uid)
+                    except Exception:
+                        logger.debug("CASE fragment hook skipped (create_and_track) for %s", job_record.uid, exc_info=True)
+
                 logger.info("Job created and completed: %s (status: %s)", job_record.uid, final_status.value)
                 return {
                     'job_id': job_record.uid,
@@ -237,6 +245,12 @@ class DatabaseService:
                     )
 
                 logger.debug("Job marked as completed: %s", job_uid)
+                try:
+                    from case_export.hooks import on_job_completed as _case_export_on_complete
+
+                    await _case_export_on_complete(job_uid)
+                except Exception:
+                    logger.debug("CASE fragment hook skipped for %s", job_uid, exc_info=True)
                 return True
 
             except Exception as e:

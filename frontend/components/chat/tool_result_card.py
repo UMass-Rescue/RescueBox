@@ -5,7 +5,14 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def render_tool_result_card(container: ui.element, content: str, ui_styling=None, job_id: str | None = None) -> None:
+def render_tool_result_card(
+    container: ui.element,
+    content: str,
+    ui_styling=None,
+    job_id: str | None = None,
+    *,
+    show_view_job: bool = True,
+) -> None:
     """Render a standalone tool result card."""
     try:
         with container:
@@ -13,7 +20,7 @@ def render_tool_result_card(container: ui.element, content: str, ui_styling=None
                 ui.label("✅ Result").classes(getattr(ui_styling, 'LABEL_TOOL_RESULT_TITLE', 'font-semibold'))
                 ui.label(content).classes(getattr(ui_styling, 'LABEL_TOOL_RESULT_CONTENT', 'text-sm'))
                 # Inline View Job — go straight to job detail page (no intermediate modal)
-                if job_id:
+                if job_id and show_view_job:
                     label = f"View Job {job_id}"
 
                     def _go_to_job(jid=job_id):

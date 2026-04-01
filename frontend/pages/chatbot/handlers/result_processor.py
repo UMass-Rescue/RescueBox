@@ -83,6 +83,7 @@ class ResultProcessor:
             elif result_type == 'multi_tool_calls':
                 _set_input(False)
                 await self._handle_multi_tool_calls(result, container, load_form_callback, add_message_callback)
+                return
 
             elif result_type == 'message':
                 _set_input(True)

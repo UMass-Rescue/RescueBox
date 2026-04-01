@@ -6,6 +6,7 @@ and processing in the chatbot interface.
 """
 
 import logging
+from asyncio import sleep
 from typing import Optional, Dict, Any, Callable
 from frontend.chatbot.message_handler import MessageHandler
 from frontend.database.chat_history_db import get_chat_history_db
@@ -75,6 +76,8 @@ class MessageProcessor:
             # Create and add user message
             user_message = ChatMessage('user', message_text)
             add_message_callback(user_message)
+            # Yield so the browser can paint the user bubble before long model / routing work.
+            await sleep(0)
 
             # Save to history if conversation exists
             if self.state_manager.conversation_id:
@@ -100,8 +103,7 @@ class MessageProcessor:
                 self.state_manager.clear_input()
 
                 # Brief delay to show processing completion with spinner visible
-                import asyncio
-                await asyncio.sleep(0.5)
+                await sleep(0.5)
 
                 # Then reset processing state and update status
                 self.state_manager.set_processing(False)

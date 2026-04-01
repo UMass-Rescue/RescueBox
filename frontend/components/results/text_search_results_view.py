@@ -22,7 +22,7 @@ def _pick(d: dict, *keys: str, default: Any = "") -> Any:
 
 
 def is_text_search_payload(data: Any) -> bool:
-    """True if JSON looks like text_embeddings /search output."""
+    """True if JSON looks like text_embeddings /search or image_embeddings /search_images output."""
     if not isinstance(data, dict):
         return False
     if "error" in data and "results" not in data:
@@ -32,6 +32,17 @@ def is_text_search_payload(data: Any) -> bool:
     if not isinstance(data.get("results"), list):
         return False
     return True
+
+
+def _results_have_matching_text(results: list) -> bool:
+    """Text-embedding search rows include chunk text; image search rows do not."""
+    for r in results:
+        if not isinstance(r, dict):
+            continue
+        mt = _pick(r, "matching_text", "matchingtext", default="")
+        if str(mt).strip():
+            return True
+    return False
 
 
 def render_text_search_json(container: ui.element, data: dict, title: str = "Text Search Results") -> None:
@@ -79,6 +90,8 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                     ui.label("No results.").classes("text-gray-500 italic")
                     return
 
+                show_text_snippet = _results_have_matching_text(results)
+
                 rows: list[dict] = []
                 for i, r in enumerate(results):
                     if not isinstance(r, dict):
@@ -93,20 +106,20 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                     if isinstance(is_match, str):
                         is_match = is_match.lower() in ("true", "1", "yes")
                     path = str(_pick(r, "path", default=""))
-                    preview = str(_pick(r, "matching_text", "matchingtext", default=""))
-                    if len(preview) > 280:
-                        preview = preview[:277] + "…"
-                    rows.append(
-                        {
-                            "id": rid,
-                            "match": "Yes" if is_match else "No",
-                            "similarity": sim_s,
-                            "path": path,
-                            "preview": preview,
-                        }
-                    )
+                    row_dict: dict = {
+                        "id": rid,
+                        "match": "Yes" if is_match else "No",
+                        "similarity": sim_s,
+                        "path": path,
+                    }
+                    if show_text_snippet:
+                        preview = str(_pick(r, "matching_text", "matchingtext", default=""))
+                        if len(preview) > 280:
+                            preview = preview[:277] + "…"
+                        row_dict["preview"] = preview
+                    rows.append(row_dict)
 
-                columns = [
+                columns: list[dict] = [
                     {
                         "name": "match",
                         "label": "Match",
@@ -128,14 +141,25 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                         "align": "left",
                         "sortable": True,
                     },
-                    {
-                        "name": "preview",
-                        "label": "Matching text",
-                        "field": "preview",
-                        "align": "left",
-                        "sortable": False,
-                    },
                 ]
+                if show_text_snippet:
+                    columns.append(
+                        {
+                            "name": "preview",
+                            "label": "Matching text",
+                            "field": "preview",
+                            "align": "left",
+                            "sortable": False,
+                        }
+                    )
+
+                tip = (
+                    "Sort columns by clicking headers. Match = similarity ≥ threshold."
+                    if show_text_snippet
+                    else (
+                        "Sort columns by clicking headers. Match = similarity ≥ threshold. "
+                    )
+                )
 
                 with ui.scroll_area().classes("w-full max-h-[70vh]"):
                     table_holder = ui.column().classes("w-full min-w-0")
@@ -145,5 +169,5 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                         rows,
                         row_key="id",
                         show_row_labels=False,
-                        tip_message="Sort columns by clicking headers. Match = similarity ≥ threshold.",
+                        tip_message=tip,
                     )

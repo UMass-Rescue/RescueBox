@@ -1,16 +1,25 @@
 
+run pipeline -on going
+
+update image search - on going
+
+background job /long running job id
+
+more pipeline filters
+
 run  model picker -one at a time-done
 
 each user gets a unique demo directory -done
 
-test ufdr model
+test ufdr model - done
 
-update app_info for all models
+update app_info for all models - done
 
-make 3 google docs for initial-setup , simple-scenarios, complex-scenarios
+make 3 google docs for initial-setup , simple-scenarios, complex-scenarios -done
 
-test concurrent users
+test concurrent users -done
 
-test history load
+test history load -done
+
 
 

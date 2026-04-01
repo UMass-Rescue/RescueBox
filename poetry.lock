@@ -465,6 +465,20 @@ uv = ["uv (>=0.1.18)"]
 virtualenv = ["virtualenv (>=20.11) ; python_version < \"3.10\"", "virtualenv (>=20.17) ; python_version >= \"3.10\" and python_version < \"3.14\"", "virtualenv (>=20.31) ; python_version >= \"3.14\""]
 
 [[package]]
+name = "case-export"
+version = "0.1.0"
+description = "RescueBox job → CASE/UCO-style JSON-LD fragments (minimal, no required case-uco)"
+optional = false
+python-versions = ">=3.11,<3.13"
+groups = ["main"]
+files = []
+develop = true
+
+[package.source]
+type = "directory"
+url = "src/case-export"
+
+[[package]]
 name = "certifi"
 version = "2026.2.25"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -6984,4 +6998,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "afe9149d8a18cc407df36b2dd5ac88e7906aee257e0237633d1d27bcd026ed97"
+content-hash = "55e1165a82e00a6d578d29514c80006033c2011f36399c6849c4eb4bed904e6c"

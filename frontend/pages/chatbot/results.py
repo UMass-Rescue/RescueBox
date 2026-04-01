@@ -41,20 +41,37 @@ class ResultRenderer:
             return 1
 
     @staticmethod
-    def create_success_header(job_id: Optional[str] = None):
+    def create_success_header(
+        job_id: Optional[str] = None,
+        *,
+        pipeline_intermediate: bool = False,
+        pipeline_completed_step: Optional[int] = None,
+        pipeline_total_steps: Optional[int] = None,
+    ):
         """Create the success header with icon and job info."""
         try:
             from frontend.components.results.success_header import render_success_header
-            render_success_header(ui.column(), job_id)
+            render_success_header(
+                ui.column(),
+                job_id,
+                pipeline_intermediate=pipeline_intermediate,
+                pipeline_completed_step=pipeline_completed_step,
+                pipeline_total_steps=pipeline_total_steps,
+            )
         except Exception:
             with ui.row().classes('items-center gap-3 mb-6'):
                 ui.icon('celebration', size='2rem').classes('text-green-600')
                 with ui.column():
-                    ui.label('Job Completed Successfully!').classes('text-2xl font-bold text-green-800')
+                    if pipeline_intermediate and pipeline_completed_step and pipeline_total_steps:
+                        ui.label('Job complete').classes('text-2xl font-bold text-green-800')
+                        ui.label(
+                            f'Step {pipeline_completed_step} of {pipeline_total_steps} finished'
+                        ).classes('text-sm text-green-700')
+                    else:
+                        ui.label('Job Completed Successfully!').classes('text-2xl font-bold text-green-800')
                     if job_id:
                         ui.label(f'Job ID: {job_id}').classes('text-sm text-green-600 font-mono')
 
-    @staticmethod
     @staticmethod
     def create_result_card(result_type: str, result_title: str, result_count: int, on_expand, job_id: Optional[str] = None, **kwargs):
         """Create the main result card with expand functionality."""
