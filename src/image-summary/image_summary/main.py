@@ -81,8 +81,8 @@ with open(info_file_path, "r") as f:
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Image Summary",
-    author="UMass Rescue",
+    name="Describe Images",
+    author="UMass RescueLab",
     version="3.0.0",
     info=info,
     gpu=True,
@@ -146,6 +146,7 @@ def summarize_images(
 
     # If any output patterns provided, filter the generated summary files by searching
     # their text for any of the patterns. Otherwise return all processed files.
+    # Preserve processing order (same as pipeline / CLIP order when file_filter is set).
     if output_patterns:
         matched: set[str] = set()
         for out_file in processed_files:
@@ -157,14 +158,14 @@ def summarize_images(
                 if pat in txt:
                     matched.add(out_file)
                     break
-        result_files = matched
+        result_files = [f for f in processed_files if f in matched]
     else:
         result_files = processed_files
 
     payload = {
         "image_summary": True,
         "input_dir": str(Path(input_dir).resolve()),
-        "files": sorted(result_files),
+        "files": list(result_files),
     }
     response = TextResponse(value=json.dumps(payload))
     logger.info(f"ImageSummary API: response ready | files={len(result_files)}")

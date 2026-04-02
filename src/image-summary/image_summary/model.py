@@ -35,7 +35,7 @@ IMAGE_PROMPT: Final[str] = (
     "You are a vision model. Provide a detailed description of the image. "
     "Identify: (1) scene and setting, (2) key objects with attributes (colors, counts, relative positions), "
     "(3) people dress and actions if present, (4) any visible text (quote verbatim), (5) notable details and context, "
-    "(6) lighting, camera angle, and composition if apparent. Be factual and avoid speculation. "
+    "Be factual and avoid speculation. "
     "Output only the description."
 )
 
@@ -45,7 +45,7 @@ IMAGE_BATCH_PROMPT: Final[str] = (
     "For EACH image, write a detailed description covering: (1) scene and setting, "
     "(2) key objects with attributes (colors, counts, relative positions), "
     "(3) people dress and actions if present, (4) any visible text (quote verbatim), "
-    "(5) notable details and context, (6) lighting, camera angle, and composition if apparent. "
+    "(5) notable details and context. "
     "Be factual and avoid speculation.\n\n"
     "Image order (first image = item 1, etc.):\n{file_list}\n\n"
     'Respond with ONLY valid JSON: a JSON array of objects. Each object must have exactly two string keys: '

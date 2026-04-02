@@ -83,7 +83,19 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
     normalized = {}
     for key, value in user_args.items():
         key_lower = key.lower()
-        new_key = key_mappings.get(key_lower, key)
+
+        # ufdr_mounter/mount: ufdr_file + mount_name only; avoid mapping "path" to input_dir blindly
+        if "ufdr_mounter" in endpoint:
+            if key_lower in ("ufdr_path", "file", "archive", "ufdr", "ufdr_file"):
+                new_key = "ufdr_file"
+            elif key_lower in ("mount_path", "mount_point", "mount_folder", "mount_dir", "mount_name"):
+                new_key = "mount_name"
+            elif key_lower == "path" and isinstance(value, str):
+                new_key = "ufdr_file" if value.lower().endswith(".ufdr") else "mount_name"
+            else:
+                new_key = key_mappings.get(key_lower, key)
+        else:
+            new_key = key_mappings.get(key_lower, key)
 
         # text_embeddings/search: "query" is search text, not query_directory - preserve it
         if "text_embeddings" in endpoint and key_lower == "query":

@@ -134,8 +134,8 @@ with open(info_file_path, "r", encoding="utf-8") as f:
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="UFDR Mount Service",
-    author="Sribatscha Maharana",
+    name="UFDR Mount",
+    author="UMass RescueLab",
     version="3.0.0",
     info=app_info,
 )

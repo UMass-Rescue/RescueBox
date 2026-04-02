@@ -22,7 +22,7 @@ Key Components:
 import logging
 import os
 from pydantic import BaseModel, Field
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -119,9 +119,9 @@ class ToolRegistry:
         '/age-gender': 'age-gender/predict',
         '/upload-faces': 'face-match/bulkupload',
         '/find-faces': 'face-match/findfacebulk',
-        '/summarize': 'text_summarization/summarize',
+        '/summarize-text': 'text_summarization/summarize',
         '/search-text': 'text_embeddings/search',
-        '/image-search': 'image_embeddings/search_images',
+        '/search-images': 'image_embeddings/search_images',
         '/ufdr-mount': 'ufdr_mounter/mount',
         '/models': 'pick_tool',
         '/assistant': 'smart_analyze',
@@ -132,16 +132,32 @@ class ToolRegistry:
     TOOL_MENU: Dict[str, Dict[str, str]] = {
         "1": {"name": "🎤 Transcribe Audio", "endpoint": "audio/transcribe", "desc": "Convert speech to text"},
         "2": {"name": "🖼️ Describe Images", "endpoint": "image_summary/summarize-images", "desc": "AI descriptions of photos"},
-        "3": {"name": "👤 Age & Gender", "endpoint": "age-gender/predict", "desc": "Classify faces"},
-        "4": {"name": "🔍 Detect Deepfakes", "endpoint": "deepfake_detection/predict", "desc": "Find manipulated media"},
-        "5": {"name": "🔍Search Image", "endpoint": "image_embeddings/search_images", "desc": "search images"}, 
-        "6": {"name": "📤 Upload Faces", "endpoint": "face-match/bulkupload", "desc": "Build face collection"},
-        "7": {"name": "🔎 Find Faces", "endpoint": "face-match/findfacebulk", "desc": "Search face collection"},
+        "3": {"name": "🔍Search Images", "endpoint": "image_embeddings/search_images", "desc": "description or caption match"},
+        "4": {"name": "👤 Age & Gender", "endpoint": "age-gender/predict", "desc": "Classify faces by age and gender"},
+        "5": {"name": "🔍 Detect Deepfakes", "endpoint": "deepfake_detection/predict", "desc": "Find manipulated media"},
+        "6": {"name": "📤 Upload Face Match", "endpoint": "face-match/bulkupload", "desc": "Build face collection"},
+        "7": {"name": "🔎 Find Face Match", "endpoint": "face-match/findfacebulk", "desc": "Search face collection"},
         "8": {"name": "📝 Summarize Text", "endpoint": "text_summarization/summarize", "desc": "Document summaries"},
-        "9": {"name": "🔍 Search Text", "endpoint": "text_embeddings/search", "desc": "search text files"},
+        "9": {"name": "🔍 Search Text", "endpoint": "text_embeddings/search", "desc": "words or caption match"},
         "10": {"name": "📂 UFDR Mount", "endpoint": "ufdr_mounter/mount", "desc": "Mount UFDR files"},
        
     }
+
+    @staticmethod
+    def ordered_plugin_uids() -> List[str]:
+        """
+        Plugin ``uid`` values (first path segment of each TOOL_MENU endpoint) in tool-picker order.
+
+        Used by ``/models`` so the plugin list matches the chatbot tool menu. Endpoints that share
+        a plugin (e.g. ``face-match/...``) appear once, in the position of their first menu entry.
+        """
+        seen: list[str] = []
+        for key in sorted(ToolRegistry.TOOL_MENU.keys(), key=lambda k: int(k)):
+            endpoint = ToolRegistry.TOOL_MENU[key]["endpoint"]
+            uid = endpoint.split("/")[0]
+            if uid not in seen:
+                seen.append(uid)
+        return seen
     
     # Enhanced blocked patterns (non-forensic requests to reject)
     BLOCKED_PATTERNS: list[str] = [

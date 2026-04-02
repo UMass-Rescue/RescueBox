@@ -146,15 +146,11 @@ def render_image_summary_file_list(container: ui.element, payload: Dict[str, Any
                             'w-full items-center gap-2 text-xs font-semibold text-gray-600 '
                             'border-b border-gray-200 pb-1 mb-1'
                         ):
-                            ui.label('Image').classes('w-24 shrink-0 text-center')
+                            ui.label('Image').classes('w-48 shrink-0 text-center')
                             ui.label('Summary file').classes('w-48 min-w-0 shrink-0')
-                            ui.label('Description preview').classes('flex-grow min-w-0')
+                            ui.label('Description').classes('flex-grow min-w-0')
                         for file_info in filtered:
-                            content_preview = (
-                                file_info['content'][:400] + '...'
-                                if len(file_info['content']) > 400
-                                else file_info['content']
-                            )
+                            full_text = file_info['content']
                             path_full = file_info['path']
                             img_path = file_info.get('image_path')
 
@@ -165,19 +161,27 @@ def render_image_summary_file_list(container: ui.element, payload: Dict[str, Any
                                 'w-full items-start gap-2 py-2 border-b border-gray-100 '
                                 'cursor-pointer hover:bg-white/80 rounded'
                             ).on('click', make_open(path_full)):
-                                with ui.column().classes('w-24 shrink-0 items-center'):
+                                with ui.column().classes('w-48 shrink-0 items-center'):
                                     if img_path:
                                         ui.image(img_path).classes(
-                                            'w-24 h-24 object-cover rounded border border-gray-200'
+                                            'w-48 h-48 object-cover rounded border border-gray-200 shadow-sm'
                                         )
                                     else:
-                                        ui.icon('image_not_supported', size='2rem').classes('text-gray-400 mt-6')
+                                        ui.icon('image_not_supported', size='3rem').classes(
+                                            'text-gray-400 mt-10'
+                                        )
                                 ui.label(file_info['filename']).classes(
                                     'w-48 min-w-0 shrink-0 text-xs font-mono break-all'
                                 )
-                                ui.label(content_preview).classes(
-                                    'flex-grow min-w-0 text-xs text-gray-700 whitespace-pre-wrap break-words'
-                                )
+                                # Full summary text as markdown (model output is often plain prose; markdown still renders cleanly).
+                                with ui.column().classes(
+                                    'flex-grow min-w-0 max-h-[min(70vh,36rem)] overflow-y-auto '
+                                    'pl-1 border-l border-gray-200'
+                                ):
+                                    ui.markdown(full_text or '_(empty)_').classes(
+                                        'prose prose-sm max-w-none text-gray-800 leading-relaxed '
+                                        'break-words [&_p]:my-1 [&_pre]:whitespace-pre-wrap'
+                                    )
 
                 def update_view(search_term: str = '') -> None:
                     search_lower = search_term.lower().strip()

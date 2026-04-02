@@ -36,8 +36,8 @@ with open(info_file_path, "r") as f:
 
 ml_service.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Audio Transcription",
-    author="RescueBox Team",
+    name="Transcribe Audio",
+    author="UMass RescueLab",
     version="3.0.0",
     info=info,
 )

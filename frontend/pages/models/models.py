@@ -23,10 +23,20 @@ from frontend.utils.error_handling import handle_api_error
 # Assuming a database module exists for retrieving cached models
 # This function would read the data pre-fetched by main.py on startup.
 from frontend.database import get_cached_models
+from frontend.chatbot.config import ToolRegistry
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+def _sort_models_by_tool_menu(models: List[Dict]) -> List[Dict]:
+    """Order like chatbot TOOL_MENU; unknown plugins (e.g. future additions) sort last by uid."""
+    rank = {uid: i for i, uid in enumerate(ToolRegistry.ordered_plugin_uids())}
+    return sorted(
+        models,
+        key=lambda m: (rank.get(m.get("uid") or "", 10_000), m.get("uid") or ""),
+    )
 
 
 class ModelsPage:
@@ -140,9 +150,9 @@ class ModelsPage:
 
             logger.info("Loaded %d models", len(models_data))
 
-            # Validate models using AppMetadata where applicable (if API returns metadata)
-            self.models = models_data
-            for model in models_data:
+            # Match chatbot tool picker order (TOOL_MENU in config.py)
+            self.models = _sort_models_by_tool_menu(models_data)
+            for model in self.models:
                 logger.info("Fetched models %s", model["uid"] )
             self.server_statuses = {model["uid"]: 'Online' for model in models_data}
             

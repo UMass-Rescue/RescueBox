@@ -65,8 +65,8 @@ with open(info_file_path, "r") as f:
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Text Summarization",
-    author="UMass Rescue",
+    name="Summarize Text",
+    author="UMass RescueLab",
     version="3.0.0",
     info=info,
 )

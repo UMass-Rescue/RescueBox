@@ -36,7 +36,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 info_file_path = os.path.join(script_dir, "..", "app-info.md")
 
 server.add_app_metadata(
-    name="Face Recognition and Matching",
+    name="Face Match",
     author="FaceMatch Team",
     version="3.0.0",
     info=load_file_as_string(info_file_path),

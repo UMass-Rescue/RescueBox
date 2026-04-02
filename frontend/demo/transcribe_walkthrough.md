@@ -41,7 +41,7 @@ This walkthrough is for a **demo user** running **Transcribe Audio** through the
 
 An input form opens with typical inputs , a folder of files saved on rescuebox server to process.
 
-1.  Use **Browse** to select the **"audio-transcribe" folder , then select "inputs"** subfolder.
+1.  Use **Browse** to select the **"transcribe-audio" folder , then select "inputs"** subfolder.
 - this subfolder has a mp3 file that will be transcribed and output shown in the job result.
 
 2. Click **Submit Job**

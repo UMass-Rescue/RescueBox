@@ -1,8 +1,10 @@
 from typing import TypedDict
+import logging
 import os
 
 import typer
 from rb.lib.ml_service import MLService
+from rb.lib.utils import apply_torch_cpu_preference
 from rb.api.models import (
     InputSchema,
     InputType,
@@ -28,6 +30,7 @@ from sqlalchemy import bindparam, text
 
 
 APP_NAME = "image_embeddings"
+logger = logging.getLogger(__name__)
 
 
 class Inputs(TypedDict):
@@ -103,11 +106,11 @@ with open(info_file_path, "r") as f:
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Image Embeddings",
-    author="UMass Rescue",
+    name="Search Images",
+    author="UMass RescueLab",
     version="3.0.0",
     info=info,
-    gpu=False,
+    gpu=True,
 )
 
 
@@ -124,6 +127,7 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     Embed images under ``input_dir`` that are not already stored, then rank
     those images (including reused embeddings) by CLIP text–image similarity to ``query``.
     """
+    apply_torch_cpu_preference()
     import torch
     from PIL import Image
     from transformers import CLIPProcessor, CLIPModel  # type: ignore
@@ -134,9 +138,49 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.21))
 
+    cuda_ok = torch.cuda.is_available()
+    mps_ok = bool(getattr(torch.backends, "mps", None)) and torch.backends.mps.is_available()
+    if cuda_ok:
+        device = torch.device("cuda")
+    elif mps_ok:
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+
+    logger.info(
+        "CLIP runtime: cuda_available=%s mps_available=%s -> selected device=%s",
+        cuda_ok,
+        mps_ok,
+        device,
+    )
+    if cuda_ok and device.type == "cuda":
+        try:
+            idx = torch.cuda.current_device()
+            logger.info(
+                "CUDA GPU in use: name=%s index=%s",
+                torch.cuda.get_device_name(idx),
+                idx,
+            )
+        except Exception as e:
+            logger.debug("Could not read CUDA device name: %s", e)
+    elif device.type == "mps":
+        logger.info("Apple Metal (MPS) GPU in use for CLIP")
+
     model = CLIPModel.from_pretrained(model_name)
     processor = CLIPProcessor.from_pretrained(model_name)
+    model = model.to(device)
     model.eval()
+    param_dev = next(model.parameters()).device
+    logger.info(
+        "CLIP model loaded on device=%s (parameter device=%s) model_name=%s",
+        device,
+        param_dev,
+        model_name,
+    )
+
+    def _inputs_to_device(batch):
+        """Move HuggingFace processor tensors to ``device`` for CLIP forward passes."""
+        return {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
 
     allowed_exts = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
     file_paths: list[str] = []
@@ -162,7 +206,9 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             try:
                 image = Image.open(path).convert("RGB")
                 with torch.no_grad():
-                    inputs_processed = processor(images=image, return_tensors="pt")
+                    inputs_processed = _inputs_to_device(
+                        processor(images=image, return_tensors="pt")
+                    )
                     image_features = model.get_image_features(**inputs_processed)
                     image_features = image_features / image_features.norm(dim=-1, keepdim=True)
                     embedding = image_features.squeeze().cpu().numpy()
@@ -178,7 +224,9 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             storage.commit()
 
         with torch.no_grad():
-            text_inputs = processor(text=[query_text], return_tensors="pt", padding=True)
+            text_inputs = _inputs_to_device(
+                processor(text=[query_text], return_tensors="pt", padding=True)
+            )
             text_features = model.get_text_features(**text_inputs)
             text_features = text_features / text_features.norm(dim=-1, keepdim=True)
             query_vec = text_features.squeeze().cpu().numpy()

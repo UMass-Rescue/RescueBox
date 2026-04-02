@@ -182,6 +182,14 @@ class TestToolRegistry:
         assert "endpoint" in tool_1
         assert "desc" in tool_1
         assert tool_1["endpoint"] == TRANSCRIBE_ENDPOINT
+
+    def test_ordered_plugin_uids_matches_tool_menu(self):
+        """`/models` page uses this order; face-match tools appear once."""
+        uids = ToolRegistry.ordered_plugin_uids()
+        assert uids[0] == "audio"
+        assert uids.index("image_summary") < uids.index("image_embeddings")
+        assert uids.count("face-match") == 1
+        assert uids[-1] == "ufdr_mounter"
     
     def test_fallback_endpoints(self):
         """Test that fallback endpoints are properly defined.

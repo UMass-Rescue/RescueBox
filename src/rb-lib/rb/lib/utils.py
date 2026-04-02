@@ -1,3 +1,4 @@
+import os
 from typing import Any, Callable, Mapping, Union, get_type_hints, get_origin, get_args
 
 from pydantic import BaseModel
@@ -248,4 +249,22 @@ def collect_inline_output_patterns(inputs: dict) -> List[str]:
             except Exception:
                 continue
     return patterns
+
+
+def apply_torch_cpu_preference() -> None:
+    """
+    Call immediately before ``import torch`` when the user wants CPU-only PyTorch.
+
+    On some hosts (e.g. PyTorch/CUDA wheel mismatch, or fragile ARM GPU stacks),
+    initializing CUDA can **SIGSEGV** the process. Setting ``CUDA_VISIBLE_DEVICES``
+    to empty **before** torch loads prevents the CUDA driver from loading.
+    """
+    if os.environ.get("RESCUEBOX_FORCE_CPU", "").strip().lower() in ("1", "true", "yes"):
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+        return
+    for key in ("RESCUEBOX_PYTORCH_DEVICE", "RESCUEBOX_CLIP_DEVICE"):
+        dev = os.environ.get(key, "").strip().lower()
+        if dev in ("cpu", "none"):
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
+            return
 

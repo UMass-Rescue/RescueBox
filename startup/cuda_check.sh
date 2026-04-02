@@ -1,6 +1,9 @@
 # need cuda path on unity linux
 # after creating gpu environment
 # checks for version 13 only , can be changed to 12.x i suppose 
+#
+# for CLIP torch python versions of cude specific to  PyTorch  pytorch-cu130 is installed 
+#  by another script install_cuda_for_torch_clip_gpu.sh
 
 # Get the OS and Architecture
 OS=$(uname -s)

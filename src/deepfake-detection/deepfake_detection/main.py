@@ -254,8 +254,8 @@ with open(info_file_path, "r", encoding="utf-8") as f:
     app_info = f.read()
 
 server.add_app_metadata(
-    name="Image DeepFake Detector",
-    author="UMass Rescue",
+    name="Detect DeepFakes",
+    author="UMass RescueLab",
     version="3.0.0",
     info=app_info,
     plugin_name=APP_NAME,

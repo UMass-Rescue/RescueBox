@@ -48,9 +48,9 @@ with open(info_file_path, "r") as f:
     info = f.read()
 
 server.add_app_metadata(
-    name="Face Recognition and Matching",
+    name="Face Match",
     plugin_name=APP_NAME,
-    author="FaceMatch Team",
+    author="UMass RescueLab",
     version="3.0.0",
     info=info,
     gpu=True,

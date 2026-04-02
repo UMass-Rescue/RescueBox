@@ -18,6 +18,7 @@ from frontend.chatbot.multi_tool_handler import (
     coerce_pipeline_response,
     extract_batch_file_items,
     apply_metadata_filter,
+    batch_items_have_age_gender_metadata,
 )
 from frontend.components.shared.notifications import notify_info, notify_warning
 from frontend.pages.chatbot.chatbot_forms import show_results, load_and_show_form
@@ -529,7 +530,19 @@ class JobSubmissionOrchestrator:
             filtered_paths: Optional[List[str]] = None
             items = extract_batch_file_items(response_body)
             if items:
-                criteria = await self._show_filter_criteria_dialog(container)
+                # this needs to be more generic 
+                # Age/Gender filter UI only applies when the *previous* step produced classifier
+                # metadata (Gender, Age). Image search / CLIP rows only have Query, Similarity, etc.
+                if batch_items_have_age_gender_metadata(items):
+                    criteria = await self._show_filter_criteria_dialog(container)
+                else:
+                    criteria = ""
+                    self.logger.info(
+                        "Pipeline metadata filter not shown: no Age/Gender metadata on prior step "
+                        "(next_endpoint=%s, batch_item_count=%d) — passing all files.",
+                        next_endpoint,
+                        len(items),
+                    )
                 self.logger.info(
                     "Pipeline metadata filter (user input): next_endpoint=%s criteria=%r "
                     "(empty means pass all files) batch_item_count=%d",

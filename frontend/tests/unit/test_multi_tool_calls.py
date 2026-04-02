@@ -492,3 +492,31 @@ class TestMessageHandlerMultipleCalls:
             assert result['endpoint'] == 'audio/transcribe'
             assert 'arguments' in result
 
+
+class TestBatchMetadataFilterGate:
+    """Pipeline filter dialog should only apply when prior step has Age/Gender metadata."""
+
+    def test_clip_search_rows_do_not_trigger_age_gender_filter(self):
+        from frontend.chatbot.multi_tool_handler import batch_items_have_age_gender_metadata
+
+        items = [
+            {
+                "path": "/photos/a.jpg",
+                "metadata": {
+                    "Query": "young girl",
+                    "Similarity": "0.2598",
+                    "Match": "Yes",
+                    "Model": "openai/clip-vit-base-patch32",
+                },
+            },
+        ]
+        assert batch_items_have_age_gender_metadata(items) is False
+
+    def test_age_gender_classifier_rows_trigger_filter(self):
+        from frontend.chatbot.multi_tool_handler import batch_items_have_age_gender_metadata
+
+        items = [
+            {"path": "/photos/a.jpg", "metadata": {"Gender": "Female", "Age": "(4-6)"}},
+        ]
+        assert batch_items_have_age_gender_metadata(items) is True
+

@@ -139,6 +139,23 @@ def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
         return []
 
 
+def batch_items_have_age_gender_metadata(items: List[Dict[str, Any]]) -> bool:
+    """
+    True if any batch row has Age/Gender classifier fields.
+
+    Used to decide whether to show the pipeline "Gender/Age" filter dialog between steps.
+    CLIP / image search rows typically only have Query, Similarity, Match, Model — filtering
+    those with age-gender criteria would incorrectly drop every file.
+    """
+    for it in items:
+        meta = it.get("metadata") or {}
+        for k in meta:
+            kl = str(k).lower()
+            if kl in ("gender", "age"):
+                return True
+    return False
+
+
 def _parse_age_range_for_comparison(mval_str: str) -> Optional[float]:
     """
     Parse age range strings like "(0-2)", "(25-32)", "(60-100)" from Age/Gender classifier.

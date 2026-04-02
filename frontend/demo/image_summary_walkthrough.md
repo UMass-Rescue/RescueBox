@@ -30,7 +30,7 @@ note: if you type something not understood by rescuebox, you should see a help o
 
 ### Step 3 — Fill the form and submit
 
-1. Use **Browse** to choose an **inputs** folder (or files) on the server—e.g. under your **demo** tree, pick the folder that contains sample images for this plugin.
+1. Use **Browse** to choose an **inputs** folder (or files) on the server—e.g. under your **demo** tree, pick the **describe-images** subfolder **inputs** ,sample images for this plugin.
 2. Use the next **Browse** button and select **outputs** subfolder.
 3. This plugin provides a list of AI model to use for this run. see list , select the first one for quick output.
 4. Click **Submit Job**. Add **case notes** if prompted.

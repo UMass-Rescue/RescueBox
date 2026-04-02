@@ -57,8 +57,8 @@ with open(info_file_path, "r") as f:
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Age and Gender Classifier",
-    author="UMass Rescue",
+    name="Age and Gender",
+    author="UMass RescueLab",
     version="3.0.0",
     info=info,
     gpu=True,
@@ -130,7 +130,7 @@ server.add_ml_service(
     rule="/predict",
     ml_function=predict,
     inputs_cli_parser=typer.Argument(parser=cli_parser, help="Image directory path"),
-    short_title="Age and Gender Classifier",
+    short_title="Age and Gender",
     order=0,
     task_schema_func=task_schema,
 )

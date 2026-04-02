@@ -29,8 +29,13 @@ class TextSummarize(BaseModel):
     model: Literal["gemma3:1b", "gemma3:4b"] = Field(..., description="The text summarize model version")
 
 class ImageSummarize(BaseModel):
-    input_dir: str = Field(..., description="Path to input images")
-    output_dir: str = Field(..., description="Path to save summaries")
+    """
+    Write text captions/descriptions for each image (vision-language summaries saved as files).
+    This is NOT CLIP image search and NOT semantic search over text—use image_embeddings/search_images
+    for visual search, and text_embeddings/search to search already-written summary text.
+    """
+    input_dir: str = Field(..., description="Folder of images to caption/summarize")
+    output_dir: str = Field(..., description="Folder where per-image text summaries are written")
     model: Literal["gemma3:4b", "gemma3:27b"] = Field(..., description="The vision model version")
 
 class AudioTranscribe(BaseModel):
@@ -62,22 +67,35 @@ class FileSystemScan(BaseModel):
     directory_path: str = Field(..., description="The path to scan")
 
 
+class UfdrMount(BaseModel):
+    """
+    Mount a UFDR (.ufdr) forensic archive read-only via FUSE. Use when the user asks to mount UFDR,
+    open a .ufdr file, or Cellebrite/UFED export. Run this FIRST; later tools use mount_name as the image folder path.
+    """
+    ufdr_file: str = Field(..., description="Absolute path to the .ufdr file")
+    mount_name: str = Field(
+        ...,
+        description="Empty mount directory path or name (e.g. /mnt/case1 or case1 — see server rules for mnt/)",
+    )
+
+
 class TextSearch(BaseModel):
     """
-    Semantic search over text files. Use after image_summary to search image descriptions.
-    Chains from image_summary output_dir when user says 'summarize and search for X'.
+    Semantic search over plain text files (including caption .txt files produced by image_summary/summarize-images).
+    Use for 'search the summaries', 'search text for', 'find in descriptions' AFTER summaries exist in input_dir.
+    Do NOT use for searching raw pixels—use image_embeddings/search_images for visual/CLIP search.
     """
-    input_dir: str = Field(..., description="Directory of text files (or image summary output)")
-    query: str = Field(..., description="Search query (e.g. 'kid with brown clothes')")
+    input_dir: str = Field(..., description="Folder of .txt files to search (often the image summary output_dir)")
+    query: str = Field(..., description="Text query over written content (e.g. 'kid with brown clothes')")
 
 class ImageSearch(BaseModel):
     """
-    CLIP text-to-image search over images in a folder. Use when the user asks to search images,
-    image search, find pictures matching a description, or visual similarity by text query.
-    Same input_dir as other image tasks when one path applies to multiple actions; does not require image_summary first.
+    CLIP text-to-image search: ranks images in a folder by visual similarity to the query.
+    Use for 'image search', 'find images of', 'search photos for', visual match—reads pixels, not summary files.
+    Does not require image_summary first; input_dir is the folder of images (e.g. a mounted UFDR path).
     """
     input_dir: str = Field(..., description="Directory of image files to embed and search within")
-    query: str = Field(..., description="Natural-language search query (e.g. 'kid', 'person in red jacket')")
+    query: str = Field(..., description="Visual/concept query for CLIP (e.g. 'young kid', 'red jacket')")
 
 # Legacy support for backward compatibility
 class RescueBoxToolCall(BaseModel):
@@ -87,7 +105,8 @@ class RescueBoxToolCall(BaseModel):
         "text_summarization/summarize",
         "image_summary/summarize-images",
         "text_embeddings/search",
-        "image_embeddings/search_images",  
+        "image_embeddings/search_images",
+        "ufdr_mounter/mount",
         "face-match/findfacebulk",
         "face-match/bulkupload",
         "deepfake_detection/predict",
@@ -109,6 +128,7 @@ SCHEMA_MAP = {
     "image_summary/summarize-images": ImageSummarize,
     "text_embeddings/search": TextSearch,
     "image_embeddings/search_images": ImageSearch,
+    "ufdr_mounter/mount": UfdrMount,
     "face-match/findfacebulk": FaceFindBulk,
     "face-match/bulkupload": FaceBulkUpload,
     "deepfake_detection/predict": DeepfakeDetection,
@@ -200,12 +220,22 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         "content": (
             "You are a forensic analysis assistant for RescueBox.\n"
             "RULES:\n"
-            "1. CHAINING: If the user requests multiple actions, generate a LIST of tools.\n"
-            "2. EXHAUSTIVE: You must generate a tool call for EVERY verb in the request. Do not stop until all actions are covered. Pick fuction name \"rescuebox/unknown\" when there is no clear match \n"
-            "3. SHARED CONTEXT: If a path appears once, apply it to ALL relevant tools (Backward or Forward).\n"
-            "4. DEFAULTING: Infer required arguments (like output paths) from the input path.\n"
-            "5. SUMMARIZE+SEARCH: If the user asks to summarize images AND search text/descriptions (e.g. \"search for boy\", \"find text about X\"), you MUST emit THREE tools in order: "
-            "age-gender/predict (if faces/age/gender mentioned), image_summary/summarize-images, then text_embeddings/search with input_dir set to the SAME output_dir used for summaries (e.g. /path/summary) and query set to the search phrase.\n\n"
+            "1. CHAINING: If the user requests multiple actions, generate a LIST of tools in execution order.\n"
+            "2. EXHAUSTIVE: Emit one tool call per distinct action. Use \"rescuebox/unknown\" only when no tool fits.\n"
+            "3. SHARED CONTEXT: Reuse paths across tools; after ufdr_mounter/mount, use mount_name as input_dir for image tools.\n"
+            "4. DEFAULTING: Infer output_dir for summaries (e.g. <folder>/summary) when omitted.\n"
+            "5. IMAGE SUMMARIZE (captions): image_summary/summarize-images writes text descriptions of images. "
+            "Phrases: \"summarize images\", \"describe photos\", \"caption images\".\n"
+            "6. TEXT SEARCH vs IMAGE SEARCH (do not confuse):\n"
+            "   - text_embeddings/search = semantic search over TEXT FILES (e.g. outputs of image_summary). "
+            "Use when the user wants to search written summaries/descriptions for a phrase.\n"
+            "   - image_embeddings/search_images = CLIP search over IMAGE PIXELS in a folder. "
+            "Use when the user says \"image search\", \"search images for\", \"find photos of\", visual similarity.\n"
+            "7. BOTH summarize AND image-search on the same folder: emit image_summary/summarize-images AND "
+            "image_embeddings/search_images with the SAME input_dir (same image folder); order mount first if UFDR applies.\n"
+            "8. SUMMARIZE + TEXT SEARCH pipeline: If the user wants summaries AND to search those written descriptions, use "
+            "image_summary/summarize-images then text_embeddings/search with input_dir = that output_dir.\n"
+            "9. UFDR: If the user mentions mounting UFDR/.ufdr, emit ufdr_mounter/mount first; downstream input_dir is mount_name.\n\n"
             f"<tools>{json.dumps(tools_definitions)}</tools>"
         )
     }
@@ -353,7 +383,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     }
 
     # Age-gender + CLIP image search (same folder; no summarize required)
-    ex_f_user = {"role": "user", "content": "detect age gender in /tmp and image search for kid"}
+    ex_f_user = {"role": "user", "content": "detect age gender in /tmp and image search for a kid"}
     ex_f_asst = {
         "role": "assistant",
         "content": "",
@@ -373,15 +403,79 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ],
     }
 
+    # UFDR mount + CLIP image search + image summarize (same mounted tree)
+    ex_g_user = {
+        "role": "user",
+        "content": "mount /data/evidence/case.ufdr at /mnt/case1, image search for young kid and summarize the images there",
+    }
+    ex_g_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "ufdr_mounter/mount",
+                    "arguments": {"ufdr_file": "/data/evidence/case.ufdr", "mount_name": "/mnt/case1"},
+                }
+            },
+            {
+                "function": {
+                    "name": "image_embeddings/search_images",
+                    "arguments": {"input_dir": "/mnt/case1", "query": "young kid"},
+                }
+            },
+            {
+                "function": {
+                    "name": "image_summary/summarize-images",
+                    "arguments": {
+                        "input_dir": "/mnt/case1",
+                        "output_dir": "/mnt/case1/summary",
+                        "model": "gemma3:4b",
+                    },
+                }
+            },
+        ],
+    }
+
+    # Summarize + TEXT search (not CLIP) — explicit wording
+    ex_h_user = {
+        "role": "user",
+        "content": "summarize images in /evidence/pics and search the text summaries for backpack",
+    }
+    ex_h_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "image_summary/summarize-images",
+                    "arguments": {
+                        "input_dir": "/evidence/pics",
+                        "output_dir": "/evidence/pics/summary",
+                        "model": "gemma3:4b",
+                    },
+                }
+            },
+            {
+                "function": {
+                    "name": "text_embeddings/search",
+                    "arguments": {"input_dir": "/evidence/pics/summary", "query": "backpack"},
+                }
+            },
+        ],
+    }
+
     # Build complete message list
     messages = [
         system_msg,
         ex_a_user, ex_a_asst,  # Teach Pattern A
         ex_b_user, ex_b_asst,  # Teach Pattern B
         ex_c_user, ex_c_asst,  # Teach Pattern C
-        ex_e_user, ex_e_asst,  # Teach Pattern E: age-gender + summarize + search
+        ex_e_user, ex_e_asst,  # age-gender + summarize + TEXT search
         ex_e2_user, ex_e2_asst,
-        ex_f_user, ex_f_asst,  # age-gender + image_embeddings (parallel path)
+        ex_f_user, ex_f_asst,  # age-gender + image_embeddings (CLIP)
+        ex_g_user, ex_g_asst,  # UFDR + CLIP + summarize
+        ex_h_user, ex_h_asst,  # summarize + text search (disambiguation)
         ex_d_user, ex_d_asst,
         {"role": "user", "content": user_query}  # Real Query
     ]

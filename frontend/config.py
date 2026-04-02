@@ -47,7 +47,7 @@ DEMO_FOLDER_NAMES = ['demo1', 'demo2', 'demo3', 'demo4', 'demo5', 'demo6', 'demo
 
 # Browsable tree on /demo (inputs/outputs samples). Override with RESCUEBOX_DEMO_FILES_DIR.
 DEMO_FILES_BROWSE_ROOT = Path(
-    os.getenv('RESCUEBOX_DEMO_FILES_DIR', str(DEMO_FOLDERS_BASE / 'demo'))
+    os.getenv('RESCUEBOX_DEMO_FILES_DIR', str(DEMO_FOLDERS_BASE / 'demo10'))
 ).expanduser()
 
 # Reconnect timeout (seconds) before client is deleted; 1 hour keeps demo folder for entire demo

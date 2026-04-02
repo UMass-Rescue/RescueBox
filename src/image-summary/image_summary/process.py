@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, List, Set
+from typing import Iterable, List
 import logging
 
 from .model import ensure_model_exists, describe_image, describe_images_batch
@@ -11,18 +11,34 @@ SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"}
 
 
 def iter_image_files(directory: Path, file_filter: List[Path]) -> Iterable[Path]:
-    # Resolve paths so chained pipeline paths match directory.iterdir() reliably.
-    allowed = {p.resolve() for p in file_filter}
-    for path in directory.iterdir():
-        if (
-            path.is_file()
-            and path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
-            and path.resolve() in allowed
-        ):
+    """
+    Yield image paths to process. When ``file_filter`` is non-empty (e.g. pipeline / CLIP order),
+    preserve that order. When empty, scan the directory in stable name order.
+    """
+    directory = directory.resolve()
+    if file_filter:
+        seen: set[Path] = set()
+        for p in file_filter:
+            rp = p.resolve()
+            if rp in seen:
+                continue
+            seen.add(rp)
+            if (
+                rp.is_file()
+                and rp.parent.resolve() == directory
+                and rp.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
+            ):
+                yield rp
+        return
+    for path in sorted(
+        (x for x in directory.iterdir() if x.is_file()),
+        key=lambda p: p.name.lower(),
+    ):
+        if path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS:
             yield path
 
 
-def process_images(model: str, input_dir: str, output_dir: str, file_filter: List[Path]) -> Set[str]:
+def process_images(model: str, input_dir: str, output_dir: str, file_filter: List[Path]) -> List[str]:
     logger.info(
         "ImageSummary: start | model=%s | input_dir=%s | output_dir=%s", model, input_dir, output_dir
     )
@@ -36,7 +52,7 @@ def process_images(model: str, input_dir: str, output_dir: str, file_filter: Lis
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    processed_files: Set[str] = set()
+    processed_files: List[str] = []
     images = list(iter_image_files(input_path, file_filter))
     logger.info(f"ImageSummary: discovered {len(images)} image(s) to process")
     for image_path in images:
@@ -48,7 +64,7 @@ def process_images(model: str, input_dir: str, output_dir: str, file_filter: Lis
             out_file = output_path / (image_path.name + ".txt")
             logger.info(f"ImageSummary: writing output -> {out_file.name}")
             out_file.write_text(summary_text, encoding="utf-8")
-            processed_files.add(str(out_file))
+            processed_files.append(str(out_file))
             logger.info(f"ImageSummary: done -> {image_path.name}")
         except Exception as e:
             logger.error(f"ImageSummary: error processing {image_path.name}: {e}")
@@ -59,7 +75,7 @@ def process_images(model: str, input_dir: str, output_dir: str, file_filter: Lis
     return processed_files
 
 
-def process_images_batch(model: str, input_dir: str, output_dir: str, file_filter: List[Path]) -> Set[str]:
+def process_images_batch(model: str, input_dir: str, output_dir: str, file_filter: List[Path]) -> List[str]:
     """
     Like :func:`process_images`, but uses chunked multi-image Ollama requests
     (chunk size: env ``IMAGE_SUMMARY_MAX_IMAGES_PER_BATCH``) with up to five
@@ -85,7 +101,7 @@ def process_images_batch(model: str, input_dir: str, output_dir: str, file_filte
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    processed_files: Set[str] = set()
+    processed_files: List[str] = []
     images = list(iter_image_files(input_path, file_filter))
     logger.info("ImageSummary (batch): discovered %d image(s) to process", len(images))
     path_strs = [str(p) for p in images]
@@ -115,7 +131,7 @@ def process_images_batch(model: str, input_dir: str, output_dir: str, file_filte
             summary_text = summaries.get(key, "")
             out_file = output_path / (image_path.name + ".txt")
             out_file.write_text(summary_text, encoding="utf-8")
-            processed_files.add(str(out_file))
+            processed_files.append(str(out_file))
             logger.info("ImageSummary (batch): done -> %s", image_path.name)
         except Exception as e:
             logger.error("ImageSummary (batch): error writing %s: %s", image_path.name, e)

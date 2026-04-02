@@ -74,6 +74,14 @@ GRANITE_TOOL_PROMPTS = [
         "Semantic search text files for mentions of red vehicle near /data/text_export.",
     ),
     (
+        "image_embeddings/search_images",
+        "Image search the folder /photos/proofs for a young kid in a red jacket.",
+    ),
+    (
+        "ufdr_mounter/mount",
+        "Mount the forensic archive /data/evidence/case.ufdr at /mnt/case1 for browsing.",
+    ),
+    (
         "face-match/findfacebulk",
         "Find matching identities in the face gallery using probe images from /query/probes.",
     ),

@@ -1,9 +1,11 @@
 from typing import TypedDict, NotRequired
 import json
+import logging
 import os
 
 import typer
 from rb.lib.ml_service import MLService
+from rb.lib.utils import apply_torch_cpu_preference
 from rb.api.models import (
     FloatRangeDescriptor,
     InputSchema,
@@ -33,6 +35,7 @@ from sqlmodel import Session
 from sqlmodel import delete, select
 
 APP_NAME = "text_embeddings"
+logger = logging.getLogger(__name__)
 
 
 class Inputs(TypedDict):
@@ -94,10 +97,11 @@ with open(info_file_path, "r") as f:
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Text Embeddings",
-    author="UMass Rescue",
+    name="Search Text",
+    author="UMass RescueLab",
     version="3.0.0",
     info=info,
+    gpu=True,
 )
 
 
@@ -185,7 +189,8 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     Semantic search over text files. Embeds the directory if embeddings don't exist
     for the requested model, then runs cosine similarity search.
     """
-    import numpy as np
+    apply_torch_cpu_preference()
+    import torch
     from sentence_transformers import SentenceTransformer  # type: ignore
 
     input_dir = str(inputs["input_dir"].path)
@@ -215,7 +220,45 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             )
         )
 
-    model = SentenceTransformer(model_name)
+    cuda_ok = torch.cuda.is_available()
+    mps_ok = bool(getattr(torch.backends, "mps", None)) and torch.backends.mps.is_available()
+    if cuda_ok:
+        device = torch.device("cuda")
+    elif mps_ok:
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+
+    logger.info(
+        "SentenceTransformer runtime: cuda_available=%s mps_available=%s -> selected device=%s",
+        cuda_ok,
+        mps_ok,
+        device,
+    )
+    if cuda_ok and device.type == "cuda":
+        try:
+            idx = torch.cuda.current_device()
+            logger.info(
+                "CUDA GPU in use: name=%s index=%s",
+                torch.cuda.get_device_name(idx),
+                idx,
+            )
+        except Exception as e:
+            logger.debug("Could not read CUDA device name: %s", e)
+    elif device.type == "mps":
+        logger.info("Apple Metal (MPS) in use for SentenceTransformer")
+
+    model = SentenceTransformer(model_name, device=str(device))
+    try:
+        param_dev = next(model.parameters()).device
+    except Exception:
+        param_dev = device
+    logger.info(
+        "SentenceTransformer loaded on device=%s (parameter device=%s) model_name=%s",
+        device,
+        param_dev,
+        model_name,
+    )
 
     with Session(engine) as session:
         # Chunk-level storage: re-embed if model or chunk params changed

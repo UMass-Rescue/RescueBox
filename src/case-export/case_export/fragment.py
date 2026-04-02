@@ -1,22 +1,27 @@
 """
-Build a small JSON-LD @graph from a normalized job dict (uid, endpoint, times, request, response).
+Build JSON-LD @graph from a normalized job dict using the CASE-UCO Python SDK.
+
+See: https://github.com/vulnmaster/CASE-UCO-SDK — ``CASEGraph``, typed UCO/CASE classes,
+``graph.validate()`` when ``case-utils`` / ``case_validate`` is installed.
 """
 
 from __future__ import annotations
 
 import json
 import os
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
-# Namespace prefixes aligned with CASE/UCO public documentation (fragment-only; not SHACL-validated).
-_CONTEXT: Dict[str, Any] = {
-    "uco": "https://ontology.unifiedcyberontology.org/uco/",
-    "case": "https://ontology.caseontology.org/case/case/",
-    "kb": "http://rescuebox.org/kb/",
-    "rb": "http://rescuebox.org/ns/",
-    "xsd": "http://www.w3.org/2001/XMLSchema#",
-}
+from case_uco import CASEGraph
+from case_uco.case.investigation import InvestigativeAction, ProvenanceRecord
+from case_uco.uco.analysis import ArtifactClassification, ArtifactClassificationResultFacet
+from case_uco.uco.core import Assertion
+from case_uco.uco.observable import Directory, File, FileFacet
+from case_uco.uco.tool import AnalyticTool, Tool
+
+KB_PREFIX = "http://rescuebox.org/kb/"
+RB_NS = "http://rescuebox.org/ns/"  # @context prefix for rb: properties on export nodes
 
 
 def _json_safe(obj: Any) -> Any:
@@ -75,10 +80,22 @@ def _extract_output_paths(response: Any) -> List[str]:
                     paths.append(str(f["path"]))
         elif ot == "file" and root.get("path"):
             paths.append(str(root["path"]))
-        elif ot == "text" and root.get("value"):
-            # keep snippet only in summary, not as path
-            pass
     return paths
+
+
+def _extract_input_dir_paths(request: Any) -> List[str]:
+    out: List[str] = []
+    if not request or not isinstance(request, dict):
+        return out
+    ins = request.get("inputs") or {}
+    if not isinstance(ins, dict):
+        return out
+    for v in ins.values():
+        if isinstance(v, dict) and v.get("path"):
+            p = str(v.get("path"))
+            if p and os.path.isdir(p):
+                out.append(p)
+    return out
 
 
 def _output_summary(response: Any) -> Dict[str, Any]:
@@ -101,12 +118,77 @@ def _output_summary(response: Any) -> Dict[str, Any]:
     return {"repr": str(response)[:1500]}
 
 
+def _kb_id(path: str, prefix: str) -> str:
+    import hashlib
+
+    h = hashlib.sha256(path.encode("utf-8")).hexdigest()[:16]
+    return f"kb:{prefix}-{h}"
+
+
+def _endpoint_slug(endpoint: str) -> str:
+    s = (endpoint or "unknown").replace("/", "_").replace(" ", "_")
+    return s[:120] if len(s) > 120 else s
+
+
+def _ordered_pipeline_endpoints(endpoint: str, chain: Any) -> List[str]:
+    """
+    Ordered list of RescueBox plugin endpoints for this job (pipeline + final).
+    Used to emit one ``uco-tool:AnalyticTool`` per step on ``uco-action:instrument``.
+    """
+    out: List[str] = []
+    if isinstance(chain, list):
+        for x in chain:
+            s = str(x).strip() if x is not None else ""
+            if s and s not in out:
+                out.append(s)
+    ep = str(endpoint or "").strip()
+    if ep and ep not in out:
+        out.append(ep)
+    if not out and ep:
+        out = [ep]
+    return out if out else ["unknown"]
+
+
+def _map_action_status(status: str) -> str:
+    s = (status or "").strip().lower()
+    if s in ("completed", "success", "succeeded"):
+        return "Success"
+    if s in ("failed", "error"):
+        return "Fail"
+    if s in ("running", "pending", "queued"):
+        return "Ongoing"
+    return "Unknown"
+
+
+def _parse_datetime(s: Any) -> datetime | None:
+    if not s or not isinstance(s, str):
+        return None
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def _file_facet(path: str, *, is_dir: bool) -> FileFacet:
+    p = Path(path)
+    name = p.name or path
+    ext = p.suffix.lstrip(".") if p.suffix else None
+    facet = FileFacet(
+        file_path=[str(path)],
+        file_name=[name],
+        is_directory=[is_dir],
+    )
+    if ext:
+        facet.extension = ext
+    return facet
+
+
 def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Return a JSON-LD document with @context and @graph describing one RescueBox job run.
+    Return JSON-LD with @context and @graph for one RescueBox job using ``CASEGraph``.
 
-    Uses uco:Action for the forensic processing step and uco:CyberObservable (simplified
-    as bare file path references) for batch outputs when paths are known.
+    Adds ``rb:requestSummary``, ``rb:outputSummary``, and ``rb:artifactPaths`` on the
+    ``InvestigativeAction`` node for app compatibility.
     """
     uid = str(job.get("uid") or "unknown")
     endpoint = job.get("endpoint") or ""
@@ -133,38 +215,135 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(response, dict):
         response = _json_safe(response)
 
-    action_id = f"kb:rescuebox-job-{uid}"
-    tool_id = "kb:tool-rescuebox"
+    action_status = _map_action_status(status)
+    req_summary = _summarize_request(request)
+    out_summary = _output_summary(response)
+    output_paths = _extract_output_paths(response)
+    input_dir_paths = _extract_input_dir_paths(request)
 
-    graph: List[Dict[str, Any]] = [
-        {
-            "@id": tool_id,
-            "@type": "uco:Tool",
-            "uco:name": "RescueBox",
-            "uco:version": "3.0.0",
+    slug = _endpoint_slug(str(endpoint))
+    inv_id = f"kb:inv-{uid}"
+    result_id = f"kb:result-{uid}"
+    prov_id = f"kb:provenance-{uid}"
+
+    graph = CASEGraph(
+        kb_prefix=KB_PREFIX,
+        extra_context={
+            "rb": RB_NS,
+            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
         },
+    )
+
+    tool_rb = graph.create(
+        Tool,
+        id="kb:tool-rescuebox",
+        name="RescueBox",
+        version="3.0.0",
+    )
+    # One UCO AnalyticTool per pipeline step — each is an action:instrument (UCO action:instrument).
+    pipeline_eps = _ordered_pipeline_endpoints(str(endpoint), chain)
+    instruments: List[Any] = []
+    for ep_step in pipeline_eps:
+        slug_step = _endpoint_slug(ep_step)
+        instruments.append(
+            graph.create(
+                AnalyticTool,
+                id=f"kb:instrument-{slug_step}",
+                name=ep_step,
+                tool_type="RescueBox plugin endpoint",
+            )
+        )
+
+    ac = graph.create(
+        ArtifactClassification,
+        id=f"kb:artifact-class-{uid}",
+        class_=[str(endpoint or "unknown")],
+    )
+    acrf = graph.create(
+        ArtifactClassificationResultFacet,
+        id=f"kb:acrf-{uid}",
+        classification=[ac],
+    )
+
+    summary_text = json.dumps(
         {
-            "@id": action_id,
-            "@type": "uco:Action",
-            "uco:name": f"Plugin run: {endpoint or 'unknown'}",
-            "uco:description": json.dumps(
-                {
-                    "endpoint": endpoint,
-                    "endpointChain": chain,
-                    "status": status,
-                    "startTime": start,
-                    "endTime": end,
-                },
+            "endpoint": endpoint,
+            "endpointChain": chain,
+            "status": status,
+            "output": out_summary,
+        },
+        ensure_ascii=False,
+    )[:8000]
+    result_assertion = graph.create(
+        Assertion,
+        id=result_id,
+        name=f"RescueBox job result {uid}",
+        description=[summary_text],
+        has_facet=[acrf],
+    )
+
+    st = _parse_datetime(str(start) if start else "")
+    et = _parse_datetime(str(end) if end else "")
+
+    inv_action = graph.create(
+        InvestigativeAction,
+        id=inv_id,
+        name=f"RescueBox job: {endpoint or 'unknown'}",
+        description=[
+            json.dumps(
+                {"endpoint": endpoint, "endpointChain": chain, "status": status},
                 ensure_ascii=False,
-            ),
-            "uco:performer": {"@id": tool_id},
-            "rb:requestSummary": _summarize_request(request),
-            "rb:outputSummary": _output_summary(response),
-            "rb:artifactPaths": _extract_output_paths(response),
-        },
-    ]
+            )
+        ],
+        performer=tool_rb,
+        instrument=instruments,
+        result=[result_assertion],
+        action_status=[action_status],
+        start_time=st,
+        end_time=et,
+    )
 
-    return {"@context": _CONTEXT, "@graph": graph}
+    dir_paths: Set[str] = set(input_dir_paths)
+    for op in output_paths:
+        try:
+            parent = str(Path(op).parent)
+            if parent and parent != op:
+                dir_paths.add(parent)
+        except Exception:
+            pass
+
+    observables: List[Any] = []
+    for p in output_paths:
+        ff = _file_facet(p, is_dir=False)
+        observables.append(graph.create(File, id=_kb_id(p, "file"), has_facet=[ff]))
+
+    for d in sorted(dir_paths):
+        ff = _file_facet(d, is_dir=True)
+        observables.append(graph.create(Directory, id=_kb_id(d, "dir"), has_facet=[ff]))
+
+    # Provenance bundle: action, result, classification, platform tool, each instrument, observables
+    prov_objects: List[Any] = [inv_action, result_assertion, ac, tool_rb]
+    prov_objects.extend(instruments)
+    prov_objects.extend(observables)
+
+    graph.create(
+        ProvenanceRecord,
+        id=prov_id,
+        exhibit_number=f"RB-JOB-{uid}",
+        description=["Provenance bundle linking RescueBox investigative action to observables."],
+        object=prov_objects,
+    )
+
+    doc = json.loads(graph.serialize())
+    # Attach RescueBox extension properties for existing consumers (prefix from @context)
+    for node in doc.get("@graph", []):
+        if node.get("@id") == inv_id:
+            node["rb:requestSummary"] = req_summary
+            node["rb:outputSummary"] = out_summary
+            node["rb:artifactPaths"] = output_paths
+            break
+
+    return doc
 
 
 def build_jsonld_text(job: Dict[str, Any]) -> str:

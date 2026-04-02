@@ -30,7 +30,7 @@ Use the **numbered tool picker** first so you see each plugin’s form on its ow
 
 1. Open **📋 Menu** again.
 2. Choose **🔍 Detect Deepfakes** — **`deepfake_detection/predict`** (often option **4**).
-3. Browse and  set inputs at  folder  **deepfake-detection/inputs** , outputs at **deepfake-detection/outputs**,  **submit**, and review the job output.
+3. Browse and  set inputs at  folder  **detect-deepfake/inputs** , outputs at **detect-deepfake/outputs**,  **submit**, and review the job output.
 
 ---
 
@@ -44,22 +44,22 @@ or
 
 **Examples:**
 
-- Ask to **classify age and gender** for faces in a folder, 
-   e.g. *Run age and gender on the photos in /tmp*.
-- Ask to **check for deepfakes***.
+- Type in request to **classify age and gender** for faces in a folder, 
+   e.g. **Run age and gender on the photos in /tmp**.
+- Type in request to **find deepfakes***.
 
-Confirm the assistant proposes the right tool, fill any **Browse** fields, and **Submit Job** as usual.
+Confirm the assistant proposes the right tool, fill **Browse** fields, and **Submit Job** as usual.
 
 ---
 
-## Part C — Complex pipeline: age/gender + summarize + filter dialog
+## Part C — Pipeline: age/gender + summarize 
 
-When a single prompt implies **more than one plugin** in sequence (for example **age/gender** then **describe/summarize images**), RescueBox workflow:
+When a single prompt implies **more than one plugin** in sequence (for example **age/gender** then **describe/summarize images**), RescueBox runs such workflows in a pipeline:
 
    
 **Try this prompt** :
 
-> **Detect age and gender of photos in `/tmp` and summarize**
+**Detect age and gender of photos in `/tmp` and summarize**
 
 1. Run the **first** job (e.g. **`age-gender/predict`**) and collect per-file metadata.
   --you set form inputs  "age-gender-classifier/inputs" , **Submit**" add case notes
@@ -68,15 +68,18 @@ When a single prompt implies **more than one plugin** in sequence (for example *
    --you enter "Gender=Male, Age=<10"
 
 
-What to expect:
+**What to expect:**
+
+First run age-gender classifier find images that match gender/age filter and then summarize these matched images.
 
 - The assistant plans a **pipeline**: typically **`age-gender/predict`** first, then **`image_summary/summarize-images`** 
-- After the age/gender job completes, the **dialog** appears with:
-  - Short help text, e.g. *e.g. Gender:Female, Age:>30. Leave empty to use all.*
-  - A text field with placeholder like **`Gender:Female, Age:>30`**
-  
 
-Then complete the **next** form (output folder, model choice if shown), **submit**, and open the job to read summaries for the filtered set.
+- After the age/gender job completes, the **dialog** appears with:
+  -  e.g. *e.g. Gender:Female, Age:>30. Leave empty to use all.* 
+
+- Then complete the **next** form , notice input dir is set to the same inputs from previous step , this is desired, you set the output folder
+
+- **submit**, and open the job to read summaries for the filtered set. 
 
 ---
 
