@@ -480,7 +480,7 @@ url = "src/case-export"
 
 [[package]]
 name = "case-uco"
-version = "1.8.0"
+version = "1.9.0"
 description = "Standard library for constructing CASE/UCO ontology graphs"
 optional = false
 python-versions = ">=3.9"
@@ -499,8 +499,8 @@ validation = ["case-utils (>=0.15.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/vulnmaster/CASE-UCO-SDK.git"
-reference = "v1.8.0"
-resolved_reference = "7ea1c32acba0a7f4e3b98b60bf2fadf81b43e49d"
+reference = "v1.9.0"
+resolved_reference = "1345429fbcbe075f1b143dbbc53f4a374a0ccefd"
 subdirectory = "python"
 
 [[package]]
@@ -7189,4 +7189,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "68cb032ac0a3e8647647cdec217067e1cb7eced83573dc74dc0bb9d72f8d7847"
+content-hash = "7329d0c3dfa00a69ab1ee4f642d1f7ea026f807d9129f475170e2d4b3e5835c9"

@@ -46,7 +46,7 @@ image-summary = { path = "src/image-summary", develop = true }
 text-embeddings = { path = "src/text-embeddings", develop = true }
 image-embeddings = { path = "src/image-embeddings", develop = true }
 case-export = { path = "src/case-export", develop = true }
-case-uco = { git = "https://github.com/vulnmaster/CASE-UCO-SDK.git", rev = "v1.8.0", subdirectory = "python" }
+case-uco = { git = "https://github.com/vulnmaster/CASE-UCO-SDK.git", rev = "v1.9.0", subdirectory = "python" }
 
 # Don't add new packages here, add them appropriately in the list above
 beautifulsoup4 = "^4.13.3"
