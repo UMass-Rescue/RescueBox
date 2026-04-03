@@ -465,6 +465,10 @@ if __name__ in {"__main__", "__mp_main__"}:
     # Register the startup handler. This is the compatible way for older NiceGUI versions.
     app.on_startup(prefetch_and_cache_models)
 
+    from frontend.utils.ui_readability_css import inject_global_readability_css
+
+    app.on_startup(inject_global_readability_css)
+
     # Add global error handling for unhandled exceptions
     @app.exception_handler(Exception)
     async def global_exception_handler(request, exc):

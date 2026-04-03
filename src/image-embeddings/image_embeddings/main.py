@@ -43,6 +43,23 @@ class Parameters(TypedDict):
     top_k: int
     min_similarity: float
 
+'''
+
+ EnumVal(key="openai/clip-vit-large-patch14", label="CLIP ViT-L/14 (Large)"),
+ issue 
+ 026-04-03 12:32:39 | INFO     | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-03 12:32:39 | DEBUG    | sqlalchemy.pool.impl.QueuePool | Connection <connection object at 0xe8d246880540; dsn: 'user=rbuser password=xxx dbname=rescuebox host=127.0.0.1 port=5433', closed: 0> being returned to pool
+2026-04-03 12:32:39 | DEBUG    | sqlalchemy.pool.impl.QueuePool | Connection <connection object at 0xe8d246880540; dsn: 'user=rbuser password=xxx dbname=rescuebox host=127.0.0.1 port=5433', closed: 0> rollback-on-return
+2026-04-03 12:32:39 | ERROR    | rb.api.routes.cli | Error: (psycopg2.errors.DataException) different vector dimensions 512 and 768
+
+[SQL: 
+                    SELECT id, path, 1 - (embedding <=> CAST(%(qvec)s AS vector)) AS similarity
+                    FROM image_embeddings
+
+fix : Because you cannot "convert" 512-dim vectors to 768-dim vectors without losing mathematical 
+accuracy, you must clear the old embeddings and  re-process your images using the Large model.
+
+'''
 
 def task_schema() -> TaskSchema:
     input_dir_schema = InputSchema(
@@ -59,7 +76,6 @@ def task_schema() -> TaskSchema:
     model_enum = EnumParameterDescriptor(
         enum_vals=[
             EnumVal(key="openai/clip-vit-base-patch32", label="CLIP ViT-B/32 (Base)"),
-            EnumVal(key="openai/clip-vit-large-patch14", label="CLIP ViT-L/14 (Large)"),
         ],
         default="openai/clip-vit-base-patch32",
     )

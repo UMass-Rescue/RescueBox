@@ -13,19 +13,33 @@
 RescueBox Desktop connects your browser to **plugins** (AI/ML tools for images, audio, text) to help with forensics  analysis.
 You choose a plugin, fill in paths and options, run a **job**, then inspect **results** in **Jobs**
 
+
+## Navbar 
+
+This navigation bar is useful to navigate for daily use.
+{{SCREENSHOT:navbar.png}}
+
+
 ## Home screen
 
-The welcome page lists the main actions. **Browse Plugins** opens the plugin details;
-**Open Assistant** opens guided chat and forms.
+- When you **start RescueBox for the first time**, enter a **unique user id**. It ties jobs to your browser session. 
+
+{{SCREENSHOT:user_id.png}}
+
+The welcome page lists the main actions. 
+
+-- **Browse Plugins** opens the plugin details;
+
+-- **Open Assistant** opens menu based or chat format options to run plugins.
 
 
 {{SCREENSHOT:rescuebox_home.png}}
 
 ---
 
-## Available Plugins
+## Available Plugins description.
 
-1. Open **[Browse Plugins](/models)** from the nav bar.
+1. Open **[Browse Plugins](/models)**.
 2. Each plugin card shows **Online** / **Offline**, version, and author.
 3. Click **README** for **Plugin Details** — plugin documentation (inputs, outputs, notes).
 
@@ -33,23 +47,18 @@ The welcome page lists the main actions. **Browse Plugins** opens the plugin det
 
 ## Running plugins
 
-**RescueBox Assistant** — Open **[Assistant](/models)**, use the **tool picker** to select a plugin. Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then submit and track the job under **Jobs**.
+**RescueBox Assistant** — Open **Assistant**, click the **Menu** button to select a plugin. Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then submit and track the job under **Jobs**.
 
-**RescueBox Assistant** — Open **[Assistant](/chatbot)**, **prompt the task**, to get a input form , Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then submit and track the job under **Jobs**.
+**RescueBox Assistant** — Open **[Assistant](/chatbot)**, **type in a prompt**, to get a input form , Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then submit and track the job under **Jobs**.
 
-**Direct runs** — use slash commands to open a plugin **input form** directly; run with **Submit Job** after filling up the input form.
-
-Tip : http://localhost:11000/ **to see GPU usage metrics**
 ---
 
 ## Jobs
 
 Open **[Jobs](/jobs)** for results and status. Open a job to see **results** (files, text, tables, previews).
 
-- When you **start RescueBox for the first time**, enter a **unique user id**. It ties jobs to you. 
-   If you use another browser or machine and need the same history, enter that same id again. {{SCREENSHOT:user_id.png}}
-
 - When a job is submitted, **case notes** can be added; they appear in the job output.
+
 - Deleting a job removes its results permanently.
 
 ---

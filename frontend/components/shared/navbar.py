@@ -60,8 +60,8 @@ def create_navbar():
         )
 
         _link_cls = (
-            'text-white hover:underline px-1 py-0 sm:px-1.5 sm:py-0.5 rounded '
-            'hover:bg-blue-700 text-xs whitespace-nowrap leading-none'
+            'text-white hover:underline px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded '
+            'hover:bg-blue-700 !text-sm sm:!text-base whitespace-nowrap !leading-snug'
         )
 
         with ui.row().classes(
@@ -79,11 +79,11 @@ def create_navbar():
                 )
                 with ui.row().classes('items-baseline gap-2 min-w-0'):
                     ui.label(APP_TITLE).classes(
-                        'text-sm sm:text-base font-bold leading-tight text-white '
-                        'truncate min-w-0 max-w-[10rem] sm:max-w-[14rem]'
+                        '!text-base sm:!text-lg lg:!text-xl font-bold !leading-tight text-white '
+                        'truncate min-w-0 max-w-[12rem] sm:max-w-[16rem] lg:max-w-[18rem]'
                     )
                     ui.label(APP_VERSION).classes(
-                        'text-xs sm:text-sm font-medium text-blue-100 shrink-0'
+                        '!text-sm sm:!text-base font-medium text-blue-100 shrink-0'
                     )
 
             with ui.row().classes('min-w-0 flex-1 justify-end items-center'):
@@ -93,11 +93,12 @@ def create_navbar():
                 ):
                     #logger.debug("Creating navigation links row")
 
-                    ui.link('Browse Plugins', '/models').classes(_link_cls)
+                    
                     ui.link('Assistant', '/chatbot').classes(_link_cls)
                     ui.link('Jobs', '/jobs').classes(_link_cls)
                     ui.link('Logs', '/logs').classes(_link_cls)
                     ui.link('Demo', '/demo').classes(_link_cls)
+                    ui.link('Browse Plugins', '/models').classes(_link_cls)
 
                 # Session display removed for demo safety (avoids accidental user actions)
 

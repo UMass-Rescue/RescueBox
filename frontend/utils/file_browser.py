@@ -184,7 +184,7 @@ class DirectoryBrowser:
         self._render_directory_tree(path)
 
     def _render_directory_tree(self, current_path: str):
-        """Render directory listing - show only folders at current level."""
+        """Render directory listing: subfolders (navigable) then files in this folder (read-only rows)."""
         self.file_list.clear()
         self.state['current_path'] = current_path
 
@@ -204,30 +204,34 @@ class DirectoryBrowser:
                     on_click=lambda p=parent_path: self._navigate_to_directory(p)
                 ).classes('w-full justify-start p-3 hover:bg-blue-50 border-b border-gray-100 text-blue-600').props('flat icon=arrow_upward prepend-icon')
 
-        # List directories at current level
         try:
-            directories = sorted([item for item in path_obj.iterdir() if item.is_dir()],
-                               key=lambda x: x.name.lower())
+            items = sorted(path_obj.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
+            directories = [p for p in items if p.is_dir()]
+            files = [p for p in items if p.is_file()]
 
             for directory in directories:
                 dir_path = str(directory)
                 with self.file_list:
-                    # Row makes it easy to left-align contents; make it clickable
                     row = ui.row().classes('w-full items-center p-3 hover:bg-blue-50 border-b border-gray-100 cursor-pointer')
-                    # bind click to navigate
                     try:
                         row.on('click', lambda e, p=dir_path: self._navigate_to_directory(p))
                     except Exception:
-                        # fallback if .on not supported in this environment
                         pass
                     with row:
                         ui.icon('folder').classes('text-yellow-500 mr-3')
                         ui.label(directory.name).classes('truncate flex-1 text-left')
 
-            # If no directories, show message
-            if not directories:
+            for file_path in files:
                 with self.file_list:
-                    ui.label('No subdirectories').classes('text-gray-500 p-3 text-center')
+                    with ui.row().classes(
+                        'w-full items-center p-3 border-b border-gray-100 bg-gray-50/80'
+                    ):
+                        ui.icon('insert_drive_file').classes('text-gray-500 mr-3 shrink-0')
+                        ui.label(file_path.name).classes('truncate flex-1 text-left text-gray-700')
+
+            if not directories and not files:
+                with self.file_list:
+                    ui.label('Empty folder').classes('text-gray-500 p-3 text-center')
 
         except PermissionError:
             with self.file_list:

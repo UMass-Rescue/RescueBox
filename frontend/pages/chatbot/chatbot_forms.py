@@ -128,12 +128,18 @@ async def show_tool_selection(container: ui.element, endpoint: str):
             # Safety: ensure container still valid before creating fallback UI
             _ = container.client
             with container:
-                with ui.card().classes('w-full max-w-sm bg-blue-50 shadow-sm'):
-                    with ui.row().classes('p-3 items-center gap-2 flex-wrap'):
-                        ui.label('🤖 Assistant').classes('font-medium text-sm')
-                        ui.label(f"I'll use {endpoint} to help you.").classes('')
-                        ui.label('🔧 Selected Tool').classes('font-medium text-sm')
-                        ui.label(endpoint).classes('text-sm text-gray-600')
+                with ui.card().classes('w-full max-w-2xl bg-blue-50 shadow-sm'):
+                    with ui.column().classes('p-4 gap-2 w-full min-w-0'):
+                        ui.label('🤖 Assistant').classes('font-semibold !text-base sm:!text-lg text-blue-900')
+                        ui.label(f"I'll use {endpoint} to help you.").classes(
+                            '!text-base sm:!text-lg leading-snug text-gray-800'
+                        )
+                        ui.label('🔧 Selected Tool').classes(
+                            'font-semibold !text-base sm:!text-lg text-blue-900 mt-1'
+                        )
+                        ui.label(endpoint).classes(
+                            '!text-base sm:!text-lg font-mono text-gray-700 break-all'
+                        )
             logger.debug("Tool selection message displayed (fallback)")
         except RuntimeError:
             logger.warning("Skipping fallback tool selection: UI client was deleted")

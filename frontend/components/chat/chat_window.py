@@ -12,8 +12,10 @@ def render_welcome_message(container: ui.element) -> None:
     with container:
         with ui.card().classes('w-full max-w-sm bg-blue-50 shadow-sm'):
             with ui.column().classes('p-3 gap-1'):
-                ui.label('🤖 Assistant').classes('font-medium text-sm')
-                ui.label('New conversation started. How can I help you?').classes('text-sm text-gray-700')
+                ui.label('🤖 Assistant').classes('font-medium !text-base')
+                ui.label('New conversation. How can I help you?').classes(
+                    '!text-base !leading-relaxed text-gray-700'
+                )
 
 
 def create_chat_window() -> Any:

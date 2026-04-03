@@ -25,46 +25,32 @@ logger.setLevel(logging.INFO)
 _SERVED_FILES: Dict[str, Dict] = {}
 _SERVE_ROUTE_REGISTERED = False
 
+SERVE_TTL = 300  # seconds
 
-def open_file(file_path: str):
-    """
-    Serve file via HTTP and navigate the client to it.
+# Extensions for which we show an in-app preview dialog (stay on results page + open folder).
+_IMAGE_PREVIEW_EXTENSIONS = frozenset({
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tif', '.tiff', '.svg',
+})
 
-    This approach provides consistent behavior across desktop and container
-    environments by serving files through the app and directing the browser to
-    the served URL. Tokens expire after SERVE_TTL seconds and are cleaned up
-    on each serve request.
-    """
-    logger.debug("Serving file via HTTP: %s", file_path)
 
-    SERVE_TTL = 300  # seconds
+def _ensure_serve_route_registered() -> None:
     global _SERVE_ROUTE_REGISTERED
-
-    def _cleanup_expired():
-        now = time.time()
-        expired = [t for t, info in _SERVED_FILES.items() if now - info.get('created', 0) > SERVE_TTL]
-        for t in expired:
-            _SERVED_FILES.pop(t, None)
 
     async def _serve_file_endpoint(_request: Request, token: str, filename: str):
         info = _SERVED_FILES.get(token)
         if not info:
             raise HTTPException(status_code=404)
-        # ensure token is not expired
         if time.time() - info.get('created', 0) > SERVE_TTL:
             _SERVED_FILES.pop(token, None)
             raise HTTPException(status_code=404)
         path = info.get('path')
-        # verify path exists
         if not path or not os.path.exists(path):
             raise HTTPException(status_code=404)
-        # security: confirm requested filename matches actual file basename
         expected_basename = os.path.basename(path)
         if filename != expected_basename:
             raise HTTPException(status_code=404)
         return FileResponse(path)
 
-    # Register the single serving route once
     if not _SERVE_ROUTE_REGISTERED:
         try:
             app.add_api_route('/_serve/{token}/{filename}', _serve_file_endpoint, methods=['GET'])
@@ -72,25 +58,74 @@ def open_file(file_path: str):
         except Exception as e:
             logger.error("Failed to register serve route: %s", e)
 
-    # Cleanup expired tokens
-    _cleanup_expired()
 
-    # Reuse existing token if the path is already served
+def _cleanup_expired_served_files() -> None:
+    now = time.time()
+    expired = [t for t, info in _SERVED_FILES.items() if now - info.get('created', 0) > SERVE_TTL]
+    for t in expired:
+        _SERVED_FILES.pop(t, None)
+
+
+def _serve_route_for_path(file_path: str) -> str:
+    """
+    Register ``file_path`` for HTTP serving (or reuse an existing token) and
+    return the app-relative URL ``/_serve/{token}/{basename}``.
+    """
+    _ensure_serve_route_registered()
+    _cleanup_expired_served_files()
+
     for token, info in _SERVED_FILES.items():
         if info.get('path') == file_path:
-            route = f"/_serve/{token}/{os.path.basename(file_path)}"
-            try:
-                ui.navigate.to(route)
-                logger.debug("Navigating to existing served file route %s", route)
-            except Exception as e:
-                logger.error("Failed to navigate to existing route %s: %s", route, e)
-                ui.notify(f'Error opening file: {str(e)}', type='negative')
-            return
+            return f"/_serve/{token}/{os.path.basename(file_path)}"
 
-    # Create new token and serve
     token = uuid.uuid4().hex
     _SERVED_FILES[token] = {'path': file_path, 'created': time.time()}
-    route = f"/_serve/{token}/{os.path.basename(file_path)}"
+    return f"/_serve/{token}/{os.path.basename(file_path)}"
+
+
+def _open_image_preview_dialog(file_path: str, route: str) -> None:
+    """Show image in a modal with path and quick access to the containing folder."""
+    folder = os.path.dirname(file_path)
+    name = os.path.basename(file_path)
+    with ui.dialog() as dialog, ui.card().classes('max-w-[95vw] w-full p-4'):
+        ui.label(name).classes('text-lg font-semibold')
+        # QImg defaults to fit=cover (crops); contain scales the whole image inside the box.
+        ui.image(route).props('fit=contain').classes('w-full max-h-[85vh]')
+        ui.label(file_path).classes('text-xs font-mono break-all text-gray-600')
+        with ui.row().classes('gap-2 flex-wrap mt-2'):
+            if folder:
+                ui.button('Open folder', icon='folder_open', on_click=lambda f=folder: open_folder(f)).props(
+                    'outline'
+                )
+            ui.button('Close', on_click=dialog.close)
+    dialog.open()
+
+
+def open_file(file_path: str):
+    """
+    Open a file for viewing.
+
+    Images are shown in an in-app dialog (served via ``/_serve/...``) with the
+    full path and an **Open folder** action to the parent directory. Other
+    file types still navigate the browser to the served URL directly.
+
+    Tokens expire after ``SERVE_TTL`` seconds and are cleaned up on each request.
+    """
+    logger.debug("Serving file via HTTP: %s", file_path)
+
+    try:
+        route = _serve_route_for_path(file_path)
+    except Exception as e:
+        logger.error("Failed to register served file: %s", e)
+        ui.notify(f'Error opening file: {str(e)}', type='negative')
+        return
+
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in _IMAGE_PREVIEW_EXTENSIONS:
+        logger.debug("Served file via HTTP at %s (image preview dialog)", route)
+        _open_image_preview_dialog(file_path, route)
+        return
+
     try:
         ui.navigate.to(route)
         logger.debug("Served file via HTTP at %s", route)

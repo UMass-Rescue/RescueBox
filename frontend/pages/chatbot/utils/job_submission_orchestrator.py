@@ -466,8 +466,10 @@ class JobSubmissionOrchestrator:
         with container:
             with ui.dialog() as dialog, ui.card().classes('w-[400px]'):
                 ui.label('Filter files before next step').classes('text-lg font-semibold')
-                ui.label('e.g. Gender:Female, Age:>30. Leave empty to use all.').classes('text-sm text-gray-600')
-                inp = ui.input(placeholder='Gender:Female, Age:>30').classes('w-full mt-2')
+                ui.label(
+                    'e.g. Gender:Female, Age:>30, or Age < 10 (spaces optional). Leave empty to use all.'
+                ).classes('text-sm text-gray-600')
+                inp = ui.input(placeholder='Gender:Female, Age < 10').classes('w-full mt-2')
                 with ui.row().classes('mt-4 gap-2'):
                     # Resolve value before closing so NiceGUI does not drop input state on close
                     ui.button('Use all', on_click=lambda: (_finish(''), dialog.close()))

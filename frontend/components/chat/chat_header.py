@@ -39,19 +39,27 @@ def create_chat_header(on_new_conversation: Callable, ui_state: dict, ui_styling
             # Mode indicator
             mode_indicator = ui.badge('Chat Assistant', color='green').classes('text-xs')
 
-        # Right side - Action buttons
+        # Right side — action buttons (global .q-btn uses tiny font; !text-* overrides on /chatbot)
+        _btn_lg = (
+            'px-5 py-2.5 rounded-lg !text-base sm:!text-lg font-medium shadow-sm '
+            'min-h-0'
+        )
         with ui.row().classes('items-center gap-3'):
-            models_btn = ui.button('📋 Menu').classes('bg-blue-500 text-white px-4 py-2 rounded-lg')
-            analyze_btn = ui.button('🧠 Chat').classes('bg-blue-500 text-white px-4 py-2 rounded-lg')
+            models_btn = ui.button('📋 Menu').classes(f'bg-blue-500 text-white {_btn_lg}')
+            analyze_btn = ui.button('🧠 Chat').classes(f'bg-blue-500 text-white {_btn_lg}')
             if on_show_history:
-                history_btn = ui.button('📜 History', on_click=on_show_history).classes('bg-gray-200')
+                history_btn = ui.button('📜 History', on_click=on_show_history).classes(
+                    f'bg-gray-200 text-gray-900 {_btn_lg}'
+                )
             else:
                 history_btn = ui.button(
                     '📜 History',
                     on_click=lambda: ui.notify('No history available', type='info'),
-                ).classes('bg-gray-200')
+                ).classes(f'bg-gray-200 text-gray-900 {_btn_lg}')
             history_btn.visible = user_has_job_history()
-            ui.button('New Conversation', on_click=on_new_conversation).classes('bg-blue-600 text-white')
+            ui.button('New Conversation', on_click=on_new_conversation).classes(
+                f'bg-blue-600 text-white {_btn_lg}'
+            )
 
     return mode_indicator, models_btn, analyze_btn, history_btn
 

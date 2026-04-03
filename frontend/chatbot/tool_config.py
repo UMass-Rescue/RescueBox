@@ -81,21 +81,22 @@ class UfdrMount(BaseModel):
 
 class TextSearch(BaseModel):
     """
-    Semantic search over plain text files (including caption .txt files produced by image_summary/summarize-images).
-    Use for 'search the summaries', 'search text for', 'find in descriptions' AFTER summaries exist in input_dir.
-    Do NOT use for searching raw pixels—use image_embeddings/search_images for visual/CLIP search.
+    Semantic search over plain text files only (e.g. .txt summaries from image_summary/summarize-images).
+    Use when the user explicitly searches text or written summaries, captions, or .txt description files.
+    Do NOT use when the user says "search these images", "search images for …", "search photos for …",
+    or "these pictures" as the set to search—those mean CLIP over pixels (image_embeddings/search_images), not text files.
     """
-    input_dir: str = Field(..., description="Folder of .txt files to search (often the image summary output_dir)")
-    query: str = Field(..., description="Text query over written content (e.g. 'kid with brown clothes')")
+    input_dir: str = Field(..., description="Folder of .txt/text files to search (typically image_summary output_dir)")
+    query: str = Field(..., description="Phrase to find in those text files")
 
 class ImageSearch(BaseModel):
     """
-    CLIP text-to-image search: ranks images in a folder by visual similarity to the query.
-    Use for 'image search', 'find images of', 'search photos for', visual match—reads pixels, not summary files.
-    Does not require image_summary first; input_dir is the folder of images (e.g. a mounted UFDR path).
+    CLIP text-to-image search: ranks images by visual similarity to the query (reads image pixels).
+    Use for 'search these images for …', 'search images for a young person', 'find … in photos',
+    'image search', and any query where the corpus is a folder of images—not .txt files.
     """
     input_dir: str = Field(..., description="Directory of image files to embed and search within")
-    query: str = Field(..., description="Visual/concept query for CLIP (e.g. 'young kid', 'red jacket')")
+    query: str = Field(..., description="What to look for visually (e.g. 'young person', 'red jacket', 'sunset')")
 
 # Legacy support for backward compatibility
 class RescueBoxToolCall(BaseModel):
@@ -126,8 +127,9 @@ SCHEMA_MAP = {
     "age-gender/predict": AgeGenderPredict,
     "text_summarization/summarize": TextSummarize,
     "image_summary/summarize-images": ImageSummarize,
-    "text_embeddings/search": TextSearch,
+    # List image (CLIP) search before text search so tool JSON order matches typical "search images" intent.
     "image_embeddings/search_images": ImageSearch,
+    "text_embeddings/search": TextSearch,
     "ufdr_mounter/mount": UfdrMount,
     "face-match/findfacebulk": FaceFindBulk,
     "face-match/bulkupload": FaceBulkUpload,
@@ -227,10 +229,14 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             "5. IMAGE SUMMARIZE (captions): image_summary/summarize-images writes text descriptions of images. "
             "Phrases: \"summarize images\", \"describe photos\", \"caption images\".\n"
             "6. TEXT SEARCH vs IMAGE SEARCH (do not confuse):\n"
-            "   - text_embeddings/search = semantic search over TEXT FILES (e.g. outputs of image_summary). "
-            "Use when the user wants to search written summaries/descriptions for a phrase.\n"
-            "   - image_embeddings/search_images = CLIP search over IMAGE PIXELS in a folder. "
-            "Use when the user says \"image search\", \"search images for\", \"find photos of\", visual similarity.\n"
+            "   - text_embeddings/search = search inside TEXT FILES (.txt), usually caption/summary outputs. "
+            "Use only when the user asks to search summaries/captions/written text, or the chain first ran image_summary "
+            "and then searches that output folder (see examples E, H).\n"
+            "   - image_embeddings/search_images = CLIP search over IMAGE PIXELS. "
+            "Use when the user mentions photos, images, pictures, \"in these photos\", \"find … in images\", or any "
+            "visual \"find X\" query over a folder of images—even if they say \"find\" without saying \"CLIP\".\n"
+            "   - If the user says \"find … in these photos\" or similar, choose image_embeddings/search_images, "
+            "NOT text_embeddings/search, unless they explicitly mean searching .txt summary files.\n"
             "7. BOTH summarize AND image-search on the same folder: emit image_summary/summarize-images AND "
             "image_embeddings/search_images with the SAME input_dir (same image folder); order mount first if UFDR applies.\n"
             "8. SUMMARIZE + TEXT SEARCH pipeline: If the user wants summaries AND to search those written descriptions, use "
@@ -329,7 +335,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             },
             {
                 "function": {
-                    "name": "text_embeddings/search",
+                    "name": "image_embeddings/search_images",
                     "arguments": {"input_dir": "/tmp/summaries", "query": "kid with brown clothes"}
                 }
             }
@@ -465,6 +471,42 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ],
     }
 
+    # Visual "find in photos" — CLIP only (no summarize, no text_embeddings)
+    ex_i_user = {
+        "role": "user",
+        "content": "find a young girl in these photos in /data/case/inputs",
+    }
+    ex_i_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "image_embeddings/search_images",
+                    "arguments": {"input_dir": "/data/case/inputs", "query": "young girl"},
+                }
+            },
+        ],
+    }
+
+    # "Search these images for …" — CLIP (phrase often misparsed as text search)
+    ex_j_user = {
+        "role": "user",
+        "content": "search these images for a young person in /evidence/album1",
+    }
+    ex_j_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "image_embeddings/search_images",
+                    "arguments": {"input_dir": "/evidence/album1", "query": "young person"},
+                }
+            },
+        ],
+    }
+
     # Build complete message list
     messages = [
         system_msg,
@@ -476,6 +518,8 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ex_f_user, ex_f_asst,  # age-gender + image_embeddings (CLIP)
         ex_g_user, ex_g_asst,  # UFDR + CLIP + summarize
         ex_h_user, ex_h_asst,  # summarize + text search (disambiguation)
+        ex_i_user, ex_i_asst,  # find in photos → image_embeddings only
+        ex_j_user, ex_j_asst,  # search these images for → image_embeddings only
         ex_d_user, ex_d_asst,
         {"role": "user", "content": user_query}  # Real Query
     ]

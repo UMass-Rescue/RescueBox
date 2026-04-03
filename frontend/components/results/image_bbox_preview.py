@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Tuple
 from nicegui import ui
 from PIL import Image, ImageDraw
 
-from frontend.components.results.results_utils import open_file
+from frontend.components.results.results_utils import open_file, open_folder
 from frontend.components.results.table_helpers import resolve_table_row_index
 
 logger = logging.getLogger(__name__)
@@ -112,12 +112,17 @@ def open_image_bbox_preview_dialog(abs_path: str, bbox: Tuple[int, int, int, int
         return
 
     heading = _subtitle_for_row(row) or os.path.basename(abs_path)
+    parent_dir = os.path.dirname(abs_path)
 
     with ui.dialog() as dialog, ui.card().classes('max-w-5xl w-full'):
         ui.label(heading[:200]).classes('text-lg font-semibold')
         ui.image(preview).classes('max-w-full h-auto')
-        with ui.row().classes('gap-2 mt-2'):
-            ui.button('Open file', on_click=lambda: open_file(abs_path))
+        ui.label(abs_path).classes('text-xs font-mono break-all text-gray-600')
+        with ui.row().classes('gap-2 mt-2 flex-wrap'):
+            if parent_dir:
+                ui.button('Open folder', icon='folder_open', on_click=lambda d=parent_dir: open_folder(d)).props(
+                    'outline'
+                )
             ui.button('Close', on_click=dialog.close)
     dialog.open()
 

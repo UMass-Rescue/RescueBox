@@ -8,9 +8,10 @@ def create_input_area(status_text_ref: Optional[object], on_send: Callable):
 
     Returns the container element that holds the input area.
     """
-    # Make the input area take the full available width; remove horizontal margins
-    # so the textarea can expand to the browser width when the page layout allows it.
-    input_area = ui.column().classes('w-full max-w-none bg-white border-t shadow-lg p-2 mb-2 rounded-t-lg')
+    # rb-chat-input-area: global CSS in ui_readability_css.py bumps label/textarea/button/status
+    input_area = ui.column().classes(
+        'rb-chat-input-area w-full max-w-none bg-white border-t shadow-lg p-2 mb-2 rounded-t-lg'
+    )
 
     with input_area:
         # Put the textarea on its own full-width row so it can expand comfortably.
@@ -18,16 +19,18 @@ def create_input_area(status_text_ref: Optional[object], on_send: Callable):
             input_field = ui.textarea(
                 label='Type your request',
                 placeholder='Type in a rescuebox task...or /help'
-            ).classes('w-full min-w-0 p-3').props('rows=4')
+            ).classes('w-full min-w-0 p-3 !text-base').props('rows=4')
 
         # Controls row: send button and status; kept compact below the textarea.
         with ui.row().classes('w-full items-center gap-3 mt-2'):
-            send_button = ui.button('Send', on_click=on_send).classes('bg-blue-600 text-white px-4 py-2')
+            send_button = ui.button('Send', on_click=on_send).classes(
+                'bg-blue-600 text-white px-5 py-2 !text-base font-medium min-h-0'
+            )
 
             # Status and spinner
             with ui.row().classes('items-center gap-2 px-2'):
-                status_spinner = ui.spinner(size='sm').classes('text-blue-600')
-                status_label = ui.label().classes('text-sm text-gray-600')
+                status_spinner = ui.spinner(size='1.25rem').classes('text-blue-600')
+                status_label = ui.label().classes('!text-base text-gray-600')
                 if status_text_ref:
                     status_spinner.bind_visibility_from(status_text_ref, 'is_processing')
                     status_label.bind_text_from(status_text_ref, 'status_text')

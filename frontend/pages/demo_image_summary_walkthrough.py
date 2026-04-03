@@ -14,7 +14,7 @@ from frontend.constants import NAV_LINKS, UI_TITLES
 
 logger = logging.getLogger(__name__)
 
-_MD_FILE = "image_summary_walkthrough.md"
+_MD_FILE = "image_search_walkthrough.md"
 
 
 def _fallback_markdown() -> str:
@@ -26,8 +26,8 @@ Could not read `{_MD_FILE}`. Add `frontend/demo/{_MD_FILE}` to customize this pa
 """
 
 
-@ui.page("/demo/image-summary-walkthrough")
-async def demo_image_summary_walkthrough_page():
+@ui.page("/demo/image-search-walkthrough")
+async def demo_image_search_walkthrough_page():
     """Step-by-step image summary (Assistant + prompt) guide."""
     from frontend.utils.theme import apply_saved_theme
 
@@ -37,7 +37,7 @@ async def demo_image_summary_walkthrough_page():
     text = load_markdown_file(_MD_FILE, _fallback_markdown)
 
     with ui.column().classes("container mx-auto p-8 max-w-4xl w-full min-w-0 pb-16"):
-        ui.label("Image summary — Assistant prompt walkthrough").classes("text-3xl font-bold mb-2")
+        ui.label("Image search — Assistant prompt walkthrough").classes("text-3xl font-bold mb-2")
 
         render_guided_markdown_body(ui.column().classes("w-full min-w-0"), text)
 
@@ -49,4 +49,4 @@ async def demo_image_summary_walkthrough_page():
             ui.link("Open Assistant", NAV_LINKS["chatbot"]).classes("text-blue-600 hover:underline")
             ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes("text-blue-600 hover:underline")
 
-    logger.debug("Image summary walkthrough page rendered")
+    logger.debug("Image search walkthrough page rendered")

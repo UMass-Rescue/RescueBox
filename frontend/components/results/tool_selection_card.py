@@ -16,13 +16,18 @@ def render_tool_selection_message(container: ui.element, endpoint: str):
     # Create the card inside the (chat area) provided container context to avoid creating it
     # in the currently active UI context (which could be an input-area wrapper).
     with container:
-        card = ui.card().classes('w-full max-w-sm bg-blue-50 shadow-sm')
+        # Wide enough for "I'll use <long/endpoint> to help you." on one line at larger font sizes.
+        card = ui.card().classes('w-full max-w-2xl bg-blue-50 shadow-sm')
         with card:
-            with ui.row().classes('p-3 items-center gap-2 flex-wrap'):
-                ui.label('🤖 Assistant').classes('font-medium text-sm')
-                ui.label(f"I'll use {endpoint} to help you.").classes('')
-                ui.label('🔧 Selected Tool').classes('font-medium text-sm')
-                ui.label(endpoint).classes('text-sm text-gray-600')
+            with ui.column().classes('p-4 gap-2 w-full min-w-0'):
+                ui.label('🤖 Assistant').classes('font-semibold !text-base sm:!text-lg text-blue-900')
+                ui.label(f"I'll use {endpoint} to help you.").classes(
+                    '!text-base sm:!text-lg leading-snug text-gray-800'
+                )
+                ui.label('🔧 Selected Tool').classes('font-semibold !text-base sm:!text-lg text-blue-900 mt-1')
+                ui.label(endpoint).classes(
+                    '!text-base sm:!text-lg font-mono text-gray-700 break-all'
+                )
     try:
         _ACTIVE_TOOL_SELECTION_CARDS.add(card)
     except Exception:

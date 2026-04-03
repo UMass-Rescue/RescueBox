@@ -29,7 +29,7 @@ async def demo_page():
             ).classes('bg-green-600 text-white px-6 py-3')
             ui.button(
                 'Chat mode walkthrough',
-                on_click=lambda: ui.navigate.to('/demo/image-summary-walkthrough'),
+                on_click=lambda: ui.navigate.to('/demo/image-search-walkthrough'),
             ).classes('bg-violet-600 text-white px-6 py-3')
             ui.button(
                 'Other Scenarios (age/gender, deepfakes, pipeline)',

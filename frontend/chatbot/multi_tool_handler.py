@@ -12,6 +12,7 @@ It supports:
 """
 
 import logging
+import re
 from typing import Dict, Any, List, Optional, Callable
 from pathlib import Path
 import sys
@@ -182,12 +183,14 @@ def _meta_get(meta: Dict[str, Any], key: str) -> Optional[Any]:
 
 def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> List[str]:
     """
-    Filter items by metadata criteria. criteria_str format: "Key:value" or "Key=value", comma-separated.
-    Supports both colon and equals: "Gender:Female" or "Gender=Female".
-    E.g. "Gender:Female, Age:>30" keeps items where Gender==Female and Age>30.
-    Age values from Age/Gender classifier are range strings like "(0-2)", "(25-32)" - we use the
-    upper bound for numeric comparisons (e.g. Age=<10 matches "(0-2)", "(4-6)").
-    Returns list of paths for items that match. Empty criteria = all items.
+    Filter items by metadata criteria. Comma-separated clauses. Forms:
+
+    * ``Key:value`` or ``Key=value`` — e.g. ``Gender:Female``, ``Age:>30`` (value may start with ``<`` / ``>``).
+    * Bare comparison: ``Key < 10``, ``Age<10``, ``Age >= 65`` (spaces optional; ``<=`` / ``>=`` supported).
+
+    Age values from the classifier look like ``(0-2)``, ``(25-32)`` — the upper bound is used for compares.
+
+    Returns list of paths for items that match all clauses. Empty criteria = all items.
     """
     if not criteria_str or not criteria_str.strip():
         paths = [it["path"] for it in items]
@@ -217,11 +220,15 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
         meta = it.get("metadata") or {}
         match = True
         for c in criteria:
-            # Support both "Key:value" and "Key=value"
-            if "=" in c:
-                key, val = c.split("=", 1)
+            bare_cmp: Optional[str] = None
+            # Try bare "Key < 10" / "Age >= 25" before "=" — ">=", "<=" contain "=" and must not split on it.
+            m = re.match(r"^\s*(\S+)\s*(<=|>=|<|>)\s*(.+)\s*$", c)
+            if m:
+                key, bare_cmp, val = m.group(1), m.group(2), m.group(3)
             elif ":" in c:
                 key, val = c.split(":", 1)
+            elif "=" in c:
+                key, val = c.split("=", 1)
             else:
                 continue
             key = key.strip()
@@ -232,11 +239,41 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
                 break
             mval_str = str(mval)
             key_lower = key.lower()
-            # Age from Age/Gender classifier is "(0-2)", "(25-32)" etc - parse for numeric comparison
             age_num = _parse_age_range_for_comparison(mval_str) if key_lower == "age" else None
             logger.info("Metadata mval_str %s", mval_str)
             logger.info(f"The age_num is: {age_num}")
-            if val.startswith(">"):
+
+            if bare_cmp is not None:
+                try:
+                    cmp_val = float(val)
+                except (ValueError, TypeError):
+                    match = False
+                else:
+                    if key_lower == "age":
+                        an = _parse_age_range_for_comparison(mval_str)
+                        if bare_cmp == "<":
+                            match = an < cmp_val
+                        elif bare_cmp == ">":
+                            match = an > cmp_val
+                        elif bare_cmp == "<=":
+                            match = an <= cmp_val
+                        else:
+                            match = an >= cmp_val
+                    else:
+                        try:
+                            n = float(mval_str)
+                        except (ValueError, TypeError):
+                            match = False
+                        else:
+                            if bare_cmp == "<":
+                                match = n < cmp_val
+                            elif bare_cmp == ">":
+                                match = n > cmp_val
+                            elif bare_cmp == "<=":
+                                match = n <= cmp_val
+                            else:
+                                match = n >= cmp_val
+            elif val.startswith(">"):
                 try:
                     cmp_val = float(val[1:].strip())
                     if age_num is not None:
@@ -261,7 +298,6 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
                     except (ValueError, TypeError):
                         match = mval_str == val
                 elif key_lower == "gender":
-                    # Classifier returns "Male" / "Female"; allow case-insensitive match
                     match = mval_str.strip().lower() == val.strip().lower()
                 else:
                     match = mval_str == val

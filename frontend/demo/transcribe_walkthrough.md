@@ -7,7 +7,7 @@
 
 
 
-This walkthrough is for a **demo user** running **Transcribe Audio** through the **Assistant** tool picker: pick the plugin, fill the form, submit a job, and view results.
+This walkthrough is for a **demo user** running **Transcribe Audio** through the **Menu Assistant**: pick the plugin, fill up the form, submit a job, and view results.
 
 ---
 
@@ -18,18 +18,14 @@ This walkthrough is for a **demo user** running **Transcribe Audio** through the
 
 ---
 
-### Step 1 — Open the Assistant
+### Step 1 — Use Menu Assistant and run transcribe audio
 
-1. Click **[Assistant](/chatbot)** in the top nav (or use **Assistant** from the home page).
+Click **[Assistant](/chatbot)** in the top nav (or use **Assistant** from the home page).
 
-
----
-
-### Step 2 — Open the transcribe tool picker (Plugins)
 
 1. In the Assistant toolbar, clic the  **📋 Menu** button.
 
-2. The **tool picker** menu appears in the chat area with numbered options.
+2. The **tool picker menu** appears in the chat area with numbered options.
 
 3. Click **🎤 Transcribe Audio** — it is option **1** in the picker (`audio/transcribe`).
 
@@ -37,12 +33,17 @@ This walkthrough is for a **demo user** running **Transcribe Audio** through the
 
 ---
 
-### Step 3 — Fill inputs and run
+### Step 2 — Fill inputs and run
 
 An input form opens with typical inputs , a folder of files saved on rescuebox server to process.
 
+{{SCREENSHOT:transcribe-input.png}}
+
 1.  Use **Browse** to select the **"transcribe-audio" folder , then select "inputs"** subfolder.
+
 - this subfolder has a mp3 file that will be transcribed and output shown in the job result.
+{{SCREENSHOT:browse.png}}
+
 
 2. Click **Submit Job**
 
@@ -50,13 +51,15 @@ An input form opens with typical inputs , a folder of files saved on rescuebox s
 
 3. You should see status messages in the chat and/or a **job running** indicator.
 
+
 4. Wait till "Job Completed Successfully" box provides result with  **view  job button to click**
+{{SCREENSHOT:job-completed.png}}
 
 5. Review the **outputs and input details** of this job. In the main jobs page notice the "case notes" in the model column.
 
 ---
 
-### Step 4 — Track and open results later.
+### Step 3 — Track and open results later.
 
 1. Open **[Jobs](/jobs)** from the nav.
 
@@ -68,9 +71,7 @@ An input form opens with typical inputs , a folder of files saved on rescuebox s
 ---
 
 
-### See also
+### See Next
 
-- [Demo home](/demo) — quick start and sample files  
-- [Image summary walkthrough](/demo/image-summary-walkthrough) — Assistant + prompt  
-- [Other walkthrough](/demo/other-walkthrough) — age/gender, deepfakes, pipelines  
-- [Quick start guide](/demo/quick-start) — general RescueBox overview  
+- [Image search walkthrough](/demo/image-search-walkthrough) — Assistant + prompt  
+

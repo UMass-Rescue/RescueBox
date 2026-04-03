@@ -36,7 +36,7 @@ HOME_USER_ID = {
     'save_button': 'Save and continue',
     'current_prefix': 'User ID:',
     'change_user_button': 'Change User ID',
-    'change_user_hint': 'Use this if you need to sign in with a different ID. Empty job history is normal for a new ID.',
+    'change_user_hint': 'Use this if you need to sign in with a different ID.',
 }
 
 # UI Button Labels

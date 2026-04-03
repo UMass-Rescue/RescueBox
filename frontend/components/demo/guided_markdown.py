@@ -65,7 +65,13 @@ def render_guided_markdown_body(container: ui.element, markdown_text: str) -> No
     with container:
         for kind, payload in segments:
             if kind == "md":
-                ui.markdown(payload).classes("prose prose-slate max-w-none")
+                # Tailwind text-* on the element; use ! so global body { font-size: 0.8rem !important } does not win.
+                ui.markdown(payload).classes(
+                    "prose prose-slate max-w-none "
+                    "!text-xl leading-relaxed "
+                    "[&_p]:!text-xl [&_li]:!text-xl "
+                    "[&_h1]:!text-3xl [&_h2]:!text-2xl [&_h3]:!text-2xl"
+                )
             else:
                 safe = Path(payload).name
                 if safe != payload or ".." in payload or "/" in payload or "\\" in payload:
