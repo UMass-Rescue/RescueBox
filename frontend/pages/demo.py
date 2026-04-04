@@ -24,26 +24,29 @@ async def demo_page():
                 on_click=lambda: ui.navigate.to('/demo/quick-start'),
             ).classes('bg-blue-600 text-white px-6 py-3')
             ui.button(
-                'Plugins menu walkthrough',
+                'Plugins menu walkthrough 1',
                 on_click=lambda: ui.navigate.to('/demo/transcribe-walkthrough'),
             ).classes('bg-green-600 text-white px-6 py-3')
             ui.button(
-                'Chat mode walkthrough',
+                'Chat mode walkthrough 2',
                 on_click=lambda: ui.navigate.to('/demo/image-search-walkthrough'),
             ).classes('bg-violet-600 text-white px-6 py-3')
             ui.button(
-                'Other Scenarios (age/gender, deepfakes, pipeline)',
+                'Interesting Scenarios walkthrough 3',
                 on_click=lambda: ui.navigate.to('/demo/other-walkthrough'),
             ).classes('bg-amber-600 text-white px-6 py-3')
 
         ui.separator().classes('my-8')
-        ui.label('Sample inputs & outputs').classes('text-2xl font-bold mb-2')
-        ui.label(
-            'Review inputs, outputs for walkthroughs '
-        ).classes('text-black-600 mb-4')
 
-        from frontend.components.demo.demo_files_explorer import render_demo_files_explorer
+        # with ui.column().props('id=sample-inputs').classes('scroll-mt-24'):
+        #     ui.label('Sample inputs & outputs').classes('text-2xl font-bold mb-2')
+        #     ui.label(
+        #         'Review inputs and outputs used in the walkthroughs. '
+        #         'You can link directly to this section.'
+        #     ).classes('text-black-600 mb-4')
 
-        render_demo_files_explorer(ui.column().classes('w-full min-w-0'))
+        #     from frontend.components.demo.demo_files_explorer import render_demo_files_explorer
 
-        ui.link('Rescuebox Home', NAV_LINKS['home']).classes('mt-8 text-blue-600 hover:underline')
+        #     render_demo_files_explorer(ui.column().classes('w-full min-w-0'), walkthrough='all')
+
+        # ui.link('Rescuebox Home', NAV_LINKS['home']).classes('mt-8 text-blue-600 hover:underline')

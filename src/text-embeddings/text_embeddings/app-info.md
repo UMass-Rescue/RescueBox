@@ -21,7 +21,7 @@ Text Search performs semantic search over text files. Provide a directory of doc
 ```json
 {
   "query": "vehicle collision report",
-  "model": "BAAI/bge-small-en-v1.5",
+  "model": "BAAI/bge-m3"",
   "top_k": 5,
   "min_similarity": 0.5,
   "similarity_guidance": "Results with similarity >= 0.5 are marked as matches. Chunk-level search improves recall (e.g. 'stones' matches 'pebbles').",

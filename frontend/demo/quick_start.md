@@ -47,15 +47,17 @@ The welcome page lists the main actions.
 
 ## Running plugins
 
-**RescueBox Assistant** — Open **Assistant**, click the **Menu** button to select a plugin. Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then submit and track the job under **Jobs**.
+**RescueBox Assistant** — Open **[Assistant](/chatbot)**, click the **Menu** button or **type in a prompt**, to get a input form 
 
-**RescueBox Assistant** — Open **[Assistant](/chatbot)**, **type in a prompt**, to get a input form , Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then submit and track the job under **Jobs**.
+ Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then **submit Job** and view results under **Jobs**.
+
+The three walkthoughs in this demo familiarize you with these operations.
 
 ---
 
 ## Jobs
 
-Open **[Jobs](/jobs)** for results and status. Open a job to see **results** (files, text, tables, previews).
+Open **[Jobs](/jobs)** for results and status.
 
 - When a job is submitted, **case notes** can be added; they appear in the job output.
 
@@ -63,17 +65,4 @@ Open **[Jobs](/jobs)** for results and status. Open a job to see **results** (fi
 
 ---
 
-## Demo page & sample files
 
-**[Demo](/demo)** includes this guide and a **read-only file explorer** for your demo folder (: **inputs**, **outputs**). 
-Click folders to navigate.
-
----
-
-## Tips
-
-- Form paths are resolved on the **machine running RescueBox** (the server), not automatically on the user’s PC unless they are the same host.
-- Plugins that require a **GPU** are labeled in cards and README; CPU-only may be slow.
-- Result tables often support **sorting** (column headers) and **row actions** (e.g. open files, previews) — read the short tips under each result view.
-
----

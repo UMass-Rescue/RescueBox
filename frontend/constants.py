@@ -89,6 +89,9 @@ NAV_LINKS = {
     'home': '/',
 }
 
+# Deep link to the "Sample inputs & outputs" section on the Demo page (HTML id: sample-inputs)
+DEMO_SAMPLE_INPUTS_URL = f"{NAV_LINKS['demo']}#sample-inputs"
+
 # Error Messages
 ERROR_MESSAGES = {
     'generic': 'An error occurred. Please try again.',

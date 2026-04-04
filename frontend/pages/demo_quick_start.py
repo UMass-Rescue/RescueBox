@@ -8,9 +8,10 @@ import logging
 
 from nicegui import ui
 
+from frontend.components.demo.demo_files_explorer import render_walkthrough_samples_panel
 from frontend.components.demo.guided_markdown import load_markdown_file, render_guided_markdown_body
 from frontend.components.shared import create_navbar
-from frontend.constants import NAV_LINKS, UI_TITLES
+from frontend.constants import DEMO_SAMPLE_INPUTS_URL, NAV_LINKS, UI_TITLES
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ def _fallback_markdown() -> str:
 
 Could not read `frontend/demo/{_QUICK_START_MD}`. Add that Markdown file to customize this page.
 
-**Shortcuts:** [Browse Plugins]({NAV_LINKS["models"]}) · [Assistant]({NAV_LINKS["chatbot"]}) · [Jobs]({NAV_LINKS["jobs"]}) · [Demo]({NAV_LINKS["demo"]})
+**Shortcuts:** [Browse Plugins]({NAV_LINKS["models"]}) · [Assistant]({NAV_LINKS["chatbot"]}) · [Jobs]({NAV_LINKS["jobs"]}) · [Demo]({NAV_LINKS["demo"]}) · [Sample inputs & outputs]({DEMO_SAMPLE_INPUTS_URL})
 """
 
 
@@ -42,11 +43,14 @@ async def demo_quick_start_page():
 
         render_guided_markdown_body(ui.column().classes("w-full min-w-0"), text)
 
+        # render_walkthrough_samples_panel(ui.column().classes("w-full min-w-0"), "quick_start")
+
         with ui.row().classes("gap-4 flex-wrap items-center mt-8"):
             ui.button(
                 "Back to Demo",
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
             ).classes("bg-blue-600 text-white")
+          
             ui.link("Browse Plugins", NAV_LINKS["models"]).classes("text-blue-600 hover:underline")
             ui.link(UI_TITLES["chatbot"], NAV_LINKS["chatbot"]).classes(
                 "text-blue-600 hover:underline"

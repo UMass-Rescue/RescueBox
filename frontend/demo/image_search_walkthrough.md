@@ -41,8 +41,9 @@ note: if you type something not understood by rescuebox, you should see a help o
  
   pick the **search-images** subfolder **inputs** , containing images to run this plugin.
 
-2. For **Text query to find the most similar images** input , if its not already set type
-  "young girl"
+2. For **Text query to find the most similar images** input,
+
+  if its not already set type "**young girl**"
 
 3. For other inputs keep the defaults.
 

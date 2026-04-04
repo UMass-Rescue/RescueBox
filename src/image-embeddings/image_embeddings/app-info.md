@@ -17,7 +17,7 @@ Short single-word queries are often fuzzy; richer phrases usually work better.
 
 ## Parameters
 
-- **CLIP model:** `openai/clip-vit-base-patch32` (faster, 512-dim) or `openai/clip-vit-large-patch14` (slower, 768-dim, often stronger).
+- **CLIP model:** `apple/DFN5B-CLIP-ViT-H-14-378` current favorite.
 
 - **Top K:** How many highest-similarity images to return (1–20, default 5).
 

@@ -75,8 +75,14 @@ and then run **describe/summarize images**), RescueBox runs such workflows in a 
 
 **What to expect:**
 
-First run age-gender classifier plugin to scan the images and detect age-gender , then match gender/age filter and then proceed to summarize only these matched images.
+First run age-gender classifier plugin to scan the images and detect age-gender , then match gender/age filter and then proceed to describe only these matched images.
 
+Note that in this walk thru we used "describe images" which uses an AI model to get the details.
+In the previous **Search Image walkthrough** rescuebox uses an ML model to find images with matching query/caption. 
+
+The  **search plugin** is faster and it uses semantic search, a search for a 'cell phone' might match a prison cell or a small object that looks like a phone.
+
+The **describe images plugin** uses an ai model to describe and it could incorrectly tag a cell phone as a mouse, the more gpu intensive models are better.
 
 ---
 
@@ -84,6 +90,6 @@ First run age-gender classifier plugin to scan the images and detect age-gender 
 
 ### See also
 
-- [Image summary walkthrough](/demo/image-search-walkthrough) — Assistant + single-tool summarize  
-- [Transcribe walkthrough](/demo/transcribe-walkthrough) — tool picker + audio  
-- [Demo home](/demo) · [Quick start](/demo/quick-start)
+- [Search Image walkthrough](/demo/image-search-walkthrough) -- chat assistant
+- [Transcribe walkthrough](/demo/transcribe-walkthrough) -- menu selector
+- [Demo home](/demo)
