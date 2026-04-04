@@ -86,10 +86,3 @@ The **describe images plugin** uses an ai model to describe and it could incorre
 
 ---
 
----
-
-### See also
-
-- [Search Image walkthrough](/demo/image-search-walkthrough) -- chat assistant
-- [Transcribe walkthrough](/demo/transcribe-walkthrough) -- menu selector
-- [Demo home](/demo)

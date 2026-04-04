@@ -24,15 +24,15 @@ async def demo_page():
                 on_click=lambda: ui.navigate.to('/demo/quick-start'),
             ).classes('bg-blue-600 text-white px-6 py-3')
             ui.button(
-                'Plugins menu walkthrough 1',
+                '1 Plugins menu walkthrough',
                 on_click=lambda: ui.navigate.to('/demo/transcribe-walkthrough'),
             ).classes('bg-green-600 text-white px-6 py-3')
             ui.button(
-                'Chat mode walkthrough 2',
+                '2 Chat mode walkthrough',
                 on_click=lambda: ui.navigate.to('/demo/image-search-walkthrough'),
             ).classes('bg-violet-600 text-white px-6 py-3')
             ui.button(
-                'Interesting Scenarios walkthrough 3',
+                '3 Interesting Scenarios walkthrough',
                 on_click=lambda: ui.navigate.to('/demo/other-walkthrough'),
             ).classes('bg-amber-600 text-white px-6 py-3')
 

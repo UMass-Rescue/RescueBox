@@ -223,8 +223,7 @@ def render_walkthrough_samples_panel(container: ui.element, walkthrough: str) ->
         with ui.column().props('id=walkthrough-samples').classes('w-full scroll-mt-24 mt-6'):
             # ui.label('Sample inputs & outputs').classes('text-xl font-bold mb-1')
             ui.label(
-                'Browse folders and files for this plugin. '
-                'Open folders to drill down; open files to preview.'
+                'Browse folders and files for this demo. '
             ).classes('text-sm text-gray-600 mb-3')
             with ui.card().classes('w-full p-4 bg-gray-50 border border-gray-200 rounded-lg'):
                 render_demo_files_explorer(
