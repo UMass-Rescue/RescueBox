@@ -4,10 +4,12 @@
 
 Run **search Images**  from the chat **Assistant** using a **natural-language prompt**. 
 
-The **Search Images** plugin is a ML based app that scan images and provides descriptions. you provide a query string to find an image that matches it.
+- The **Search Images** plugin is a ML based app that scan images and provides descriptions. 
+
+- you provide a query string to find an image that matches it.
   example : **search these images for a young girl**
 
-The rescuebox assistant proposes the tool; you confirm inputs, submit the job, then view results.
+- The rescuebox assistant proposes the tool; you confirm inputs, submit the job, then view results.
 
 ---
 
@@ -27,7 +29,7 @@ The rescuebox assistant proposes the tool; you confirm inputs, submit the job, t
    - **search these images for a young girl**
 {{SCREENSHOT:chat.png}}
 
-2. Send the message. The chat assistant should respond with an input form for the "Image_embeddings/search_images" plugin.
+2. Send the message. The chat assistant should respond with an input form for the plugin.
 
 note: if you type something not understood by rescuebox, you should see a help output
 
@@ -35,7 +37,9 @@ note: if you type something not understood by rescuebox, you should see a help o
 
 ### Step 3 — Fill the form and submit
 
-1. Use **Browse** to choose a **Directory Path** folder (or files) on the server—e.g. pick the **search-images** subfolder **inputs** , images for this plugin.
+1. Use **Browse** to choose a **Directory Path** folder (or files).
+ 
+  pick the **search-images** subfolder **inputs** , containing images to run this plugin.
 
 2. For **Text query to find the most similar images** input , if its not already set type
   "young girl"
@@ -54,7 +58,7 @@ note: if you type something not understood by rescuebox, you should see a help o
 
 2. Open the job to view **outputs**. A list of top-5 likely matches in images is returned. 
 
-NOTE: Some of these "**low similiarity**" matches could be incorrect.
+NOTE: Some of these "**low similiarity**" rows could be incorrect.
 
 ---
 

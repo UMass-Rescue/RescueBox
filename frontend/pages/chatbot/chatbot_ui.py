@@ -25,7 +25,7 @@ def create_chat_ui(
     form_submit_handler,  # Form submit handler
     status_text_ref: object = None,
     state_manager=None,  # ChatbotStateManager for clearing when switching modes
-) -> tuple[ui.element, ui.textarea, ui.label]:
+) -> tuple[ui.element, ui.textarea, ui.label, ui.element, ui.element]:
     """
     Create the chatbot UI layout with chat-intuitive design.
 
@@ -42,7 +42,8 @@ def create_chat_ui(
             It must have a 'status_text' attribute that the status label will bind to.
 
     Returns:
-        tuple[ui.element, ui.textarea, ui.label, ui.element]: Tuple of (chat_container, input_field, status_label, input_area)
+        Tuple of (chat_container, input_field, status_label, input_area, below_input_area_container).
+        The last column is under the input strip so job results from input-area forms render below the form.
     """
     logger.info("Creating chat UI using ChatUIBuilder")
 

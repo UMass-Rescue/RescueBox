@@ -289,7 +289,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     }
 
     # 4. Example C: The "Chain of 3" (Crucial Fix)
-    ex_c_user = {"role": "user", "content": "detect age/gender in /data/evidence/batch5, then detect fakes, describe the images"}
+    ex_c_user = {"role": "user", "content": "detect age/gender in /data/evidence/batch5, then detect fakes, and describe the images"}
     ex_c_asst = {
         "role": "assistant",
         "content": "",
@@ -344,7 +344,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     # Same triple chain, phrasing close to real user prompts ("search text for …")
     ex_e2_user = {
         "role": "user",
-        "content": "detect age gender of faces and summarize and search text for boy in /evidence/batch2",
+        "content": "detect age gender of faces and summarize and search text for a young boy",
     }
     ex_e2_asst = {
         "role": "assistant",
@@ -374,7 +374,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             },
         ],
     }
-    ex_d_user = {"role": "user", "content": "Summarize images in /evidence/batch2"}
+    ex_d_user = {"role": "user", "content": "Summarize these images"}
     ex_d_asst = {
         "role": "assistant",
         "content": "",
@@ -389,7 +389,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     }
 
     # Age-gender + CLIP image search (same folder; no summarize required)
-    ex_f_user = {"role": "user", "content": "detect age gender in /tmp and image search for a kid"}
+    ex_f_user = {"role": "user", "content": "detect age gender in these images and search for a kid"}
     ex_f_asst = {
         "role": "assistant",
         "content": "",
@@ -412,7 +412,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     # UFDR mount + CLIP image search + image summarize (same mounted tree)
     ex_g_user = {
         "role": "user",
-        "content": "mount /data/evidence/case.ufdr at /mnt/case1, image search for young kid and summarize the images there",
+        "content": "mount /data/evidence/case.ufdr at /mnt/case1, search images for young kid and summarize",
     }
     ex_g_asst = {
         "role": "assistant",
@@ -446,7 +446,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     # Summarize + TEXT search (not CLIP) — explicit wording
     ex_h_user = {
         "role": "user",
-        "content": "summarize images in /evidence/pics and search the text summaries for backpack",
+        "content": "summarize these images and search the text summaries for backpack",
     }
     ex_h_asst = {
         "role": "assistant",
@@ -474,7 +474,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     # Visual "find in photos" — CLIP only (no summarize, no text_embeddings)
     ex_i_user = {
         "role": "user",
-        "content": "find a young girl in these photos in /data/case/inputs",
+        "content": "find a young girl in these photos",
     }
     ex_i_asst = {
         "role": "assistant",
@@ -492,7 +492,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     # "Search these images for …" — CLIP (phrase often misparsed as text search)
     ex_j_user = {
         "role": "user",
-        "content": "search these images for a young person in /evidence/album1",
+        "content": "search these images for a young person",
     }
     ex_j_asst = {
         "role": "assistant",

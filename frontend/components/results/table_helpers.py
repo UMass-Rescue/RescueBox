@@ -21,7 +21,10 @@ def create_sortable_table(
     row_key: str = 'id',
     on_row_click: Optional[Callable] = None,
     tip_message: Optional[str] = None,
-    show_row_labels: bool = False
+    show_row_labels: bool = False,
+    *,
+    table_extra_classes: str = "",
+    tip_message_classes: str = "text-xs text-gray-500 mt-2",
 ):
     """
     Create a sortable table with consistent styling.
@@ -33,6 +36,8 @@ def create_sortable_table(
         row_key (str): Key to use as unique identifier for rows. Defaults to 'id'.
         on_row_click (Optional[Callable]): Callback function for row click events. Receives event args.
         tip_message (Optional[str]): Optional tip message to display below table
+        table_extra_classes: Extra Tailwind classes for the table (e.g. ``text-base``).
+        tip_message_classes: Classes for the tip label (default small gray).
         show_row_labels: If True, duplicate each cell as a plain label below the table (for tests only;
             otherwise the table alone shows the data and duplicate blocks look like broken UI).
     
@@ -49,11 +54,12 @@ def create_sortable_table(
     
     # Create table with sortable columns (add directly to container)
     with container:
+        tc = f"w-full {table_extra_classes}".strip()
         table = ui.table(
             columns=columns,
             rows=rows,
             row_key=row_key,
-        ).classes('w-full').props('flat bordered')
+        ).classes(tc).props('flat bordered')
 
         # Range-detection and range-sort UI removed — keep table simple and rely on built-in column sorting.
 
@@ -73,7 +79,7 @@ def create_sortable_table(
         
         # Add tip message if provided
         if tip_message:
-            ui.label(f'💡 {tip_message}').classes('text-xs text-gray-500 mt-2')
+            ui.label(f'💡 {tip_message}').classes(tip_message_classes)
     
     logger.debug("Sortable table created successfully")
     return table

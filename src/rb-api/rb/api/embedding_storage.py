@@ -119,7 +119,15 @@ class TextEmbeddingStorage(DatabaseEmbeddingStorage):
 
 class ImageEmbeddingStorage(DatabaseEmbeddingStorage):
     """Storage implementation for image embeddings."""
-    
+
+    def save_embedding(
+        self, path: str, embedding: list[float], *, content_sha256: str = ""
+    ) -> None:
+        record = ImageEmbedding(
+            path=path, embedding=embedding, content_sha256=content_sha256
+        )
+        self.session.add(record)
+
     def _create_record(self, path: str, embedding: list[float]):
         return ImageEmbedding(path=path, embedding=embedding)
 

@@ -22,15 +22,21 @@ from rb.api.models import (
     BatchFileInput,
 )
 
-# Fixed defaults for demo (hidden from UI - suitable for investigators)
-# BAAI/bge-small-en-v1.5: add "query: " prefix for asymmetric search
-# 300/60: passes synonym (stones↔pebbles, companion↔friends) and antonym (enemy↔friends)
-_MODEL_NAME = "BAAI/bge-small-en-v1.5"
-_BGE_QUERY_PREFIX = "query: "  # required for BGE asymmetric search
+#_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+_MODEL_NAME = "BAAI/bge-m3"
+
+_BGE_QUERY_PREFIX = "query: "  # BGE asymmetric search (queries only)
+
 _CHUNKER = "langchain"
 _CHUNK_SIZE = 300
 _CHUNK_OVERLAP = 60
+
+# Forensic safety: never read an entire multi-GB log into RAM at once.
+_MAX_READ_BYTES_PER_FILE = 50 * 1024 * 1024  # 50 MiB per file (truncate with warning)
+# GPU batching: one encode() over all chunks; raise on high-end GPUs (e.g. Spark / Blackwell).
+_EMBED_BATCH_SIZE = 256
 from rb.api.database import engine, TextEmbeddingChunk
+from sqlalchemy import bindparam, text as sql_text, update
 from sqlmodel import Session
 from sqlmodel import delete, select
 
@@ -144,23 +150,52 @@ def _truncate(text: str, max_len: int) -> str:
     return s[:max_len] + ("..." if len(s) > max_len else "")
 
 
-def _has_chunks_for_paths(
+def _read_text_file_safe(path: str, max_bytes: int) -> str:
+    """Read text with a hard byte cap so huge forensic files cannot OOM the host."""
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            data = f.read(max_bytes + 1)
+        if len(data) > max_bytes:
+            logger.warning(
+                "Truncating %s to %d bytes for embedding (size cap)",
+                path,
+                max_bytes,
+            )
+            return data[:max_bytes]
+        return data
+    except OSError as exc:
+        logger.warning("Skip unreadable file %s: %s", path, exc)
+        return ""
+
+
+def _format_search_query(model_name: str, query_text: str) -> str:
+    """
+    Encode-time string for the search query only. Document chunks are passed raw (no prefix).
+    Qwen3 retrieval models expect an instruction-wrapped query; BGE uses a short asymmetric prefix.
+    """
+    if "qwen" in model_name.lower():
+        return (
+            "Instruct: Given a web search query, retrieve relevant passages that answer the query\n"
+            f"Query: {query_text}"
+        )
+    return f"{_BGE_QUERY_PREFIX}{query_text}"
+
+
+def _paths_with_chunks_for_params(
     session, paths: list[str], model_name: str, chunk_size: int, chunk_overlap: int
-) -> bool:
-    """True if all paths have chunks for this model and chunk params (else need re-embed)."""
+) -> set[str]:
+    """Paths in ``paths`` that already have at least one stored chunk for this model + chunk params."""
     if not paths:
-        return False
-    existing = set(
-        session.exec(
-            select(TextEmbeddingChunk.path).where(
-                TextEmbeddingChunk.path.in_(paths),
-                TextEmbeddingChunk.model_name == model_name,
-                TextEmbeddingChunk.chunk_size == chunk_size,
-                TextEmbeddingChunk.chunk_overlap == chunk_overlap,
-            ).distinct()
-        ).all()
-    )
-    return existing >= set(paths)
+        return set()
+    rows = session.exec(
+        select(TextEmbeddingChunk.path).where(
+            TextEmbeddingChunk.path.in_(paths),
+            TextEmbeddingChunk.model_name == model_name,
+            TextEmbeddingChunk.chunk_size == chunk_size,
+            TextEmbeddingChunk.chunk_overlap == chunk_overlap,
+        ).distinct()
+    ).all()
+    return set(rows)
 
 
 def _delete_chunks_for_paths(session, paths: list[str], model_name: str) -> None:
@@ -171,6 +206,71 @@ def _delete_chunks_for_paths(session, paths: list[str], model_name: str) -> None
             TextEmbeddingChunk.model_name == model_name,
         )
     )
+
+
+def _basename_key(path: str) -> str:
+    """Normalized basename for moved-file reuse (case-folded)."""
+    return os.path.basename(os.path.normpath(path)).casefold()
+
+
+def _relocate_matching_basenames(
+    session,
+    file_paths: list[str],
+    model_name: str,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> None:
+    """
+    When the full path changes but the filename matches stored rows for this model and chunk
+    params, update stored ``path`` to the new location so vectors are not recomputed.
+
+    If two different files share the same basename, embeddings may be reused incorrectly.
+    Relocation is skipped when both the old and new full paths appear in ``file_paths``.
+    """
+    stored_paths = session.exec(
+        select(TextEmbeddingChunk.path).where(
+            TextEmbeddingChunk.model_name == model_name,
+            TextEmbeddingChunk.chunk_size == chunk_size,
+            TextEmbeddingChunk.chunk_overlap == chunk_overlap,
+        ).distinct()
+    ).all()
+    by_bn: dict[str, str] = {}
+    for sp in stored_paths:
+        bn = _basename_key(sp)
+        if bn not in by_bn:
+            by_bn[bn] = sp
+
+    existing_exact = _paths_with_chunks_for_params(
+        session, file_paths, model_name, chunk_size, chunk_overlap
+    )
+    file_paths_set = set(file_paths)
+
+    for fp in file_paths:
+        if fp in existing_exact:
+            continue
+        bn = _basename_key(fp)
+        old_path = by_bn.get(bn)
+        if old_path is None or old_path == fp:
+            continue
+        if old_path in file_paths_set:
+            continue
+        session.execute(
+            update(TextEmbeddingChunk)
+            .where(
+                TextEmbeddingChunk.path == old_path,
+                TextEmbeddingChunk.model_name == model_name,
+                TextEmbeddingChunk.chunk_size == chunk_size,
+                TextEmbeddingChunk.chunk_overlap == chunk_overlap,
+            )
+            .values(path=fp)
+        )
+        logger.info(
+            "Reused embeddings by basename match: %s -> %s (basename %r)",
+            old_path,
+            fp,
+            bn,
+        )
+        by_bn[bn] = fp
 
 
 def _collect_text_files(input_dir: str) -> list[str]:
@@ -261,33 +361,53 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     )
 
     with Session(engine) as session:
-        # Chunk-level storage: re-embed if model or chunk params changed
-        if not _has_chunks_for_paths(
+        _relocate_matching_basenames(
             session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
-        ):
-            _delete_chunks_for_paths(session, file_paths, model_name)
-            for path in file_paths:
-                try:
-                    with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                        text = f.read()
-                except Exception:
-                    continue
-                chunks = _chunk_text(
-                    text,
-                    chunker=_CHUNKER,
-                    chunk_size=_CHUNK_SIZE,
-                    chunk_overlap=_CHUNK_OVERLAP,
-                )
-                if not chunks:
-                    continue
-                vectors = model.encode(
-                    chunks,
-                    convert_to_numpy=True,
-                    normalize_embeddings=True,
-                    show_progress_bar=False,
-                )
-                for idx, (chunk_text, vec) in enumerate(zip(chunks, vectors)):
-                    rec = TextEmbeddingChunk(
+        )
+        session.flush()
+
+        existing_paths = _paths_with_chunks_for_params(
+            session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
+        )
+        paths_to_embed = [p for p in file_paths if p not in existing_paths]
+
+        # 1) Collect chunk texts only for paths that need vectors, then 2) one batched encode.
+        chunk_rows: list[tuple[str, int, str]] = []
+        for path in paths_to_embed:
+            text = _read_text_file_safe(path, _MAX_READ_BYTES_PER_FILE)
+            if not text.strip():
+                continue
+            chunks = _chunk_text(
+                text,
+                chunker=_CHUNKER,
+                chunk_size=_CHUNK_SIZE,
+                chunk_overlap=_CHUNK_OVERLAP,
+            )
+            for idx, chunk_text in enumerate(chunks):
+                chunk_rows.append((path, idx, chunk_text))
+
+        if chunk_rows:
+            texts = [row[2] for row in chunk_rows]
+            logger.info(
+                "Embedding %d chunks from %d file(s) (%d already had embeddings; %d total in request), "
+                "batch_size=%d",
+                len(texts),
+                len(paths_to_embed),
+                len(existing_paths),
+                len(file_paths),
+                _EMBED_BATCH_SIZE,
+            )
+            vectors = model.encode(
+                texts,
+                batch_size=_EMBED_BATCH_SIZE,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=len(texts) > 64,
+            )
+            records: list[TextEmbeddingChunk] = []
+            for (path, idx, chunk_text), vec in zip(chunk_rows, vectors):
+                records.append(
+                    TextEmbeddingChunk(
                         path=path,
                         chunk_index=idx,
                         chunk_text=chunk_text,
@@ -296,11 +416,12 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                         chunk_overlap=_CHUNK_OVERLAP,
                         embedding=vec.tolist(),
                     )
-                    session.add(rec)
-            session.commit()
+                )
+            session.add_all(records)
+        session.commit()
 
-        # Search chunks: BGE expects "query: " prefix for asymmetric search
-        search_query = f"{_BGE_QUERY_PREFIX}{query_text}" if _BGE_QUERY_PREFIX else query_text
+        # Search: query-side instruction only (Qwen) or BGE asymmetric prefix — not applied to stored chunks.
+        search_query = _format_search_query(model_name, query_text)
         query_embedding = model.encode(
             search_query,
             convert_to_numpy=True,
@@ -309,28 +430,35 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         )
         embedding_str = "[" + ",".join(str(x) for x in query_embedding.tolist()) + "]"
 
-        from sqlalchemy import text as sql_text
-
-        query_sql = sql_text(f"""
-            SELECT
-                id,
-                path,
-                chunk_index,
-                chunk_text,
-                1 - (embedding <=> '{embedding_str}'::vector) as similarity
-            FROM text_embedding_chunks
-            WHERE model_name = :model_name
-              AND chunk_size = :chunk_size
-              AND chunk_overlap = :chunk_overlap
-            ORDER BY embedding <=> '{embedding_str}'::vector
+        # One row per file: best-matching chunk only (DISTINCT ON), then top_k files by similarity.
+        # Scope to this request's paths so we do not rank unrelated corpus rows.
+        query_sql = sql_text(
+            f"""
+            SELECT * FROM (
+                SELECT DISTINCT ON (path)
+                    id,
+                    path,
+                    chunk_index,
+                    chunk_text,
+                    1 - (embedding <=> '{embedding_str}'::vector) AS similarity
+                FROM text_embedding_chunks
+                WHERE model_name = :model_name
+                  AND chunk_size = :chunk_size
+                  AND chunk_overlap = :chunk_overlap
+                  AND path IN :paths
+                ORDER BY path, embedding <=> '{embedding_str}'::vector ASC
+            ) AS best_chunk_per_path
+            ORDER BY similarity DESC
             LIMIT :top_k
-        """)
+            """
+        ).bindparams(bindparam("paths", expanding=True))
         rows = session.execute(
             query_sql,
             {
                 "model_name": model_name,
                 "chunk_size": _CHUNK_SIZE,
                 "chunk_overlap": _CHUNK_OVERLAP,
+                "paths": file_paths,
                 "top_k": top_k,
             },
         ).fetchall()
@@ -352,8 +480,7 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         "top_k": top_k,
         "min_similarity": min_similarity,
         "similarity_guidance": (
-            f"Results with similarity >= {min_similarity} are marked as matches. "
-            
+            f"Results with similarity >= {min_similarity} are marked as matches."
         ),
         "results": search_results,
     }

@@ -296,6 +296,13 @@ class JobSubmissionOrchestrator:
                                     self.form_handler.state_manager.set_input_enabled(True)
                             except Exception:
                                 pass
+                        # Match synchronous completion path: background jobs used to leave the viewport on
+                        # older history (e.g. after load_conversation) so the new job id looked "missing".
+                        try:
+                            UIOperations.scroll_to_bottom()
+                            ui.timer(0.15, UIOperations.scroll_to_bottom, once=True)
+                        except Exception:
+                            pass
                         # Ensure processing state cleared after background UI update
                         try:
                             if getattr(self.form_handler, 'state_manager', None):

@@ -13,6 +13,7 @@ import inspect
 
 from frontend.database import get_chat_history_db
 from frontend.pages.chatbot.chatbot import ChatbotPage
+from frontend.pages.chatbot.utils.ui_operations import UIOperations
 from frontend.utils.nicegui_storage import get_conversation_to_load
 
 logger = logging.getLogger(__name__)
@@ -227,14 +228,9 @@ async def handle_rerun_parameter(message_id: str, chatbot: Optional[ChatbotPage]
             return
 
         try:
-            scroll_result = active_chatbot.scroll_to_bottom()
-            if asyncio.iscoroutine(scroll_result) or inspect.isawaitable(scroll_result):
-                await scroll_result
-        except TypeError:
-            # Non-awaitable in tests - ignore
-            pass
+            UIOperations.scroll_form_into_view()
+            ui.timer(0.35, UIOperations.scroll_form_into_view, once=True)
         except Exception:
-            # non-critical
             pass
 
     except Exception as e:

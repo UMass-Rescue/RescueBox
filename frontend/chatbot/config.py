@@ -159,7 +159,7 @@ class ToolRegistry:
                 seen.append(uid)
         return seen
     
-    # Enhanced blocked patterns (non-forensic requests to reject)
+    # Non-forensic chit-chat (applied only after RESCUEBOX_KEYWORDS / path checks in utils.py)
     BLOCKED_PATTERNS: list[str] = [
         r"\b(weather|stock|news|sports|politics)\b",
         r"\b(joke|funny|humor|laugh)\b",

@@ -20,7 +20,7 @@ def create_db_and_tables():
         from sqlalchemy import text
         with engine.begin() as conn:
             conn.execute(
-                text("ALTER TABLE text_embeddings ADD COLUMN model_name VARCHAR(128) DEFAULT 'all-MiniLM-L6-v2' NOT NULL")
+                text("ALTER TABLE text_embeddings ADD COLUMN model_name VARCHAR(128) DEFAULT 'BAAI/bge-m3' NOT NULL")
             )
     except Exception:
         pass  # Column likely already exists
@@ -30,6 +30,62 @@ def create_db_and_tables():
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE text_embedding_chunks ADD COLUMN IF NOT EXISTS chunk_size INT DEFAULT 0"))
             conn.execute(text("ALTER TABLE text_embedding_chunks ADD COLUMN IF NOT EXISTS chunk_overlap INT DEFAULT 0"))
+    except Exception:
+        pass
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_embeddings ADD COLUMN IF NOT EXISTS "
+                    "content_sha256 VARCHAR(64) DEFAULT '' NOT NULL"
+                )
+            )
+    except Exception:
+        pass
+    # BGE-M3 and other modern text encoders use 1024-dim vectors; legacy was 384 (MiniLM / bge-small).
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            for table, idx_name in (
+                ("text_embedding_chunks", "text_chunk_vector_idx"),
+                ("text_embeddings", "item_vector_idx"),
+            ):
+                row = conn.execute(
+                    text(
+                        "SELECT format_type(a.atttypid, a.atttypmod) AS t "
+                        "FROM pg_attribute a "
+                        "JOIN pg_class c ON a.attrelid = c.oid "
+                        f"WHERE c.relname = :tname AND a.attname = 'embedding' "
+                        "AND NOT a.attisdropped"
+                    ),
+                    {"tname": table},
+                ).fetchone()
+                if row and row[0] and "(1024)" not in str(row[0]):
+                    conn.execute(text(f"DROP INDEX IF EXISTS {idx_name}"))
+                    conn.execute(text(f"DELETE FROM {table}"))
+                    conn.execute(text(f"ALTER TABLE {table} DROP COLUMN embedding"))
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN embedding vector(1024)"))
+    except Exception:
+        pass
+    # CLIP ViT-H-14 (e.g. apple/DFN5B-CLIP-ViT-H-14-378) uses 1024-dim image vectors; legacy was 512.
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            row = conn.execute(
+                text(
+                    "SELECT format_type(a.atttypid, a.atttypmod) AS t "
+                    "FROM pg_attribute a "
+                    "JOIN pg_class c ON a.attrelid = c.oid "
+                    "WHERE c.relname = 'image_embeddings' AND a.attname = 'embedding' "
+                    "AND NOT a.attisdropped"
+                )
+            ).fetchone()
+            if row and row[0] and "(1024)" not in str(row[0]):
+                conn.execute(text("DROP INDEX IF EXISTS image_embeddings_hnsw_idx"))
+                conn.execute(text("DELETE FROM image_embeddings"))
+                conn.execute(text("ALTER TABLE image_embeddings DROP COLUMN embedding"))
+                conn.execute(text("ALTER TABLE image_embeddings ADD COLUMN embedding vector(1024)"))
     except Exception:
         pass
     SQLModel.metadata.create_all(engine)
@@ -53,7 +109,7 @@ class TextEmbedding(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     path: str = Field(index=True)
     model_name: str = Field(default="all-MiniLM-L6-v2", index=True)
-    embedding: list[float] = Field(default=[], sa_column=Column(Vector(384)))
+    embedding: list[float] = Field(default=[], sa_column=Column(Vector(1024)))
 
 class TextEmbeddingChunk(SQLModel, table=True):
     """Chunk-level text embedding for better semantic recall (e.g. 'stones' matches 'pebbles')."""
@@ -67,7 +123,7 @@ class TextEmbeddingChunk(SQLModel, table=True):
     model_name: str = Field(default="BAAI/bge-small-en-v1.5", index=True)
     chunk_size: int = Field(default=0)  # 0 = legacy; used to invalidate when params change
     chunk_overlap: int = Field(default=0)
-    embedding: list[float] = Field(default=[], sa_column=Column(Vector(384)))
+    embedding: list[float] = Field(default=[], sa_column=Column(Vector(1024)))
 
 
 class ImageEmbedding(SQLModel, table=True):
@@ -75,7 +131,9 @@ class ImageEmbedding(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     path: str = Field(index=True)
-    embedding: list[int] = Field(default=[], sa_column=Column(Vector(512)))
+    # SHA-256 hex of file bytes; reuse embeddings when path changes but content matches.
+    content_sha256: str = Field(default="", index=True)
+    embedding: list[int] = Field(default=[], sa_column=Column(Vector(1024)))
 
 # TODO: There is probably a way to do this without this try kludge
 try:
@@ -100,12 +158,11 @@ try:
     chunk_index.create(engine)
 
     img_index = Index(
-        'item_vector_idx',
+        "image_embeddings_hnsw_idx",
         ImageEmbedding.embedding,
-        postgresql_using='hnsw',
-        # OK, like, whatever...
-        postgresql_with={'m': 16, 'ef_construction': 64},
-        postgresql_ops={'embedding': 'vector_l2_ops'}
+        postgresql_using="hnsw",
+        postgresql_with={"m": 16, "ef_construction": 64},
+        postgresql_ops={"embedding": "vector_l2_ops"},
     )
     img_index.create(engine)
 except:

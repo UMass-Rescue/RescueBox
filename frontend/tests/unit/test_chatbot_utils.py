@@ -278,6 +278,14 @@ class TestIsRescueboxRequest:
         is_valid, reason = is_rescuebox_request(FORENSIC_REQUEST)
         assert is_valid is True
 
+    def test_image_search_with_sports_subject_allowed(self):
+        """Subject words like 'sports' must not block when prompt is clearly image search."""
+        is_valid, reason = is_rescuebox_request(
+            "search these images for a sports event"
+        )
+        assert is_valid is True
+        assert reason == KEYWORD_MATCH_REASON
+
     def test_blocked_weather_request(self):
         """Test blocked weather request filtering.
 

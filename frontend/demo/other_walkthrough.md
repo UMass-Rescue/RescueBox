@@ -41,7 +41,8 @@ or
 
 4. Confirm the assistant proposes the right tool "image_summary/summarize-images"
 
-5. fill **Browse** fields, **input** directory path and **output** directory path, choose the default model, and **Submit Job** .
+5. fill **Browse** fields, **input** directory path and **output** directory path, 
+choose the default model, and **Submit Job** .
 
 6. click on **view job** results after job is completed successfully.
 
@@ -49,30 +50,32 @@ or
 
 ## Part C — Pipeline: age/gender + summarize 
 
-When a single prompt implies **more than one plugin** in sequence (for example **age/gender** and then **describe/summarize images**), 
+When a single prompt implies **more than one plugin** in sequence, for example **age/gender** 
+and then run **describe/summarize images**), RescueBox runs such workflows in a pipeline:
 
-RescueBox runs such workflows in a pipeline:
-
-   
-**Type this prompt** in the chat assistant:
+**Type this prompt** in the chat assistant **[🧠 Chat](/chatbot)**.:
 
 **Detect age and gender of these photos and summarize**
 
 1. Run the **first** job (e.g. **`age-gender/predict`**) and collect per-file metadata.
 
-       you set form inputs  "age-gender-classifier/inputs" , **Submit**" add case notes
+       you set form inputs  "age-gender-classifier/inputs" , **Submit Job**"
 
-2. Show a **popup** titled **“Filter files before next step”** so you can narrow which files feed the **next** step.
+2.  A **popup** titled **“Filter files before next step”** is shown so that you can narrow      files to feed the **next** step.
 
-       you enter "Gender=Male, Age=<10"
+       you enter **Gender=Male, Age<10**
 
-3. Fill the next form to **summarize the images** that matched the filter criteria and run
+3. Fill the next form for **summarize the images** 
+
+- input is pre populated with the inputs for the previous plugin (expected).
+
+- enter output directory for **describe-images/outputs**
 
 4. view the **job results** on completion.
 
 **What to expect:**
 
-First run age-gender classifier plugin to scan the images that match gender/age filter and then summarize these matched images.
+First run age-gender classifier plugin to scan the images and detect age-gender , then match gender/age filter and then proceed to summarize only these matched images.
 
 
 ---

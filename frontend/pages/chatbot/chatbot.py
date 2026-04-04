@@ -101,6 +101,7 @@ class ChatbotPage:
 
         # UI components (will be set during render)
         self.chat_container = None
+        self.below_input_area_container = None
         self.input_field = None
 
         logger.debug("ChatbotPage initialized with extracted components")
@@ -126,7 +127,13 @@ class ChatbotPage:
         )
 
         # Create UI and bind events
-        self.chat_container, self.input_field, self.status_label, self.input_area = create_chat_ui(
+        (
+            self.chat_container,
+            self.input_field,
+            self.status_label,
+            self.input_area,
+            self.below_input_area_container,
+        ) = create_chat_ui(
             on_send=self.event_handler.handle_send_message,
             on_new_conversation=self._handle_new_conversation,
             tool_registry=self.tool_registry,
@@ -221,6 +228,13 @@ class ChatbotPage:
             # Use the input area when available, otherwise fall back to chat container
             logger.debug("_re_run_tool: found input_area_container=%r; calling load_and_show_form", input_area_container)
             await self.load_and_show_form(endpoint, arguments, container=input_area_container)
+            # Loaded history leaves the viewport mid-chat; the form renders in the input area (bottom).
+            # Scroll so the new `.rb-form-wrapper` is visible without manual scrolling.
+            try:
+                UIOperations.scroll_form_into_view()
+                ui.timer(0.35, UIOperations.scroll_form_into_view, once=True)
+            except Exception:
+                pass
             logger.info("Tool re-run initiated successfully: %s", endpoint)
         except Exception as e:
             logger.error("Error re-running tool %s: %s", endpoint, str(e))
@@ -451,14 +465,25 @@ class ChatbotPage:
         
         try:
             async def form_submit_handler(request_body, ep, ts):
+                results_target = (
+                    getattr(self, '_results_container_for_next_submit', None) or self.chat_container
+                )
                 await self.form_handler.submit_form(
-                    request_body, ep, ts, self.chat_container, self.core, remaining_calls
+                    request_body, ep, ts, results_target, self.core, remaining_calls
                 )
 
             def form_cancel_handler():
                 self.state_manager.set_input_enabled(True)
 
             use_container = container or self.chat_container
+            if (
+                self.below_input_area_container is not None
+                and self.input_area is not None
+                and use_container is self.input_area
+            ):
+                self._results_container_for_next_submit = self.below_input_area_container
+            else:
+                self._results_container_for_next_submit = self.chat_container
             logger.debug("load_and_show_form wrapper: endpoint=%s use_container=%r arguments=%s", endpoint, use_container, arguments)
             await load_and_show_form(
                 container=use_container,
@@ -516,6 +541,8 @@ class ChatbotPage:
         self.state_manager.reset_conversation()
         # Clear chat container and show welcome message (shared with Assistant mode & initial load)
         self.chat_container.clear()
+        if self.below_input_area_container is not None:
+            self.below_input_area_container.clear()
         from frontend.components.chat.chat_window import render_welcome_message
         render_welcome_message(self.chat_container)
         self.state_manager.set_input_enabled(True)  # Ready for new prompt

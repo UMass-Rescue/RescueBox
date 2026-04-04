@@ -81,7 +81,7 @@ class ChatUIBuilder:
         Build and return the complete chat UI.
 
         Returns:
-            tuple: (chat_container, input_field, status_label)
+            tuple: (chat_container, input_field, status_label, input_area, below_input_area)
         """
         self.logger.info("Building chat UI with proper separation")
 
@@ -98,6 +98,10 @@ class ChatUIBuilder:
             with ui.column().classes('container mx-auto w-full px-4'):
                 chat_container = self._build_chat_area()
                 input_area = self._build_input_area()
+                # Job results from forms in the input strip (e.g. re-run) append here so they sit below the form.
+                below_input_area = ui.column().classes(
+                    'w-full max-w-none space-y-4 mt-2 mb-4'
+                )
 
             # Initialize mode manager now that chat_container exists
             from frontend.components.chat.chat_window import render_welcome_message
@@ -116,7 +120,7 @@ class ChatUIBuilder:
             # Setup mode handlers
             self._setup_mode_handlers(ui_state, chat_container, input_area)
 
-        return chat_container, self.input_field, self.status_text_ref, input_area
+        return chat_container, self.input_field, self.status_text_ref, input_area, below_input_area
 
     def _create_ui_state(self):
         """Create initial UI state."""

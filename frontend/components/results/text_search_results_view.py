@@ -5,13 +5,71 @@ Renders text-embedding search API JSON as a readable summary + table.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from nicegui import ui
 
-from frontend.components.results.table_helpers import create_sortable_table
+from frontend.components.results.table_helpers import (
+    create_sortable_table,
+    resolve_table_row_index,
+)
 
 logger = logging.getLogger(__name__)
+
+# Preview cap for row-click dialog (forensic folders may have huge exports)
+_MAX_FILE_PREVIEW_BYTES = 2 * 1024 * 1024
+
+_TEXT_LIKE_EXT = frozenset({
+    ".txt", ".text", ".md", ".log", ".csv", ".json", ".xml", ".html", ".htm",
+})
+
+
+def _is_text_like_path(path: str) -> bool:
+    ext = os.path.splitext(path)[1].lower()
+    return ext in _TEXT_LIKE_EXT or ext == ""
+
+
+def _read_file_preview(path: str) -> str:
+    try:
+        with open(path, "rb") as f:
+            data = f.read(_MAX_FILE_PREVIEW_BYTES + 1)
+        if len(data) > _MAX_FILE_PREVIEW_BYTES:
+            text = data[:_MAX_FILE_PREVIEW_BYTES].decode("utf-8", errors="replace")
+            text += "\n\n*(Preview truncated — file exceeds size limit.)*"
+        else:
+            text = data.decode("utf-8", errors="replace")
+        return text
+    except OSError as e:
+        return f"*(Could not read file: {e})*"
+
+
+def _open_text_search_row_preview(path: str) -> None:
+    """Large markdown preview for text-like files; otherwise use existing file opener."""
+    if not path or not os.path.isfile(path):
+        ui.notify("File not found or not a file.", type="warning")
+        return
+    if not _is_text_like_path(path):
+        from frontend.components.results.results_utils import open_file
+        open_file(path)
+        return
+
+    body = _read_file_preview(path)
+    name = os.path.basename(path)
+    with ui.dialog() as dialog, ui.card().classes(
+        "w-full max-w-4xl p-0 gap-0 overflow-hidden"
+    ):
+        with ui.row().classes(
+            "w-full px-4 py-3 items-center justify-between bg-slate-100 border-b border-slate-200"
+        ):
+            ui.label(name).classes("text-xl font-semibold text-slate-800 truncate")
+            ui.button(icon="close", on_click=dialog.close).props("flat dense round")
+        ui.label(path).classes("text-sm font-mono text-slate-500 px-4 pb-2 break-all")
+        with ui.scroll_area().classes("w-full max-h-[80vh] px-4 pb-4"):
+            ui.markdown(body).classes("text-lg leading-relaxed w-full max-w-none")
+        with ui.row().classes("w-full justify-end px-4 py-3 border-t border-slate-200 bg-slate-50"):
+            ui.button("Close", on_click=dialog.close).props("outline")
+    dialog.open()
 
 
 def _pick(d: dict, *keys: str, default: Any = "") -> Any:
@@ -154,12 +212,22 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                     )
 
                 tip = (
-                    "Sort columns by clicking headers. Match = similarity ≥ threshold."
+                    "Sort columns by clicking headers. Match = similarity ≥ threshold. "
+                    "Click a row to open the full file (large markdown preview for text)."
                     if show_text_snippet
                     else (
                         "Sort columns by clicking headers. Match = similarity ≥ threshold. "
+                        "Click a row to open the file."
                     )
                 )
+
+                def _on_row_click(e):
+                    idx = resolve_table_row_index(e, rows)
+                    if idx is None:
+                        return
+                    p = str(rows[idx].get("path") or "").strip()
+                    if p:
+                        _open_text_search_row_preview(p)
 
                 with ui.scroll_area().classes("w-full max-h-[70vh]"):
                     table_holder = ui.column().classes("w-full min-w-0")
@@ -170,4 +238,7 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                         row_key="id",
                         show_row_labels=False,
                         tip_message=tip,
+                        on_row_click=_on_row_click,
+                        table_extra_classes="text-base",
+                        tip_message_classes="text-sm text-gray-600 mt-3",
                     )

@@ -1,6 +1,8 @@
 from typing import TypedDict
+import hashlib
 import logging
 import os
+import threading
 
 import typer
 from rb.lib.ml_service import MLService
@@ -26,11 +28,27 @@ from rb.api.models import (
 from rb.api.database import ImageEmbedding, engine
 from rb.api.embedding_storage import ImageEmbeddingStorage
 from sqlmodel import Session, select
-from sqlalchemy import bindparam, text
+from sqlalchemy import bindparam, text, update
 
 
 APP_NAME = "image_embeddings"
 logger = logging.getLogger(__name__)
+# Hugging Face hub uses filelock at DEBUG; keep noise down when root logging is DEBUG.
+logging.getLogger("filelock").setLevel(logging.WARNING)
+
+# Serialize embed + insert per content hash within this OS process only (multi-worker / multi-host
+# deployments still need DB or distributed locks).
+_EMBED_LOCKS_GUARD = threading.Lock()
+_EMBED_LOCKS: dict[str, threading.Lock] = {}
+
+
+def _lock_for_content_hash(content_sha256_hex: str) -> threading.Lock:
+    with _EMBED_LOCKS_GUARD:
+        lock = _EMBED_LOCKS.get(content_sha256_hex)
+        if lock is None:
+            lock = threading.Lock()
+            _EMBED_LOCKS[content_sha256_hex] = lock
+        return lock
 
 
 class Inputs(TypedDict):
@@ -42,24 +60,6 @@ class Parameters(TypedDict):
     model_name: str
     top_k: int
     min_similarity: float
-
-'''
-
- EnumVal(key="openai/clip-vit-large-patch14", label="CLIP ViT-L/14 (Large)"),
- issue 
- 026-04-03 12:32:39 | INFO     | sqlalchemy.engine.Engine | ROLLBACK
-2026-04-03 12:32:39 | DEBUG    | sqlalchemy.pool.impl.QueuePool | Connection <connection object at 0xe8d246880540; dsn: 'user=rbuser password=xxx dbname=rescuebox host=127.0.0.1 port=5433', closed: 0> being returned to pool
-2026-04-03 12:32:39 | DEBUG    | sqlalchemy.pool.impl.QueuePool | Connection <connection object at 0xe8d246880540; dsn: 'user=rbuser password=xxx dbname=rescuebox host=127.0.0.1 port=5433', closed: 0> rollback-on-return
-2026-04-03 12:32:39 | ERROR    | rb.api.routes.cli | Error: (psycopg2.errors.DataException) different vector dimensions 512 and 768
-
-[SQL: 
-                    SELECT id, path, 1 - (embedding <=> CAST(%(qvec)s AS vector)) AS similarity
-                    FROM image_embeddings
-
-fix : Because you cannot "convert" 512-dim vectors to 768-dim vectors without losing mathematical 
-accuracy, you must clear the old embeddings and  re-process your images using the Large model.
-
-'''
 
 def task_schema() -> TaskSchema:
     input_dir_schema = InputSchema(
@@ -73,11 +73,12 @@ def task_schema() -> TaskSchema:
         input_type=InputType.TEXT,
     )
 
+  
     model_enum = EnumParameterDescriptor(
         enum_vals=[
-            EnumVal(key="openai/clip-vit-base-patch32", label="CLIP ViT-B/32 (Base)"),
+            EnumVal(key="apple/DFN5B-CLIP-ViT-H-14-378", label="CLIP-ViT-H-14-378-Apple"),
         ],
-        default="openai/clip-vit-base-patch32",
+        default="apple/DFN5B-CLIP-ViT-H-14-378",
     )
 
     top_k_desc = RangedIntParameterDescriptor(
@@ -86,7 +87,7 @@ def task_schema() -> TaskSchema:
     )
     min_similarity_desc = RangedFloatParameterDescriptor(
         range=FloatRangeDescriptor(min=0.0, max=1.0),
-        default=0.21,
+        default=0.13,
     )
 
     return TaskSchema(
@@ -138,6 +139,15 @@ def _paths_already_embedded(session: Session, paths: list[str]) -> set[str]:
     return set(rows)
 
 
+def _sha256_file(path: str) -> str:
+    """SHA-256 hex digest of raw file bytes (chunked read for large images)."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """
     Embed images under ``input_dir`` that are not already stored, then rank
@@ -150,9 +160,9 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
     input_dir = str(inputs["input_dir"].path)
     query_text = inputs["query"].text
-    model_name = parameters.get("model_name", "openai/clip-vit-base-patch32")
+    model_name = parameters.get("model_name", "apple/DFN5B-CLIP-ViT-H-14-378")
     top_k = int(parameters.get("top_k", 5))
-    min_similarity = float(parameters.get("min_similarity", 0.21))
+    min_similarity = float(parameters.get("min_similarity", 0.13))
 
     cuda_ok = torch.cuda.is_available()
     mps_ok = bool(getattr(torch.backends, "mps", None)) and torch.backends.mps.is_available()
@@ -205,43 +215,100 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         if os.path.isfile(path) and os.path.splitext(path)[1].lower() in allowed_exts:
             file_paths.append(path)
 
+    path_to_hash: dict[str, str] = {}
+    hashed_paths: list[str] = []
+    for path in file_paths:
+        try:
+            path_to_hash[path] = _sha256_file(path)
+            hashed_paths.append(path)
+        except OSError as exc:
+            logger.warning("Skip hashing %s: %s", path, exc)
+    file_paths = hashed_paths
+
     paths_for_search: list[str] = []
     newly_embedded_count = 0
+    relocated_count = 0
+    cloned_count = 0
     reused_count = 0
     search_results: list[dict] = []
 
     with Session(engine) as session:
         storage = ImageEmbeddingStorage(session)
         already = _paths_already_embedded(session, file_paths)
+        file_paths_set = set(file_paths)
 
         for path in file_paths:
             if path in already:
                 paths_for_search.append(path)
                 reused_count += 1
                 continue
-            try:
-                image = Image.open(path).convert("RGB")
-                with torch.no_grad():
-                    inputs_processed = _inputs_to_device(
-                        processor(images=image, return_tensors="pt")
+            h = path_to_hash[path]
+            row = session.exec(
+                select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
+            ).first()
+            if row is None:
+                with _lock_for_content_hash(h):
+                    row = session.exec(
+                        select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
+                    ).first()
+                    if row is None:
+                        try:
+                            image = Image.open(path).convert("RGB")
+                            with torch.no_grad():
+                                inputs_processed = _inputs_to_device(
+                                    processor(images=image, return_tensors="pt", do_rescale=True)
+                                )
+                                image_features = model.get_image_features(**inputs_processed)
+                                image_features = image_features / image_features.norm(
+                                    dim=-1, keepdim=True
+                                )
+                                embedding = image_features.squeeze().cpu().numpy()
+                                embedding_list = embedding.tolist()
+                                storage.save_embedding(path, embedding_list, content_sha256=h)
+                            paths_for_search.append(path)
+                            newly_embedded_count += 1
+                            already.add(path)
+                            session.flush()
+                        except Exception as e:
+                            logger.warning("Could not process %s: %s", path, e)
+                        continue
+            if row is not None:
+                if row.path == path:
+                    paths_for_search.append(path)
+                    reused_count += 1
+                    already.add(path)
+                    session.flush()
+                    continue
+                if row.path not in file_paths_set:
+                    session.execute(
+                        update(ImageEmbedding)
+                        .where(ImageEmbedding.id == row.id)
+                        .values(path=path)
                     )
-                    image_features = model.get_image_features(**inputs_processed)
-                    image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-                    embedding = image_features.squeeze().cpu().numpy()
-                    embedding_list = embedding.tolist()
-                    storage.save_embedding(path, embedding_list)
+                    relocated_count += 1
+                    logger.info(
+                        "Reused image embedding by content hash (path updated): %s -> %s",
+                        row.path,
+                        path,
+                    )
+                else:
+                    emb = list(row.embedding) if row.embedding is not None else []
+                    session.add(
+                        ImageEmbedding(path=path, embedding=emb, content_sha256=h)
+                    )
+                    cloned_count += 1
                 paths_for_search.append(path)
-                newly_embedded_count += 1
-            except Exception as e:
-                print(f"Warning: Could not process {path}: {e}")
+                reused_count += 1
+                already.add(path)
+                session.flush()
                 continue
 
-        if newly_embedded_count:
+        if newly_embedded_count or relocated_count or cloned_count:
             storage.commit()
 
         with torch.no_grad():
             text_inputs = _inputs_to_device(
-                processor(text=[query_text], return_tensors="pt", padding=True)
+                processor(text=[query_text], return_tensors="pt", padding=True, do_rescale=True)
             )
             text_features = model.get_text_features(**text_inputs)
             text_features = text_features / text_features.norm(dim=-1, keepdim=True)
@@ -317,7 +384,7 @@ def inputs_cli_parse(value: str) -> Inputs:
 
 def parameters_cli_parse(value: str) -> Parameters:
     parts = [p.strip() for p in value.split(",")]
-    model_name = parts[0] if len(parts) > 0 and parts[0] else "openai/clip-vit-base-patch32"
+    model_name = parts[0] if len(parts) > 0 and parts[0] else "apple/DFN5B-CLIP-ViT-H-14-378"
     top_k = int(parts[1]) if len(parts) > 1 and parts[1] else 5
     min_similarity = float(parts[2]) if len(parts) > 2 and parts[2] else 0.21
     return Parameters(

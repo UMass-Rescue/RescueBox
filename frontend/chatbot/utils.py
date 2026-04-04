@@ -136,9 +136,10 @@ def is_rescuebox_request(user_input: str, filter_enabled: bool = True) -> Tuple[
     The validation process:
     1. If filtering is disabled, always returns True
     2. Allows internal commands (starting with /) from tool picker
-    3. Checks against blocked patterns (non-forensic keywords)
-    4. Checks for RescueBox keywords (forensic-related terms)
-    5. Checks for file paths (indicators of file operations)
+    3. Checks for RescueBox keywords (forensic-related terms)
+    4. Checks for file paths (indicators of file operations)
+    5. Checks against blocked patterns (non-forensic chit-chat); runs after (3–4) so
+       legitimate prompts that mention generic words (e.g. "sports" in an image search) still match keywords first
     6. Returns False if none of the above match
     
     Args:
@@ -187,22 +188,21 @@ def is_rescuebox_request(user_input: str, filter_enabled: bool = True) -> Tuple[
         logger.info("Request validated as internal command: %s", user_input)
         return True, "internal_command"
 
-    # Check blocked patterns first
-    for pattern in ToolRegistry.BLOCKED_PATTERNS:
-        if re.search(pattern, input_lower):
-            logger.info("Request blocked by pattern: %s...", pattern[:30])
-            return False, "non_forensic"
-
-    # Check for RescueBox keywords
+    # Forensic signals before blocked patterns (e.g. "search images for a sports event" must not
+    # hit BLOCKED_PATTERNS on the word "sports" before "images" matches RESCUEBOX_KEYWORDS).
     for keyword in ToolRegistry.RESCUEBOX_KEYWORDS:
         if keyword in input_lower:
             logger.info("Request validated by keyword match: '%s'", keyword)
             return True, "keyword_match"
 
-    # Check if a file path is mentioned
     if re.search(r'[/\\][\w\-\.]+[/\\]?', user_input):
         logger.info("Request validated by path detection")
         return True, "path_detected"
+
+    for pattern in ToolRegistry.BLOCKED_PATTERNS:
+        if re.search(pattern, input_lower):
+            logger.info("Request blocked by pattern: %s...", pattern[:30])
+            return False, "non_forensic"
 
     logger.info("Request did not match any validation criteria")
     return False, "no_match"
