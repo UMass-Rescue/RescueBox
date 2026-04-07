@@ -98,6 +98,15 @@ class ImageSearch(BaseModel):
     input_dir: str = Field(..., description="Directory of image files to embed and search within")
     query: str = Field(..., description="What to look for visually (e.g. 'young person', 'red jacket', 'sunset')")
 
+class ImageSimilaritySearch(BaseModel):
+    """
+    CLIP image-to-image similarity search: finds images visually similar to a given query image.
+    Use when the user provides a reference image and wants to find similar-looking images in a folder.
+    e.g. 'find images similar to this photo', 'find images that look like this one'.
+    """
+    input_dir: str = Field(..., description="Directory of image files to search within")
+    query_image: str = Field(..., description="Path to the query image to find similar images for")
+
 # Legacy support for backward compatibility
 class RescueBoxToolCall(BaseModel):
     name: Literal[
@@ -107,6 +116,7 @@ class RescueBoxToolCall(BaseModel):
         "image_summary/summarize-images",
         "text_embeddings/search",
         "image_embeddings/search_images",
+        "image_similarity/search_similar_images",
         "ufdr_mounter/mount",
         "face-match/findfacebulk",
         "face-match/bulkupload",
@@ -129,6 +139,7 @@ SCHEMA_MAP = {
     "image_summary/summarize-images": ImageSummarize,
     # List image (CLIP) search before text search so tool JSON order matches typical "search images" intent.
     "image_embeddings/search_images": ImageSearch,
+    "image_similarity/search_similar_images": ImageSimilaritySearch,
     "text_embeddings/search": TextSearch,
     "ufdr_mounter/mount": UfdrMount,
     "face-match/findfacebulk": FaceFindBulk,

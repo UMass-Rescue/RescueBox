@@ -140,6 +140,7 @@ class ToolRegistry:
         "8": {"name": "📝 Summarize Text", "endpoint": "text_summarization/summarize", "desc": "Document summaries"},
         "9": {"name": "🔍 Search Text", "endpoint": "text_embeddings/search", "desc": "words or caption match"},
         "10": {"name": "📂 UFDR Mount", "endpoint": "ufdr_mounter/mount", "desc": "Mount UFDR files"},
+        "11": {"name": "🖼️ Similar Images", "endpoint": "image_similarity/search_similar_images", "desc": "find images similar to a query image"},
        
     }
 
