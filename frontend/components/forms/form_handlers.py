@@ -191,7 +191,10 @@ async def handle_form_submit(
             try:
                 logger.info("Calling onSubmit callback")
                 result = await onSubmit(form_data)
-                return result if result is not None else True
+                # Only explicit True means success (disable Submit Job). Callbacks must
+                # ``return await submit_form(...)`` so False (e.g. case notes cancelled) is not
+                # coerced to None and mistaken for success by an ``else True`` fallback.
+                return result is True
             except Exception as e:
                 error_msg = f'Form submission failed: {str(e)}'
                 logger.error(error_msg, exc_info=True)

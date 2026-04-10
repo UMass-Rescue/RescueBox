@@ -78,7 +78,7 @@ def process_images(model: str, input_dir: str, output_dir: str, file_filter: Lis
 def process_images_batch(model: str, input_dir: str, output_dir: str, file_filter: List[Path]) -> List[str]:
     """
     Like :func:`process_images`, but uses chunked multi-image Ollama requests
-    (chunk size: env ``IMAGE_SUMMARY_MAX_IMAGES_PER_BATCH``) with up to five
+    (chunk size: env ``IMAGE_SUMMARY_MAX_IMAGES_PER_BATCH``, default 1) with
     concurrent chunks (env ``IMAGE_SUMMARY_BATCH_PARALLEL_WORKERS``), then
     writes one ``.txt`` per image.
 

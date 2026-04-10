@@ -279,7 +279,7 @@ class MessageFlowCoordinator:
             remaining_calls: Any remaining chained calls
             conversation_id: The conversation ID
         """
-        await self.form_submit_handler.submit_form(
+        return await self.form_submit_handler.submit_form(
             request_body=request_body,
             endpoint=endpoint,
             task_schema=task_schema,

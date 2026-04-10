@@ -275,7 +275,16 @@ class ChatbotPage:
         """
         Scroll the page to the bottom to keep the input area visible.
         """
-        UIOperations.scroll_to_bottom()
+        client = None
+        try:
+            client = self.chat_container.client
+        except Exception:
+            pass
+        UIOperations.scroll_to_bottom(client=client)
+
+    async def _scroll_to_bottom(self):
+        """CallbackManager alias for ``scroll_to_bottom``."""
+        await self.scroll_to_bottom()
 
     async def new_conversation(self):
         """
@@ -426,6 +435,10 @@ class ChatbotPage:
                         await show_results(self.chat_container, job.response, job_id)
                     except Exception as e:
                         logger.warning("Failed to render job results on poll for %s: %s", job_id, e)
+                    try:
+                        await UIOperations.scroll_to_bottom_after_dom_update(self.chat_container)
+                    except Exception:
+                        pass
                     self.state_manager.set_input_enabled(True)
                     return
                 if status == 'Failed' or status == JobStatus.FAILED:
@@ -468,7 +481,7 @@ class ChatbotPage:
                 results_target = (
                     getattr(self, '_results_container_for_next_submit', None) or self.chat_container
                 )
-                await self.form_handler.submit_form(
+                return await self.form_handler.submit_form(
                     request_body, ep, ts, results_target, self.core, remaining_calls
                 )
 
@@ -566,6 +579,11 @@ async def chatbot_page(
         None: Page is rendered directly
     """
     logger.info("Chatbot page route accessed (load_conversation=%s, rerun=%s)", load_conversation, rerun)
+
+    from frontend.utils.nicegui_storage import ensure_user_id
+
+    if ensure_user_id() is None:
+        return
 
     # Import URL parameter manager
     from frontend.pages.chatbot.parameter_handlers import url_parameter_manager

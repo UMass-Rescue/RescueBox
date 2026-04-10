@@ -37,7 +37,7 @@ from frontend.config import (
     RECONNECT_TIMEOUT,
 )
 from frontend.components.shared import create_navbar
-from frontend.constants import UI_TITLES, UI_BUTTONS, NAV_LINKS, HOME_USER_ID
+from frontend.constants import UI_TITLES, UI_BUTTONS, NAV_LINKS, HOME_USER_ID, is_valid_explicit_user_id
 from frontend.utils.nicegui_storage import (
     clear_explicit_user_id,
     ensure_explicit_user_id_for_tests,
@@ -229,7 +229,13 @@ def setup_backend_routes(use_external_backend: bool = False):
             allow_headers=["*"],
         )
         logger.info("Added CORS middleware")
-    
+
+    try:
+        from rb.api.facematch_request_context import FacematchRescueboxUserMiddleware
+        fastapi_app.add_middleware(FacematchRescueboxUserMiddleware)
+    except ImportError:
+        pass
+
     # Add backend exception handler
     @fastapi_app.exception_handler(RequestValidationError)
     async def validation_exception_handler(_request: Request, exc: RequestValidationError):
@@ -423,6 +429,9 @@ async def index():
                     val = (uid_input.value or "").strip()
                     if not val:
                         ui.notify('Please enter a User ID.', type='warning')
+                        return
+                    if not is_valid_explicit_user_id(val):
+                        ui.notify(HOME_USER_ID['invalid_format'], type='warning')
                         return
                     set_explicit_user_id(val)
                     ui.timer(0.3, lambda: ui.navigate.reload(), once=True)

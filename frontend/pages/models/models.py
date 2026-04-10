@@ -249,6 +249,10 @@ async def models_page():
         from frontend.utils.theme import apply_saved_theme
         apply_saved_theme()
         create_navbar()
+        from frontend.utils.demo_user_gate import require_demo_user_session
+
+        if not require_demo_user_session():
+            return
         models_page_instance = ModelsPage()
         logger.info("Models models_page_instance created")
         await models_page_instance.render()

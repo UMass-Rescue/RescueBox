@@ -44,6 +44,50 @@ class DatabaseService:
                 break
 
     @staticmethod
+    def _user_content_from_form_submission(endpoint: str) -> str:
+        """Build a readable YOU: line for chat history when the user only submitted a form (no chat prompt saved)."""
+        try:
+            from frontend.chatbot.config import ToolRegistry
+
+            menu_name = ToolRegistry.tool_menu_name_for_endpoint(endpoint)
+        except Exception:
+            menu_name = None
+        # Prefer TOOL_MENU display name; keep endpoint when unknown or for disambiguation.
+        title = menu_name if menu_name else endpoint
+        
+        return f"Menu selected: {title}"
+
+    @staticmethod
+    async def save_user_prompt_if_missing_from_form_submission(
+        conversation_id: Optional[str], request_body, endpoint: str
+    ) -> Optional[str]:
+        """
+        If the conversation has no persisted user message yet, save a user row summarizing
+        the form submission so View / Load conversation can render a YOU: bubble.
+
+        Chat-only flows already persist the real prompt via MessageProcessor; this covers
+        tool-first and form-submit paths that only stored assistant/tool rows.
+        """
+        if not conversation_id or not request_body:
+            return None
+        try:
+            chat_history = get_chat_history_db()
+            messages = await chat_history.get_messages(conversation_id)
+            if any(getattr(m, 'role', None) == 'user' for m in messages):
+                return None
+            content = DatabaseService._user_content_from_form_submission(endpoint)
+            await DatabaseService.save_message_to_history(
+                conversation_id=conversation_id,
+                role='user',
+                content=content,
+                message_type='text',
+            )
+            return content
+        except Exception as e:
+            logger.debug("save_user_prompt_if_missing_from_form_submission skipped: %s", e)
+            return None
+
+    @staticmethod
     async def save_tool_call_to_history(conversation_id: str, endpoint: str, arguments: dict):
         """Save tool call with consistent formatting."""
         try:

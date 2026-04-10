@@ -312,6 +312,12 @@ def _validate_parameter_value(value: Any, param_schema: ParameterSchema) -> None
             raise ValueError(f"Expected int, got {type(value).__name__}")
     
     elif isinstance(param_descriptor, EnumParameterDescriptor):
+        if not param_descriptor.enum_vals:
+            logger.warning(
+                "Parameter '%s' has an empty enum in the task schema; skipping membership check",
+                param_schema.key,
+            )
+            return
         valid_keys = [enum_val.key for enum_val in param_descriptor.enum_vals if enum_val.key]
         valid_labels = [enum_val.label for enum_val in param_descriptor.enum_vals if enum_val.label]
         if value not in valid_keys and value not in valid_labels:

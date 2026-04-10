@@ -43,7 +43,11 @@ async def model_details_page(model_uid: str):
     from frontend.utils.theme import apply_saved_theme
     apply_saved_theme()
     create_navbar()
-    
+    from frontend.utils.demo_user_gate import require_demo_user_session
+
+    if not require_demo_user_session():
+        return
+
     # Load model info
     try:
         # Get model metadata from cache

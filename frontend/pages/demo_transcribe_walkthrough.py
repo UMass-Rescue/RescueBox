@@ -9,9 +9,13 @@ import logging
 from nicegui import ui
 
 from frontend.components.demo.demo_files_explorer import render_walkthrough_samples_panel
-from frontend.components.demo.guided_markdown import load_markdown_file, render_guided_markdown_body
+from frontend.components.demo.guided_markdown import (
+    load_markdown_file,
+    render_guided_markdown_body,
+    schedule_hash_fragment_scroll,
+)
 from frontend.components.shared import create_navbar
-from frontend.constants import DEMO_SAMPLE_INPUTS_URL, NAV_LINKS, UI_TITLES
+from frontend.constants import NAV_LINKS, UI_TITLES, demo_samples_url
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +27,7 @@ def _fallback_markdown() -> str:
 
 Could not read `{_MD_FILE}`. Add `frontend/demo/{_MD_FILE}` to customize this page.
 
-**Shortcuts:** [Demo]({NAV_LINKS["demo"]}) · [Sample inputs & outputs]({DEMO_SAMPLE_INPUTS_URL}) · [Assistant]({NAV_LINKS["chatbot"]}) · [Jobs]({NAV_LINKS["jobs"]})
+**Shortcuts:** [Demo home]({NAV_LINKS["demo"]}) · [Same samples on Demo]({demo_samples_url("transcribe")}) · [Assistant]({NAV_LINKS["chatbot"]}) · [Jobs]({NAV_LINKS["jobs"]})
 """
 
 
@@ -34,6 +38,10 @@ async def demo_transcribe_walkthrough_page():
 
     apply_saved_theme()
     create_navbar()
+    from frontend.utils.demo_user_gate import require_demo_user_session
+
+    if not require_demo_user_session():
+        return
 
     text = load_markdown_file(_MD_FILE, _fallback_markdown)
 
@@ -42,15 +50,13 @@ async def demo_transcribe_walkthrough_page():
 
         render_guided_markdown_body(ui.column().classes("w-full min-w-0"), text)
 
-        render_walkthrough_samples_panel(ui.column().classes("w-full min-w-0"), "transcribe")
+        # render_walkthrough_samples_panel(ui.column().classes("w-full min-w-0"), "transcribe")
 
         with ui.row().classes("gap-4 flex-wrap items-center mt-8"):
             ui.button(
                 "Back to Demo",
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
             ).classes("bg-blue-600 text-white")
-           
-            ui.link("Open Assistant", NAV_LINKS["chatbot"]).classes("text-blue-600 hover:underline")
-            ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes("text-blue-600 hover:underline")
 
+    schedule_hash_fragment_scroll()
     logger.debug("Transcribe walkthrough page rendered")

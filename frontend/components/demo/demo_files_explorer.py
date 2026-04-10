@@ -56,6 +56,20 @@ _WALKTHROUGH_PRESETS: dict[str, _WalkthroughPreset] = {
 }
 
 
+def normalize_demo_walkthrough_query(value: Optional[str]) -> str:
+    """
+    Map a URL query value (e.g. ``?walkthrough=transcribe``) to a preset key for
+    :func:`render_demo_files_explorer` / :func:`render_walkthrough_samples_panel`.
+    Unknown or empty values become ``'all'`` (full demo tree).
+    """
+    if value is None or not str(value).strip():
+        return 'all'
+    k = str(value).strip().lower().replace('-', '_')
+    if k in _WALKTHROUGH_PRESETS:
+        return k
+    return 'all'
+
+
 def _resolved_root() -> Path:
     return DEMO_FILES_BROWSE_ROOT.expanduser().resolve()
 
@@ -221,7 +235,7 @@ def render_walkthrough_samples_panel(container: ui.element, walkthrough: str) ->
     """Section with title + filtered explorer for a walkthrough page."""
     with container:
         with ui.column().props('id=walkthrough-samples').classes('w-full scroll-mt-24 mt-6'):
-            # ui.label('Sample inputs & outputs').classes('text-xl font-bold mb-1')
+            ui.label('Sample inputs & outputs').classes('text-xl font-bold mb-1')
             ui.label(
                 'Browse folders and files for this demo. '
             ).classes('text-sm text-gray-600 mb-3')

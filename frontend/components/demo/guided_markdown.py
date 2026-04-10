@@ -16,6 +16,34 @@ from nicegui import ui
 logger = logging.getLogger(__name__)
 
 _FRONTEND_DEMO_DIR = Path(__file__).resolve().parent.parent.parent / "demo"
+
+
+def schedule_hash_fragment_scroll() -> None:
+    """
+    Scroll to the element whose id matches the URL fragment (e.g. /demo#sample-inputs,
+    /demo/transcribe-walkthrough#walkthrough-samples). NiceGUI client-side navigation
+    often does not perform native hash scrolling; this runs after paint.
+    """
+    js = """
+        (function () {
+            var id = (window.location.hash || '').replace(/^#/, '');
+            if (!id) return;
+            function tryScroll() {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return true;
+                }
+                return false;
+            }
+            if (!tryScroll()) {
+                setTimeout(function () { tryScroll(); }, 200);
+                setTimeout(function () { tryScroll(); }, 600);
+            }
+        })();
+    """
+    ui.timer(0.15, lambda: ui.run_javascript(js), once=True)
+    ui.timer(0.5, lambda: ui.run_javascript(js), once=True)
 _SCREENSHOT_LINE = re.compile(r"^\{\{SCREENSHOT:([^}]+)\}\}\s*$", re.MULTILINE)
 
 

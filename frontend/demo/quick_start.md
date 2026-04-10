@@ -8,19 +8,19 @@
   after a paragraph (else list runs together with the paragraph as one line).
 -->
 
-## Overview
+## **Overview**
 
 RescueBox Desktop connects your browser to **plugins** (AI/ML tools for images, audio, text) to help with forensics  analysis.
 You choose a plugin, fill in paths and options, run a **job**, then inspect **results** in **Jobs**
 
 
-## Navbar 
+## **Navbar** 
 
 This navigation bar is useful to navigate for daily use.
 {{SCREENSHOT:navbar.png}}
 
 
-## Home screen
+## **Home screen**
 
 - When you **start RescueBox for the first time**, enter a **unique user id**. It ties jobs to your browser session. 
 
@@ -37,25 +37,21 @@ The welcome page lists the main actions.
 
 ---
 
-## Available Plugins description.
+## **Running plugins**
 
-1. Open **[Browse Plugins](/models)**.
-2. Each plugin card shows **Online** / **Offline**, version, and author.
-3. Click **README** for **Plugin Details** — plugin documentation (inputs, outputs, notes).
+**RescueBox Assistant** — Open **[Assistant](/chatbot)**, 
 
----
+- Either, click the **Menu** button 
 
-## Running plugins
+- or **type in a prompt**, to get a input form 
 
-**RescueBox Assistant** — Open **[Assistant](/chatbot)**, click the **Menu** button or **type in a prompt**, to get a input form 
-
- Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then **submit Job** and view results under **Jobs**.
+- Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then **submit Job** and view results under **Jobs**.
 
 The three walkthoughs in this demo familiarize you with these operations.
 
 ---
 
-## Jobs
+## **Jobs**
 
 Open **[Jobs](/jobs)** for results and status.
 
@@ -65,4 +61,11 @@ Open **[Jobs](/jobs)** for results and status.
 
 ---
 
+## Available Plugins description.
+
+1. Open **[Browse Plugins](/models)**.
+2. Each plugin card shows **Online** / **Offline**, version, and author.
+3. Click **README** for **Plugin Details** — plugin documentation (inputs, outputs, notes).
+
+---
 

@@ -16,6 +16,7 @@ import logging
 from nicegui import ui
 
 from frontend.config import APP_TITLE, APP_VERSION
+from frontend.utils.nicegui_storage import get_user_id_for_jobs
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -63,6 +64,13 @@ def create_navbar():
             'text-white hover:underline px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded '
             'hover:bg-blue-700 !text-sm sm:!text-base whitespace-nowrap !leading-snug'
         )
+        _nav_locked = get_user_id_for_jobs() is None
+
+        def _nav_blocked_msg():
+            ui.notify(
+                'Enter a valid User ID on the home page.',
+                type='warning',
+            )
 
         with ui.row().classes(
             'w-full min-w-0 min-h-12 h-auto sm:h-14 px-2 sm:px-3 py-0 items-center gap-2 sm:gap-3 '
@@ -93,12 +101,20 @@ def create_navbar():
                 ):
                     #logger.debug("Creating navigation links row")
 
-                    
-                    ui.link('Assistant', '/chatbot').classes(_link_cls)
-                    ui.link('Jobs', '/jobs').classes(_link_cls)
-                    ui.link('Logs', '/logs').classes(_link_cls)
-                    ui.link('Demo', '/demo').classes(_link_cls)
-                    ui.link('Browse Plugins', '/models').classes(_link_cls)
+                    _nav_items = (
+                        ('Assistant', '/chatbot'),
+                        ('Jobs', '/jobs'),
+                        ('Logs', '/logs'),
+                        ('Demo', '/demo'),
+                        ('Browse Plugins', '/models'),
+                    )
+                    for label, path in _nav_items:
+                        if _nav_locked:
+                            ui.label(label).classes(
+                                _link_cls + ' opacity-50 cursor-not-allowed select-none'
+                            ).on('click', lambda _: _nav_blocked_msg())
+                        else:
+                            ui.link(label, path).classes(_link_cls)
 
                 # Session display removed for demo safety (avoids accidental user actions)
 

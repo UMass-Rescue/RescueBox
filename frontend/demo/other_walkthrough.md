@@ -18,6 +18,8 @@ Use the **plugins menu** to run the desired operation.
 
 4. When the **input form** appears inline, use **Browse** to pick the **age-gender-classifier** subfolder **inputs**
 
+- [Browse demo folders](/demo?walkthrough=other#sample-inputs)
+
 5. **Submit Job**, add **case notes** as needed. 
 
 6. After job completes open **View Job** 
@@ -29,7 +31,7 @@ Use the **plugins menu** to run the desired operation.
 
 ## Part B — run using  Chat Assistant prompts
 
-Run the plugin job by typing a natural-language requests in the chat box (“Type your request”).
+Run the **Describe Images plugin** job by typing a natural-language requests in the chat box (“Type your request”).
 
 1. Open **[Assistant](/chatbot)**.
 or
@@ -44,14 +46,13 @@ or
 5. fill **Browse** fields, **input** directory path and **output** directory path, 
 choose the default model, and **Submit Job** .
 
+- [Browse demo folders](/demo?walkthrough=other#sample-inputs)
+
 6. click on **view job** results after job is completed successfully.
 
 ---
 
 ## Part C — Pipeline: age/gender + summarize 
-
-When a single prompt implies **more than one plugin** in sequence, for example **age/gender** 
-and then run **describe/summarize images**), RescueBox runs such workflows in a pipeline:
 
 **Type this prompt** in the chat assistant **[🧠 Chat](/chatbot)**.:
 
@@ -75,14 +76,7 @@ and then run **describe/summarize images**), RescueBox runs such workflows in a 
 
 **What to expect:**
 
-First run age-gender classifier plugin to scan the images and detect age-gender , then match gender/age filter and then proceed to describe only these matched images.
-
-Note that in this walk thru we used "describe images" which uses an AI model to get the details.
-In the previous **Search Image walkthrough** rescuebox uses an ML model to find images with matching query/caption. 
-
-The  **search plugin** is faster and it uses semantic search, a search for a 'cell phone' might match a prison cell or a small object that looks like a phone.
-
-The **describe images plugin** uses an ai model to describe and it could incorrectly tag a cell phone as a mouse, the more gpu intensive models are better.
+**Pipeline workflow** : First run age-gender classifier plugin to scan the images predict age-gender , then match gender/age filter and proceed to describe only the matched images.
 
 ---
 

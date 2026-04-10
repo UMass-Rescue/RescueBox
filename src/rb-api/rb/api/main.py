@@ -12,6 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from rb.api import routes
+from rb.api.facematch_request_context import FacematchRescueboxUserMiddleware
 from rb.api.database import create_db_and_tables
 
 app = FastAPI(
@@ -31,6 +32,7 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+app.add_middleware(FacematchRescueboxUserMiddleware)
 
 @app.on_event("startup")
 def on_startup():
@@ -76,4 +78,4 @@ if __name__ == "__main__":
         uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
     else:
         # for cmdline dev mode
-        uvicorn.run("rb.api.main:app", host="0.0.0.0", port=8000, reload=False)
+        uvicorn.run("rb.api.main:app", host="127.0.0.1", port=8000, reload=False)

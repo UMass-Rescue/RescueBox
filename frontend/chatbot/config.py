@@ -22,7 +22,7 @@ Key Components:
 import logging
 import os
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -142,6 +142,16 @@ class ToolRegistry:
         "10": {"name": "📂 UFDR Mount", "endpoint": "ufdr_mounter/mount", "desc": "Mount UFDR files"},
        
     }
+
+    @staticmethod
+    def tool_menu_name_for_endpoint(endpoint: str) -> Optional[str]:
+        """
+        Return TOOL_MENU ``name`` (e.g. \"🔍Search Images\") for an API endpoint, or None if not in the menu.
+        """
+        for tool in ToolRegistry.TOOL_MENU.values():
+            if tool["endpoint"] == endpoint:
+                return tool["name"]
+        return None
 
     @staticmethod
     def ordered_plugin_uids() -> List[str]:

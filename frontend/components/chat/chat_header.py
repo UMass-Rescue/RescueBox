@@ -37,7 +37,7 @@ def create_chat_header(on_new_conversation: Callable, ui_state: dict, ui_styling
             # ui.label('🤖 Assistant').classes('text-lg font-semibold text-gray-800 mr-2')
             ui.label('RescueBox Assistant').classes('text-sm text-gray-600')
             # Mode indicator
-            mode_indicator = ui.badge('Chat Assistant', color='green').classes('text-xs')
+            mode_indicator = ui.badge('', color='green').classes('text-xs')
 
         # Right side — action buttons (global .q-btn uses tiny font; !text-* overrides on /chatbot)
         _btn_lg = (
@@ -57,9 +57,9 @@ def create_chat_header(on_new_conversation: Callable, ui_state: dict, ui_styling
                     on_click=lambda: ui.notify('No history available', type='info'),
                 ).classes(f'bg-gray-200 text-gray-900 {_btn_lg}')
             history_btn.visible = user_has_job_history()
-            ui.button('New Conversation', on_click=on_new_conversation).classes(
-                f'bg-blue-600 text-white {_btn_lg}'
-            )
+            #i.button('New Conversation', on_click=on_new_conversation).classes(
+            #    f'bg-blue-600 text-white {_btn_lg}'
+            #)
 
     return mode_indicator, models_btn, analyze_btn, history_btn
 

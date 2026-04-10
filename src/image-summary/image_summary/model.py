@@ -23,6 +23,7 @@ SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
         "display_name": "Llama 3.2 11B: More performant, still fits into consumer GPUs",
     },
     "gemma3:27b": {"display_name": "Gemma3 27B: Larger, powerful model, runs on more powerful hardware"},
+    "gemma4:e4b": {"display_name": "gemma4:e4b latest april'26 model"},
 }
 
 '''

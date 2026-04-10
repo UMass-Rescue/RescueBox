@@ -9,6 +9,11 @@ MODELS=(
     "gemma3:4b"
 )
 
+# sudo systemctl stop ollama
+#   curl -fsSL https://ollama.com/install.sh | sh
+#   ollama --version
+#  ollama version is 0.20.2
+
 echo "🔍 Validating Ollama Environment..."
 
 # 1. Check if Ollama is running (API check)

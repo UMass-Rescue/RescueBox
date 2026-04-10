@@ -31,6 +31,7 @@ from frontend.pages.jobs.components import (
     render_compact_inputs_summary
 )
 from frontend.pages.jobs.job_utils import extract_job_fields
+from frontend.pages.chatbot.utils.ui_operations import UIOperations
 from frontend.utils.theme import apply_saved_theme
 
 # Configure logging for this module
@@ -54,7 +55,11 @@ async def job_details_page(job_id: str):
     #logger.info("Job details page accessed for job: %s", job_id)
     apply_saved_theme()
     create_navbar()
-    
+    from frontend.utils.demo_user_gate import require_demo_user_session
+
+    if not require_demo_user_session():
+        return
+
     # Load job data from local database
     try:
         #logger.debug("Fetching job data for job_id: %s", job_id)
@@ -113,6 +118,14 @@ async def job_details_page(job_id: str):
         with tab_panels:
             with ui.tab_panel('Details').classes('w-full max-w-full min-w-0 !items-stretch'):
                 await render_job_details(api_client, job)
+
+        # Long outputs: show the end of the page after render (async previews may settle later).
+        try:
+            UIOperations.scroll_document_to_bottom()
+            for _delay in (0.12, 0.35, 0.75):
+                ui.timer(_delay, UIOperations.scroll_document_to_bottom, once=True)
+        except Exception:
+            pass
 
 async def render_job_outputs(api_client, job):
     """

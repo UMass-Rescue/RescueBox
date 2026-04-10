@@ -34,6 +34,8 @@ import threading
 from typing import Optional
 from nicegui import app, ui
 
+from frontend.constants import is_valid_explicit_user_id
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -75,35 +77,48 @@ _EXPLICIT_USER_ID_KEY = "explicit_job_user_id"
 def get_explicit_user_id() -> Optional[str]:
     """
     Get the user-entered ID for job/history association (from startup dialog).
-    Returns None when not yet set (new session).
+    Returns None when not yet set (new session) or when stored value is not a valid demo ID.
     Checks app.storage.user first, then app.storage.browser (cookie) for cross-session persistence.
     """
+    raw: Optional[str] = None
     # Try app.storage.user (session-bound, persists across reloads)
     try:
         val = app.storage.user.get(_EXPLICIT_USER_ID_KEY)
         if val and isinstance(val, str) and val.strip():
-            return val.strip()
+            raw = val.strip()
     except Exception:
         pass
-    # Fallback: app.storage.browser (cookie) - persists across reloads and sometimes survives session
-    try:
-        val = app.storage.browser.get(_EXPLICIT_USER_ID_KEY)
-        if val and isinstance(val, str) and val.strip():
-            return val.strip()
-    except Exception:
-        pass
-    return _test_fallback_storage.get(_EXPLICIT_USER_ID_KEY)
+    if raw is None:
+        # Fallback: app.storage.browser (cookie) - persists across reloads and sometimes survives session
+        try:
+            val = app.storage.browser.get(_EXPLICIT_USER_ID_KEY)
+            if val and isinstance(val, str) and val.strip():
+                raw = val.strip()
+        except Exception:
+            pass
+    if raw is None:
+        fb = _test_fallback_storage.get(_EXPLICIT_USER_ID_KEY)
+        if fb and isinstance(fb, str) and fb.strip():
+            raw = fb.strip()
+
+    if not raw:
+        return None
+    if is_valid_explicit_user_id(raw):
+        return raw
+    clear_explicit_user_id()
+    return None
 
 
 def set_explicit_user_id(value: str) -> None:
     """
     Store the user-entered ID for job/history association.
     Persists in app.storage.user and app.storage.browser for cross-session persistence.
+    Invalid values (wrong demo format) are not stored.
     """
     if not value or not isinstance(value, str):
         return
     v = value.strip()
-    if not v:
+    if not is_valid_explicit_user_id(v):
         return
     try:
         app.storage.user[_EXPLICIT_USER_ID_KEY] = v
@@ -159,7 +174,7 @@ def ensure_explicit_user_id_for_tests() -> None:
             return
         if get_explicit_user_id():
             return
-        set_explicit_user_id("test-user-1")
+        set_explicit_user_id("rb_demo_0408_00")
     except Exception:
         pass
 
@@ -181,11 +196,17 @@ def ensure_user_id() -> Optional[str]:
 
     def on_submit():
         val = (input_field.value or "").strip()
-        if val:
-            set_explicit_user_id(val)
-            dialog.close()
-            # Delay reload so storage writes can persist before new request
-            ui.timer(0.3, lambda: ui.navigate.reload(), once=True)
+        if not val:
+            return
+        if not is_valid_explicit_user_id(val):
+            from frontend.constants import HOME_USER_ID
+
+            ui.notify(HOME_USER_ID["invalid_format"], type="warning")
+            return
+        set_explicit_user_id(val)
+        dialog.close()
+        # Delay reload so storage writes can persist before new request
+        ui.timer(0.3, lambda: ui.navigate.reload(), once=True)
 
     def on_keydown(e):
         if getattr(e, "args", None) and e.args.get("key") == "Enter":
@@ -194,11 +215,11 @@ def ensure_user_id() -> Optional[str]:
     with ui.dialog() as dialog, ui.card().classes("p-6 min-w-[320px]"):
         ui.label("Enter your User ID").classes("text-lg font-semibold")
         ui.label(
-            "Use this to access your jobs and chat history. Enter the same ID each time you open RescueBox."
+            "Use this to access your jobs and chat history."
         ).classes("text-gray-600 mb-4")
         input_field = ui.input(
             "User ID",
-            placeholder="e.g. your name or case number",
+            placeholder="??",
         ).classes("w-full")
         input_field.on("keydown", on_keydown)
         with ui.row().classes("mt-4 justify-end gap-2"):

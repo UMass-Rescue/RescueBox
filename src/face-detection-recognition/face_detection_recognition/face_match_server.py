@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import typer
 from dotenv import load_dotenv
 from typing import List, TypedDict
@@ -31,11 +32,17 @@ from pydantic import DirectoryPath
 from face_detection_recognition.interface import FaceMatchModel
 from face_detection_recognition.utils.GPU import check_cuDNN_version
 from face_detection_recognition.utils.logger import log_info
-from face_detection_recognition.database_functions import Vector_Database
+from face_detection_recognition.database_functions import (
+    Vector_Database,
+    vector_db_for_current_request,
+)
 
 load_dotenv()
 
-DB = Vector_Database()
+def vector_db_for_path(path: str) -> Vector_Database:
+    """Backward-compatible alias; prefer :func:`vector_db_for_current_request`."""
+    return vector_db_for_current_request(str(path))
+
 
 APP_NAME = "face-match"
 server = MLService(APP_NAME)
@@ -64,18 +71,17 @@ class ImageDirectory(FileFilterDirectory):
     file_extensions: List[str] = IMAGE_EXTENSIONS
 
 
-# Initialize with "Create a new collection" value used in frontend to take new file name entered by user
-available_collections: List[str] = ["Create a new collection"]
+# Legacy default store handle (used where a module-level DB reference is still handy)
+# Collection dropdowns are built per HTTP request via :func:`vector_db_for_current_request`
+# so each RescueBox user (``X-RescueBox-User-Id``) only sees their own Chroma collections.
 
-available_multi_pipeline_collections: List[str] = ["Create a new collection"]
 
-# single pipeline collections
-available_collections.extend(DB.get_available_collections(isEnsemble=False))
-
-# mutiple pipeline collections
-available_multi_pipeline_collections.extend(
-    DB.get_available_collections(isEnsemble=True)
-)
+def _bulk_upload_collection_choices(is_ensemble: bool) -> List[str]:
+    """First row is the UI sentinel; remaining names are Chroma collections for the current user only."""
+    rows: List[str] = ["Create a new collection"]
+    db = vector_db_for_current_request(None)
+    rows.extend(db.get_available_collections(isEnsemble=is_ensemble))
+    return rows
 
 # Read default similarity threshold from config file
 config_path = os.path.join(script_dir, "config", "model_config.json")
@@ -83,6 +89,49 @@ with open(config_path, "r") as config_file:
     config = json.load(config_file)
 
 default_threshold = config["cosine-threshold"]
+
+
+def _collection_name_enum_for_find_tasks() -> EnumParameterDescriptor:
+    """
+    Collection dropdown for find-face / delete-collection task schemas.
+
+    The frontend rejects submissions when enum_vals is empty (``Value must be one of:``).
+    If no Chroma collections exist yet, expose a single ``sample`` option so users can
+    still submit (after bulk upload, real names appear on next model cache refresh).
+
+    Names come only from the current user's Chroma store (``X-RescueBox-User-Id`` when set).
+    """
+    names = vector_db_for_current_request(None).get_available_collections(isEnsemble=False)
+    names = [n for n in names if n]
+    if names:
+        return EnumParameterDescriptor(
+            enum_vals=[EnumVal(key=n, label=n) for n in names],
+            message_when_empty="No collections found",
+            default=names[0],
+        )
+    return EnumParameterDescriptor(
+        enum_vals=[EnumVal(key="sample", label="sample")],
+        message_when_empty="Bulk upload images first, or choose sample to test",
+        default="sample",
+    )
+
+
+def _collection_name_enum_for_multi_pipeline_find() -> EnumParameterDescriptor:
+    """Same as :func:`_collection_name_enum_for_find_tasks` but for ensemble collection names."""
+    names = vector_db_for_current_request(None).get_available_collections(isEnsemble=True)
+    names = [n for n in names if n]
+    if names:
+        return EnumParameterDescriptor(
+            enum_vals=[EnumVal(key=n, label=n) for n in names],
+            message_when_empty="No collections found",
+            default=names[0],
+        )
+    return EnumParameterDescriptor(
+        enum_vals=[EnumVal(key="sample", label="sample")],
+        message_when_empty="Multi-pipeline bulk upload first, or choose sample to test",
+        default="sample",
+    )
+
 
 """ 
 ******************************************************************************************************
@@ -107,14 +156,7 @@ def get_ingest_query_image_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="collection_name",
                 label="Collection Name",
-                value=EnumParameterDescriptor(
-                    enum_vals=[
-                        EnumVal(key=collection_name, label=collection_name)
-                        for collection_name in available_collections[1:]
-                    ],
-                    message_when_empty="No collections found",
-                    default=(available_collections[0]),
-                ),
+                value=_collection_name_enum_for_find_tasks(),
             ),
             ParameterSchema(
                 key="similarity_threshold",
@@ -169,7 +211,8 @@ def find_face_endpoint(
     # Check CUDNN compatability
     check_cuDNN_version()
 
-    full_collection_name = DB.create_full_collection_name(
+    _scope_db = vector_db_for_current_request(input_file_paths[0])
+    full_collection_name = _scope_db.create_full_collection_name(
         parameters["collection_name"],
         config["detector_backend"],
         config["model_name"],
@@ -232,14 +275,7 @@ def get_ingest_bulk_query_image_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="collection_name",
                 label="Collection Name",
-                value=EnumParameterDescriptor(
-                    enum_vals=[
-                        EnumVal(key=collection_name, label=collection_name)
-                        for collection_name in available_collections[1:]
-                    ],
-                    message_when_empty="No collections found",
-                    default=(available_collections[0]),
-                ),
+                value=_collection_name_enum_for_find_tasks(),
             ),
             ParameterSchema(
                 key="similarity_threshold",
@@ -284,7 +320,9 @@ def find_face_bulk_endpoint(
     # Check CUDNN compatability
     check_cuDNN_version()
 
-    full_collection_name = DB.create_full_collection_name(
+    _query_path = str(inputs["query_directory"].path)
+    _scope_db = vector_db_for_current_request(_query_path)
+    full_collection_name = _scope_db.create_full_collection_name(
         parameters["collection_name"],
         config["detector_backend"],
         config["model_name"],
@@ -364,14 +402,7 @@ def get_ingest_bulk_test_query_image_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="collection_name",
                 label="Collection Name",
-                value=EnumParameterDescriptor(
-                    enum_vals=[
-                        EnumVal(key=collection_name, label=collection_name)
-                        for collection_name in available_collections[1:]
-                    ],
-                    message_when_empty="No collections found",
-                    default=(available_collections[0]),
-                ),
+                value=_collection_name_enum_for_find_tasks(),
             ),
         ],
     )
@@ -406,7 +437,9 @@ def find_face_bulk_testing_endpoint(
     # Check CUDNN compatability
     check_cuDNN_version()
 
-    full_collection_name = DB.create_full_collection_name(
+    _query_path = str(inputs["query_directory"].path)
+    _scope_db = vector_db_for_current_request(_query_path)
+    full_collection_name = _scope_db.create_full_collection_name(
         parameters["collection_name"],
         config["detector_backend"],
         config["model_name"],
@@ -450,6 +483,7 @@ Bulk Upload
 
 # Frontend Task Schema defining inputs and parameters that users can enter
 def get_ingest_images_task_schema() -> TaskSchema:
+    _choices = _bulk_upload_collection_choices(is_ensemble=False)
     return TaskSchema(
         inputs=[
             InputSchema(
@@ -465,12 +499,12 @@ def get_ingest_images_task_schema() -> TaskSchema:
                 value=EnumParameterDescriptor(
                     enum_vals=[
                         EnumVal(key=collection_name, label=collection_name)
-                        for collection_name in available_collections
+                        for collection_name in _choices
                     ],
                     message_when_empty="No collections found",
                     default=(
-                        available_collections[0]
-                        if len(available_collections) > 0
+                        _choices[0]
+                        if len(_choices) > 0
                         else ""
                     ),
                 ),
@@ -511,6 +545,7 @@ class BulkUploadParameters(TypedDict):
 def bulk_upload_endpoint(
     inputs: BulkUploadInputs, parameters: BulkUploadParameters
 ) -> ResponseBody:
+    available_collections = _bulk_upload_collection_choices(is_ensemble=False)
     # If dropdown value chosen is Create a new collection, then add collection to available collections, otherwise set
     # collection to dropdown value
     if (
@@ -555,7 +590,8 @@ def bulk_upload_endpoint(
     # Get list of directory paths from input
     input_directory_path = str(inputs["directory_path"].path)
     log_info(input_directory_path)
-    full_collection_name = DB.create_full_collection_name(
+    _scope_db = vector_db_for_current_request(input_directory_path)
+    full_collection_name = _scope_db.create_full_collection_name(
         base_collection_name,
         config["detector_backend"],
         config["model_name"],
@@ -564,12 +600,7 @@ def bulk_upload_endpoint(
     # Call the model function
     response = face_match_model.bulk_upload(input_directory_path, full_collection_name)
 
-    if response.startswith("Successfully uploaded") and response.split(" ")[2] != "0":
-        # Some files were uploaded
-        if parameters["dropdown_collection_name"] == available_collections[0]:
-            # Add new collection to available collections if collection name is not already in available collections
-            if base_collection_name not in available_collections:
-                available_collections.append(base_collection_name)
+    # New collections appear on the next task_schema fetch (Chroma list_collections).
     return ResponseBody(root=TextResponse(value=response))
 
 
@@ -599,6 +630,7 @@ Multi-Pipeline Bulk Upload (runs through 4 different configurations)
 
 # Frontend Task Schema defining inputs and parameters that users can enter
 def get_multi_pipeline_ingest_images_task_schema() -> TaskSchema:
+    _mpc = _bulk_upload_collection_choices(is_ensemble=True)
     return TaskSchema(
         inputs=[
             InputSchema(
@@ -614,12 +646,12 @@ def get_multi_pipeline_ingest_images_task_schema() -> TaskSchema:
                 value=EnumParameterDescriptor(
                     enum_vals=[
                         EnumVal(key=collection_name, label=collection_name)
-                        for collection_name in available_multi_pipeline_collections
+                        for collection_name in _mpc
                     ],
                     message_when_empty="No collections found",
                     default=(
-                        available_multi_pipeline_collections[0]
-                        if len(available_multi_pipeline_collections) > 0
+                        _mpc[0]
+                        if len(_mpc) > 0
                         else ""
                     ),
                 ),
@@ -694,6 +726,7 @@ def multi_pipeline_bulk_upload_endpoint(
     inputs: MultiPipelineBulkUploadInputs, parameters: MultiPipelineBulkUploadParameters
 ) -> ResponseBody:
     check_cuDNN_version()
+    available_multi_pipeline_collections = _bulk_upload_collection_choices(is_ensemble=True)
     if (
         parameters["dropdown_collection_name"]
         == available_multi_pipeline_collections[0]
@@ -761,10 +794,11 @@ def multi_pipeline_bulk_upload_endpoint(
             root=TextResponse(value=f"Error reading config file: {str(e)}")
         )
 
+    _scope_db = vector_db_for_current_request(base_path)
     results = []
     for config in pipeline_configs:
         # Generate collection name for this pipeline
-        full_collection_name = DB.create_full_collection_name(
+        full_collection_name = _scope_db.create_full_collection_name(
             base_collection_name,
             config["detector"],
             config["model"],
@@ -781,9 +815,6 @@ def multi_pipeline_bulk_upload_endpoint(
         pipeline_name = f"{config['detector']}/{config['model']}"
         if success:
             results.append(f"{pipeline_name}: {result}")
-            # Add to available collections if not already there
-            if base_collection_name not in available_multi_pipeline_collections:
-                available_multi_pipeline_collections.append(base_collection_name)
         else:
             results.append(f"{pipeline_name}: Error: {result}")
 
@@ -828,18 +859,7 @@ def get_multi_pipeline_face_find_bulk_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="collection_name",
                 label="Choose Collection",
-                value=EnumParameterDescriptor(
-                    enum_vals=[
-                        EnumVal(key=collection_name, label=collection_name)
-                        for collection_name in available_multi_pipeline_collections[1:]
-                    ],
-                    message_when_empty="No collections found",
-                    default=(
-                        available_multi_pipeline_collections[0]
-                        if len(available_multi_pipeline_collections) > 0
-                        else ""
-                    ),
-                ),
+                value=_collection_name_enum_for_multi_pipeline_find(),
             ),
             ParameterSchema(
                 key="threshold_mode",
@@ -904,6 +924,8 @@ def multi_pipeline_face_find_bulk_endpoint(
     min_votes = parameters.get("min_votes", 3)  # Default to 3 if not provided
 
     check_cuDNN_version()
+
+    _mpv_scope_db = vector_db_for_current_request(query_directory)
 
     # Define threshold sets
     strict_thresholds = {
@@ -1019,7 +1041,7 @@ def multi_pipeline_face_find_bulk_endpoint(
 
     # Process each pipeline and collect votes
     for config in pipeline_configs:
-        full_collection_name = DB.create_full_collection_name(
+        full_collection_name = _mpv_scope_db.create_full_collection_name(
             parameters["collection_name"],
             config["detector"],
             config["model"],
@@ -1028,11 +1050,11 @@ def multi_pipeline_face_find_bulk_endpoint(
 
         current_threshold = config["threshold"]
 
-        def operation():
+        def operation(fc=full_collection_name, thr=current_threshold):
             status, results = face_match_model.find_face_bulk(
                 query_directory,
-                current_threshold,
-                full_collection_name,
+                thr,
+                fc,
                 similarity_filter=True,
             )
             return status, results
@@ -1213,14 +1235,7 @@ def delete_collection_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="collection_name",
                 label="Collection Name",
-                value=EnumParameterDescriptor(
-                    enum_vals=[
-                        EnumVal(key=collection_name, label=collection_name)
-                        for collection_name in available_collections[1:]
-                    ],
-                    message_when_empty="No collections found",
-                    default=(available_collections[0]),
-                ),
+                value=_collection_name_enum_for_find_tasks(),
             ),
         ],
     )
@@ -1252,16 +1267,16 @@ def delete_collection_endpoint(
 ) -> ResponseBody:
     responseValue = ""
     collection_name = parameters["collection_name"]
-    full_collection_name = DB.create_full_collection_name(
+    _db = vector_db_for_current_request(None)
+    full_collection_name = _db.create_full_collection_name(
         parameters["collection_name"],
         config["detector_backend"],
         config["model_name"],
         False,
     )
     try:
-        DB.client.delete_collection(full_collection_name)
+        _db.client.delete_collection(full_collection_name)
         responseValue = f"Successfully deleted {full_collection_name}"
-        available_collections.remove(collection_name)
         log_info(responseValue)
     except Exception:
         responseValue = f"Collection {full_collection_name} does not exist."
@@ -1313,7 +1328,7 @@ def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
     responseValue = None
 
     try:
-        responseValue = DB.client.list_collections()
+        responseValue = vector_db_for_current_request(None).client.list_collections()
         log_info(responseValue)
     except Exception:
         responseValue = ["Failed to List Collections"]

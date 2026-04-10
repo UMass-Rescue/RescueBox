@@ -225,7 +225,7 @@ class ResultProcessor:
             # Import here to avoid circular imports
             from frontend.pages.chatbot.handlers.form_submit_handler import FormSubmitHandler
             handler = FormSubmitHandler(self.state_manager)
-            await handler.submit_form(request_body, endpoint, task_schema, container, core)
+            return await handler.submit_form(request_body, endpoint, task_schema, container, core)
         return form_submit_handler
 
     def _create_tool_selected_handler(self, container, add_message_callback):

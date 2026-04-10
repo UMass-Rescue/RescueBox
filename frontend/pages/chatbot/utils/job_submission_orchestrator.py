@@ -112,6 +112,29 @@ class JobSubmissionOrchestrator:
             endpoint, self.form_handler.state_manager
         )
 
+        # Persist a user row when the conversation has no chat prompt yet (form-only / tool-first flows).
+        # Without this, history load shows assistant/tool lines but no YOU: bubble.
+        saved_user_text = await DatabaseService.save_user_prompt_if_missing_from_form_submission(
+            conversation_id, request_body, endpoint
+        )
+        if saved_user_text:
+            try:
+                from frontend.pages.chatbot.chatbot_message import ChatMessage, render_message
+                from frontend.pages.chatbot.chatbot_forms import get_global_chat_container
+                um = ChatMessage('user', saved_user_text)
+                if getattr(self.form_handler, 'state_manager', None):
+                    self.form_handler.state_manager.add_message(um)
+                target = None
+                try:
+                    target = get_global_chat_container()
+                except Exception:
+                    target = None
+                target = target or container
+                if target is not None:
+                    render_message(target, um)
+            except Exception:
+                self.logger.debug("Could not render synthetic user prompt in chat UI (continuing).")
+
         # Persist an assistant message indicating which tool will be used.
         # This is saved when the form is submitted so cancelling the form leaves no history.
         try:
@@ -159,7 +182,8 @@ class JobSubmissionOrchestrator:
                     # Schedule scroll to bottom (use ui.timer from NiceGUI)
                     try:
                         ui = nicegui.ui
-                        ui.timer(0.1, UIOperations.scroll_to_bottom, once=True)
+                        _jc = getattr(target_container, 'client', None)
+                        ui.timer(0.1, lambda c=_jc: UIOperations.scroll_to_bottom(client=c), once=True)
                     except Exception:
                         pass
                 except Exception:
@@ -226,7 +250,8 @@ class JobSubmissionOrchestrator:
                     self.form_handler.state_manager.add_message(ChatMessage('assistant', "🔄 Job running..."))
                 except Exception:
                     pass
-                ui.timer(0.1, UIOperations.scroll_to_bottom, once=True)
+                _run_client = getattr(target, 'client', None)
+                ui.timer(0.1, lambda c=_run_client: UIOperations.scroll_to_bottom(client=c), once=True)
         except Exception as render_err:
             self.logger.debug("Could not render job running message: %s", render_err)
 
@@ -268,6 +293,10 @@ class JobSubmissionOrchestrator:
                             pipeline_total_steps=pipeline_total_steps,
                             remaining_calls_after_step=remaining_calls,
                         )
+                        try:
+                            await UIOperations.scroll_to_bottom_after_dom_update(container)
+                        except Exception:
+                            pass
                         # Handle remaining calls in multi-call sequence (filter dialog + next form)
                         if remaining_calls:
                             resp = coerce_pipeline_response(response_data) if isinstance(response_data, dict) else response_data
@@ -296,11 +325,10 @@ class JobSubmissionOrchestrator:
                                     self.form_handler.state_manager.set_input_enabled(True)
                             except Exception:
                                 pass
-                        # Match synchronous completion path: background jobs used to leave the viewport on
-                        # older history (e.g. after load_conversation) so the new job id looked "missing".
+                        # Pipeline may add more UI after show_results; one more pass after that lands.
                         try:
-                            UIOperations.scroll_to_bottom()
-                            ui.timer(0.15, UIOperations.scroll_to_bottom, once=True)
+                            _sc = container.client
+                            UIOperations.scroll_to_bottom(client=_sc)
                         except Exception:
                             pass
                         # Ensure processing state cleared after background UI update
@@ -417,8 +445,7 @@ class JobSubmissionOrchestrator:
             remaining_calls_after_step=remaining_calls,
         )
 
-        # Scroll to bottom after results are rendered
-        UIOperations.scroll_to_bottom()
+        await UIOperations.scroll_to_bottom_after_dom_update(container)
 
         # Handle remaining calls in multi-call sequence
         if remaining_calls:
@@ -440,6 +467,11 @@ class JobSubmissionOrchestrator:
                 pipeline_total_steps=pipeline_total_steps,
             )
             # Next form showing - stay disabled
+            try:
+                _hc = container.client
+                UIOperations.scroll_to_bottom(client=_hc)
+            except Exception:
+                pass
         else:
             self.form_handler.state_manager.set_input_enabled(True)
 
@@ -474,7 +506,7 @@ class JobSubmissionOrchestrator:
             with ui.dialog() as dialog, ui.card().classes('w-[400px]'):
                 ui.label('Filter files before next step').classes('text-lg font-semibold')
                 ui.label(
-                    'e.g. Gender:Female, Age:>30, or Age < 10 (spaces optional). Leave empty to use all.'
+                    'e.g. Gender=Male, Age<10, or Age < 10 (spaces optional). Leave empty to use all.'
                 ).classes('text-sm text-gray-600')
                 inp = ui.input(placeholder='Gender:Female, Age < 10').classes('w-full mt-2')
                 with ui.row().classes('mt-4 gap-2'):

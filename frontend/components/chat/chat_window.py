@@ -26,7 +26,11 @@ def create_chat_window() -> Any:
     Uses NiceGUI's native clear() for proper container clearing when switching modes.
     Shows a friendly welcome message when the chat first opens.
     """
-    container = ui.column().classes('flex-1 overflow-auto p-4 space-y-4 w-full bg-white rounded-lg shadow-sm border')
+    # rb-chat-messages-scroll: UIOperations.scroll_to_bottom scrolls this element (overflow-auto),
+    # not only the window — required for Plugins mode where the chat column scrolls independently.
+    container = ui.column().classes(
+        'rb-chat-messages-scroll flex-1 overflow-auto p-4 space-y-4 w-full bg-white rounded-lg shadow-sm border'
+    )
 
     render_welcome_message(container)
 

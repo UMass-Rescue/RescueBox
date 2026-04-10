@@ -8,7 +8,7 @@ if [[ "$OS" == "Linux" && "$ARCH" == "aarch64" ]]; then
     echo "Running on Linux aarch64 ARM."
     # for face-recognition
     export CUDNN_HOME=~/cudnn/cudnn-linux-aarch64-9.13.1.26_cuda13-archive
-    export LD_LIBRARY_PATH=$CUDNN_HOME/lib:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$CUDNN_HOME/lib
     FOUND=$(ls "$CUDNN_HOME/lib/libcudnn.so" 2>/dev/null || true)
     if [[ -z "$FOUND" ]]; then
         echo "check cudnn version and fix this check"

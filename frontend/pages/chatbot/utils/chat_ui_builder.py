@@ -99,8 +99,10 @@ class ChatUIBuilder:
                 chat_container = self._build_chat_area()
                 input_area = self._build_input_area()
                 # Job results from forms in the input strip (e.g. re-run) append here so they sit below the form.
+                # rb-chat-below-input-area: job results from forms anchored in the input strip (e.g. re-run
+                # after load history) render here — UIOperations.scroll_to_bottom scrolls this into view.
                 below_input_area = ui.column().classes(
-                    'w-full max-w-none space-y-4 mt-2 mb-4'
+                    'rb-chat-below-input-area w-full max-w-none space-y-4 mt-2 mb-4'
                 )
 
             # Initialize mode manager now that chat_container exists
@@ -187,7 +189,7 @@ class ChatUIBuilder:
                 async def handle_form_submit(request_body, form_endpoint, task_schema):
                     # Get current conversation_id from state manager
                     conversation_id = getattr(self.status_text_ref, 'conversation_id', None) if self.status_text_ref else None
-                    await self.form_submit_handler.submit_form(
+                    return await self.form_submit_handler.submit_form(
                         request_body, form_endpoint, task_schema,
                         chat_container, self.core, conversation_id=conversation_id
                     )

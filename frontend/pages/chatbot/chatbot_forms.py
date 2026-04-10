@@ -400,7 +400,8 @@ async def show_results(
     try:
         with container:
             # Modern success card with gradient
-            with ui.card().classes(FormConfig.SUCCESS_CARD_CLASSES):
+            # rb-job-result-anchor: scroll_to_bottom targets this after async render (nested overflow / below-input).
+            with ui.card().classes(f'{FormConfig.SUCCESS_CARD_CLASSES} rb-job-result-anchor'):
                 with ui.column().classes('p-6'):
                     # Success header with icon and job info
                     ResultRenderer.create_success_header(

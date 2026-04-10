@@ -18,7 +18,7 @@ run_or_fail() {
 }
 
 run_or_fail "cuda check" bash "$SCRIPT_DIR/startup/cuda_check.sh"
-run_or_fail "cudnn check" bash "$SCRIPT_DIR/startup/cudnn_check.sh"
+source "$SCRIPT_DIR/startup/cudnn_check.sh"
 run_or_fail "Onnx-runtime" bash "$SCRIPT_DIR/startup/onnxruntime_check.sh"
 run_or_fail "cuda-for-torch" bash "$SCRIPT_DIR/startup/./install_cuda_for_torch_clip_gpu.sh"
 
