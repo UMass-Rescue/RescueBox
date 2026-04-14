@@ -10,6 +10,7 @@ Components have been extracted to separate modules:
 - results.py: ResultRenderer class for result display
 """
 
+import asyncio
 import logging
 from nicegui import ui
 from typing import Any, Callable, List, Optional
@@ -222,39 +223,48 @@ async def load_and_show_form(
             logger.warning("Failed to convert arguments to initial values: %s, using empty values", str(e))
             initial_values = {}
         
-        # Show tool selection message first, then create a wrapper for the input form
-        # so the visual order is: assistant/tool-selection -> input form.
+        # Tool selection + form share one parent column that fades in after layout (less flicker
+        # than painting the selection card and form in separate layout passes).
         logger.info("load_and_show_form called: endpoint=%s container=%r arguments=%s", endpoint, container, arguments)
+        render_container = container or get_global_chat_container()
+        reveal_outer = None
+        try:
+            if render_container is not None:
+                with render_container:
+                    reveal_outer = ui.column().classes(FormConfig.FORM_REVEAL_OUTER_CLASSES)
+        except RuntimeError:
+            reveal_outer = None
+
         selection_card = None
+        selection_target = reveal_outer if reveal_outer is not None else render_container
         try:
             from frontend.components.results.tool_selection_card import render_tool_selection_message
             try:
-                # Prefer explicit container (page chat area); global is fallback for callers that only have input area.
                 global_container = get_global_chat_container()
-                target_for_selection = container or global_container
+                target_for_selection = selection_target or container or global_container
                 logger.info(
                     "Rendering tool selection message into container=%r (explicit=%s global_fallback=%s)",
                     target_for_selection,
                     container is not None,
                     bool(global_container) and container is None,
                 )
-                selection_card = render_tool_selection_message(target_for_selection, endpoint)
+                if target_for_selection is not None:
+                    selection_card = render_tool_selection_message(target_for_selection, endpoint)
             except (RuntimeError, AttributeError, OSError) as e:
                 logger.warning("Failed to render tool selection card component: %s", str(e))
                 selection_card = None
         except ImportError as e:
             logger.debug("Tool selection component not available: %s", e)
             try:
-                # Fallback: render into container (or global container if available)
                 await show_tool_selection(container or get_global_chat_container(), endpoint)
             except RuntimeError:
                 logger.warning("Failed to show tool selection message: fallback also failed")
 
-        # Now create a dedicated wrapper so the selection message and form are grouped together,
-        # and the wrapper is inserted immediately after the selection card in the same container.
         try:
-            render_container = container or get_global_chat_container()
-            if render_container is not None:
+            if reveal_outer is not None:
+                with reveal_outer:
+                    wrapper = ui.column().classes('w-full rb-form-wrapper')
+            elif render_container is not None:
                 with render_container:
                     wrapper = ui.column().classes('w-full rb-form-wrapper')
             else:
@@ -325,6 +335,12 @@ async def load_and_show_form(
                     setattr(form_card, '_related_tool_selection_card', selection_card)
             except (AttributeError, TypeError):
                 pass
+            if reveal_outer is not None:
+                await asyncio.sleep(FormConfig.FORM_REVEAL_YIELD_S)
+                try:
+                    reveal_outer.classes(remove='opacity-0', add='opacity-100')
+                except Exception:
+                    pass
             logger.info("Form loaded and displayed for endpoint: %s (container=%r)", endpoint, wrapper)
             logger.debug("selection_card=%r form_card=%r", selection_card, form_card)
             return form_card

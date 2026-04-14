@@ -10,20 +10,16 @@ This guide walks a **demo user** through other interesting plugins like **Age & 
 
 Use the **plugins menu** to run the desired operation.
 
-1. Open **[Assistant](/chatbot)**.
+1. Open **[Assistant](/chatbot)** and click the  **📋 Menu** button.
 
-2. In the toolbar, click the  **📋 Menu** button.
+2. Choose **👤 Age & Gender** plugin
 
-3. Choose **👤 Age & Gender** plugin
+3. the **input form** appears, use **Browse** to pick the **age-gender-classifier** subfolder **inputs**
 
-4. When the **input form** appears inline, use **Browse** to pick the **age-gender-classifier** subfolder **inputs**
+- [Browse input folders](/demo?walkthrough=other#sample-inputs)
 
-- [Browse demo folders](/demo?walkthrough=other#sample-inputs)
+4. **Submit Job**. and review esults.
 
-5. **Submit Job**, add **case notes** as needed. 
-
-6. After job completes open **View Job** 
-    or **[Jobs](/jobs)** to inspect face metadata (age ranges, gender) in the results.
 
 ---
 
@@ -34,21 +30,17 @@ Use the **plugins menu** to run the desired operation.
 Run the **Describe Images plugin** job by typing a natural-language requests in the chat box (“Type your request”).
 
 1. Open **[Assistant](/chatbot)**.
-or
-2. In the toolbar, click **[🧠 Chat](/chatbot)**.
 
 3. Type in request:
 
    **describe these photos**.
 
-4. Confirm the assistant proposes the right tool "image_summary/summarize-images"
-
-5. fill **Browse** fields, **input** directory path and **output** directory path, 
+3. fill **Browse** fields, **input** directory path and **output** directory path, 
 choose the default model, and **Submit Job** .
 
-- [Browse demo folders](/demo?walkthrough=other#sample-inputs)
+- [Browse input folders](/demo?walkthrough=other#sample-inputs)
 
-6. click on **view job** results after job is completed successfully.
+4. click on **view job** results after job is completed successfully.
 
 ---
 
@@ -62,7 +54,7 @@ choose the default model, and **Submit Job** .
 
        you set form inputs  "age-gender-classifier/inputs" , **Submit Job**"
 
-2.  A **popup** titled **“Filter files before next step”** is shown so that you can narrow      files to feed the **next** step.
+2.  A **popup** titled **“Filter files before next step”** is shown so that you can narrow files to feed the **next** step.
 
        you enter **Gender=Male, Age<10**
 

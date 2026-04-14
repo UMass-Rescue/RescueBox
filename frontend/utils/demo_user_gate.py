@@ -10,6 +10,8 @@ def require_demo_user_session() -> bool:
     If no valid demo User ID is stored, show a short message and return False so the
     caller should not render the rest of the page.
     """
+    return True
+    
     from frontend.utils.nicegui_storage import get_user_id_for_jobs
 
     if get_user_id_for_jobs() is not None:

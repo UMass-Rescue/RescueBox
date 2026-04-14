@@ -131,10 +131,10 @@ async def index():
                         clear_explicit_user_id()
                         ui.timer(0.2, lambda: ui.navigate.reload(), once=True)
 
-                    ui.button(
-                        HOME_USER_ID["change_user_button"],
-                        on_click=_change_user_id,
-                    ).classes("bg-gray-200 text-gray-800")
+                   # ui.button(
+                   #     HOME_USER_ID["change_user_button"],
+                   #     on_click=_change_user_id,
+                   # ).classes("bg-gray-200 text-gray-800")
 
             with ui.row().classes("gap-4 mt-8"):
                 logger.debug("Creating action buttons")

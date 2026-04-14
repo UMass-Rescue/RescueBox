@@ -271,8 +271,9 @@ class ChatbotPage:
             core=self.core
         )
 
-        # Scroll to bottom after message processing completes to keep input area visible
-        await self.scroll_to_bottom()
+        # Do not scroll_to_bottom here: for show_form / multi_tool_calls, ResultProcessor and
+        # _update_status(scroll_to_form=True) scroll the form into view. A follow-up
+        # scroll_to_bottom was fighting that and caused visible flicker.
 
     async def scroll_to_bottom(self):
         """
@@ -546,16 +547,19 @@ class ChatbotPage:
             scroll_after: If True, scroll after status update; if False, no scroll
             scroll_to_form: If True (and scroll_after), scroll form into view instead of page bottom
         """
+        from frontend.pages.chatbot.constants import FormConfig
+
         self.state_manager.set_status(status)
         if scroll_after:
             if scroll_to_form:
-                def _scroll_form_retries():
+                def _scroll_form_smooth():
                     try:
                         c = getattr(self.chat_container, 'client', None)
-                        UIOperations.scroll_form_into_view_with_retries(client=c)
+                        UIOperations.scroll_form_into_view_smooth(client=c)
                     except Exception:
-                        UIOperations.scroll_form_into_view_with_retries()
-                ui.timer(0.15, _scroll_form_retries, once=True)
+                        UIOperations.scroll_form_into_view_smooth()
+
+                ui.timer(FormConfig.FORM_SCROLL_AFTER_REVEAL_DELAY_S, _scroll_form_smooth, once=True)
             else:
                 ui.timer(0.15, self.scroll_to_bottom, once=True)
 

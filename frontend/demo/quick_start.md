@@ -22,9 +22,16 @@ This navigation bar is useful to navigate for daily use.
 
 ## **Home screen**
 
-- When you **start RescueBox for the first time**, enter a **unique user id**. It ties jobs to your browser session. 
+- When you **start RescueBox for the first time**, enter a **unique user id**. 
 
 {{SCREENSHOT:user_id.png}}
+
+- **User ID** must start with `demo_` followed by any 3 characters (use your initials) ,
+
+ eg: `demo_ejk` or `demo_shl` 
+
+ **[Home Page](/)**.
+
 
 The welcome page lists the main actions. 
 
@@ -45,27 +52,17 @@ The welcome page lists the main actions.
 
 - or **type in a prompt**, to get a input form 
 
-- Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then **submit Job** and view results under **Jobs**.
+- Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown)
+
+- then **submit Job** and view results under **Jobs**.
 
 The three walkthoughs in this demo familiarize you with these operations.
 
 ---
 
-## **Jobs**
+## Available Plugins description and details.  
 
-Open **[Jobs](/jobs)** for results and status.
-
-- When a job is submitted, **case notes** can be added; they appear in the job output.
-
-- Deleting a job removes its results permanently.
-
----
-
-## Available Plugins description.
-
-1. Open **[Browse Plugins](/models)**.
-2. Each plugin card shows **Online** / **Offline**, version, and author.
-3. Click **README** for **Plugin Details** — plugin documentation (inputs, outputs, notes).
+**[Browse Plugins](/models)**.
 
 ---
 

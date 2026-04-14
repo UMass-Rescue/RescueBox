@@ -109,7 +109,7 @@ def create_navbar():
                         ('Browse Plugins', '/models'),
                     )
                     for label, path in _nav_items:
-                        if _nav_locked:
+                        if _nav_locked and label != 'Demo':
                             ui.label(label).classes(
                                 _link_cls + ' opacity-50 cursor-not-allowed select-none'
                             ).on('click', lambda _: _nav_blocked_msg())

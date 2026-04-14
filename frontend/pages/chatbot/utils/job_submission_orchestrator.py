@@ -545,7 +545,7 @@ class JobSubmissionOrchestrator:
                 ui.label(
                     'e.g. Gender=Male, Age<10, or Age < 10 (spaces optional). Leave empty to use all.'
                 ).classes('text-sm text-gray-600')
-                inp = ui.input(placeholder='Gender:Female, Age < 10').classes('w-full mt-2')
+                inp = ui.input(placeholder='Gender=Male, Age < 10').classes('w-full mt-2')
                 with ui.row().classes('mt-4 gap-2'):
                     # Resolve value before closing so NiceGUI does not drop input state on close
                     ui.button('Use all', on_click=lambda: (_finish(''), dialog.close()))

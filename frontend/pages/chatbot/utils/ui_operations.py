@@ -12,8 +12,13 @@ UI Operations — scroll, notify, and container updates for the chatbot and jobs
 
 - ``scroll_document_to_bottom`` — Full-page routes (e.g. job details) without chat-specific nodes.
 
-- ``scroll_form_into_view`` / ``scroll_form_into_view_with_retries`` — Bring the active
-  ``.rb-form-wrapper`` into view; retries win over competing ``scroll_to_bottom`` timers in pipelines.
+- ``scroll_form_into_view`` — One delayed pass with ``behavior: 'smooth'`` (legacy 120 ms defer).
+
+- ``scroll_form_into_view_smooth`` — Single smooth ``scrollIntoView`` (pair with
+  ``FormConfig.FORM_SCROLL_AFTER_REVEAL_DELAY_S`` so movement is a slow pan, not a snap).
+
+- ``scroll_form_into_view_with_retries`` — Several instant passes (``behavior: 'auto'``);
+  for pipelines where ``scroll_to_bottom`` timers compete; not ideal after a long intentional delay.
 
 Safe UI operations also tolerate test environments (e.g. missing slot) where noted on each method.
 """
@@ -151,9 +156,27 @@ _SCROLL_FORM_INTO_VIEW_RETRIES_JS = """
                 requestAnimationFrame(scrollForm);
             });
         }
-        [0, 120, 300, 520, 780].forEach(function(ms) {
+        [0, 140, 360].forEach(function(ms) {
             setTimeout(run, ms);
         });
+    })();
+"""
+
+# One smooth scroll — use after FORM_SCROLL_AFTER_REVEAL_DELAY_S (instant snap looks jarring).
+_SCROLL_FORM_INTO_VIEW_SMOOTH_JS = """
+    (function() {
+        const forms = document.querySelectorAll('.rb-form-wrapper');
+        const form = forms.length ? forms[forms.length - 1] : null;
+        if (!form) {
+            return;
+        }
+        try {
+            form.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        } catch (e) {
+            try {
+                form.scrollIntoView(true);
+            } catch (e2) {}
+        }
     })();
 """
 
@@ -296,6 +319,25 @@ class UIOperations:
             ui.run_javascript(_js)
         except Exception as ex:
             logger.debug("scroll_form_into_view: ui.run_javascript failed: %s", ex)
+
+    @staticmethod
+    def scroll_form_into_view_smooth(client=None):
+        """
+        Smoothly scroll the last ``.rb-form-wrapper`` into view (single animation).
+
+        Use after ``FormConfig.FORM_SCROLL_AFTER_REVEAL_DELAY_S`` so the motion is a slow pan,
+        not an instant jump (``scroll_form_into_view_with_retries`` uses ``behavior: 'auto'``).
+        """
+        if client is not None:
+            try:
+                client.run_javascript(_SCROLL_FORM_INTO_VIEW_SMOOTH_JS)
+                return
+            except Exception as ex:
+                logger.debug("scroll_form_into_view_smooth: client.run_javascript failed: %s", ex)
+        try:
+            ui.run_javascript(_SCROLL_FORM_INTO_VIEW_SMOOTH_JS)
+        except Exception as ex:
+            logger.debug("scroll_form_into_view_smooth: ui.run_javascript failed: %s", ex)
 
     @staticmethod
     def scroll_form_into_view_with_retries(client=None):

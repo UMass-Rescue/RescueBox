@@ -20,7 +20,6 @@ _DEFAULT_PARALLEL_WORKERS: Final[int] = 10
 SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
     "moondream:latest": {"display_name": "moondream:latest: Small, runs on most hardware"},
     "gemma3:27b": {"display_name": "Gemma3 27B: Larger, powerful model, runs on more powerful hardware"},
-    "gemma3:4b": {"display_name": "gemma3:4b cpu model"},
 }
 
 '''

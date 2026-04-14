@@ -350,7 +350,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     }
 
     # 5. Example E: Age-gender + Summarize + Search (image_summary -> text_embeddings pipeline)
-    ex_e_user = {"role": "user", "content": "detect age and gender of faces in /tmp, summarize, and search for a kid with brown clothes"}
+    ex_e_user = {"role": "user", "content": "detect age and gender of faces in /evidence/case1, summarize, and search for a kid with brown clothes"}
     ex_e_asst = {
         "role": "assistant",
         "content": "",
@@ -358,19 +358,19 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "age-gender/predict",
-                    "arguments": {"image_directory": "/tmp"}
+                    "arguments": {"image_directory": "/evidence/case1"}
                 }
             },
             {
                 "function": {
                     "name": "image_summary/summarize-images",
-                    "arguments": {"input_dir": "/tmp", "output_dir": "/tmp/summaries", "model": "gemma3:4b"}
+                    "arguments": {"input_dir": "/evidence/case1", "output_dir": "/evidence/case1/summaries", "model": "gemma3:4b"}
                 }
             },
             {
                 "function": {
                     "name": "image_embeddings/search_images",
-                    "arguments": {"input_dir": "/tmp/summaries", "query": "kid with brown clothes"}
+                    "arguments": {"input_dir": "/evidence/case1", "query": "kid with brown clothes"}
                 }
             }
         ]
@@ -431,13 +431,13 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "age-gender/predict",
-                    "arguments": {"image_directory": "/tmp"},
+                    "arguments": {"image_directory": "/evidence/case1"},
                 }
             },
             {
                 "function": {
                     "name": "image_embeddings/search_images",
-                    "arguments": {"input_dir": "/tmp", "query": "kid"},
+                    "arguments": {"input_dir": "/evidence/case1", "query": "kid"},
                 }
             },
         ],
@@ -461,15 +461,15 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "image_embeddings/search_images",
-                    "arguments": {"input_dir": "/tmp/case1", "query": "young kid"},
+                    "arguments": {"input_dir": "/evidence/case1", "query": "young kid"},
                 }
             },
             {
                 "function": {
                     "name": "image_summary/summarize-images",
                     "arguments": {
-                        "input_dir": "/tmp/case1",
-                        "output_dir": "/tmp/case1/summary",
+                        "input_dir": "/evidence/case1",
+                        "output_dir": "/evidence/case1/summary",
                         "model": "gemma3:4b",
                     },
                 }

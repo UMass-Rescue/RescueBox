@@ -58,7 +58,6 @@ def task_schema() -> TaskSchema:
     parameter_schema = ParameterSchema(
         key="model",
         label="Model to use for image description",
-        subtitle="Model to use for image description",
         value=EnumParameterDescriptor(
             enum_vals=[
                 EnumVal(key=model_id, label=model_info["display_name"])

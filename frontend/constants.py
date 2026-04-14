@@ -14,8 +14,8 @@ Usage:
 from typing import Optional
 
 # Demo User ID: fixed prefix + exactly two characters (password-style gate for the UI)
-DEMO_USER_ID_PREFIX = "rb_demo_0408_"
-DEMO_USER_ID_SUFFIX_LEN = 2
+DEMO_USER_ID_PREFIX = "demo_"
+DEMO_USER_ID_SUFFIX_LEN = 3
 
 
 def is_valid_explicit_user_id(value: Optional[str]) -> bool:
@@ -55,7 +55,7 @@ HOME_USER_ID = {
     'save_button': 'Save and continue',
     'current_prefix': 'User ID:',
     'change_user_button': 'Change User ID',
-    'change_user_hint': 'Use this if you need to sign in with a different ID.',
+    'change_user_hint': 'User ID accepted ok.',
     'invalid_format': (
         'User ID is not correct.'
     ),
