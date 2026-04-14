@@ -1,11 +1,10 @@
+import logging
 import multiprocessing
 import os
 import sys
 
 # Standalone API process: file logging before routes import (routes must not reconfigure).
 from rb.api.logging_setup import configure_backend_logging
-
-configure_backend_logging()
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -36,11 +35,17 @@ app.add_middleware(FacematchRescueboxUserMiddleware)
 
 @app.on_event("startup")
 def on_startup():
-    # Uvicorn applies dictConfig after import; re-apply our root handlers so
-    # plugin and cli DEBUG/INFO lines keep going to file + stderr.
+    # Uvicorn's default log_config runs in Config() before the app is imported; it can
+    # interact badly with root handlers. We pass log_config=None in uvicorn.run below so
+    # dictConfig is skipped; re-apply our file + stderr handlers here anyway.
     configure_backend_logging()
     print("Creating database and tables")
     create_db_and_tables()
+    logging.getLogger("rb.api").info(
+        "RescueBox API ready "
+        "set RESCUEBOX_API_LOG_LEVEL=DEBUG for full trace. "
+        "API_LOG_FILE rb-backend.log"
+    )
 
 app.mount(
     "/static",
@@ -75,7 +80,15 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()  # For Windows support
     # for pyinstaller exe
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False, log_config=None)
     else:
-        # for cmdline dev mode
-        uvicorn.run("rb.api.main:app", host="127.0.0.1", port=8000, reload=False)
+        # log_config=None: do not let Uvicorn apply its default dictConfig (would run
+        # before the app import and can leave application loggers disconnected from
+        # the root handlers configured in configure_backend_logging).
+        uvicorn.run(
+            "rb.api.main:app",
+            host="127.0.0.1",
+            port=8000,
+            reload=False,
+            log_config=None,
+        )

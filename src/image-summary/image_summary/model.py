@@ -11,19 +11,16 @@ from typing import Final
 import ollama
 
 # Max images per single Ollama generate() call (JSON + context limits; large batches drop entries).
-DEFAULT_MAX_IMAGES_PER_BATCH: Final[int] = 6
+DEFAULT_MAX_IMAGES_PER_BATCH: Final[int] = 1
 _ENV_CHUNK_KEY: Final[str] = "IMAGE_SUMMARY_MAX_IMAGES_PER_BATCH"
 _MAX_CHUNK_CAP: Final[int] = 200
 _ENV_PARALLEL_KEY: Final[str] = "IMAGE_SUMMARY_BATCH_PARALLEL_WORKERS"
-_DEFAULT_PARALLEL_WORKERS: Final[int] = 6
+_DEFAULT_PARALLEL_WORKERS: Final[int] = 10
 
 SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
-    "gemma3:4b": {"display_name": "Gemma3 4B: Small, runs on most hardware"},
-    "llama3.2-vision:11b": {
-        "display_name": "Llama 3.2 11B: More performant, still fits into consumer GPUs",
-    },
+    "moondream:latest": {"display_name": "moondream:latest: Small, runs on most hardware"},
     "gemma3:27b": {"display_name": "Gemma3 27B: Larger, powerful model, runs on more powerful hardware"},
-    "gemma4:e4b": {"display_name": "gemma4:e4b latest april'26 model"},
+    "gemma3:4b": {"display_name": "gemma3:4b cpu model"},
 }
 
 '''
@@ -32,7 +29,7 @@ SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
     },
 '''
 
-IMAGE_PROMPT: Final[str] = (
+IMAGE_PROMPT_GEMMA: Final[str] = (
     "You are a vision model. Provide a detailed description of the image. "
     "Identify: (1) scene and setting, (2) key objects with attributes (colors, counts, relative positions), "
     "(3) people dress and actions if present, (4) any visible text (quote verbatim), (5) notable details and context, "
@@ -40,7 +37,7 @@ IMAGE_PROMPT: Final[str] = (
     "Output only the description."
 )
 
-IMAGE_BATCH_PROMPT: Final[str] = (
+IMAGE_BATCH_PROMPT_JSON: Final[str] = (
     "You are a vision model. "
     "You will receive multiple images in the same order as listed below.\n"
     "For EACH image, write a detailed description covering: (1) scene and setting, "
@@ -54,6 +51,10 @@ IMAGE_BATCH_PROMPT: Final[str] = (
     '"description" (the description for that image only). '
     "Include exactly one object per image, in the same order as the list. "
     "Do not wrap the JSON in markdown code fences or add any text before or after the array."
+)
+
+IMAGE_PROMPT: Final[str] = (
+    "Describe the image briefly."
 )
 
 
@@ -186,14 +187,13 @@ def _describe_chunk_worker(model: str, chunk: list[str]) -> dict[str, str]:
 def _describe_images_one_ollama_batch(model: str, image_paths: list[str]) -> dict[str, str]:
     """Single multi-image Ollama call (``len(image_paths) >= 2``)."""
     file_list = "\n".join(f"{i + 1}. {Path(p).name}" for i, p in enumerate(image_paths))
-    prompt = IMAGE_BATCH_PROMPT.format(file_list=file_list)
+    prompt = IMAGE_BATCH_PROMPT_JSON.format(file_list=file_list)
+    log = logging.getLogger(__name__)
+    log.info("ImageSummary batch image_paths: %s", image_paths)
     response = ollama.generate(
         model=model,
         prompt=prompt,
         images=image_paths,
-        options={
-        'num_ctx': 32768
-        },
     )
     if not response or not response.get("done"):
         raise RuntimeError(f"Ollama generate (batch) failed or incomplete: {response!r}")
@@ -228,7 +228,9 @@ def describe_image(model: str, image_path: str) -> str:
     Describe a single image using a vision-capable Ollama model.
 
     Mirrors the text-summary flow: build a prompt, call ollama.generate,
-    and post-process the response (strip any </think> blocks).
+    and post-process the response (strip any </redacted_thinking> blocks).
+
+    Callers should serialize concurrent jobs (see :mod:`image_summary.process`).
     """
     response = ollama.generate(
         model=model,
@@ -238,7 +240,6 @@ def describe_image(model: str, image_path: str) -> str:
     if response and response.get("done"):
         return extract_response_after_think(response.get("response", "").strip())
     return str(response)
-
 
 def describe_images_batch(
     model: str,

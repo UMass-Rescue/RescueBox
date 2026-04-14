@@ -31,6 +31,7 @@ Usage:
 
 import logging
 import threading
+from pathlib import Path
 from typing import Optional
 from nicegui import app, ui
 
@@ -344,6 +345,34 @@ def get_assigned_demo_folder() -> Optional[str]:
     except Exception as e:
         logger.warning("Error getting assigned demo folder: %s", e)
         return None
+
+
+def resolve_demo_folder_for_browser() -> Optional[str]:
+    """
+    Default directory when opening the file/directory browser from plugin forms.
+
+    Uses the session-assigned ``demo1``..``demo10`` folder when available; otherwise
+    the first existing folder under :data:`frontend.config.DEMO_FOLDERS_BASE` from
+    that name list. Returns ``None`` if nothing matches (caller falls back to cwd).
+    """
+    try:
+        assigned = get_assigned_demo_folder()
+        if assigned:
+            p = Path(assigned)
+            if p.is_dir():
+                return str(p.resolve())
+        from frontend.config import DEMO_FOLDERS_BASE, DEMO_FOLDER_NAMES
+
+        base = Path(DEMO_FOLDERS_BASE).expanduser()
+        for name in DEMO_FOLDER_NAMES:
+            cand = base / name
+            if cand.is_dir():
+                return str(cand.resolve())
+        if base.is_dir():
+            return str(base.resolve())
+    except Exception as e:
+        logger.debug("resolve_demo_folder_for_browser: %s", e)
+    return None
 
 
 def release_demo_folder_for_client(client) -> None:

@@ -21,6 +21,7 @@ from frontend.pages.chatbot.pickers import ToolPicker, AnalysisPicker
 from frontend.pages.chatbot.utils.ui_styling import UIStyling
 from frontend.pages.chatbot.results import ResultRenderer
 from frontend.utils.nicegui_storage import get_user_id
+from frontend.pages.chatbot.utils.safe_ui import is_ephemeral_ui_error
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -115,7 +116,7 @@ async def show_tool_selection(container: ui.element, endpoint: str):
     try:
         _ = container.client
     except RuntimeError as e:
-        if 'deleted' in str(e):
+        if is_ephemeral_ui_error(e):
             logger.warning("Skipping tool selection: UI client was deleted")
             return
         raise
@@ -200,7 +201,7 @@ async def load_and_show_form(
         try:
             _ = container.client
         except RuntimeError as e:
-            if 'deleted' in str(e):
+            if is_ephemeral_ui_error(e):
                 logger.warning("Skipping form load: UI client was deleted")
                 return None
             raise
@@ -346,6 +347,8 @@ async def show_results(
     *,
     pipeline_total_steps: Optional[int] = None,
     remaining_calls_after_step: Optional[List[Any]] = None,
+    pipeline_root_job_id: Optional[str] = None,
+    pipeline_user_id: Optional[str] = None,
 ):
     """
     Show job results with modern expandable interface using ResultRenderer.
@@ -392,11 +395,45 @@ async def show_results(
         if container is not None:
             _ = container.client
     except RuntimeError as e:
-        if 'deleted' in str(e):
+        if is_ephemeral_ui_error(e):
             logger.warning("Skipping result display: UI client was deleted (likely page refresh or navigation)")
             return
         raise
 
+    _uid = pipeline_user_id or get_user_id()
+    from frontend.utils.pipeline_index_context import pipeline_index_scope
+
+    try:
+        with pipeline_index_scope(pipeline_root_job_id, _uid):
+            await _show_results_body(
+                container,
+                response_body,
+                job_id,
+                is_intermediate=is_intermediate,
+                completed_step=completed_step,
+                next_step=next_step,
+                pipeline_total_steps=pipeline_total_steps,
+                remaining_calls_after_step=remaining_calls_after_step,
+                show_view_job=show_view_job,
+            )
+    except (RuntimeError, ValueError, TypeError, OSError) as e:
+        logger.error("Error showing modern results: %s", str(e))
+        show_error_to_user(f"Failed to show results: {str(e)}")
+
+
+async def _show_results_body(
+    container: ui.element,
+    response_body,
+    job_id: Optional[str],
+    *,
+    is_intermediate: bool,
+    completed_step: Optional[int],
+    next_step: Optional[int],
+    pipeline_total_steps: Optional[int],
+    remaining_calls_after_step: Optional[List[Any]],
+    show_view_job: bool,
+) -> None:
+    """Inner render for show_results (runs inside pipeline_index_scope when provided)."""
     try:
         with container:
             # Modern success card with gradient
@@ -488,5 +525,5 @@ async def show_results(
 
         logger.debug("Modern results interface displayed successfully")
     except (RuntimeError, ValueError, TypeError, OSError) as e:
-        logger.error("Error showing modern results: %s", str(e))
-        show_error_to_user(f"Failed to show results: {str(e)}")
+        logger.error("Error in results body: %s", str(e))
+        raise

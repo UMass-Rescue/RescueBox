@@ -8,7 +8,7 @@ validate them against TaskSchema definitions.
 
 import logging
 from nicegui import ui
-from typing import Dict, Callable
+from typing import Dict, Callable, Optional
 from pathlib import Path
 import sys
 
@@ -24,7 +24,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def collect_form_data(schema_dict: Dict, form_widgets: Dict) -> Dict:
+def collect_form_data(
+    schema_dict: Dict,
+    form_widgets: Dict,
+    initial_inputs: Optional[Dict] = None,
+) -> Dict:
     """
     Collect data from form widgets.
     
@@ -100,6 +104,14 @@ def collect_form_data(schema_dict: Dict, form_widgets: Dict) -> Dict:
             else:
                 parameters_data[param_id] = getattr(widget, 'value', None)
     
+    # Re-inject pipeline-only keys from initial_values (not in public schema → no widgets).
+    schema_input_keys = {inp['key'] for inp in schema_dict.get('inputs', [])}
+    if initial_inputs:
+        for k, v in initial_inputs.items():
+            if k not in schema_input_keys and k not in inputs_data:
+                inputs_data[k] = v
+                logger.debug("Merged pipeline input from initial_values: %s", k)
+
     logger.debug("Form data collection complete: %d inputs, %d parameters", len(inputs_data), len(parameters_data))
     return {
         'inputs': inputs_data,
@@ -107,7 +119,11 @@ def collect_form_data(schema_dict: Dict, form_widgets: Dict) -> Dict:
     }
 
 
-def validate_form(task_schema: TaskSchema, form_widgets: Dict) -> tuple[bool, Dict]:
+def validate_form(
+    task_schema: TaskSchema,
+    form_widgets: Dict,
+    initial_inputs: Optional[Dict] = None,
+) -> tuple[bool, Dict]:
     """
     Validate form data using Pydantic models.
     
@@ -129,7 +145,7 @@ def validate_form(task_schema: TaskSchema, form_widgets: Dict) -> tuple[bool, Di
     - User notification should be shown on validation failure
     """
     logger.debug("Validating form data")
-    form_data = collect_form_data(task_schema.model_dump(), form_widgets)
+    form_data = collect_form_data(task_schema.model_dump(), form_widgets, initial_inputs)
     validation_result = validate_form_data(form_data, task_schema)
     
     if not validation_result['is_valid']:
@@ -144,7 +160,8 @@ def validate_form(task_schema: TaskSchema, form_widgets: Dict) -> tuple[bool, Di
 async def handle_form_submit(
     task_schema: TaskSchema,
     form_widgets: Dict,
-    onSubmit: Callable
+    onSubmit: Callable,
+    initial_inputs: Optional[Dict] = None,
 ) -> bool:
     """
     Handle form submission.
@@ -169,7 +186,7 @@ async def handle_form_submit(
     
     try:
         # Validate form
-        is_valid, errors = validate_form(task_schema, form_widgets)
+        is_valid, errors = validate_form(task_schema, form_widgets, initial_inputs)
         if not is_valid:
             logger.warning("Form validation failed with %d errors", len(errors))
             handle_validation_error(errors, "Form submission validation")
@@ -178,7 +195,7 @@ async def handle_form_submit(
         # Collect form data
         logger.debug("Collecting form data from widgets")
         try:
-            form_data = collect_form_data(task_schema.model_dump(), form_widgets)
+            form_data = collect_form_data(task_schema.model_dump(), form_widgets, initial_inputs)
             logger.debug("Form data collected: %d inputs, %d parameters", len(form_data.get('inputs', {})), len(form_data.get('parameters', {})))
         except Exception as e:
             error_msg = f'Failed to collect form data: {str(e)}'

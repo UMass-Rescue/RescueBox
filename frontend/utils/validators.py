@@ -139,6 +139,29 @@ def validate_form_data(form_data: Dict, schema: Union[TaskSchema, Dict]) -> Dict
             except Exception as e:
                 logger.error("Input field '%s' validation error: %s", field_id, str(e))
                 errors[field_id] = str(e)
+
+        # Inputs present in POST but omitted from public GET task_schema (e.g. file_filter).
+        schema_keys = {input_schema.key for input_schema in task_schema.inputs}
+        for extra_key, extra_val in inputs_data.items():
+            if extra_key in schema_keys or extra_key in inputs_dict:
+                continue
+            if extra_key != "file_filter":
+                continue
+            try:
+                ff_schema = InputSchema(
+                    key="file_filter",
+                    label="File filter",
+                    input_type=InputType.BATCHFILE,
+                )
+                input_model = _create_input_model(ff_schema, extra_val)
+                inputs_dict[extra_key] = Input(root=input_model)
+                logger.debug("Validated pipeline-only input '%s'", extra_key)
+            except ValidationError as e:
+                logger.warning("Pipeline input '%s' validation failed: %s", extra_key, _format_validation_error(e))
+                errors[extra_key] = _format_validation_error(e)
+            except Exception as e:
+                logger.error("Pipeline input '%s' error: %s", extra_key, str(e))
+                errors[extra_key] = str(e)
         
         logger.debug("Validating parameters")
         # Validate parameters (they're Dict[str, Any] in RequestBody)
@@ -246,8 +269,16 @@ def _create_input_model(input_schema: InputSchema, value: Any) -> Union[
             return TextInput(text=text)
         
         elif input_type == InputType.BATCHFILE:
-            files_data = value if isinstance(value, list) else []
-            files = [FileInput(path=Path(f.get('path') if isinstance(f, dict) else f)) for f in files_data]
+            if isinstance(value, dict) and "files" in value:
+                files_data = value.get("files") or []
+            elif isinstance(value, list):
+                files_data = value
+            else:
+                files_data = []
+            files = [
+                FileInput(path=Path(f.get("path") if isinstance(f, dict) else f))
+                for f in files_data
+            ]
             return BatchFileInput(files=files)
         
         elif input_type == InputType.BATCHTEXT:

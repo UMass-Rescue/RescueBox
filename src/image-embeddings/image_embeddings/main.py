@@ -76,7 +76,7 @@ def task_schema() -> TaskSchema:
   
     model_enum = EnumParameterDescriptor(
         enum_vals=[
-            EnumVal(key="apple/DFN5B-CLIP-ViT-H-14-378", label="CLIP-ViT-H-14-378-Apple"),
+            EnumVal(key="apple/DFN5B-CLIP-ViT-H-14-378", label="DFN5B-CLIP-ViT-H-14-378-apple"),
         ],
         default="apple/DFN5B-CLIP-ViT-H-14-378",
     )

@@ -21,7 +21,8 @@ from frontend.chatbot.multi_tool_handler import (
     batch_items_have_age_gender_metadata,
 )
 from frontend.components.shared.notifications import notify_info, notify_warning
-from frontend.pages.chatbot.chatbot_forms import show_results, load_and_show_form
+from frontend.pages.chatbot.chatbot_forms import get_global_chat_container, show_results, load_and_show_form
+from frontend.pages.chatbot.utils.chat_layout_context import resolve_chat_container
 from frontend.chatbot import api_helpers
 from nicegui import background_tasks, ui
 import asyncio
@@ -49,7 +50,8 @@ class JobSubmissionOrchestrator:
     async def submit_job(self, request_body, endpoint: str, task_schema, container, core,
                         remaining_calls=None, conversation_id=None, case_notes: str = None,
                         endpoint_chain: Optional[List[str]] = None,
-                        pipeline_total_steps: Optional[int] = None):
+                        pipeline_total_steps: Optional[int] = None,
+                        pipeline_root_job_id: Optional[str] = None):
         """
         Submit a job and handle the complete workflow.
 
@@ -79,6 +81,7 @@ class JobSubmissionOrchestrator:
             response_body, actual_conversation_id, job_info = await self._execute_job(
                 request_body, endpoint, task_schema, container, core, remaining_calls, case_notes,
                 endpoint_chain=endpoint_chain, pipeline_total_steps=pipeline_total_steps,
+                pipeline_root_job_id=pipeline_root_job_id,
             )
             # If the job was scheduled to run in background, _execute_job returns response_body=None.
             # In that case we should not call the immediate success handler (results will be shown when job completes).
@@ -103,7 +106,8 @@ class JobSubmissionOrchestrator:
 
     async def _execute_job(self, request_body, endpoint: str, task_schema, container, core, remaining_calls=None, case_notes: str = None,
                            endpoint_chain: Optional[List[str]] = None,
-                           pipeline_total_steps: Optional[int] = None):
+                           pipeline_total_steps: Optional[int] = None,
+                           pipeline_root_job_id: Optional[str] = None):
         """Execute the actual job submission."""
         self.logger.info("Executing job submission for endpoint: %s", endpoint)
 
@@ -120,16 +124,10 @@ class JobSubmissionOrchestrator:
         if saved_user_text:
             try:
                 from frontend.pages.chatbot.chatbot_message import ChatMessage, render_message
-                from frontend.pages.chatbot.chatbot_forms import get_global_chat_container
                 um = ChatMessage('user', saved_user_text)
                 if getattr(self.form_handler, 'state_manager', None):
                     self.form_handler.state_manager.add_message(um)
-                target = None
-                try:
-                    target = get_global_chat_container()
-                except Exception:
-                    target = None
-                target = target or container
+                target = resolve_chat_container(container, prefer_session_global=True)
                 if target is not None:
                     render_message(target, um)
             except Exception:
@@ -166,13 +164,8 @@ class JobSubmissionOrchestrator:
                     pass
             # Render into the main chat container (prefer global chat container) so the assistant
             # selection message appears in the conversation rather than inside any input-area wrapper.
-            gc = None
-            try:
-                from frontend.pages.chatbot.chatbot_forms import get_global_chat_container
-                gc = get_global_chat_container()
-                target_container = gc or container
-            except Exception:
-                target_container = container
+            gc = get_global_chat_container()
+            target_container = resolve_chat_container(container, prefer_session_global=True)
 
             if target_container is not None:
                 try:
@@ -207,6 +200,9 @@ class JobSubmissionOrchestrator:
             endpoint_chain=endpoint_chain,
         )
         job_id = job_info.get('job_id') if job_info else None
+        effective_pipeline_root_id = pipeline_root_job_id or job_id
+        if job_info is not None and effective_pipeline_root_id:
+            job_info['effective_pipeline_root_id'] = effective_pipeline_root_id
         try:
             from frontend.pages.chatbot.utils.chat_ui_builder import refresh_chat_history_button_visibility
 
@@ -236,8 +232,7 @@ class JobSubmissionOrchestrator:
         running_label_ref = []
         try:
             from frontend.pages.chatbot.chatbot_message import ChatMessage
-            from frontend.pages.chatbot.chatbot_forms import get_global_chat_container
-            target = container or get_global_chat_container()
+            target = resolve_chat_container(container)
             if target is not None:
                 with target:
                     with ui.row().classes('w-full items-start'):
@@ -286,17 +281,39 @@ class JobSubmissionOrchestrator:
                                 pass
                         # show_results will handle container validity internally
                         logger.info("job_submission_orchestrator: about to show_results container=%r job_id=%s", container, job_id)
+                        try:
+                            from frontend.database.pipeline_index_service import (
+                                record_pipeline_job_completion,
+                            )
+                            record_pipeline_job_completion(
+                                user_id,
+                                effective_pipeline_root_id,
+                                job_id,
+                                endpoint,
+                                response_data,
+                            )
+                        except Exception as idx_e:
+                            self.logger.warning("Pipeline index skipped: %s", idx_e)
                         await show_results(
                             container=container,
                             response_body=response_data,
                             job_id=job_id,
                             pipeline_total_steps=pipeline_total_steps,
                             remaining_calls_after_step=remaining_calls,
+                            pipeline_root_job_id=effective_pipeline_root_id,
+                            pipeline_user_id=user_id,
                         )
-                        try:
-                            await UIOperations.scroll_to_bottom_after_dom_update(container)
-                        except Exception:
-                            pass
+                        # When a next-step form follows, avoid scroll_to_bottom (it overshoots past the form).
+                        if not remaining_calls:
+                            try:
+                                await UIOperations.scroll_to_bottom_after_dom_update(container)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                await UIOperations.safe_container_update(container)
+                            except Exception:
+                                pass
                         # Handle remaining calls in multi-call sequence (filter dialog + next form)
                         if remaining_calls:
                             resp = coerce_pipeline_response(response_data) if isinstance(response_data, dict) else response_data
@@ -316,6 +333,7 @@ class JobSubmissionOrchestrator:
                                 remaining_calls, resp, container, core,
                                 accumulated_endpoint_chain=accumulated,
                                 pipeline_total_steps=pipeline_total_steps,
+                                pipeline_root_job_id=effective_pipeline_root_id,
                             )
                             # Next form is showing - stay disabled (rule: input only when no pending interaction)
                         else:
@@ -325,12 +343,13 @@ class JobSubmissionOrchestrator:
                                     self.form_handler.state_manager.set_input_enabled(True)
                             except Exception:
                                 pass
-                        # Pipeline may add more UI after show_results; one more pass after that lands.
-                        try:
-                            _sc = container.client
-                            UIOperations.scroll_to_bottom(client=_sc)
-                        except Exception:
-                            pass
+                        # Only scroll to absolute bottom when there is no next-step form (handle_remaining_calls scrolls the form).
+                        if not remaining_calls:
+                            try:
+                                _sc = container.client
+                                UIOperations.scroll_to_bottom(client=_sc)
+                            except Exception:
+                                pass
                         # Ensure processing state cleared after background UI update
                         try:
                             if getattr(self.form_handler, 'state_manager', None):
@@ -370,8 +389,7 @@ class JobSubmissionOrchestrator:
                         pass
                 try:
                     from frontend.pages.chatbot.chatbot_message import ChatMessage, render_message
-                    from frontend.pages.chatbot.chatbot_forms import get_global_chat_container
-                    target_container = container or get_global_chat_container()
+                    target_container = resolve_chat_container(container)
                     friendly = ChatMessage('assistant', f"⚠️ Job submission failed: {err_text}")
                     try:
                         render_message(target_container, friendly)
@@ -435,6 +453,21 @@ class JobSubmissionOrchestrator:
             await DatabaseService.save_tool_result_to_history(conversation_id, endpoint, job_id)
 
         rid = getattr(response_body, 'job_id', None) or job_id
+        try:
+            from frontend.utils.nicegui_storage import get_user_id_for_jobs
+            _uid = get_user_id_for_jobs()
+        except Exception:
+            _uid = None
+        eff_root = (job_info or {}).get('effective_pipeline_root_id') or job_id
+        try:
+            from frontend.database.pipeline_index_service import (
+                record_pipeline_job_completion,
+            )
+            record_pipeline_job_completion(
+                _uid, eff_root, job_id, endpoint, response_body
+            )
+        except Exception as idx_e:
+            self.logger.warning("Pipeline index (sync path) skipped: %s", idx_e)
 
         # Show results
         await show_results(
@@ -443,9 +476,17 @@ class JobSubmissionOrchestrator:
             job_id=rid,
             pipeline_total_steps=pipeline_total_steps,
             remaining_calls_after_step=remaining_calls,
+            pipeline_root_job_id=eff_root,
+            pipeline_user_id=_uid,
         )
 
-        await UIOperations.scroll_to_bottom_after_dom_update(container)
+        if not remaining_calls:
+            await UIOperations.scroll_to_bottom_after_dom_update(container)
+        else:
+            try:
+                await UIOperations.safe_container_update(container)
+            except Exception:
+                pass
 
         # Handle remaining calls in multi-call sequence
         if remaining_calls:
@@ -465,13 +506,9 @@ class JobSubmissionOrchestrator:
                 remaining_calls, response_body, container, core,
                 accumulated_endpoint_chain=accumulated,
                 pipeline_total_steps=pipeline_total_steps,
+                pipeline_root_job_id=eff_root,
             )
-            # Next form showing - stay disabled
-            try:
-                _hc = container.client
-                UIOperations.scroll_to_bottom(client=_hc)
-            except Exception:
-                pass
+            # Next form: handle_remaining_calls already scrolled the new form into view.
         else:
             self.form_handler.state_manager.set_input_enabled(True)
 
@@ -529,7 +566,8 @@ class JobSubmissionOrchestrator:
                                      core,
                                      load_form_func: Optional[Callable] = None,
                                      accumulated_endpoint_chain: Optional[List[str]] = None,
-                                     pipeline_total_steps: Optional[int] = None):
+                                     pipeline_total_steps: Optional[int] = None,
+                                     pipeline_root_job_id: Optional[str] = None):
         """
         Handle remaining calls in a multi-call sequence.
 
@@ -594,10 +632,6 @@ class JobSubmissionOrchestrator:
                 filtered_paths = apply_metadata_filter(items, criteria)
                 # Empty criteria => apply_metadata_filter already returns all paths.
                 # Non-empty criteria with no matches => keep [] (do not fall back to all files).
-                if criteria and criteria.strip() and not filtered_paths:
-                    notify_warning(
-                        "No files matched your filter; the next step will process no images.",
-                    )
                 self.logger.info(
                     "Pipeline metadata filter (result): matched_count=%d matched_paths=%s",
                     len(filtered_paths),
@@ -609,12 +643,10 @@ class JobSubmissionOrchestrator:
                     "(next_endpoint=%s). Chaining still proceeds; file_filter will not be applied.",
                     next_endpoint,
                 )
-                notify_warning(
-                    "Previous step did not return per-file metadata; the next job will use all images "
-                    "(pipeline filter unavailable).",
-                )
 
-            # All UI creation must run inside container (background task has no slot stack)
+            # All UI (notifications + form) must run inside ``with container:`` — background job
+            # tasks (``background_tasks.create``) have an empty NiceGUI slot stack; ``ui.notify``
+            # and ``load_and_show_form`` both need an active slot for this client.
             def _on_cancel():
                 try:
                     if getattr(self.form_handler, 'state_manager', None):
@@ -623,6 +655,12 @@ class JobSubmissionOrchestrator:
                     pass
 
             with container:
+                if items:
+                    if criteria and criteria.strip() and not filtered_paths:
+                        notify_warning(
+                            "No files matched your filter; the next step will process no images.",
+                        )
+                
                 if next_schema:
                     notify_info(f"Proceeding to next tool: {next_endpoint}")
                 await load_and_show_form(
@@ -637,9 +675,19 @@ class JobSubmissionOrchestrator:
                         filtered_paths=filtered_paths,
                         accumulated_endpoint_chain=accumulated_endpoint_chain,
                         pipeline_total_steps=pipeline_total_steps,
+                        pipeline_root_job_id=pipeline_root_job_id,
                     ),
                     on_form_cancel=_on_cancel
                 )
+                try:
+                    await UIOperations.safe_container_update(container)
+                except Exception:
+                    pass
+                try:
+                    _jc = getattr(container, 'client', None)
+                    UIOperations.scroll_form_into_view_with_retries(client=_jc)
+                except Exception:
+                    UIOperations.scroll_form_into_view_with_retries()
 
         except Exception as e:
             self.logger.error("Error handling remaining calls: %s", str(e))
@@ -663,7 +711,8 @@ class JobSubmissionOrchestrator:
 
     def _create_next_form_handler(self, remaining_calls, container, core, filtered_paths: Optional[List[str]] = None,
                                   accumulated_endpoint_chain: Optional[List[str]] = None,
-                                  pipeline_total_steps: Optional[int] = None):
+                                  pipeline_total_steps: Optional[int] = None,
+                                  pipeline_root_job_id: Optional[str] = None):
         """Create a form handler for the next call in sequence."""
         async def handle_next_form(request_body, next_endpoint, task_schema):
             # Inject file_filter (hidden) when previous step was BatchFileResponse + filter dialog.
@@ -684,5 +733,6 @@ class JobSubmissionOrchestrator:
                 container, core, remaining_calls, conversation_id,
                 endpoint_chain=chain,
                 pipeline_total_steps=pipeline_total_steps,
+                pipeline_root_job_id=pipeline_root_job_id,
             )
         return handle_next_form

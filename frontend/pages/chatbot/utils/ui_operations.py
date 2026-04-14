@@ -1,7 +1,21 @@
 """
-UI Operations.
+UI Operations — scroll, notify, and container updates for the chatbot and jobs UI.
 
-Safe UI operations that work in both normal and test environments.
+**Scroll semantics (quick reference)**
+
+- ``scroll_to_bottom`` — Chat assistant: scrolls the message scroller (``.rb-chat-messages-scroll``),
+  latest job anchor (``.rb-job-result-anchor``), below-input area, and the window. Pass
+  ``container.client`` from background jobs so JS runs in the correct tab.
+
+- ``scroll_to_bottom_after_dom_update`` — ``await safe_container_update`` then ``scroll_to_bottom``
+  plus delayed retries; use after ``show_results`` when DOM is still settling.
+
+- ``scroll_document_to_bottom`` — Full-page routes (e.g. job details) without chat-specific nodes.
+
+- ``scroll_form_into_view`` / ``scroll_form_into_view_with_retries`` — Bring the active
+  ``.rb-form-wrapper`` into view; retries win over competing ``scroll_to_bottom`` timers in pipelines.
+
+Safe UI operations also tolerate test environments (e.g. missing slot) where noted on each method.
 """
 
 import logging
@@ -107,6 +121,37 @@ _SCROLL_DOCUMENT_TO_BOTTOM_JS = """
             });
         }
         [0, 80, 200, 500].forEach(function(ms) {
+            setTimeout(run, ms);
+        });
+    })();
+"""
+
+# Scroll the active form (.rb-form-wrapper last) into view with several passes so we win over
+# scroll_to_bottom's multi-delay JS (0–700ms), which otherwise pulls the viewport past the form.
+# Use behavior "auto" on every pass: multiple "smooth" animations to the same node stack and read
+# as a flickering / garbled viewport; instant snaps are stable and still retry as layout settles.
+_SCROLL_FORM_INTO_VIEW_RETRIES_JS = """
+    (function() {
+        function scrollForm() {
+            const forms = document.querySelectorAll('.rb-form-wrapper');
+            const form = forms.length ? forms[forms.length - 1] : null;
+            if (!form) {
+                return;
+            }
+            try {
+                form.scrollIntoView({ block: 'start', behavior: 'auto' });
+            } catch (e) {
+                try {
+                    form.scrollIntoView(true);
+                } catch (e2) {}
+            }
+        }
+        function run() {
+            requestAnimationFrame(function() {
+                requestAnimationFrame(scrollForm);
+            });
+        }
+        [0, 120, 300, 520, 780].forEach(function(ms) {
             setTimeout(run, ms);
         });
     })();
@@ -226,16 +271,47 @@ class UIOperations:
             ui.timer(delay, lambda c=c: UIOperations.scroll_to_bottom(client=c), once=True)
 
     @staticmethod
-    def scroll_form_into_view():
-        """Scroll the displayed form into view (to top of viewport) instead of page bottom."""
-        ui.run_javascript("""
+    def scroll_form_into_view(client=None):
+        """Scroll the active form (last ``.rb-form-wrapper``) into view near the top of the viewport."""
+        _js = """
             setTimeout(() => {
                 const forms = document.querySelectorAll('.rb-form-wrapper');
                 const form = forms.length ? forms[forms.length - 1] : null;
                 if (form) {
-                    form.scrollIntoView({ block: 'start', behavior: 'smooth' });
-                } else {
-                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                    try {
+                        form.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                    } catch (e) {
+                        try { form.scrollIntoView(true); } catch (e2) {}
+                    }
                 }
-            }, 150);
-        """)
+            }, 120);
+        """
+        if client is not None:
+            try:
+                client.run_javascript(_js)
+                return
+            except Exception as ex:
+                logger.debug("scroll_form_into_view: client.run_javascript failed: %s", ex)
+        try:
+            ui.run_javascript(_js)
+        except Exception as ex:
+            logger.debug("scroll_form_into_view: ui.run_javascript failed: %s", ex)
+
+    @staticmethod
+    def scroll_form_into_view_with_retries(client=None):
+        """
+        Scroll the active form into view with several delayed passes.
+
+        Use after multi-tool or other flows where ``scroll_to_bottom`` may run on timers
+        and override a single ``scrollIntoView`` call.
+        """
+        if client is not None:
+            try:
+                client.run_javascript(_SCROLL_FORM_INTO_VIEW_RETRIES_JS)
+                return
+            except Exception as ex:
+                logger.debug("scroll_form_into_view_with_retries: client.run_javascript failed: %s", ex)
+        try:
+            ui.run_javascript(_SCROLL_FORM_INTO_VIEW_RETRIES_JS)
+        except Exception as ex:
+            logger.debug("scroll_form_into_view_with_retries: ui.run_javascript failed: %s", ex)

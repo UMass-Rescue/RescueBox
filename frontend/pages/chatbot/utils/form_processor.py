@@ -74,6 +74,20 @@ class FormProcessor:
             if job and job_uid:
                 await DatabaseService.complete_job(job_uid, response_body)
 
+            try:
+                from frontend.utils.nicegui_storage import get_user_id_for_jobs
+                from frontend.database.pipeline_index_service import (
+                    record_pipeline_job_completion,
+                )
+
+                _uid = get_user_id_for_jobs()
+                if _uid and job_uid:
+                    record_pipeline_job_completion(
+                        _uid, job_uid, job_uid, endpoint, response_body
+                    )
+            except Exception as idx_e:
+                self.logger.debug("Pipeline index (form processor) skipped: %s", idx_e)
+
             # Save results to chat history
             await self._save_success_to_history(conversation_id_ref, job_uid)
 
@@ -87,8 +101,9 @@ class FormProcessor:
             )
             self.logger.info("Results displayed successfully")
 
-            # Scroll to bottom after results are rendered
-            UIOperations.scroll_to_bottom()
+            # Scroll to bottom only when no chained form follows (orchestrator scrolls the next form).
+            if not (remaining_calls and load_and_show_form_func):
+                UIOperations.scroll_to_bottom()
 
             # Handle remaining calls
             if remaining_calls and load_and_show_form_func:

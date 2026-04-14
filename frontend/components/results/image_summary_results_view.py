@@ -179,16 +179,31 @@ def source_image_path_from_summary(summary_txt_path: str, input_dir: str) -> Opt
 def render_image_summary_file_list(container: ui.element, payload: Dict[str, Any], title: str) -> None:
     """
     Searchable table-like layout with a thumbnail column for each summary row.
+
+    Prefer ``file_pairs`` (``input_path`` / ``output_path``) from the plugin when present;
+    otherwise fall back to ``input_dir`` + filename heuristic.
     """
     input_dir = str(payload.get('input_dir') or '')
     file_paths: List[str] = [p for p in (payload.get('files') or []) if isinstance(p, str)]
+    out_to_in: Dict[str, str] = {}
+    raw_pairs = payload.get('file_pairs')
+    if isinstance(raw_pairs, list):
+        for pr in raw_pairs:
+            if not isinstance(pr, dict):
+                continue
+            op = pr.get('output_path')
+            ip = pr.get('input_path')
+            if isinstance(op, str) and isinstance(ip, str) and op.strip():
+                out_to_in[op] = ip
 
     file_data: List[Dict[str, Any]] = []
     for file_path in file_paths:
         try:
             if os.path.exists(file_path):
                 content = Path(file_path).read_text(encoding='utf-8')
-                img = source_image_path_from_summary(file_path, input_dir) if input_dir else None
+                img = out_to_in.get(file_path)
+                if not img and input_dir:
+                    img = source_image_path_from_summary(file_path, input_dir)
                 file_data.append({
                     'path': file_path,
                     'filename': os.path.basename(file_path),

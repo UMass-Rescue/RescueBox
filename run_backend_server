@@ -18,12 +18,15 @@ run_or_fail() {
 }
 
 run_or_fail "cuda check" bash "$SCRIPT_DIR/startup/cuda_check.sh"
-source "$SCRIPT_DIR/startup/cudnn_check.sh"
-run_or_fail "Onnx-runtime" bash "$SCRIPT_DIR/startup/onnxruntime_check.sh"
-run_or_fail "cuda-for-torch" bash "$SCRIPT_DIR/startup/./install_cuda_for_torch_clip_gpu.sh"
+run_or_fail "$SCRIPT_DIR/startup/cudnn_check.sh"
+#run_or_fail "Onnx-runtime" bash "$SCRIPT_DIR/startup/onnxruntime_check.sh"
+#run_or_fail "cuda-for-torch" bash "$SCRIPT_DIR/startup/./install_cuda_for_torch_clip_gpu.sh"
 
 run_or_fail "PostgreSQL / pgvector" bash "$SCRIPT_DIR/startup/pgvector_start.sh"
 run_or_fail "Ollama" bash "$SCRIPT_DIR/startup/ollama_check.sh"
 
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 echo "Starting RescueBox API..."
+export HF_HUB_OFFLINE=1 
+export TRANSFORMERS_OFFLINE=1
 exec poetry run python -m rb.api.main

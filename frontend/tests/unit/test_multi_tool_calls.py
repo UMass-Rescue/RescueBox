@@ -120,6 +120,29 @@ class TestExtractOutputPath:
         result = extract_output_path(response_body)
         assert result == TEST_IMAGES_DIR
 
+    def test_extract_from_batch_text_response_transcripts_dir(self):
+        """audio/transcribe writes .txt under transcripts_dir; chain uses that path."""
+        from rb.api.models import BatchTextResponse, ResponseBody, TextResponse
+
+        td = "/cases/audio_in/transcripts"
+        batch = BatchTextResponse(
+            texts=[TextResponse(value="hello", title="/cases/audio_in/x.mp3")],
+            transcripts_dir=td,
+        )
+        response_body = ResponseBody(root=batch)
+        result = extract_output_path(response_body)
+        assert result == td
+
+    def test_extract_from_ufdr_mount_message(self):
+        """ufdr_mounter returns TextResponse 'Mounted at /tmp/case1'; chain uses .../files/."""
+        from rb.api.models import TextResponse, ResponseBody
+
+        response_body = ResponseBody(
+            root=TextResponse(value="Mounted at /tmp/case1", title="Mount Result")
+        )
+        result = extract_output_path(response_body)
+        assert result == "/tmp/case1/files"
+
     def test_extract_from_file_response(self):
         """Test extracting parent directory from FileResponse.
 
@@ -198,7 +221,83 @@ class TestChainOutputToInput:
         result = chain_output_to_input(previous_output, current_arguments, current_schema)
         
         assert result['input_dir'] == '/output/summaries'
-    
+
+    def test_chain_image_summary_to_text_search_injects_file_filter_without_schema_row(self):
+        """Public GET task_schema omits file_filter; chaining must still set explicit paths."""
+        import json
+        from rb.api.models import TextResponse
+
+        out_txt = "/demo/outputs/a.png.txt"
+        payload = {
+            "image_summary": True,
+            "input_dir": "/demo/in",
+            "files": [out_txt],
+        }
+        previous_output = ResponseBody(
+            root=TextResponse(value=json.dumps(payload), title="Summaries")
+        )
+        # Schema like text-embeddings public API: only input_dir + query (no file_filter key).
+        current_schema = TaskSchema(
+            inputs=[
+                InputSchema(key="input_dir", label="In", input_type=InputType.DIRECTORY),
+                InputSchema(key="query", label="Q", input_type=InputType.TEXT),
+            ],
+            parameters=[],
+        )
+        result = chain_output_to_input(previous_output, {}, current_schema)
+        assert result["input_dir"] == str(Path(out_txt).parent)
+        assert result["file_filter"]["files"] == [{"path": out_txt}]
+
+    def test_chain_transcribe_to_summarize_defaults_output_dir(self):
+        """After transcribe, transcripts_dir chains to input_dir; output_dir defaults beside transcripts."""
+        from rb.api.models import BatchTextResponse, TextResponse
+
+        transcripts = "/evidence/audio_in/transcripts"
+        previous_output = ResponseBody(
+            root=BatchTextResponse(
+                texts=[TextResponse(value="hi", title="/evidence/audio_in/a.mp3")],
+                transcripts_dir=transcripts,
+            )
+        )
+        current_schema = TaskSchema(
+            inputs=[
+                InputSchema(
+                    key="input_dir",
+                    label="Input",
+                    input_type=InputType.DIRECTORY,
+                ),
+                InputSchema(
+                    key="output_dir",
+                    label="Output",
+                    input_type=InputType.DIRECTORY,
+                ),
+            ],
+            parameters=[],
+        )
+        result = chain_output_to_input(previous_output, {}, current_schema)
+        assert result["input_dir"] == transcripts
+        assert result["output_dir"] == "/evidence/audio_in/text_summary"
+
+    def test_chain_after_ufdr_mount_sets_input_dir_files(self):
+        """After UFDR mount, next tool input_dir is mount point + /files."""
+        from rb.api.models import TextResponse
+
+        previous_output = ResponseBody(
+            root=TextResponse(value="Mounted at /tmp/case1", title="Mount Result")
+        )
+        current_schema = TaskSchema(
+            inputs=[
+                InputSchema(
+                    key="input_dir",
+                    label="Input",
+                    input_type=InputType.DIRECTORY,
+                )
+            ],
+            parameters=[],
+        )
+        result = chain_output_to_input(previous_output, {}, current_schema)
+        assert result["input_dir"] == "/tmp/case1/files"
+
     def test_chain_to_input_dataset(self):
         """Test chaining to input_dataset field"""
         dir_response = DirectoryResponse(

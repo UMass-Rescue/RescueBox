@@ -337,10 +337,34 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
     Returns:
         Optional[str]: Output path if found, None otherwise
     """
-    from rb.api.models import BatchDirectoryResponse, DirectoryResponse, BatchFileResponse, FileResponse, TextResponse
+    from rb.api.models import (
+        BatchDirectoryResponse,
+        DirectoryResponse,
+        BatchFileResponse,
+        BatchTextResponse,
+        FileResponse,
+        TextResponse,
+    )
 
     try:
         root = response_body.root
+
+        if isinstance(root, BatchTextResponse) and getattr(root, "transcripts_dir", None):
+            td = str(Path(root.transcripts_dir).resolve())
+            logger.debug("Extracted transcripts_dir from BatchTextResponse: %s", td)
+            return td
+
+        # UFDR mount: TextResponse value "Mounted at /tmp/case1" — downstream tools use .../files/
+        if isinstance(root, TextResponse) and root.value:
+            vm = (root.value or "").strip()
+            if vm.lower().startswith("mounted at "):
+                mp = vm[len("Mounted at ") :].strip()
+                if mp:
+                    files_root = (Path(mp.rstrip("/")) / "files").resolve()
+                    logger.debug(
+                        "Extracted UFDR files root from mount message: %s", files_root.as_posix()
+                    )
+                    return files_root.as_posix()
 
         # TextResponse - e.g. image_summary returns JSON array of output file paths
         if isinstance(root, TextResponse) and root.value:
@@ -446,6 +470,23 @@ def chain_output_to_input(
         current_arguments = current_arguments.copy()
         current_arguments[input_dir_key] = output_path
 
+        # text_summarization/summarize: default output_dir next to transcripts (sibling folder)
+        for inp in current_schema.inputs:
+            if inp.input_type != InputType.DIRECTORY:
+                continue
+            k = inp.key
+            if k == input_dir_key:
+                continue
+            kl = k.lower()
+            if "output" in kl and "dir" in kl:
+                if not current_arguments.get(k):
+                    suggested = Path(output_path).parent / "text_summary"
+                    current_arguments[k] = suggested.as_posix()
+                    logger.info(
+                        "Chained default %s for summarize pipeline: %s", k, current_arguments[k]
+                    )
+                break
+
         # If previous response is TextResponse with file list, also inject file_filter for pipelines
         # (e.g. image_summary -> text_embeddings)
         from rb.api.models import TextResponse
@@ -461,16 +502,16 @@ def chain_output_to_input(
                 else:
                     raw_paths = []
                 if raw_paths:
-                    has_file_filter = any(
-                        inp.key == "file_filter" for inp in current_schema.inputs
-                    )
-                    if has_file_filter:
-                        file_paths = [p for p in raw_paths if isinstance(p, str)]
-                        if file_paths:
-                            current_arguments["file_filter"] = {
-                                "files": [{"path": p} for p in file_paths]
-                            }
-                            logger.info("Chained %d files to file_filter", len(file_paths))
+                    file_paths = [p for p in raw_paths if isinstance(p, str)]
+                    if file_paths:
+                        # GET .../task_schema often omits file_filter (for_public_api); POST still accepts it.
+                        current_arguments["file_filter"] = {
+                            "files": [{"path": p} for p in file_paths]
+                        }
+                        logger.info(
+                            "Chained %d file(s) to file_filter from prior TextResponse",
+                            len(file_paths),
+                        )
             except (json.JSONDecodeError, TypeError, AttributeError):
                 pass
     else:

@@ -14,7 +14,6 @@ from frontend.pages.chatbot.chatbot_forms import (
     load_and_show_form
 )
 from frontend.chatbot.config import ToolRegistry
-
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -77,7 +76,9 @@ class ResultProcessor:
             if result_type == 'show_form':
                 _set_input(False)
                 await self._handle_show_form(result, container, core, load_form_callback)
-                update_status_callback("Ready", scroll_to_form=True)
+                # Scroll + "Fill the form…" status come from MessageProcessor once (avoids duplicate
+                # scroll_form_into_view_with_retries fighting each other).
+                update_status_callback("Ready", scroll_after=False)
                 return
 
             elif result_type == 'multi_tool_calls':
@@ -160,7 +161,8 @@ class ResultProcessor:
             f"🔄 I'll process {len(tool_calls)} task(s) sequentially:\n" +
             "\n".join([f"{i+1}. {call['endpoint']}" for i, call in enumerate(tool_calls)])
         )
-        add_message_callback(message)
+        # Do not scroll to bottom here: scroll_to_bottom retries (~700ms) override form scrollIntoView.
+        add_message_callback(message, False)
 
         # Start with first tool call
         if tool_calls and load_form_callback:
@@ -170,6 +172,7 @@ class ResultProcessor:
                 first_call['arguments'],
                 remaining_calls=tool_calls[1:] if len(tool_calls) > 1 else None
             )
+            # Form scroll is scheduled once from MessageProcessor (update_status … scroll_to_form=True).
 
     async def _handle_message(self, result: Dict[str, Any], add_message_callback):
         """Handle message result type."""

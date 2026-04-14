@@ -14,6 +14,8 @@ from frontend.components.results.table_helpers import (
     create_sortable_table,
     resolve_table_row_index,
 )
+from frontend.utils.pipeline_index_context import get_pipeline_index_ids
+from frontend.database.pipeline_job_index_db import lookup_source_image
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +107,7 @@ def _results_have_matching_text(results: list) -> bool:
 
 def render_text_search_json(container: ui.element, data: dict, title: str = "Text Search Results") -> None:
     """Show query summary, optional guidance, and a sortable results table."""
+    puid, prid = get_pipeline_index_ids()
     query = _pick(data, "query")
     model = _pick(data, "model")
     top_k = _pick(data, "top_k", "topk")
@@ -175,7 +178,13 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                         if len(preview) > 280:
                             preview = preview[:277] + "…"
                         row_dict["preview"] = preview
+                    if puid and prid and path:
+                        simg = lookup_source_image(puid, prid, path)
+                        if simg:
+                            row_dict["_source_image"] = simg
                     rows.append(row_dict)
+
+                show_source_image = any(bool(r.get("_source_image")) for r in rows)
 
                 columns: list[dict] = [
                     {
@@ -192,14 +201,26 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                         "align": "right",
                         "sortable": True,
                     },
+                ]
+                if show_source_image:
+                    columns.append(
+                        {
+                            "name": "source_thumb",
+                            "label": "Source image",
+                            "field": "source_thumb",
+                            "align": "center",
+                            "sortable": False,
+                        }
+                    )
+                columns.append(
                     {
                         "name": "path",
                         "label": "File",
                         "field": "path",
                         "align": "left",
                         "sortable": True,
-                    },
-                ]
+                    }
+                )
                 if show_text_snippet:
                     columns.append(
                         {
@@ -210,22 +231,41 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                             "sortable": False,
                         }
                     )
+                display_rows: list[dict] = []
+                for r in rows:
+                    dr = {k: v for k, v in r.items() if k != "_source_image"}
+                    if show_source_image:
+                        simg = r.get("_source_image")
+                        dr["source_thumb"] = os.path.basename(simg) if simg else "—"
+                    display_rows.append(dr)
+
+                extra_src = ""
+                if show_source_image:
+                    extra_src = (
+                        " Source image column: original picture for each summary .txt (pipeline index)."
+                    )
 
                 tip = (
-                    "Sort columns by clicking headers. Match = similarity ≥ threshold. "
-                    "Click a row to open the full file (large markdown preview for text)."
+                    (
+                        "Sort columns by clicking headers. Match = similarity ≥ threshold. "
+                        "Click a row to open the full file (large markdown preview for text)."
+                    )
+                    + extra_src
                     if show_text_snippet
                     else (
-                        "Sort columns by clicking headers. Match = similarity ≥ threshold. "
-                        "Click a row to open the file."
+                        (
+                            "Sort columns by clicking headers. Match = similarity ≥ threshold. "
+                            "Click a row to open the file."
+                        )
+                        + extra_src
                     )
                 )
 
                 def _on_row_click(e):
-                    idx = resolve_table_row_index(e, rows)
+                    idx = resolve_table_row_index(e, display_rows)
                     if idx is None:
                         return
-                    p = str(rows[idx].get("path") or "").strip()
+                    p = str(display_rows[idx].get("path") or "").strip()
                     if p:
                         _open_text_search_row_preview(p)
 
@@ -234,7 +274,7 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                     create_sortable_table(
                         table_holder,
                         columns,
-                        rows,
+                        display_rows,
                         row_key="id",
                         show_row_labels=False,
                         tip_message=tip,

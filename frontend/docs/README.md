@@ -41,3 +41,4 @@ Keep docs **small and current**. This index plus nine topic files are what we ma
 
 - **Backend:** plugin routes and models router — `src/rb-api/rb/api/`.
 - **Tests:** [testing.md](./testing.md); repo uses Poetry (`pyproject.toml`).
+- **Refactor / complexity notes (non-canonical planning doc):** [frontend-complexity-review.md](./frontend-complexity-review.md).

@@ -1,7 +1,10 @@
 """audio transcribe plugin"""
 
+import errno
+import hashlib
 import os
 import logging
+from pathlib import Path
 from typing import List, TypedDict
 
 from pydantic import DirectoryPath
@@ -44,7 +47,7 @@ ml_service.add_app_metadata(
 
 model = AudioTranscriptionModel()
 
-AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac"}
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"}
 
 
 class AudioDirectory(FileFilterDirectory):
@@ -55,6 +58,30 @@ class AudioDirectory(FileFilterDirectory):
 
 class AudioInput(TypedDict):
     input_dir: AudioDirectory
+
+
+def _resolve_transcripts_dir(dirpath: Path) -> Path:
+    """
+    Prefer ``<input_dir>/transcripts``. If the input lives on a read-only mount (e.g. UFDR
+    FUSE), use a writable folder under the system temp instead.
+    """
+    preferred = dirpath / "transcripts"
+    try:
+        preferred.mkdir(parents=True, exist_ok=True)
+        return preferred.resolve()
+    except OSError as e:
+        if e.errno not in (errno.EROFS, errno.EACCES, errno.EPERM):
+            raise
+        key = hashlib.sha256(str(dirpath.resolve()).encode("utf-8")).hexdigest()[:16]
+        base = Path(os.environ.get("TMPDIR", "/tmp")) / "rescuebox-audio-transcripts"
+        fallback = (base / key).resolve()
+        fallback.mkdir(parents=True, exist_ok=True)
+        logger.info(
+            "Input dir not writable for transcripts (%s); writing .txt files under %s",
+            e,
+            fallback,
+        )
+        return fallback
 
 
 def task_schema() -> TaskSchema:
@@ -70,15 +97,20 @@ def transcribe(inputs: AudioInput) -> ResponseBody:
     """Transcribe audio files"""
 
     print("Processing transcription...")
-    dirpath = inputs["input_dir"].path
+    dirpath = Path(inputs["input_dir"].path)
+    transcripts_dir = _resolve_transcripts_dir(dirpath)
 
-    results = model.transcribe_files_in_directory(dirpath)
+    # Write one .txt per audio file under transcripts_dir so downstream text_summarization can read them.
+    results = model.transcribe_files_in_directory(str(dirpath), str(transcripts_dir))
     result_texts = [
         TextResponse(value=r["result"], title=r["file_path"]) for r in results
     ]
 
     print(f"Transcription Results: {results}")
-    response = BatchTextResponse(texts=result_texts)
+    response = BatchTextResponse(
+        texts=result_texts,
+        transcripts_dir=str(transcripts_dir),
+    )
     return ResponseBody(root=response)
 
 

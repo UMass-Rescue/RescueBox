@@ -150,165 +150,163 @@ class FormGenerator:
         
         
         with container:
-            logger.debug("Creating form card container")
-            # Form card (standard width)
-            with ui.card().classes('w-full min-w-0 max-w-full bg-white border-2 border-blue-500'):
-                # Use compact spacing if requested
-                if compact:
-                    column_classes = 'w-full min-w-0 p-3 space-y-2'
-                    header_classes = 'text-lg font-bold'
-                    section_classes = 'font-semibold text-base mt-2'
-                    button_row_classes = 'mt-3 gap-2'
-                else:
-                    column_classes = 'w-full min-w-0 p-6 space-y-4'
-                    header_classes = 'text-xl font-bold'
-                    section_classes = 'font-semibold text-lg mt-4'
-                    button_row_classes = 'mt-6 gap-2'
+            logger.debug("Creating form layout (border/chrome from caller when wrapped in ui.card)")
+            # Use compact spacing if requested
+            if compact:
+                column_classes = 'w-full min-w-0 max-w-full p-3 space-y-2'
+                header_classes = 'text-lg font-bold'
+                section_classes = 'font-semibold text-base mt-2'
+                button_row_classes = 'mt-3 gap-2'
+            else:
+                column_classes = 'w-full min-w-0 max-w-full p-6 space-y-4'
+                header_classes = 'text-xl font-bold'
+                section_classes = 'font-semibold text-lg mt-4'
+                button_row_classes = 'mt-6 gap-2'
 
-                with ui.column().classes(column_classes):
-                    ui.label('📋 Input Form').classes(header_classes)
-                    logger.debug("Form header added")
+            with ui.column().classes(column_classes):
+                ui.label('📋 Input Form').classes(header_classes)
+                logger.debug("Form header added")
 
-                    # Generate input fields
-                    if task_schema.inputs:
-                        logger.info("Generating %d input fields", len(task_schema.inputs))
-                        ui.label('Inputs').classes(section_classes)
-                        for input_schema in task_schema.inputs:
-                            await create_input_field(
-                                input_schema,
-                                self.form_widgets,
-                                self.form_data.get('inputs', {})
-                            )
-                        logger.debug("Input fields generated")
+                # Generate input fields
+                if task_schema.inputs:
+                    logger.info("Generating %d input fields", len(task_schema.inputs))
+                    ui.label('Inputs').classes(section_classes)
+                    for input_schema in task_schema.inputs:
+                        await create_input_field(
+                            input_schema,
+                            self.form_widgets,
+                            self.form_data.get('inputs', {})
+                        )
+                    logger.debug("Input fields generated")
 
-                    # Generate parameter fields
-                    if task_schema.parameters:
-                        logger.info("Generating %d parameter fields", len(task_schema.parameters))
-                        ui.label('Parameters').classes(section_classes)
-                        for param_schema in task_schema.parameters:
-                            await create_parameter_field(
-                                param_schema,
-                                self.form_widgets,
-                                self.form_data.get('parameters', {})
-                            )
-                        logger.debug("Parameter fields generated")
+                # Generate parameter fields
+                if task_schema.parameters:
+                    logger.info("Generating %d parameter fields", len(task_schema.parameters))
+                    ui.label('Parameters').classes(section_classes)
+                    for param_schema in task_schema.parameters:
+                        await create_parameter_field(
+                            param_schema,
+                            self.form_widgets,
+                            self.form_data.get('parameters', {})
+                        )
+                    logger.debug("Parameter fields generated")
 
-                    # Submit button (extracted to component)
-                    logger.info("Creating form action buttons (via component)")
-                    try:
-                        from frontend.components.forms.form_actions import render_form_actions
+                # Submit button (extracted to component)
+                logger.info("Creating form action buttons (via component)")
+                try:
+                    from frontend.components.forms.form_actions import render_form_actions
 
-                        def _on_cancel():
-                            """
-                            Cancel handler: remove the entire form card (if possible) so any
-                            tool-selection UI rendered alongside the form is also removed.
-                            Falls back to clearing the inner container when parent deletion
-                            is not possible.
-                            """
-                            logger.debug("Cancel handler invoked for container=%r", container)
-                            # Prefer deleting the parent card (if this column is nested inside it)
-                            parent = getattr(container, 'parent', None)
+                    def _on_cancel():
+                        """
+                        Cancel handler: remove the entire form card (if possible) so any
+                        tool-selection UI rendered alongside the form is also removed.
+                        Falls back to clearing the inner container when parent deletion
+                        is not possible.
+                        """
+                        logger.debug("Cancel handler invoked for container=%r", container)
+                        # Prefer deleting the parent card (if this column is nested inside it)
+                        parent = getattr(container, 'parent', None)
 
-                            # Helper: walk ancestors to find and delete a related selection card attribute
-                            def _scan_and_delete_related(start_element):
-                                anc = start_element
-                                while anc:
-                                    sel = getattr(anc, '_related_tool_selection_card', None)
-                                    if sel:
-                                        try:
-                                            logger.debug("Cancel: deleting related selection card %r found on %r", sel, anc)
-                                            sel.delete()
-                                        except (RuntimeError, AttributeError) as e:
-                                            logger.debug("Failed to delete related selection card during cancel: %s", e)
-                                        try:
-                                            delattr(anc, '_related_tool_selection_card')
-                                        except (AttributeError, TypeError):
-                                            # attribute removal failed or not present, ignore
-                                            logger.debug("Could not delete _related_tool_selection_card attribute on %r", anc)
-                                        return True
-                                    anc = getattr(anc, 'parent', None)
-                                return False
-
-                            # Try container first, then its parent chain
-                            try:
-                                deleted = _scan_and_delete_related(container)
-                                logger.debug("Cancel: related selection card deleted=%s", deleted)
-                                if not deleted and parent:
-                                    parent_deleted = _scan_and_delete_related(parent)
-                                    logger.debug("Cancel: related selection card found on parent=%s", parent_deleted)
-                            except (RuntimeError, AttributeError) as e:
-                                logger.debug("Error scanning ancestors for related selection card: %s", e, exc_info=True)
-
-                            # Prefer deleting the parent card (if this column is nested inside it)
-                            if parent:
-                                try:
-                                    parent.delete()
-                                    logger.debug("Cancel: parent element deleted=%r", parent)
-                                    return
-                                except (RuntimeError, AttributeError) as e:
-                                    # Fall through to clearing the container
-                                    logger.debug("Cancel: failed to delete parent element: %s", e)
-
-                            # Fallback: clear the provided container
-                            try:
-                                container.clear()
-                                logger.debug("Cancel: container cleared=%r", container)
-                            except RuntimeError:
-                                logger.debug("Container clear failed during cancel (client deleted)")
-                            # Aggressive cleanup: clear any globally registered selection cards as a last resort
-                            try:
-                                from frontend.components.results.tool_selection_card import clear_active_tool_selection_cards
-                                clear_active_tool_selection_cards()
-                                logger.debug("Cancel: cleared active tool selection registry")
-                            except (ImportError, AttributeError) as e:
-                                logger.debug("Cancel: failed to clear active tool selection registry: %s", e)
-                            if onCancel:
-                                try:
-                                    onCancel()
-                                except Exception as e:
-                                    logger.debug("onCancel callback failed: %s", e)
-
-                        async def _on_submit():
-                            if onSubmit:
-                                return await handle_form_submit(
-                                    task_schema,
-                                    self.form_widgets,
-                                    onSubmit
-                                )
+                        # Helper: walk ancestors to find and delete a related selection card attribute
+                        def _scan_and_delete_related(start_element):
+                            anc = start_element
+                            while anc:
+                                sel = getattr(anc, '_related_tool_selection_card', None)
+                                if sel:
+                                    try:
+                                        logger.debug("Cancel: deleting related selection card %r found on %r", sel, anc)
+                                        sel.delete()
+                                    except (RuntimeError, AttributeError) as e:
+                                        logger.debug("Failed to delete related selection card during cancel: %s", e)
+                                    try:
+                                        delattr(anc, '_related_tool_selection_card')
+                                    except (AttributeError, TypeError):
+                                        # attribute removal failed or not present, ignore
+                                        logger.debug("Could not delete _related_tool_selection_card attribute on %r", anc)
+                                    return True
+                                anc = getattr(anc, 'parent', None)
                             return False
 
-                        action_col = ui.column()
-                        # Attach reference for form_actions to delete the outer container if needed.
+                        # Try container first, then its parent chain
                         try:
-                            setattr(action_col, '_outer_form_container', container)
-                        except (AttributeError, TypeError):
-                            # highly unlikely, ignore
-                            pass
-                        render_form_actions(action_col, _on_cancel, _on_submit, compact=compact)
-                    except ImportError as e:
-                        logger.warning("Failed to import form actions component: %s, falling back", e)
-                        # Fallback inline
-                        with ui.row().classes(button_row_classes):
-                            ui.space()
-                            def _fallback_cancel():
-                                try:
-                                    container.clear()
-                                except RuntimeError:
-                                    logger.debug("Fallback cancel failed: container already deleted")
+                            deleted = _scan_and_delete_related(container)
+                            logger.debug("Cancel: related selection card deleted=%s", deleted)
+                            if not deleted and parent:
+                                parent_deleted = _scan_and_delete_related(parent)
+                                logger.debug("Cancel: related selection card found on parent=%s", parent_deleted)
+                        except (RuntimeError, AttributeError) as e:
+                            logger.debug("Error scanning ancestors for related selection card: %s", e, exc_info=True)
 
-                            ui.button(
-                                'Cancel',
-                                on_click=_fallback_cancel
-                            ).classes('bg-gray-300')
+                        # Prefer deleting the parent card (if this column is nested inside it)
+                        if parent:
+                            try:
+                                parent.delete()
+                                logger.debug("Cancel: parent element deleted=%r", parent)
+                                return
+                            except (RuntimeError, AttributeError) as e:
+                                # Fall through to clearing the container
+                                logger.debug("Cancel: failed to delete parent element: %s", e)
+
+                        # Fallback: clear the provided container
+                        try:
+                            container.clear()
+                            logger.debug("Cancel: container cleared=%r", container)
+                        except RuntimeError:
+                            logger.debug("Container clear failed during cancel (client deleted)")
+                        # Aggressive cleanup: clear any globally registered selection cards as a last resort
+                        try:
+                            from frontend.components.results.tool_selection_card import clear_active_tool_selection_cards
+                            clear_active_tool_selection_cards()
+                            logger.debug("Cancel: cleared active tool selection registry")
+                        except (ImportError, AttributeError) as e:
+                            logger.debug("Cancel: failed to clear active tool selection registry: %s", e)
+                        if onCancel:
+                            try:
+                                onCancel()
+                            except Exception as e:
+                                logger.debug("onCancel callback failed: %s", e)
+
+                    async def _on_submit():
+                        if onSubmit:
+                            return await handle_form_submit(
+                                task_schema,
+                                self.form_widgets,
+                                onSubmit
+                            )
+                        return False
+
+                    action_col = ui.column()
+                    # Attach reference for form_actions to delete the outer container if needed.
+                    try:
+                        setattr(action_col, '_outer_form_container', container)
+                    except (AttributeError, TypeError):
+                        # highly unlikely, ignore
+                        pass
+                    render_form_actions(action_col, _on_cancel, _on_submit, compact=compact)
+                except ImportError as e:
+                    logger.warning("Failed to import form actions component: %s, falling back", e)
+                    # Fallback inline
+                    with ui.row().classes(button_row_classes):
+                        ui.space()
+                        def _fallback_cancel():
+                            try:
+                                container.clear()
+                            except RuntimeError:
+                                logger.debug("Fallback cancel failed: container already deleted")
+
+                        ui.button(
+                            'Cancel',
+                            on_click=_fallback_cancel
+                        ).classes('bg-gray-300')
                             
-                            import asyncio
-                            ui.button(
-                                '▶ Submit Job',
-                                on_click=lambda: asyncio.create_task(handle_form_submit(
-                                    task_schema,
-                                    self.form_widgets,
-                                    onSubmit
-                                )) if onSubmit else None
-                            ).classes('bg-green-600 text-white')
+                        import asyncio
+                        ui.button(
+                            '▶ Submit Job',
+                            on_click=lambda: asyncio.create_task(handle_form_submit(
+                                task_schema,
+                                self.form_widgets,
+                                onSubmit
+                            )) if onSubmit else None
+                        ).classes('bg-green-600 text-white')
 
-                    logger.info("Form generation completed successfully")
+                logger.info("Form generation completed successfully")

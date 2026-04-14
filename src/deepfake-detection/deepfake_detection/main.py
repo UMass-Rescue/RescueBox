@@ -190,8 +190,14 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             available = ort.get_available_providers()
             # Provider order: first match wins; prefer accelerators when present.
             providers = ["CPUExecutionProvider"]  # baseline; always in ORT
-            if "CUDAExecutionProvider" in available:  # NVIDIA GPU if ORT built with CUDA
-                providers.insert(0, "CUDAExecutionProvider")
+            if "CUDAExecutionProvider" in available:
+                providers.insert(
+                    0,
+                    (
+                        "CUDAExecutionProvider",
+                        {"device_id": 0, "cudnn_conv_algo_search": "DEFAULT"},
+                    ),
+                )  # NVIDIA GPU if ORT built with CUDA
             # macOS / Apple: CoreML EP only appears when onnxruntime was built with CoreML support
             if "CoreMLExecutionProvider" in available:
                 providers.insert(0, "CoreMLExecutionProvider")

@@ -1,372 +1,104 @@
 """
 RescueBox Desktop Frontend - Main Entry Point
 
-This module serves as the main entry point for the RescueBox Desktop application.
-It initializes NiceGUI and integrates the FastAPI backend routes into a single unified server.
+Initializes NiceGUI, optional integrated FastAPI plugin routes, and the home page.
 
-Key responsibilities:
-- Configure NiceGUI application settings
-- Integrate backend FastAPI routes into NiceGUI's FastAPI app
-- Render the main dashboard/home page
-
-Usage:
-    Run this module to start the unified RescueBox Desktop application:
+Usage::
     python -m frontend.main
-
-Tips:
-    - The application runs on port 8080 by default (configurable via RESCUEBOX_PORT env var)
-    - All backend API routes are available at the root (e.g., /models, /probes, etc.)
-    - Configuration is centralized in frontend.config
-    - Navigation is handled through NiceGUI's routing system
 """
 
+from __future__ import annotations
+
 import logging
-import os
-import asyncio
-import httpx
 import sys
 from pathlib import Path
-from nicegui import ui, app, Client
+
+# Repo root + src (for rb.* plugins when running as a module)
+_project_root = Path(__file__).resolve().parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+if str(_project_root / "src") not in sys.path:
+    sys.path.insert(0, str(_project_root / "src"))
+
+from nicegui import app, Client, ui
+
 from frontend.config import (
+    API_BASE_URL,
+    API_TIMEOUT,
+    APP_DARK_MODE,
+    APP_FAVICON,
+    APP_PORT,
+    APP_SHOW_BROWSER,
     APP_TITLE,
     APP_VERSION,
-    APP_PORT,
-    APP_FAVICON,
-    APP_DARK_MODE,
-    APP_SHOW_BROWSER,
+    BACKEND_URL,
+    LOG_FILE,
+    LOG_LEVEL,
     RECONNECT_TIMEOUT,
 )
+from frontend.constants import (
+    HOME_USER_ID,
+    NAV_LINKS,
+    UI_BUTTONS,
+    UI_TITLES,
+    is_valid_explicit_user_id,
+)
+from frontend.database import init_db
 from frontend.components.shared import create_navbar
-from frontend.constants import UI_TITLES, UI_BUTTONS, NAV_LINKS, HOME_USER_ID, is_valid_explicit_user_id
+from frontend.utils.logging_context import configure_logging_with_context
+from frontend.utils.logging_config import parse_log_level
+
+# Import page modules so @ui.page decorators register routes
+import frontend.pages.chatbot
+import frontend.pages.demo
+import frontend.pages.demo_image_summary_walkthrough
+import frontend.pages.demo_other_walkthrough
+import frontend.pages.demo_quick_start
+import frontend.pages.demo_transcribe_walkthrough
+import frontend.pages.jobs
+import frontend.pages.models
+
+logging.basicConfig(level=parse_log_level(LOG_LEVEL))
+configure_logging_with_context(log_file_path=str(LOG_FILE), log_level=LOG_LEVEL)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(parse_log_level(LOG_LEVEL))
+
+from frontend.utils import backend_integration as _backend_integration
+
+try:
+    import rb.api.routes  # noqa: F401 — verify backend package is importable
+
+    _backend_integration.set_backend_available(True)
+    logger.info("Backend routes package available")
+except ImportError as e:
+    _backend_integration.set_backend_available(False)
+    logger.warning("Backend routes not available: %s. Running frontend only.", e)
+
+BACKEND_AVAILABLE = _backend_integration.BACKEND_AVAILABLE
+prefetch_and_cache_models = _backend_integration.prefetch_and_cache_models
+setup_backend_routes = _backend_integration.setup_backend_routes
+
 from frontend.utils.nicegui_storage import (
     clear_explicit_user_id,
     ensure_explicit_user_id_for_tests,
     get_explicit_user_id,
     set_explicit_user_id,
 )
-from frontend.config import API_BASE_URL, BACKEND_URL, API_TIMEOUT, LOG_FILE, LOG_LEVEL
-from frontend.database import init_db, cache_models
-# Configure logging with context support
-from frontend.utils.logging_context import configure_logging_with_context
-
-# Import page modules to register routes with @ui.page decorator
-# By importing the modules directly, we ensure that the @ui.page decorators
-# within them are executed. This registers all necessary routes with the
-# NiceGUI application and resolves "not accessed" linter warnings.
-import frontend.pages.models
-import frontend.pages.chatbot
-import frontend.pages.jobs
-import frontend.pages.demo
-import frontend.pages.demo_quick_start
-import frontend.pages.demo_transcribe_walkthrough
-import frontend.pages.demo_image_summary_walkthrough
-import frontend.pages.demo_other_walkthrough
-
-# Add project root to path for imports
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-sys.path.insert(0, str(project_root / 'src'))
-
-logging.basicConfig(level=logging.DEBUG)
-
-# Configure root logger with context filter and file handler
-LOG_LEVEL='DEBUG'
-configure_logging_with_context(log_file_path=str(LOG_FILE), log_level=LOG_LEVEL)
-
-# Configure logging for this module
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-# Ensure root logger and common server loggers are at DEBUG for full diagnostics
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.DEBUG)
-
-# Quiet noisy socket/engineio and FUSE (UFDR mount) logs
-try:
-    logging.getLogger('socketio.server').setLevel(logging.WARNING)
-    logging.getLogger('socketio').setLevel(logging.WARNING)
-    logging.getLogger('engineio.server').setLevel(logging.WARNING)
-    logging.getLogger('engineio').setLevel(logging.WARNING)
-    logging.getLogger('fuse').setLevel(logging.WARNING)
-    logging.getLogger('fuse.log-mixin').setLevel(logging.WARNING)
-    logging.getLogger('ufdr_mounter.utils.ufdr_mount_unix').setLevel(logging.WARNING)
-    logging.getLogger('frontend.pages.chatbot').setLevel(logging.WARNING)
-    logging.getLogger('frontend.database.chat_history_db').setLevel(logging.WARNING)
-    logging.getLogger('frontend.utils.nicegui_storage').setLevel(logging.WARNING)
-    logging.getLogger('httpcore').setLevel(logging.WARNING)
-    logging.getLogger('httpcore.http11').setLevel(logging.WARNING)
-    logging.getLogger('httpx').setLevel(logging.WARNING)
-    logging.getLogger('frontend.chatbot').setLevel(logging.WARNING)
-    logging.getLogger('frontend.components.forms').setLevel(logging.WARNING)
-    logging.getLogger('frontend.components.results.tool_selection_card').setLevel(
-        logging.WARNING
-    )
-    logging.getLogger('frontend.utils.validators').setLevel(logging.WARNING)
-    logging.getLogger('frontend.utils.file_browser').setLevel(logging.WARNING)
-    logging.getLogger('nicegui').setLevel(logging.WARNING)
-    for _name in (
-        'frontend.pages.chatbot.chatbot_forms',
-        'frontend.pages.chatbot.chatbot',
-        'frontend.pages.chatbot.state.state_manager',
-        'frontend.pages.chatbot.utils.form_validator',
-        'frontend.components.forms.form_generator',
-        'frontend.components.forms.form_handlers',
-        'frontend.components.forms.builders.input_field_builder',
-        'frontend.components.forms.case_notes_dialog',
-    ):
-        logging.getLogger(_name).setLevel(logging.WARNING)
-    # Multi-tool pipeline (metadata filter + chaining): INFO must be visible under chatbot namespaces
-    logging.getLogger(
-        'frontend.pages.chatbot.utils.job_submission_orchestrator'
-    ).setLevel(logging.INFO)
-    logging.getLogger('frontend.chatbot.multi_tool_handler').setLevel(logging.INFO)
-except Exception:
-    pass
-
-# reduce noisy socket/engineio logs
-
-    
-# Configuration options for backend integration:
-# Option 1: Explicit Configuration (Always use external backend)
-#   export RESCUEBOX_USE_EXTERNAL_BACKEND=true
-#   export RESCUEBOX_API_URL=http://localhost:8000
-#   python -m frontend.main
-#   This skips route integration and uses the external backend.
-#
-# Option 2: Auto-Detection (Detect if backend is running)
-#   export RESCUEBOX_CHECK_EXTERNAL_BACKEND=true
-#   export RESCUEBOX_API_URL=http://localhost:8000
-#   python -m frontend.main
-#   This checks if a backend is running at the configured URL and skips
-#   integration if detected.
-
-# Import backend routes
-try:
-    from rb.api import routes
-    from fastapi.exceptions import RequestValidationError
-    from fastapi import Request, status, HTTPException
-    
-    BACKEND_AVAILABLE = True
-    logger.info("Backend routes imported successfully")
-except ImportError as e:
-    BACKEND_AVAILABLE = False
-    logger.warning("Backend routes not available: %s. Running frontend only.", e)
 
 
-def check_backend_running(backend_url: str = "http://localhost:8000", timeout: float = 1.0) -> bool:
-    """
-    Check if a backend server is already running.
-    
-    Args:
-        backend_url: URL of the backend server to check
-        timeout: Timeout in seconds for the check
-        
-    Returns:
-        True if backend is running, False otherwise
-    """
-    try:
-        import httpx
-        response = httpx.get(f"{backend_url}/probes/liveness/", timeout=timeout)
-        return response.status_code == 200
-    except Exception:
-        return False
-
-
-def setup_backend_routes(use_external_backend: bool = False):
-    """
-    Integrate backend FastAPI routes into NiceGUI's FastAPI app.
-    
-    NiceGUI is built on FastAPI, so we can access its underlying FastAPI app
-    via `app` (which is `nicegui.app`) and include backend routes directly.
-    
-    This creates a unified server where:
-    - Backend API routes are available at root (e.g., /models, /probes)
-    - Frontend UI routes are available via NiceGUI (e.g., /, /chatbot, /models-page)
-    
-    Args:
-        use_external_backend: If True, skip route integration and use external backend
-                              (frontend will use API_BASE_URL from config to connect)
-    """
-    if not BACKEND_AVAILABLE:
-        logger.warning("Skipping backend route integration - backend not available")
-        return
-    
-    # Check if external backend should be used (explicitly configured)
-    use_external = use_external_backend or os.getenv('RESCUEBOX_USE_EXTERNAL_BACKEND', '').lower() == 'true'
-    if use_external:
-        logger.info("Using external backend (route integration skipped)")
-        logger.info("Frontend will connect to backend at: %s", API_BASE_URL)
-        return
-    
-    # Optionally auto-detect if external backend is running and skip integration
-    check_external = os.getenv('RESCUEBOX_CHECK_EXTERNAL_BACKEND', 'false').lower() == 'true'
-    if check_external:
-        external_backend_url = API_BASE_URL
-        if check_backend_running(external_backend_url):
-            logger.info("External backend detected at %s - skipping route integration", external_backend_url)
-            logger.info("Frontend will connect to external backend instead of integrated routes")
-            return
-    
-    logger.info("Integrating backend FastAPI routes into NiceGUI app")
-    
-    # Access NiceGUI's underlying FastAPI app
-    # nicegui.app is the FastAPI application instance
-    fastapi_app = app
-    
-    # Add CORS middleware if not already present
-    # (Backend may have added it, but ensure it's there)
-    from fastapi.middleware.cors import CORSMiddleware
-    cors_exists = any(
-        isinstance(middleware, CORSMiddleware) 
-        for middleware in fastapi_app.user_middleware
-    )
-    if not cors_exists:
-        fastapi_app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-        logger.info("Added CORS middleware")
-
-    try:
-        from rb.api.facematch_request_context import FacematchRescueboxUserMiddleware
-        fastapi_app.add_middleware(FacematchRescueboxUserMiddleware)
-    except ImportError:
-        pass
-
-    # Add backend exception handler
-    @fastapi_app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(_request: Request, exc: RequestValidationError):
-        """Response handler for all plugin input validation errors"""
-        error_msg = str(exc)
-        for e in exc.errors():
-            error_msg = e.get("msg")
-        
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"error": f"{error_msg}"},
-        )
-    
-    # Include backend routers
-    # Note: We include routes without prefix so they're at root level
-    # FIX: Use /api prefix for all backend routes to avoid collisions with NiceGUI UI routes
-    # and to match the API_BASE_URL configuration.
-    fastapi_app.include_router(routes.probes_router, prefix="/api/probes")
-    fastapi_app.include_router(routes.cli_to_api_router, prefix="/api")
-    fastapi_app.include_router(routes.models_router, prefix="/api")
-    
-    # Don't include ui_router as it conflicts with NiceGUI's routing
-    # The backend's ui_router is for the old web UI template, not needed with NiceGUI
-    # fastapi_app.include_router(routes.ui_router)  # Excluded - conflicts with NiceGUI root route
-    
-    logger.info("Backend routes integrated successfully")
-    logger.info("Backend API available at: /models, /probes, /{endpoint}/*, etc.")
-
-
-async def prefetch_and_cache_models():
-    """
-    Fetches models from the backend on startup and caches them.
-    This runs in an executor to avoid deadlocking the main server thread.
-    """
-    logger.info("Attempting to pre-fetch and cache models on application startup...")
-    loop = asyncio.get_event_loop()
-
-    def fetch_sync():
-        """Synchronous fetch function to run in an executor."""
-        try:
-            with httpx.Client(base_url=BACKEND_URL, timeout=API_TIMEOUT) as client:
-                # Update to use the new /api prefix
-                response = client.get('/api/models')
-                response.raise_for_status()
-
-                # Check content type
-                content_type = response.headers.get('content-type', '').lower()
-                logger.debug(f"Models API response status: {response.status_code}")
-                logger.debug(f"Models API response content type: {content_type}")
-                logger.debug(f"Models API response content length: {len(response.content)}")
-
-                # Check if response is JSON
-                if 'application/json' not in content_type:
-                    logger.warning(f"Models API returned non-JSON content type: {content_type}")
-                    if response.content:
-                        logger.warning(f"Response content preview: {response.content[:200]}...")
-                    return None
-
-                # Check if response has content
-                if not response.content.strip():
-                    logger.warning("Models API returned empty response")
-                    return None
-
-                # Try to parse JSON
-                try:
-                    return response.json()
-                except ValueError as json_error:
-                    logger.error(f"Failed to parse JSON response: {json_error}")
-                    logger.error(f"Raw response content: {response.content[:500]}...")
-                    return None
-
-        except Exception as e:
-            logger.error(f"Synchronous fetch in executor failed: {e}")
-            return None
-
-    try:
-        models_data = await loop.run_in_executor(None, fetch_sync)
-        if models_data:
-            logger.info(f"Successfully pre-fetched {len(models_data)} models from the backend.")
-            # Cache the fetched models into the database.
-            await cache_models(models_data)
-        else:
-            logger.warning("Pre-fetching models returned no data. Skipping cache update.")
-    except Exception as e:
-        logger.error(f"Failed to pre-fetch models during startup: {e}")
-
-# Note: setup_backend_routes() is called in __main__ block before ui.run()
-# This ensures NiceGUI's app is ready when we integrate backend routes
-
-
-@ui.page('/')
+@ui.page("/")
 async def index():
-    """
-    Main dashboard/home page route handler.
-    
-    This is the landing page for the RescueBox Desktop application. It provides
-    quick access to major features through action buttons.
-    
-    Page structure:
-    1. Navigation bar (created via create_navbar())
-    2. User ID card: required on first visit (inline form); once set, shows current ID
-    3. Welcome message, description, and action buttons (only after User ID is set)
-    
-    Action buttons:
-    - Browse Models: Navigate to models listing page
-    - Open Assistant: Navigate to chatbot interface
-    - View Jobs: Navigate to jobs listing page
-    
-    Routing:
-    - This function is decorated with @ui.page('/') making it the root route
-    - NiceGUI automatically handles routing when users navigate to '/'
-    - Backend API routes are also available at root level (e.g., /models)
-    
-    Returns:
-        None: This function builds the UI directly and doesn't return a value
-    
-    Tips:
-    - Use ui.open() for programmatic navigation instead of manual URL changes
-    - The container classes ensure responsive centering and padding
-    - Button click handlers use lambda for simple inline callbacks
-    - For more complex navigation logic, define separate handler functions
-    """
+    """Main dashboard / home page."""
     logger.info("Rendering main dashboard page (index route)")
 
     from frontend.utils.theme import apply_saved_theme
-    apply_saved_theme()
 
+    apply_saved_theme()
     logger.debug("Theme preference applied")
-    
-    # Inject global CSS to shrink the navbar and general UI elements
-    ui.add_head_html('''
+
+    ui.add_head_html(
+        """
         <style>
             .q-header { min-height: 12px !important; }
             .q-toolbar { min-height: 12px !important; padding: 0 8px !important; }
@@ -374,7 +106,8 @@ async def index():
             .q-btn { font-size: 0.7rem !important; padding: 2px 6px !important; min-height: unset !important; }
             body { font-size: 0.8rem !important; }
         </style>
-    ''')
+    """
+    )
 
     create_navbar()
     logger.debug("Navigation bar added to page")
@@ -382,113 +115,111 @@ async def index():
     ensure_explicit_user_id_for_tests()
     explicit_user_id = get_explicit_user_id()
 
-    with ui.column().classes('container mx-auto p-8'):
+    with ui.column().classes("container mx-auto p-8"):
         logger.debug("Creating main content container")
         if explicit_user_id:
-            ui.label(UI_TITLES['home']).classes('text-4xl font-bold mb-4')
-            ui.label(UI_TITLES['home_subtitle']).classes('text-xl text-gray-600')
-            with ui.card().classes('w-full max-w-xl mt-4 p-4 bg-gray-50'):
+            ui.label(UI_TITLES["home"]).classes("text-4xl font-bold mb-4")
+            ui.label(UI_TITLES["home_subtitle"]).classes("text-xl text-gray-600")
+            with ui.card().classes("w-full max-w-xl mt-4 p-4 bg-gray-50"):
                 ui.label(f"{HOME_USER_ID['current_prefix']} {explicit_user_id}").classes(
-                    'text-sm font-medium'
+                    "text-sm font-medium"
                 )
-                ui.label(HOME_USER_ID['change_user_hint']).classes('text-xs text-gray-500 mt-1')
-                with ui.row().classes('mt-3'):
+                ui.label(HOME_USER_ID["change_user_hint"]).classes("text-xs text-gray-500 mt-1")
+                with ui.row().classes("mt-3"):
+
                     def _change_user_id():
                         clear_explicit_user_id()
                         ui.timer(0.2, lambda: ui.navigate.reload(), once=True)
 
                     ui.button(
-                        HOME_USER_ID['change_user_button'],
+                        HOME_USER_ID["change_user_button"],
                         on_click=_change_user_id,
-                    ).classes('bg-gray-200 text-gray-800')
+                    ).classes("bg-gray-200 text-gray-800")
 
-            with ui.row().classes('gap-4 mt-8'):
+            with ui.row().classes("gap-4 mt-8"):
                 logger.debug("Creating action buttons")
 
                 ui.button(
-                    UI_BUTTONS['browse_models'],
-                    on_click=lambda: ui.navigate.to(NAV_LINKS['models'])
-                ).classes('bg-blue-600 text-white px-6 py-3')
+                    UI_BUTTONS["browse_models"],
+                    on_click=lambda: ui.navigate.to(NAV_LINKS["models"]),
+                ).classes("bg-blue-600 text-white px-6 py-3")
                 logger.debug("Browse Models button created")
 
                 ui.button(
-                    UI_BUTTONS['open_assistant'],
-                    on_click=lambda: ui.navigate.to(NAV_LINKS['chatbot'])
-                ).classes('bg-green-600 text-white px-6 py-3')
+                    UI_BUTTONS["open_assistant"],
+                    on_click=lambda: ui.navigate.to(NAV_LINKS["chatbot"]),
+                ).classes("bg-green-600 text-white px-6 py-3")
                 logger.debug("Open Assistant button created")
         else:
-            with ui.card().classes('w-full max-w-xl p-6 shadow-md border'):
-                ui.label(HOME_USER_ID['title']).classes('text-xl font-semibold mb-2')
-                ui.label(HOME_USER_ID['blurb']).classes('text-gray-600 mb-4')
+            with ui.card().classes("w-full max-w-xl p-6 shadow-md border"):
+                ui.label(HOME_USER_ID["title"]).classes("text-xl font-semibold mb-2")
+                ui.label(HOME_USER_ID["blurb"]).classes("text-gray-600 mb-4")
                 uid_input = ui.input(
-                    HOME_USER_ID['input_label'],
-                    placeholder=HOME_USER_ID['placeholder'],
-                ).classes('w-full')
+                    HOME_USER_ID["input_label"],
+                    placeholder=HOME_USER_ID["placeholder"],
+                ).classes("w-full")
 
                 def _save_home_user_id():
                     val = (uid_input.value or "").strip()
                     if not val:
-                        ui.notify('Please enter a User ID.', type='warning')
+                        ui.notify("Please enter a User ID.", type="warning")
                         return
                     if not is_valid_explicit_user_id(val):
-                        ui.notify(HOME_USER_ID['invalid_format'], type='warning')
+                        ui.notify(HOME_USER_ID["invalid_format"], type="warning")
                         return
                     set_explicit_user_id(val)
                     ui.timer(0.3, lambda: ui.navigate.reload(), once=True)
 
                 def _on_uid_keydown(e):
-                    if getattr(e, 'args', None) and e.args.get('key') == 'Enter':
+                    if getattr(e, "args", None) and e.args.get("key") == "Enter":
                         _save_home_user_id()
 
-                uid_input.on('keydown', _on_uid_keydown)
+                uid_input.on("keydown", _on_uid_keydown)
                 ui.button(
-                    HOME_USER_ID['save_button'],
+                    HOME_USER_ID["save_button"],
                     on_click=_save_home_user_id,
-                ).classes('mt-4 bg-blue-600 text-white')
-    
+                ).classes("mt-4 bg-blue-600 text-white")
+
     logger.info("Main dashboard page rendered successfully")
 
 
 if __name__ in {"__main__", "__mp_main__"}:
     logger.info("Starting unified %s application", APP_TITLE)
     logger.info("Server will be available at http://localhost:%s", APP_PORT)
-    
-    # Initialize the database before starting the server
+
     init_db()
-    
-    # Setup backend routes integration before starting the server
-    setup_backend_routes()
+    setup_backend_routes(api_base_url=API_BASE_URL)
     logger.info("Backend API routes integrated: %s", BACKEND_AVAILABLE)
 
-    # Serve demo static assets at /demo/... (screenshots for quick-start, etc.)
-    demo_dir = Path(__file__).parent / 'demo'
+    demo_dir = Path(__file__).parent / "demo"
     if demo_dir.exists():
-        app.add_static_files(url_path='/demo', local_directory=str(demo_dir))
+        app.add_static_files(url_path="/demo", local_directory=str(demo_dir))
         logger.info("Demo static files served at /demo/")
 
-    icons_dir = Path(__file__).parent / 'icons'
+    icons_dir = Path(__file__).parent / "icons"
     if icons_dir.is_dir():
-        app.add_static_files(url_path='/icons', local_directory=str(icons_dir))
+        app.add_static_files(url_path="/icons", local_directory=str(icons_dir))
         logger.info("Icons served at /icons/")
-    
-    # Register the startup handler. This is the compatible way for older NiceGUI versions.
-    app.on_startup(prefetch_and_cache_models)
+
+    async def _prefetch_models_startup():
+        await prefetch_and_cache_models(backend_url=BACKEND_URL, api_timeout=API_TIMEOUT)
+
+    app.on_startup(_prefetch_models_startup)
 
     from frontend.utils.ui_readability_css import inject_global_readability_css
 
     app.on_startup(inject_global_readability_css)
 
-    # Add global error handling for unhandled exceptions
     @app.exception_handler(Exception)
     async def global_exception_handler(request, exc):
-        """Global exception handler for unhandled errors."""
         logger.critical("Unhandled exception in NiceGUI application: %s", str(exc))
         logger.critical("Exception type: %s", type(exc).__name__)
         import traceback
+
         logger.critical("Global exception traceback: %s", traceback.format_exc())
 
-        # Return a user-friendly error page
-        return ui.html("""
+        return ui.html(
+            """
         <!DOCTYPE html>
         <html>
         <head>
@@ -514,26 +245,23 @@ if __name__ in {"__main__", "__mp_main__"}:
             </div>
         </body>
         </html>
-        """, sanitize=False)
+        """,
+            sanitize=False,
+        )
 
-    # Release demo folder when client is deleted (browser closed) so it can be reused
     @app.on_delete
     async def _on_client_delete(client: Client):
         from frontend.utils.nicegui_storage import release_demo_folder_for_client
+
         release_demo_folder_for_client(client)
 
-    # Start the unified server
-    # This runs both NiceGUI frontend and backend API on the same port
     ui.run(
         title=f"{APP_TITLE} · {APP_VERSION}",
         port=APP_PORT,
         dark=APP_DARK_MODE,
         favicon=APP_FAVICON,
         show=APP_SHOW_BROWSER,
-        # Reconnect timeout: 1 hour keeps demo folder for entire demo (no release on brief disconnect)
         reconnect_timeout=RECONNECT_TIMEOUT,
-        # Add a secret key for user-specific storage (e.g., chat history)
-        # This should be a long, random string in a real application
-        storage_secret='REPLACE_WITH_A_REAL_SECRET_KEY',
-        reload=False
+        storage_secret="REPLACE_WITH_A_REAL_SECRET_KEY",
+        reload=False,
     )

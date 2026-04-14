@@ -6,6 +6,7 @@ import os
 import typer
 from rb.lib.ml_service import MLService
 from rb.lib.utils import apply_torch_cpu_preference
+from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
 from rb.api.models import (
     FloatRangeDescriptor,
     InputSchema,
@@ -273,17 +274,6 @@ def _relocate_matching_basenames(
         by_bn[bn] = fp
 
 
-def _collect_text_files(input_dir: str) -> list[str]:
-    """Return sorted list of text file paths in the directory."""
-    allowed_exts = {".txt", ".text", ".md", ".log"}
-    paths = []
-    for name in sorted(os.listdir(input_dir)):
-        path = os.path.join(input_dir, name)
-        if os.path.isfile(path) and os.path.splitext(path)[1].lower() in allowed_exts:
-            paths.append(path)
-    return paths
-
-
 def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """
     Semantic search over text files. Embeds the directory if embeddings don't exist
@@ -299,22 +289,13 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
 
-    # Use file_filter when provided (e.g. from image_summary pipeline); else scan input_dir
-    file_paths: list[str] = []
-    if "file_filter" in inputs and inputs.get("file_filter"):
-        ff = inputs["file_filter"]
-        files = getattr(ff, "files", None) or (ff if isinstance(ff, dict) else {}).get("files", [])
-        if files:
-            for f in files:
-                p = f.get("path") if isinstance(f, dict) else getattr(f, "path", None)
-                if p and isinstance(p, str) and os.path.isfile(p):
-                    file_paths.append(p)
-    if not file_paths:
-        file_paths = _collect_text_files(input_dir)
+    file_paths, corpus_err = resolve_text_file_corpus_paths(inputs, input_dir)
     if not file_paths:
         return ResponseBody(
             root=TextResponse(
-                value=json.dumps({"error": "No text files found in directory", "results": []}),
+                value=json.dumps(
+                    {"error": corpus_err or "No text files to search", "results": []}
+                ),
                 title="Text Search",
                 subtitle="No text files to search",
             )

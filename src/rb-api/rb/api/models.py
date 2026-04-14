@@ -300,6 +300,8 @@ class BatchTextResponse(BaseModel):
     )
     output_type: Optional[Literal["batchtext"]] = "batchtext"
     texts: List[TextResponse]
+    #: When transcripts are written to disk (e.g. audio/transcribe), downstream tools use this path.
+    transcripts_dir: Optional[str] = None
 
 
 class BatchDirectoryResponse(BaseModel):

@@ -46,7 +46,9 @@ def create_directory_input(field_id: str, initial_value: Dict[str, Any], form_wi
 
             ui.button(
                 'Browse',
-                on_click=lambda: browse_directory_simple(dir_input),
+                on_click=lambda: browse_directory_simple(
+                    dir_input, on_after_select=validate_directory_path
+                ),
             ).classes('shrink-0 bg-gray-300')
 
     form_widgets[field_id] = dir_input
@@ -91,7 +93,9 @@ def create_file_input(field_id: str, initial_value: Dict[str, Any], form_widgets
 
             ui.button(
                 'Browse',
-                on_click=lambda: browse_file_simple(file_input),
+                on_click=lambda: browse_file_simple(
+                    file_input, on_after_select=validate_file_path
+                ),
             ).classes('shrink-0 bg-gray-300')
 
     form_widgets[field_id] = file_input

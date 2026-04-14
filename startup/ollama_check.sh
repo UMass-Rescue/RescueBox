@@ -2,11 +2,9 @@
 
 # List of models required for v3
 MODELS=(
-    "llama3.2-vision:11b"
     "gemma3:1b"
-    "gemma3:27b"
     "granite4:micro"
-    "gemma3:4b"
+    "moondream:latest"
 )
 
 # sudo systemctl stop ollama

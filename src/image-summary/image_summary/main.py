@@ -6,6 +6,7 @@ import typer
 import os
 
 from rb.lib.ml_service import MLService
+from rb.lib.plugin_io import ImageSummaryFilePair
 from rb.lib.utils import (
     extract_filter_id,
     load_saved_filter,
@@ -121,7 +122,7 @@ def summarize_images(
         "ImageSummary API: received request | model=%s | input_dir=%s | output_dir=%s | file_filter=%s",
         model, input_dir, output_dir, has_ff
     )
-    processed_files = process_images_batch(model, input_dir, output_dir, file_filter)
+    file_pairs = process_images_batch(model, input_dir, output_dir, file_filter)
 
     # If output patterns were not obtained from a persisted filter, collect them from uploaded files
     if not output_patterns:
@@ -144,28 +145,30 @@ def summarize_images(
                     # Ignore malformed filter files
                     continue
 
-    # If any output patterns provided, filter the generated summary files by searching
-    # their text for any of the patterns. Otherwise return all processed files.
+    # If any output patterns provided, filter pairs by summary text content.
     # Preserve processing order (same as pipeline / CLIP order when file_filter is set).
     if output_patterns:
-        matched: set[str] = set()
-        for out_file in processed_files:
+        matched_pairs: List[ImageSummaryFilePair] = []
+        for pair in file_pairs:
+            out_file = pair["output_path"]
             try:
                 txt = Path(out_file).read_text(encoding="utf-8")
             except (OSError, UnicodeDecodeError):
                 continue
             for pat in output_patterns:
                 if pat in txt:
-                    matched.add(out_file)
+                    matched_pairs.append(pair)
                     break
-        result_files = [f for f in processed_files if f in matched]
-    else:
-        result_files = processed_files
+        file_pairs = matched_pairs
 
+    result_files = [p["output_path"] for p in file_pairs]
+
+    # file_pairs: explicit input_path → output_path for each artifact (API contract for UIs / pipelines).
     payload = {
         "image_summary": True,
         "input_dir": str(Path(input_dir).resolve()),
         "files": list(result_files),
+        "file_pairs": file_pairs,
     }
     response = TextResponse(value=json.dumps(payload))
     logger.info(f"ImageSummary API: response ready | files={len(result_files)}")

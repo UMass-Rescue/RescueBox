@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 import time
 import threading
@@ -46,13 +47,39 @@ def mount_in_background(ufdr_path, mount_path):
         logging.error(f"Mount thread failed: {e}")
 
 
+# Mount folder must be exactly ``/tmp/<one_segment>`` (POSIX). See ``validate_mount_name_tmp``.
+_TMP_SINGLE_SEGMENT = re.compile(r"^/tmp/[^/]+$")
+
+
+def validate_mount_name_tmp(mount_name: str) -> Tuple[bool, str]:
+    """
+    Require user input to be an absolute path ``/tmp/<folder>`` with a single directory name.
+
+    Examples: ``/tmp/case123``, ``/tmp/evidence-a``. Rejects ``/mnt/...``, nested paths under
+    ``/tmp``, relative names, and ``..`` segments.
+    """
+    s = (mount_name or "").strip().rstrip("/")
+    if not s:
+        return False, "Mount folder path is empty."
+    parts = [p for p in s.split("/") if p]
+    if ".." in parts:
+        return False, "Mount path must not contain '..'."
+    if not _TMP_SINGLE_SEGMENT.match(s):
+        return (
+            False,
+            "Mount folder must be /tmp/<folder_name> with a single folder name under /tmp "
+            "(e.g. /tmp/case123). Other paths such as /mnt/... or /tmp/a/b are not allowed.",
+        )
+    return True, ""
+
+
 def get_mount_path(mount_name: str) -> str:
     mount_name = mount_name.strip()
     if os.path.isabs(mount_name) or (
         platform.system() == "Windows" and len(mount_name) == 2 and mount_name[1] == ":"
     ):
         return mount_name
-    return os.path.abspath(os.path.join("mnt", mount_name))
+    return os.path.abspath(os.path.join("tmp", mount_name))
 
 
 def _deepest_existing_ancestor(path: str) -> Optional[str]:
@@ -146,7 +173,9 @@ def ufdr_task_schema() -> TaskSchema:
         inputs=[
             InputSchema(key="ufdr_file", label="Path to the UFDR File", input_type=InputType.FILE),
             InputSchema(
-                key="mount_name", label="Mount Folder (eg. /mnt/case123)", input_type=InputType.TEXT
+                key="mount_name",
+                label="Mount folder (required: /tmp/<name> only, e.g. /tmp/case123)",
+                input_type=InputType.TEXT,
             ),
         ],
         parameters=[],
@@ -174,6 +203,12 @@ def wait_for_mount(path, timeout=10):
 def mount_task(inputs: UFDRInputs, parameters: UFDRParameters) -> ResponseBody:
     ufdr_path = inputs["ufdr_file"].path
     mount_name = inputs["mount_name"].text.strip()
+    ok_name, err_name = validate_mount_name_tmp(mount_name)
+    if not ok_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=err_name,
+        )
     mount_path = get_mount_path(mount_name)
 
     ok, err_msg = validate_mount_folder(mount_path)

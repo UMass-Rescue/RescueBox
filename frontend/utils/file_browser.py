@@ -20,6 +20,46 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def _resolved_existing_directory(initial: Optional[str]) -> Optional[str]:
+    """Return resolved path if *initial* is an existing directory, else None."""
+    if initial is None:
+        return None
+    s = str(initial).strip()
+    if not s:
+        return None
+    try:
+        p = Path(s).expanduser()
+        if not p.is_absolute():
+            p = Path(os.getcwd()) / p
+        rp = p.resolve()
+        if rp.is_dir():
+            return str(rp)
+    except OSError:
+        pass
+    return None
+
+
+def _resolved_file_browser_folder(initial: Optional[str]) -> Optional[str]:
+    """Folder to show in the file browser: existing dir, or parent of an existing file."""
+    if initial is None:
+        return None
+    s = str(initial).strip()
+    if not s:
+        return None
+    try:
+        p = Path(s).expanduser()
+        if not p.is_absolute():
+            p = Path(os.getcwd()) / p
+        rp = p.resolve()
+        if rp.is_dir():
+            return str(rp)
+        if rp.is_file():
+            return str(rp.parent.resolve())
+    except OSError:
+        pass
+    return None
+
+
 def _add_windows_drives_toggle(container, on_drive_change: Callable[[str], None], current_path: str):
     """
     Add Windows drive toggle if running on Windows.
@@ -114,16 +154,17 @@ class DirectoryBrowser:
         self.drive_container = None
 
     def _get_start_path(self) -> str:
-        """Get the starting path, expanding user paths and using CWD as fallback."""
-        if self.initial_path:
-            return str(Path(self.initial_path).expanduser())
+        """Prefer an existing *initial_path*; else demo folder; else cwd."""
+        cand = _resolved_existing_directory(self.initial_path)
+        if cand:
+            return cand
         try:
-            from frontend.utils.nicegui_storage import get_assigned_demo_folder
-            demo = get_assigned_demo_folder()
+            from frontend.utils.nicegui_storage import resolve_demo_folder_for_browser
+            demo = resolve_demo_folder_for_browser()
             if demo:
                 return demo
         except Exception as e:
-            logger.debug("Could not get assigned demo folder: %s", e)
+            logger.debug("Could not resolve demo folder for browser: %s", e)
         return os.getcwd()
 
     def _create_dialog_header(self):
@@ -136,6 +177,24 @@ class DirectoryBrowser:
                 ui.icon('folder_open', size='2rem').classes('mr-3')
                 ui.label('Select Directory').classes('text-xl font-semibold')
 
+    def _jump_to_path(self, raw: str) -> None:
+        """Navigate to an absolute or user-relative path (e.g. UFDR mount under /tmp)."""
+        s = (raw or "").strip()
+        if not s:
+            ui.notify("Enter a folder path", type="warning")
+            return
+        try:
+            p = Path(s).expanduser()
+            if not p.is_absolute():
+                p = Path(os.getcwd()) / p
+            rp = str(p.resolve())
+            if not os.path.isdir(rp):
+                ui.notify(f"Not a directory or not accessible: {rp}", type="negative")
+                return
+            self._render_directory_tree(rp)
+        except OSError as e:
+            ui.notify(f"Invalid path: {e}", type="negative")
+
     def _create_navigation_bar(self):
         """Create the navigation bar with address bar and buttons."""
         with ui.row().classes('bg-gray-50 border-b p-3 items-center gap-2'):
@@ -146,6 +205,21 @@ class DirectoryBrowser:
             except Exception:
                 # binding may not be available in test environments; best-effort only
                 pass
+        with ui.row().classes('bg-gray-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
+            jump = ui.input(
+                placeholder="Paste folder path (e.g. /tmp/case123/files/Image) — Enter or Go",
+                value=self.state["current_path"],
+            ).classes("flex-1 min-w-[12rem]").props("outlined dense")
+            self._path_jump_input = jump
+            ui.button("Go", on_click=lambda: self._jump_to_path(jump.value)).classes("shrink-0")
+            try:
+                jump.on("keydown.enter", lambda: self._jump_to_path(jump.value))
+            except Exception:
+                pass
+            if platform.system() != "Windows" and os.path.isdir("/tmp"):
+                ui.button("/tmp", on_click=lambda: self._navigate_to_directory("/tmp")).classes(
+                    "shrink-0"
+                )
 
     def _create_file_list_area(self):
         """Create the file list container."""
@@ -187,6 +261,12 @@ class DirectoryBrowser:
         """Render directory listing: subfolders (navigable) then files in this folder (read-only rows)."""
         self.file_list.clear()
         self.state['current_path'] = current_path
+        jump = getattr(self, "_path_jump_input", None)
+        if jump is not None:
+            try:
+                jump.value = current_path
+            except Exception:
+                pass
 
         path_obj = Path(current_path)
         # Validate path
@@ -320,16 +400,17 @@ class FileBrowser:
         self.selected_display = None
 
     def _get_start_path(self) -> str:
-        """Get the starting path, expanding user paths and using CWD as fallback."""
-        if self.initial_path:
-            return str(Path(self.initial_path).expanduser())
+        """Prefer an existing folder (or parent of an existing file); else demo; else cwd."""
+        cand = _resolved_file_browser_folder(self.initial_path)
+        if cand:
+            return cand
         try:
-            from frontend.utils.nicegui_storage import get_assigned_demo_folder
-            demo = get_assigned_demo_folder()
+            from frontend.utils.nicegui_storage import resolve_demo_folder_for_browser
+            demo = resolve_demo_folder_for_browser()
             if demo:
                 return demo
         except Exception as e:
-            logger.debug("Could not get assigned demo folder: %s", e)
+            logger.debug("Could not resolve demo folder for browser: %s", e)
         return os.getcwd()
 
     def _create_dialog_header(self):
@@ -341,6 +422,24 @@ class FileBrowser:
             with ui.row().classes('bg-gradient-to-r from-green-600 to-green-700 text-white p-4 items-center'):
                 ui.icon('description', size='2rem').classes('mr-3')
                 ui.label('Select File').classes('text-xl font-semibold')
+
+    def _jump_to_path_file(self, raw: str) -> None:
+        """Jump file browser to a folder (same as directory browser for UFDR paths)."""
+        s = (raw or "").strip()
+        if not s:
+            ui.notify("Enter a folder path", type="warning")
+            return
+        try:
+            p = Path(s).expanduser()
+            if not p.is_absolute():
+                p = Path(os.getcwd()) / p
+            rp = str(p.resolve())
+            if not os.path.isdir(rp):
+                ui.notify(f"Not a directory or not accessible: {rp}", type="negative")
+                return
+            self._update_file_list(rp)
+        except OSError as e:
+            ui.notify(f"Invalid path: {e}", type="negative")
 
     def _create_navigation_bar(self):
         """Create the navigation bar with address bar and buttons."""
@@ -371,6 +470,21 @@ class FileBrowser:
                 self.full_path_label.bind_text_from(self.state, 'current_path')
             except Exception:
                 pass
+        with ui.row().classes('bg-gray-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
+            fjump = ui.input(
+                placeholder="Paste folder path (e.g. /tmp/case123/files/Image) — Enter or Go",
+                value=self.state["current_path"],
+            ).classes("flex-1 min-w-[12rem]").props("outlined dense")
+            self._path_jump_input = fjump
+            ui.button("Go", on_click=lambda: self._jump_to_path_file(fjump.value)).classes("shrink-0")
+            try:
+                fjump.on("keydown.enter", lambda: self._jump_to_path_file(fjump.value))
+            except Exception:
+                pass
+            if platform.system() != "Windows" and os.path.isdir("/tmp"):
+                ui.button("/tmp", on_click=lambda: self._navigate_to_directory("/tmp")).classes(
+                    "shrink-0"
+                )
 
     def _create_file_list_area(self):
         """Create the file list container."""
@@ -435,6 +549,12 @@ class FileBrowser:
                 self.path_input.value = path
         except Exception:
             pass
+        j = getattr(self, "_path_jump_input", None)
+        if j is not None:
+            try:
+                j.value = path
+            except Exception:
+                pass
 
         path_obj = Path(path)
 
@@ -583,7 +703,11 @@ def browse_file(on_select: Callable[[str], None], initial_path: Optional[str] = 
 
 
 # Duplicate function removed
-def browse_directory_simple(input_field: ui.input, initial_path: Optional[str] = None):
+def browse_directory_simple(
+    input_field: ui.input,
+    initial_path: Optional[str] = None,
+    on_after_select: Optional[Callable[[], None]] = None,
+):
     """
     Open a simple directory browser that updates an input field.
     
@@ -593,7 +717,9 @@ def browse_directory_simple(input_field: ui.input, initial_path: Optional[str] =
     Args:
         input_field (ui.input): NiceGUI input widget to update with selected path
         initial_path (Optional[str]): Initial directory to start browsing from.
-            Defaults to None (uses current working directory)
+            If omitted, uses the text already in ``input_field`` (so pasted UFDR paths open there).
+        on_after_select: Optional callback after the path is set (e.g. re-run validation;
+            ``set_value`` may not emit ``change``).
     
     Returns:
         None
@@ -607,6 +733,12 @@ def browse_directory_simple(input_field: ui.input, initial_path: Optional[str] =
     - Simple wrapper for form integration
     - Uses browse_directory internally
     """
+    if initial_path is None:
+        try:
+            typed = (input_field.value or "").strip()
+            initial_path = typed or None
+        except Exception:
+            initial_path = None
     logger.debug("Opening simple directory browser (initial_path: %s)", initial_path)
     def on_select(path: str):
         # Use set_value so any `on('change')` handlers are triggered
@@ -615,25 +747,51 @@ def browse_directory_simple(input_field: ui.input, initial_path: Optional[str] =
         except AttributeError:
             # Fallback to direct assignment if set_value not available
             input_field.value = path
-    
+        if on_after_select is not None:
+            try:
+                on_after_select()
+            except Exception as e:
+                logger.debug("browse_directory_simple on_after_select: %s", e)
+
     browse_directory(on_select, initial_path)
 
 
-def browse_file_simple(input_field: ui.input, initial_path: Optional[str] = None, 
-                      filetypes: Optional[list] = None):
+def browse_file_simple(
+    input_field: ui.input,
+    initial_path: Optional[str] = None,
+    filetypes: Optional[list] = None,
+    on_after_select: Optional[Callable[[], None]] = None,
+):
     """
     Open a simple file browser that updates an input field
     
     Args:
         input_field: NiceGUI input field to update with selected path
-        initial_path: Initial directory to start browsing from
+        initial_path: Initial directory to start browsing from (defaults to parent of typed path if any)
         filetypes: List of file extensions to filter
+        on_after_select: Optional callback after the path is set (e.g. re-run validation).
     """
+    if initial_path is None:
+        try:
+            typed = (input_field.value or "").strip()
+            if typed:
+                p = Path(typed).expanduser()
+                if p.is_file():
+                    initial_path = str(p.parent)
+                elif p.is_dir():
+                    initial_path = str(p)
+        except Exception:
+            initial_path = None
     def on_select(path: str):
         # Use set_value so any `on('change')` handlers are triggered
         try:
             input_field.set_value(path)
         except AttributeError:
             input_field.value = path
-    
+        if on_after_select is not None:
+            try:
+                on_after_select()
+            except Exception as e:
+                logger.debug("browse_file_simple on_after_select: %s", e)
+
     browse_file(on_select, initial_path, filetypes)

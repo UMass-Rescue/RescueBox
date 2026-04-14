@@ -231,8 +231,11 @@ class ChatbotPage:
             # Loaded history leaves the viewport mid-chat; the form renders in the input area (bottom).
             # Scroll so the new `.rb-form-wrapper` is visible without manual scrolling.
             try:
-                UIOperations.scroll_form_into_view()
-                ui.timer(0.35, UIOperations.scroll_form_into_view, once=True)
+                _c = getattr(input_area_container, 'client', None) if input_area_container else None
+                if _c is None:
+                    _c = getattr(self.chat_container, 'client', None)
+                UIOperations.scroll_form_into_view_with_retries(client=_c)
+                ui.timer(0.35, lambda c=_c: UIOperations.scroll_form_into_view_with_retries(client=c), once=True)
             except Exception:
                 pass
             logger.info("Tool re-run initiated successfully: %s", endpoint)
@@ -545,8 +548,16 @@ class ChatbotPage:
         """
         self.state_manager.set_status(status)
         if scroll_after:
-            scroll_fn = (UIOperations.scroll_form_into_view if scroll_to_form else self.scroll_to_bottom)
-            ui.timer(0.15, scroll_fn, once=True)
+            if scroll_to_form:
+                def _scroll_form_retries():
+                    try:
+                        c = getattr(self.chat_container, 'client', None)
+                        UIOperations.scroll_form_into_view_with_retries(client=c)
+                    except Exception:
+                        UIOperations.scroll_form_into_view_with_retries()
+                ui.timer(0.15, _scroll_form_retries, once=True)
+            else:
+                ui.timer(0.15, self.scroll_to_bottom, once=True)
 
 
     async def _handle_new_conversation(self):

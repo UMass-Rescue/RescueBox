@@ -153,6 +153,23 @@ class TestChatbotCore:
         
         # Should normalize input_directory to input_dir
         assert "input_dir" in initial_values["inputs"]
+
+    def test_convert_arguments_unwraps_nested_text_dict(self, core):
+        """UFDR mount_name sometimes arrives as {'text': '/tmp/x'}; do not str() the dict."""
+        from rb.api.models import TaskSchema, InputSchema, InputType
+
+        schema = TaskSchema(
+            inputs=[
+                InputSchema(key="mount_name", label="Mount", input_type=InputType.TEXT),
+            ],
+            parameters=[],
+        )
+        initial_values = core.convert_arguments_to_initial_values(
+            {"mount_name": {"text": "/tmp/case3"}},
+            schema,
+            endpoint="ufdr_mounter/mount",
+        )
+        assert initial_values["inputs"]["mount_name"]["text"] == "/tmp/case3"
     
     @pytest.mark.asyncio
     async def test_submit_job_success(self, core):

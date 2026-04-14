@@ -79,7 +79,7 @@ GRANITE_TOOL_PROMPTS = [
     ),
     (
         "ufdr_mounter/mount",
-        "Mount the forensic archive /data/evidence/case.ufdr at /mnt/case1 for browsing.",
+        "Mount the forensic archive /data/evidence/case.ufdr at /tmp/case1 for browsing.",
     ),
     (
         "face-match/findfacebulk",

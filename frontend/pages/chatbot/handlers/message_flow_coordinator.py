@@ -230,10 +230,10 @@ class MessageFlowCoordinator:
         Returns:
             Dict of callback functions
         """
-        def add_assistant_message_func(message):
+        def add_assistant_message_func(message, scroll_after=True):
             logger.info("Coordinator callback called with message: role=%s, content='%s'", message.role, message.content[:50])
             try:
-                add_message_func(message)
+                add_message_func(message, scroll_after)
                 logger.info("Coordinator callback completed successfully")
             except Exception as e:
                 logger.error("Error in coordinator callback: %s", str(e))

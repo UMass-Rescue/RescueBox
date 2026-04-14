@@ -351,7 +351,14 @@ class TestChatbotCore:
         tool_calls_data = {
             "calls": [
                 {"name": "audio/transcribe", "arguments": {"input_dir": "/tmp/audio"}},
-                {"name": "image_summary/summarize-images", "arguments": {"input_dir": "/tmp/images"}},
+                {
+                    "name": "text_summarization/summarize",
+                    "arguments": {
+                        "input_dir": "/tmp/transcripts",
+                        "output_dir": "/tmp/summary",
+                        "model": "gemma3:1b",
+                    },
+                },
             ]
         }
         core.ollama_client.post = AsyncMock(return_value=self._ollama_ok(json.dumps(tool_calls_data)))
@@ -362,7 +369,7 @@ class TestChatbotCore:
         assert isinstance(result, list)
         assert len(result) == 2
         assert result[0]["name"] == "audio/transcribe"
-        assert result[1]["name"] == "image_summary/summarize-images"
+        assert result[1]["name"] == "text_summarization/summarize"
 
     @pytest.mark.asyncio
     async def test_call_granite_model_direct_no_tool_call(self, core):

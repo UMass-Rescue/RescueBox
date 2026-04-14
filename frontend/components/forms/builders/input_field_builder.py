@@ -130,7 +130,9 @@ async def create_input_field(
                                 validation_status
                                 ui.button(
                                     'Browse',
-                                    on_click=lambda: browse_directory_simple(dir_input)
+                                    on_click=lambda: browse_directory_simple(
+                                        dir_input, on_after_select=validate_directory_path
+                                    ),
                                 ).classes('bg-gray-300')
                         form_widgets[field_id] = dir_input
 
@@ -175,7 +177,9 @@ async def create_input_field(
 
                                 ui.button(
                                     'Browse',
-                                    on_click=lambda: browse_file_simple(file_input)
+                                    on_click=lambda: browse_file_simple(
+                                        file_input, on_after_select=validate_file_path
+                                    ),
                                 ).classes('shrink-0 bg-gray-300')
                         form_widgets[field_id] = file_input
 
