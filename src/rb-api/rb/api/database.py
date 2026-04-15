@@ -68,7 +68,9 @@ def create_db_and_tables():
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN embedding vector(1024)"))
     except Exception:
         pass
-    # CLIP ViT-H-14 (e.g. apple/DFN5B-CLIP-ViT-H-14-378) uses 1024-dim image vectors; legacy was 512.
+    
+    # Image plugin default: CLIP ViT-L/14 (e.g. laion/CLIP-ViT-L-14-*) → 768-dim joint embeddings.
+    # ViT-H/14 models use 1024; if the column width does not match the running plugin default, migrate.
     try:
         from sqlalchemy import text
         with engine.begin() as conn:
@@ -81,11 +83,11 @@ def create_db_and_tables():
                     "AND NOT a.attisdropped"
                 )
             ).fetchone()
-            if row and row[0] and "(1024)" not in str(row[0]):
+            if row and row[0] and "(768)" not in str(row[0]):
                 conn.execute(text("DROP INDEX IF EXISTS image_embeddings_hnsw_idx"))
                 conn.execute(text("DELETE FROM image_embeddings"))
                 conn.execute(text("ALTER TABLE image_embeddings DROP COLUMN embedding"))
-                conn.execute(text("ALTER TABLE image_embeddings ADD COLUMN embedding vector(1024)"))
+                conn.execute(text("ALTER TABLE image_embeddings ADD COLUMN embedding vector(768)"))
     except Exception:
         pass
     SQLModel.metadata.create_all(engine)
@@ -133,7 +135,8 @@ class ImageEmbedding(SQLModel, table=True):
     path: str = Field(index=True)
     # SHA-256 hex of file bytes; reuse embeddings when path changes but content matches.
     content_sha256: str = Field(default="", index=True)
-    embedding: list[int] = Field(default=[], sa_column=Column(Vector(1024)))
+    # CLIP ViT-L/14 joint embedding size (must match image_embeddings plugin default model projection_dim).
+    embedding: list[float] = Field(default=[], sa_column=Column(Vector(768)))
 
 # TODO: There is probably a way to do this without this try kludge
 try:

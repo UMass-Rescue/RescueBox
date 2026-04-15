@@ -32,6 +32,14 @@ APP_FAVICON = Path(__file__).resolve().parent / 'icons' / 'rb.webp'
 APP_DARK_MODE = os.getenv('RESCUEBOX_DARK_MODE', 'false').lower() == 'true'
 APP_SHOW_BROWSER = os.getenv('RESCUEBOX_SHOW_BROWSER', 'false').lower() == 'true'
 
+# About page (override for packaging / forks)
+ABOUT_AUTHORS = os.getenv('RESCUEBOX_ABOUT_AUTHORS', 'RescueBox Team')
+ABOUT_REPO_URL = os.getenv('RESCUEBOX_REPO_URL', 'https://github.com/UMass-Rescue/RescueBox')
+ABOUT_REPO_DESKTOP_URL = os.getenv(
+    'RESCUEBOX_REPO_DESKTOP_URL',
+    'https://github.com/UMass-Rescue/RescueBox-Desktop',
+)
+
 # Database Configuration
 DATA_DIR = Path(__file__).parent / 'data'
 DATA_DIR.mkdir(exist_ok=True)

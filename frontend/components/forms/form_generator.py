@@ -29,6 +29,11 @@ from frontend.components.forms.builders import (
     create_parameter_field,
 )
 from frontend.components.forms.form_handlers import handle_form_submit
+from frontend.utils.job_form_paths import (
+    apply_ufdr_mount_autofill_after_inputs_built,
+    paired_output_directory_field_id,
+    paired_ufdr_mount_name_field_id,
+)
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -171,12 +176,23 @@ class FormGenerator:
                 if task_schema.inputs:
                     logger.info("Generating %d input fields", len(task_schema.inputs))
                     ui.label('Inputs').classes(section_classes)
-                    for input_schema in task_schema.inputs:
+                    inputs_list = list(task_schema.inputs)
+                    for idx, input_schema in enumerate(inputs_list):
+                        out_autofill = paired_output_directory_field_id(inputs_list, idx)
+                        ufdr_autofill = paired_ufdr_mount_name_field_id(inputs_list, idx)
                         await create_input_field(
                             input_schema,
                             self.form_widgets,
-                            self.form_data.get('inputs', {})
+                            self.form_data.get('inputs', {}),
+                            autofill_output_key=out_autofill,
+                            autofill_ufdr_mount_key=ufdr_autofill,
                         )
+                    try:
+                        apply_ufdr_mount_autofill_after_inputs_built(
+                            inputs_list, self.form_widgets
+                        )
+                    except Exception as e:
+                        logger.debug("UFDR mount autofill (initial): %s", e)
                     logger.debug("Input fields generated")
 
                 # Generate parameter fields

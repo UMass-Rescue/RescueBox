@@ -85,7 +85,14 @@ def iter_md_and_images(text: str):
             yield ("md", tail)
 
 
-def render_guided_markdown_body(container: ui.element, markdown_text: str) -> None:
+def render_guided_markdown_body(
+    container: ui.element,
+    markdown_text: str,
+    *,
+    image_base_url: str = "/demo",
+) -> None:
+    """Render markdown; ``{{SCREENSHOT:file.png}}`` lines load images from ``<image_base_url>/file.png``."""
+    base = image_base_url.rstrip("/") or "/demo"
     segments = list(iter_md_and_images(markdown_text))
     if not segments:
         ui.label("Guide content is empty.").classes("text-gray-500")
@@ -105,6 +112,6 @@ def render_guided_markdown_body(container: ui.element, markdown_text: str) -> No
                 if safe != payload or ".." in payload or "/" in payload or "\\" in payload:
                     logger.warning("Ignoring unsafe screenshot name: %s", payload)
                     continue
-                ui.image(f"/demo/{safe}").classes(
+                ui.image(f"{base}/{safe}").classes(
                     "w-full max-w-3xl rounded-lg border border-gray-200 shadow-md my-4"
                 )

@@ -33,6 +33,7 @@ from frontend.utils.file_browser import (
     browse_file,
     browse_directory_simple,
     browse_file_simple,
+    is_outputs_results_directory,
 )
 
 # Test constants
@@ -442,3 +443,12 @@ class TestFileBrowser:
         await user.open('/test')
         await user.should_see('Test Reactive')
         # Dialog should appear
+
+
+def test_is_outputs_results_directory():
+    """Basename ``outputs`` (case-insensitive) hides file rows in the browse dialog."""
+    assert is_outputs_results_directory("/home/tester/Documents/demo5/describe-images/outputs")
+    assert is_outputs_results_directory("/tmp/Outputs")
+    assert not is_outputs_results_directory("/home/x/outputs_backup")
+    assert not is_outputs_results_directory("/home/x/myoutputs")
+    assert not is_outputs_results_directory("")

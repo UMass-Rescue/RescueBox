@@ -64,21 +64,24 @@ class Parameters(TypedDict):
 def task_schema() -> TaskSchema:
     input_dir_schema = InputSchema(
         key="input_dir",
-        label="Directory of image files to embed and search",
+        label="Directory of image files to search",
         input_type=InputType.DIRECTORY,
     )
     query_schema = InputSchema(
         key="query",
-        label="Text query to find the most similar images",
+        label="Enter Text query to find the most similar images",
         input_type=InputType.TEXT,
     )
 
   
     model_enum = EnumParameterDescriptor(
         enum_vals=[
-            EnumVal(key="apple/DFN5B-CLIP-ViT-H-14-378", label="DFN5B-CLIP-ViT-H-14-378-apple"),
+            # EnumVal(key="apple/DFN5B-CLIP-ViT-H-14-378", label="DFN5B-CLIP-ViT-H-14-378-apple"),
+            EnumVal(key="laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K", label="laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K"),
+            
         ],
-        default="apple/DFN5B-CLIP-ViT-H-14-378",
+        #default="apple/DFN5B-CLIP-ViT-H-14-378",
+        default="laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K",
     )
 
     top_k_desc = RangedIntParameterDescriptor(
@@ -160,7 +163,7 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
     input_dir = str(inputs["input_dir"].path)
     query_text = inputs["query"].text
-    model_name = parameters.get("model_name", "apple/DFN5B-CLIP-ViT-H-14-378")
+    model_name = parameters.get("model_name", "laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K")
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.13))
 
@@ -197,11 +200,13 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     model = model.to(device)
     model.eval()
     param_dev = next(model.parameters()).device
+    _pdim = getattr(model.config, "projection_dim", None)
     logger.info(
-        "CLIP model loaded on device=%s (parameter device=%s) model_name=%s",
+        "CLIP model loaded on device=%s (parameter device=%s) model_name=%s projection_dim=%s",
         device,
         param_dev,
         model_name,
+        _pdim,
     )
 
     def _inputs_to_device(batch):

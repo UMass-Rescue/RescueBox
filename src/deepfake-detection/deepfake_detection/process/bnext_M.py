@@ -1,8 +1,9 @@
+import uuid
+from pathlib import Path
 from PIL import Image
 import onnxruntime as ort
 import numpy as np
 from deepfake_detection.process.facedetector import faceDetector
-from pathlib import Path
 from deepfake_detection.process.utils import (
     Compose,
     InterpolationMode,
@@ -82,6 +83,8 @@ class BNext_M_ModelONNX:
         return out[None, ...]  # add batch dim
 
     def preprocess(self, image, facecrop=None):
+        """Set ``last_crop_preview_path`` when a face crop JPEG is saved (for result previews)."""
+        self.last_crop_preview_path = None
         # Optional face cropping
         if facecrop:
             self.resolution_ratio = getattr(self, "resolution_ratio", 1.5)
@@ -104,6 +107,14 @@ class BNext_M_ModelONNX:
                 bottom = min(h_img, cy + half)
                 if right > left and bottom > top:
                     image = image.crop((left, top, right, bottom))
+                    pdir = getattr(self, "crop_preview_dir", None)
+                    if pdir:
+                        try:
+                            out = Path(pdir) / f"face_preview_{uuid.uuid4().hex[:12]}.jpg"
+                            image.save(out, format="JPEG", quality=92)
+                            self.last_crop_preview_path = str(out.resolve())
+                        except Exception as ex:
+                            logger.debug("Face crop preview save skipped: %s", ex)
         return self.apply_transforms(image)
 
     def decode_prediction(self, confidence):

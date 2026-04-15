@@ -6,7 +6,7 @@ This module provides functions for creating input form fields.
 
 import logging
 from nicegui import ui
-from typing import Dict
+from typing import Dict, Optional
 from pathlib import Path
 import sys
 
@@ -29,7 +29,9 @@ logger.setLevel(logging.DEBUG)
 async def create_input_field(
     input_schema: InputSchema,
     form_widgets: Dict,
-    initial_values: Dict
+    initial_values: Dict,
+    autofill_output_key: Optional[str] = None,
+    autofill_ufdr_mount_key: Optional[str] = None,
 ) -> None:
     """
     Create an input field from InputSchema.
@@ -78,7 +80,12 @@ async def create_input_field(
                 with ui.column().classes('w-full min-w-0'):
                     try:
                         from frontend.components.forms.fields.input_widgets import create_directory_input
-                        create_directory_input(field_id, initial_value, form_widgets)
+                        create_directory_input(
+                            field_id,
+                            initial_value,
+                            form_widgets,
+                            autofill_output_key=autofill_output_key,
+                        )
                     except Exception:
                         # Fallback to inline behavior if component load fails
                         # Make the directory input occupy full width and move the Browse button to its own row
@@ -114,6 +121,14 @@ async def create_input_field(
                                 validation_status.name = 'check_circle'
                                 validation_status.classes('text-green-500 q-mr-sm', remove='text-red-500 text-gray-400')
                                 validation_status.show()
+                                if autofill_output_key:
+                                    from frontend.utils.job_form_paths import (
+                                        maybe_autofill_output_dir_field,
+                                    )
+
+                                    maybe_autofill_output_dir_field(
+                                        form_widgets, autofill_output_key, path
+                                    )
                             else:
                                 validation_status.name = 'error'
                                 validation_status.classes('text-red-500 q-mr-sm', remove='text-green-500 text-gray-400')
@@ -140,7 +155,12 @@ async def create_input_field(
                 with ui.column().classes('w-full min-w-0 gap-2'):
                     try:
                         from frontend.components.forms.fields.input_widgets import create_file_input
-                        create_file_input(field_id, initial_value, form_widgets)
+                        create_file_input(
+                            field_id,
+                            initial_value,
+                            form_widgets,
+                            autofill_mount_name_key=autofill_ufdr_mount_key,
+                        )
                     except Exception:
                         with ui.column().classes('w-full min-w-0 gap-1'):
                             ui.label('File path').classes('text-sm font-medium text-gray-700')
@@ -166,6 +186,16 @@ async def create_input_field(
                                         file_validation_status.name = 'check_circle'
                                         file_validation_status.classes('text-green-500', remove='text-red-500 text-gray-400')
                                         file_validation_status.show()
+                                        if autofill_ufdr_mount_key:
+                                            from frontend.utils.job_form_paths import (
+                                                maybe_autofill_ufdr_mount_name_field,
+                                            )
+
+                                            maybe_autofill_ufdr_mount_name_field(
+                                                form_widgets,
+                                                autofill_ufdr_mount_key,
+                                                path,
+                                            )
                                     else:
                                         file_validation_status.name = 'error'
                                         file_validation_status.classes('text-red-500', remove='text-green-500 text-gray-400')

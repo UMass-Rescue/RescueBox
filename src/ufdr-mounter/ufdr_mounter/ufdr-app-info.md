@@ -38,13 +38,14 @@ Then log out and log back in to apply group changes.
     eg. /home/tester/Documents/demo1/udfr-mount-service/test.ufdr
 3. Specify the mount folder(mount point):
    - **Linux**:
-     Specify the mount point:
+     Specify the mount point: in **/tmp only on linux**
         Use an absolute path (e.g., /tmp/test_ufdr or /tmp/a/b/c)
-        make sure this folder can be created by the unix user. the rescuebox mount plugin will create the subfolder path in /tmp.
+        make sure this folder can be created by the unix user. 
+        the rescuebox mount plugin will create the subfolder path in /tmp.
 
 4. After this operation completes the ufdr file contents can be accessed at the mount point.
 
-Note:   **Unmount task is not supported in this version**, suggest manually unmount.
+Note: **Unmount is not supported in this version**, suggest manually unmount.
 On windows when you exit the RescueBox desktop the path will be un-mounted.
 
 

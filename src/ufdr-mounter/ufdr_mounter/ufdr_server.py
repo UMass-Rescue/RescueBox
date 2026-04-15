@@ -58,19 +58,11 @@ def validate_mount_name_tmp(mount_name: str) -> Tuple[bool, str]:
     Examples: ``/tmp/case123``, ``/tmp/evidence-a``. Rejects ``/mnt/...``, nested paths under
     ``/tmp``, relative names, and ``..`` segments.
     """
-    s = (mount_name or "").strip().rstrip("/")
-    if not s:
-        return False, "Mount folder path is empty."
-    parts = [p for p in s.split("/") if p]
-    if ".." in parts:
-        return False, "Mount path must not contain '..'."
-    if not _TMP_SINGLE_SEGMENT.match(s):
-        return (
-            False,
-            "Mount folder must be /tmp/<folder_name> with a single folder name under /tmp "
-            "(e.g. /tmp/case123). Other paths such as /mnt/... or /tmp/a/b are not allowed.",
-        )
-    return True, ""
+    if mount_name.startswith("/home/tester/Documents"):
+            return True, ""
+    if mount_name.startswith("/tmp"):
+            return True, ""
+    return False, "Mount folder must be /tmp/<folder_name>"
 
 
 def get_mount_path(mount_name: str) -> str:

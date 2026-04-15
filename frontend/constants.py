@@ -108,8 +108,12 @@ NAV_LINKS = {
     'chatbot': '/chatbot',
     'logs': '/logs',
     'demo': '/demo',
+    'about': '/about',
     'home': '/',
 }
+
+# Legacy: License & Copyright UI lives on ``/about``; ``/licenses`` redirects there.
+# Static assets for license markdown images: ``/license-copyright/`` (see ``frontend.main``).
 
 # Deep link to the "Sample inputs & outputs" section on the Demo page (HTML id: sample-inputs), all folders
 DEMO_SAMPLE_INPUTS_URL = f"{NAV_LINKS['demo']}#sample-inputs"

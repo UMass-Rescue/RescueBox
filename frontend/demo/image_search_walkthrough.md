@@ -7,7 +7,7 @@ Run **search Images**  from the chat **Assistant** using a **natural-language pr
 - The **Search Images** plugin is a ML based app that scan images and provides descriptions. 
 
 - you provide a query string to find an image that matches this string.
-  example : **search these images for a small child**
+  example : **search these images for a young girl**
 
 - The rescuebox assistant proposes the tool; you confirm inputs, submit the job, then view results.
 
@@ -26,7 +26,11 @@ Run **search Images**  from the chat **Assistant** using a **natural-language pr
 ### Step 2 — Chat prompt for Search Images
 
 1. In the chat input, ("Type your request") type a request prompt, for example:
+
    - **search these images for a small child**
+
+   - or **search these images for sports or games**
+
 {{SCREENSHOT:chat.png}}
 
 2. Send the message. The chat assistant should respond with an input form for the plugin.

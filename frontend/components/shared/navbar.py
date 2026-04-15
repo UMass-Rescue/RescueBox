@@ -16,6 +16,7 @@ import logging
 from nicegui import ui
 
 from frontend.config import APP_TITLE, APP_VERSION
+import frontend.constants as constants
 from frontend.utils.nicegui_storage import get_user_id_for_jobs
 
 # Configure logging for this module
@@ -107,9 +108,10 @@ def create_navbar():
                         ('Logs', '/logs'),
                         ('Demo', '/demo'),
                         ('Browse Plugins', '/models'),
+                        ('About', constants.NAV_LINKS['about']),
                     )
                     for label, path in _nav_items:
-                        if _nav_locked and label != 'Demo':
+                        if _nav_locked and label not in ('Demo', 'About'):
                             ui.label(label).classes(
                                 _link_cls + ' opacity-50 cursor-not-allowed select-none'
                             ).on('click', lambda _: _nav_blocked_msg())

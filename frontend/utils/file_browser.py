@@ -60,6 +60,19 @@ def _resolved_file_browser_folder(initial: Optional[str]) -> Optional[str]:
     return None
 
 
+def is_outputs_results_directory(path: str) -> bool:
+    """
+    Return True if *path* points to a directory whose basename is ``outputs``.
+    """
+    if not path or not str(path).strip():
+        return False
+    try:
+        name = Path(path).resolve().name
+    except OSError:
+        name = Path(path).name
+    return name.casefold() == "outputs"
+
+
 def _add_windows_drives_toggle(container, on_drive_change: Callable[[str], None], current_path: str):
     """
     Add Windows drive toggle if running on Windows.
@@ -205,21 +218,18 @@ class DirectoryBrowser:
             except Exception:
                 # binding may not be available in test environments; best-effort only
                 pass
-        with ui.row().classes('bg-gray-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
-            jump = ui.input(
-                placeholder="Paste folder path (e.g. /tmp/case123/files/Image) — Enter or Go",
-                value=self.state["current_path"],
-            ).classes("flex-1 min-w-[12rem]").props("outlined dense")
-            self._path_jump_input = jump
-            ui.button("Go", on_click=lambda: self._jump_to_path(jump.value)).classes("shrink-0")
-            try:
-                jump.on("keydown.enter", lambda: self._jump_to_path(jump.value))
-            except Exception:
-                pass
-            if platform.system() != "Windows" and os.path.isdir("/tmp"):
-                ui.button("/tmp", on_click=lambda: self._navigate_to_directory("/tmp")).classes(
-                    "shrink-0"
-                )
+        # Second-row path input hidden — redundant with path label above / footer; navigate via list.
+        # with ui.row().classes('bg-gray-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
+        #     jump = ui.input(
+        #         placeholder="Paste a folder path and press Enter",
+        #         value=self.state["current_path"],
+        #     ).classes("flex-1 min-w-[12rem]").props("outlined dense")
+        #     self._path_jump_input = jump
+        #     try:
+        #         jump.on("keydown.enter", lambda: self._jump_to_path(jump.value))
+        #     except Exception:
+        #         pass
+        self._path_jump_input = None
 
     def _create_file_list_area(self):
         """Create the file list container."""
@@ -288,6 +298,8 @@ class DirectoryBrowser:
             items = sorted(path_obj.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
             directories = [p for p in items if p.is_dir()]
             files = [p for p in items if p.is_file()]
+            hide_files = is_outputs_results_directory(current_path)
+            display_files = [] if hide_files else files
 
             for directory in directories:
                 dir_path = str(directory)
@@ -301,7 +313,7 @@ class DirectoryBrowser:
                         ui.icon('folder').classes('text-yellow-500 mr-3')
                         ui.label(directory.name).classes('truncate flex-1 text-left')
 
-            for file_path in files:
+            for file_path in display_files:
                 with self.file_list:
                     with ui.row().classes(
                         'w-full items-center p-3 border-b border-gray-100 bg-gray-50/80'
@@ -309,9 +321,11 @@ class DirectoryBrowser:
                         ui.icon('insert_drive_file').classes('text-gray-500 mr-3 shrink-0')
                         ui.label(file_path.name).classes('truncate flex-1 text-left text-gray-700')
 
-            if not directories and not files:
+            if not directories and not display_files:
                 with self.file_list:
-                    ui.label('Empty folder').classes('text-gray-500 p-3 text-center')
+                    if hide_files and files:
+                        # delete  files from the file list
+                        ui.label('Empty folder').classes('text-gray-500 p-3 text-center')
 
         except PermissionError:
             with self.file_list:
@@ -447,12 +461,12 @@ class FileBrowser:
             ui.icon('home', size='1.2rem').classes('text-gray-500')
             ui.icon('chevron_right', size='1.2rem').classes('text-gray-400')
 
-            # Current path display
-            self.path_input = ui.input(
-                value=self.state['current_path'],
-                placeholder='Current directory...'
-            ).classes('flex-1 border border-gray-300 rounded px-3 py-1 text-sm bg-gray-50').props('readonly')
-            self.path_input.bind_value_from(self.state, 'current_path')
+            # Readonly "current directory" input hidden — redundant with full path label below; navigate via list.
+            # self.path_input = ui.input(
+            #     value=self.state['current_path'],
+            #     placeholder='Current directory...'
+            # ).classes('flex-1 border border-gray-300 rounded px-3 py-1 text-sm bg-gray-50').props('readonly')
+            # self.path_input.bind_value_from(self.state, 'current_path')
 
             # Navigation buttons
             ui.button(
@@ -470,21 +484,18 @@ class FileBrowser:
                 self.full_path_label.bind_text_from(self.state, 'current_path')
             except Exception:
                 pass
-        with ui.row().classes('bg-gray-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
-            fjump = ui.input(
-                placeholder="Paste folder path (e.g. /tmp/case123/files/Image) — Enter or Go",
-                value=self.state["current_path"],
-            ).classes("flex-1 min-w-[12rem]").props("outlined dense")
-            self._path_jump_input = fjump
-            ui.button("Go", on_click=lambda: self._jump_to_path_file(fjump.value)).classes("shrink-0")
-            try:
-                fjump.on("keydown.enter", lambda: self._jump_to_path_file(fjump.value))
-            except Exception:
-                pass
-            if platform.system() != "Windows" and os.path.isdir("/tmp"):
-                ui.button("/tmp", on_click=lambda: self._navigate_to_directory("/tmp")).classes(
-                    "shrink-0"
-                )
+        # Second-row path input hidden — same as directory browser.
+        # with ui.row().classes('bg-gray-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
+        #     fjump = ui.input(
+        #         placeholder="Paste a folder path and press Enter",
+        #         value=self.state["current_path"],
+        #     ).classes("flex-1 min-w-[12rem]").props("outlined dense")
+        #     self._path_jump_input = fjump
+        #     try:
+        #         fjump.on("keydown.enter", lambda: self._jump_to_path_file(fjump.value))
+        #     except Exception:
+        #         pass
+        self._path_jump_input = None
 
     def _create_file_list_area(self):
         """Create the file list container."""
@@ -577,6 +588,7 @@ class FileBrowser:
         # List items
         try:
             items = sorted(path_obj.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
+            hide_files = is_outputs_results_directory(path)
 
             for item in items:
                 if item.is_dir():
@@ -592,6 +604,8 @@ class FileBrowser:
                             ui.icon('folder').classes('text-yellow-500 mr-3')
                             ui.label(item.name).classes('truncate flex-1 text-left')
                 else:
+                    if hide_files:
+                        continue
                     # File - check filter
                     if self.filetypes and item.suffix.lower() not in [ft.lower() for ft in self.filetypes]:
                         continue
@@ -603,10 +617,15 @@ class FileBrowser:
                             on_click=lambda fp=file_path: self._select_file(fp)
                         ).classes('w-full justify-start p-3 hover:bg-green-50 border-b border-gray-100 text-left').props('flat icon=insert_drive_file prepend-icon')
 
-            # If no items, show message
-            if not any(items):
+            if not items:
                 with self.file_list:
                     ui.label('No files or directories').classes('text-gray-500 p-3 text-center')
+            elif hide_files and any(i.is_file() for i in items) and not any(i.is_dir() for i in items):
+                with self.file_list:
+                    ui.label(
+                        'Files are not listed in folders named “outputs” (often previous job results). '
+                        'Open the parent folder, pick a subfolder, or paste a path above.'
+                    ).classes('text-gray-600 p-3 text-center')
 
         except PermissionError:
             with self.file_list:

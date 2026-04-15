@@ -8,7 +8,7 @@ from deepfake_detection.main import (
     create_transform_case_task_schema as task_schema,
     app_info,
 )
-from rb.api.models import AppMetadata, ResponseBody
+from rb.api.models import AppMetadata, BatchFileResponse, ResponseBody
 from rb.lib.common_tests import RBAppTest
 
 
@@ -23,11 +23,12 @@ class TestDeepFakeServer(RBAppTest):
     def get_metadata(self):
         print(APP_NAME)
         return AppMetadata(
-            name="Image DeepFake Detector",
-            author="UMass Rescue",
-            version="0.2.0",
+            name="Detect DeepFakes",
+            author="UMass RescueLab",
+            version="3.0.0",
             info=app_info,
             plugin_name=APP_NAME,
+            gpu=True,
         )
 
     def get_all_ml_services(self):
@@ -110,17 +111,19 @@ class TestDeepFakeServer(RBAppTest):
                 "output_file": {"path": str(output_dir)},
             },
             "parameters": {
-                "models": "all",
                 "facecrop": "false",
             },
         }
         response = self.client.post(predict_api, json=payload)
         assert response.status_code == 200
         body = ResponseBody(**response.json())
-        file_resp = body.root
-        assert file_resp.file_type.value == "csv"
-        csv_path = Path(file_resp.path)
-        assert csv_path.exists()
-        content = csv_path.read_text()
+        batch = body.root
+        assert isinstance(batch, BatchFileResponse)
+        assert len(batch.files) == 1
+        assert batch.files[0].metadata is not None
+        assert batch.files[0].metadata.get("Prediction") == "fake"
+        csv_files = list(output_dir.glob("predictions_*.csv"))
+        assert len(csv_files) == 1
+        content = csv_files[0].read_text()
         assert "TestModel" in content
         assert "fake" in content

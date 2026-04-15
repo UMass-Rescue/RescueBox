@@ -30,6 +30,69 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# Set on Face Match find responses so we can show query vs gallery side-by-side.
+_FACEMATCH_QUERY_PATH_KEY = "query_image_path"
+
+
+def _is_facematch_find_batch(files) -> bool:
+    if not files:
+        return False
+    for f in files:
+        md = getattr(f, "metadata", None) or {}
+        if not md.get(_FACEMATCH_QUERY_PATH_KEY):
+            return False
+    return True
+
+
+def _render_facematch_find_batch(container, files) -> None:
+    """Show each gallery hit next to the query photo (backend sets ``query_image_path`` metadata)."""
+    with container:
+        with ui.card().classes("bg-blue-50 border border-blue-300 p-4"):
+            with ui.column().classes("gap-3 w-full"):
+                ui.label(
+                    f"Finc face ({len(files)}) — left: find photo; right: match from your database"
+                ).classes("font-bold text-sm")
+                for file_info in files:
+                    md = getattr(file_info, "metadata", None) or {}
+                    qpath = md.get(_FACEMATCH_QUERY_PATH_KEY)
+                    mpath = file_info.path
+                    title = file_info.title or ""
+                    with ui.card().classes("bg-white p-3 w-full border border-gray-200"):
+                        if title:
+                            ui.label(title).classes("text-sm font-medium text-gray-800 mb-2")
+                        with ui.row().classes("w-full gap-4 items-start flex-wrap"):
+                            with ui.column().classes("gap-1 min-w-[140px] flex-1"):
+                                ui.label("Face Matched").classes(
+                                    "text-xs font-semibold text-gray-600"
+                                )
+                                if qpath:
+                                    try:
+                                        ui.image(qpath).classes(
+                                            "w-full max-w-md max-h-64 object-contain rounded border border-gray-100 cursor-pointer"
+                                        ).on("click", lambda p=qpath: open_file(p))
+                                    except Exception:
+                                        ui.label(str(qpath)).classes("text-xs font-mono break-all")
+                                    ui.button(
+                                        "open matched image",
+                                        on_click=lambda p=qpath: open_file(p),
+                                    ).classes("text-xs").props("flat dense color=primary")
+                                else:
+                                    ui.label("—").classes("text-xs text-gray-400")
+                            with ui.column().classes("gap-1 min-w-[140px] flex-1"):
+                                ui.label("Match from collection").classes(
+                                    "text-xs font-semibold text-gray-600"
+                                )
+                                try:
+                                    ui.image(mpath).classes(
+                                        "w-full max-w-md max-h-64 object-contain rounded border border-gray-100 cursor-pointer"
+                                    ).on("click", lambda p=mpath: open_file(p))
+                                except Exception:
+                                    ui.label(str(mpath)).classes("text-xs font-mono break-all")
+                                ui.button(
+                                    "Open uploaded image",
+                                    on_click=lambda p=mpath: open_file(p),
+                                ).classes("text-xs").props("flat dense color=primary")
+
 
 def render_file(container, response):
     """
@@ -93,20 +156,25 @@ def render_batch_file(container, response):
 
     logger.debug("Rendering batch file result with %d files", len(response.files))
     files = response.files
-    
+
+    if _is_facematch_find_batch(files):
+        _render_facematch_find_batch(container, files)
+        logger.debug("Batch file result rendered (face match find layout)")
+        return
+
     # Check if any files have metadata
     has_metadata = any(f.metadata for f in files)
-    
+
     with container:
         with ui.card().classes('bg-blue-50 border border-blue-300 p-4'):
             with ui.column().classes('gap-2'):
                 ui.label(f'📦 Batch File Result ({len(files)} files)').classes('font-bold')
-                
+
                 if has_metadata:
                     _render_batch_file_with_metadata(container, files)
                 else:
                     _render_batch_file_grid(container, files)
-    
+
     logger.debug("Batch file result rendered successfully")
 
 

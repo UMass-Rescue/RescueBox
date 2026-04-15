@@ -20,6 +20,9 @@ if str(_project_root) not in sys.path:
 if str(_project_root / "src") not in sys.path:
     sys.path.insert(0, str(_project_root / "src"))
 
+from starlette.responses import HTMLResponse
+from starlette.staticfiles import StaticFiles
+
 from nicegui import app, Client, ui
 
 from frontend.config import (
@@ -56,6 +59,8 @@ import frontend.pages.demo_other_walkthrough
 import frontend.pages.demo_quick_start
 import frontend.pages.demo_transcribe_walkthrough
 import frontend.pages.jobs
+import frontend.pages.about
+import frontend.pages.licenses_copyright
 import frontend.pages.models
 
 logging.basicConfig(level=parse_log_level(LOG_LEVEL))
@@ -183,6 +188,9 @@ async def index():
     logger.info("Main dashboard page rendered successfully")
 
 
+_LICENSES_COPYRIGHT_DIR = _project_root / "License&Copyright"
+
+
 if __name__ in {"__main__", "__mp_main__"}:
     logger.info("Starting unified %s application", APP_TITLE)
     logger.info("Server will be available at http://localhost:%s", APP_PORT)
@@ -201,6 +209,17 @@ if __name__ in {"__main__", "__mp_main__"}:
         app.add_static_files(url_path="/icons", local_directory=str(icons_dir))
         logger.info("Icons served at /icons/")
 
+    # Same pattern as /demo: NiceGUI static files (not Starlette mount + directory index iframe).
+    if _LICENSES_COPYRIGHT_DIR.is_dir():
+        app.add_static_files(
+            url_path="/license-copyright",
+            local_directory=str(_LICENSES_COPYRIGHT_DIR),
+        )
+        logger.info(
+            "License & Copyright: About page /about, static /license-copyright/ (%s)",
+            _LICENSES_COPYRIGHT_DIR,
+        )
+
     async def _prefetch_models_startup():
         await prefetch_and_cache_models(backend_url=BACKEND_URL, api_timeout=API_TIMEOUT)
 
@@ -218,8 +237,9 @@ if __name__ in {"__main__", "__mp_main__"}:
 
         logger.critical("Global exception traceback: %s", traceback.format_exc())
 
-        return ui.html(
-            """
+        # Plain Starlette response — no NiceGUI client/slot (ui.html would fail here).
+        return HTMLResponse(
+            content="""
         <!DOCTYPE html>
         <html>
         <head>
@@ -246,7 +266,7 @@ if __name__ in {"__main__", "__mp_main__"}:
         </body>
         </html>
         """,
-            sanitize=False,
+            status_code=500,
         )
 
     @app.on_delete

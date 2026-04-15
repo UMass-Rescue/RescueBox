@@ -83,6 +83,25 @@ def _bulk_upload_collection_choices(is_ensemble: bool) -> List[str]:
     rows.extend(db.get_available_collections(isEnsemble=is_ensemble))
     return rows
 
+
+def _resolve_bulk_upload_base_collection_name(
+    parameters: dict, available_collections: List[str]
+) -> str:
+    """
+    Logical collection name: chosen existing collection, or the text field when creating new.
+
+    No longer appends ``-1``, ``-2``, … when the new name matches an existing one; the typed
+    name is used as-is (Chroma ``get_or_create_collection`` continues to target that collection).
+    """
+    sentinel = available_collections[0]
+    if parameters["dropdown_collection_name"] != sentinel:
+        return parameters["dropdown_collection_name"]
+    text = (parameters.get("collection_name") or "").strip()
+    if not text or text == sentinel:
+        return "new-collection"
+    return text
+
+
 # Read default similarity threshold from config file
 config_path = os.path.join(script_dir, "config", "model_config.json")
 with open(config_path, "r") as config_file:
@@ -231,8 +250,19 @@ def find_face_endpoint(
     if not status:
         return ResponseBody(root=TextResponse(value=results))
 
+    query_path = os.path.normpath(str(input_file_paths[0]))
     image_results = [
-        FileResponse(file_type="img", path=res, title=res) for res in results
+        FileResponse(
+            file_type="img",
+            path=res,
+            title=f'Query "{os.path.basename(query_path)}" -> gallery match "{os.path.basename(res)}"',
+            metadata={
+                "query_image_path": query_path,
+                "Query photo": os.path.basename(query_path),
+                "Gallery match": os.path.basename(res),
+            },
+        )
+        for res in results
     ]
 
     return ResponseBody(root=BatchFileResponse(files=image_results))
@@ -275,11 +305,13 @@ def get_ingest_bulk_query_image_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="collection_name",
                 label="Collection Name",
+                subtitle="Select a collection from your database",
                 value=_collection_name_enum_for_find_tasks(),
             ),
             ParameterSchema(
                 key="similarity_threshold",
                 label="Similarity Threshold",
+                subtitle="0.0 is no similarity, 1.0 is perfect similarity",
                 value=RangedFloatParameterDescriptor(
                     range=FloatRangeDescriptor(min=-1.0, max=1.0),
                     default=default_threshold,
@@ -344,15 +376,20 @@ def find_face_bulk_endpoint(
             if not isinstance(matched_paths, list):
                 matched_paths = [matched_paths]
 
+            query_abs = os.path.normpath(os.path.join(_query_path, query_img_name))
             for matched_path in matched_paths:
-                # Extract filename from the matched_path for the title
                 matched_filename = os.path.basename(matched_path)
                 file_responses.append(
                     FileResponse(
                         file_type="img",
                         path=matched_path,
-                        title=f"Match for {query_img_name}: {matched_filename}",
-                        metadata={"query_image": query_img_name}
+                        title=f'Find "{query_img_name}" -> db image "{matched_filename}"',
+                        metadata={
+                            # Frontend: dual preview (query vs collection hit). Path column = gallery file.
+                            "query_image_path": query_abs,
+                            "Query photo": query_img_name,
+                            "Gallery match": matched_filename,
+                        },
                     )
                 )
     
@@ -496,6 +533,7 @@ def get_ingest_images_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="dropdown_collection_name",
                 label="Choose Collection",
+                subtitle="Select a collection for your database",
                 value=EnumParameterDescriptor(
                     enum_vals=[
                         EnumVal(key=collection_name, label=collection_name)
@@ -511,8 +549,9 @@ def get_ingest_images_task_schema() -> TaskSchema:
             ),
             ParameterSchema(
                 key="collection_name",
-                label="New Collection Name (Optional)",
-                value=TextParameterDescriptor(default="new-collection"),
+                label="Collection Name",
+                subtitle="Enter a new collection name for your database",
+                value=TextParameterDescriptor(default="sample"),
             ),
         ],
     )
@@ -546,44 +585,9 @@ def bulk_upload_endpoint(
     inputs: BulkUploadInputs, parameters: BulkUploadParameters
 ) -> ResponseBody:
     available_collections = _bulk_upload_collection_choices(is_ensemble=False)
-    # If dropdown value chosen is Create a new collection, then add collection to available collections, otherwise set
-    # collection to dropdown value
-    if (
-        parameters["dropdown_collection_name"] == available_collections[0]
-        and parameters["collection_name"] in available_collections
-    ):
-        collection_name = (
-            "new-collection"
-            if parameters["collection_name"] == available_collections[0]
-            else parameters["collection_name"]
-        )
-        default_named_collections = list(
-            filter(lambda name: collection_name in name, available_collections)
-        )
-        # map names to indices (i.e. number at the end of default collection name)
-        used_indices = list(
-            map(
-                lambda name: name.split(f"{collection_name}-")[-1],
-                default_named_collections,
-            )
-        )
-        # if any index == "collection", replace with index 0
-        used_indices = list(
-            map(lambda index: 0 if not index.isdigit() else int(index), used_indices)
-        )
-        # gets the minimum unused index for differentiating unnamed collections
-        index = (
-            0
-            if len(used_indices) == 0
-            else min(set(range(0, max(used_indices) + 2)) - set(used_indices))
-        )
-        index_str = "" if index == 0 else f"-{index}"
-        base_collection_name = f"{collection_name}{index_str}"
-
-    elif parameters["dropdown_collection_name"] != available_collections[0]:
-        base_collection_name = parameters["dropdown_collection_name"]
-    else:
-        base_collection_name = parameters["collection_name"]
+    base_collection_name = _resolve_bulk_upload_base_collection_name(
+        parameters, available_collections
+    )
 
     # Check CUDNN compatability
     check_cuDNN_version()
@@ -727,49 +731,9 @@ def multi_pipeline_bulk_upload_endpoint(
 ) -> ResponseBody:
     check_cuDNN_version()
     available_multi_pipeline_collections = _bulk_upload_collection_choices(is_ensemble=True)
-    if (
-        parameters["dropdown_collection_name"]
-        == available_multi_pipeline_collections[0]
-        and parameters["collection_name"] in available_multi_pipeline_collections
-    ):
-        collection_name = (
-            "new-collection"
-            if parameters["collection_name"] == available_multi_pipeline_collections[0]
-            else parameters["collection_name"]
-        )
-        default_named_collections = list(
-            filter(
-                lambda name: collection_name in name,
-                available_multi_pipeline_collections,
-            )
-        )
-        # map names to indices (i.e. number at the end of default collection name)
-        used_indices = list(
-            map(
-                lambda name: name.split(f"{collection_name}-")[-1],
-                default_named_collections,
-            )
-        )
-        # if any index == "collection", replace with index 0
-        used_indices = list(
-            map(lambda index: 0 if not index.isdigit() else int(index), used_indices)
-        )
-        # gets the minimum unused index for differentiating unnamed collections
-        index = (
-            0
-            if len(used_indices) == 0
-            else min(set(range(0, max(used_indices) + 2)) - set(used_indices))
-        )
-        index_str = "" if index == 0 else f"-{index}"
-        base_collection_name = f"{collection_name}{index_str}"
-
-    elif (
-        parameters["dropdown_collection_name"]
-        != available_multi_pipeline_collections[0]
-    ):
-        base_collection_name = parameters["dropdown_collection_name"]
-    else:
-        base_collection_name = parameters["collection_name"]
+    base_collection_name = _resolve_bulk_upload_base_collection_name(
+        parameters, available_multi_pipeline_collections
+    )
 
     base_path = str(inputs["directory_path"].path)
 

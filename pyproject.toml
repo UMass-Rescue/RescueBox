@@ -24,6 +24,7 @@ makefun = "^1.16.0"
 httpx = "^0.28.1"
 # add dependencies common to all plugins here
 numpy = "2.1"
+numba = "^0.61.2"
 opencv-python = ">=4.11.0.86,<5.0.0.0"
 ollama = ">=0.4.7,<0.5.0"
 pypdf2 = ">=3.0.1,<4.0.0"
@@ -53,7 +54,8 @@ beautifulsoup4 = "^4.13.3"
 nicegui = "3.2"
 
 # for text_embeddings
-torch = "2.7.1"
+torch = "2.11.0"
+torchvision = "0.26.0"
 transformers = "^4.40.0"
 sentence-transformers = "3.0.1"
 
