@@ -18,6 +18,7 @@ _ENV_PARALLEL_KEY: Final[str] = "IMAGE_SUMMARY_BATCH_PARALLEL_WORKERS"
 _DEFAULT_PARALLEL_WORKERS: Final[int] = 10
 
 SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
+    "gemma3:4b": {"display_name": "Gemma3 4B: Small, runs on most hardware"},
     "moondream:latest": {"display_name": "moondream:latest: Small, runs on most hardware"},
     "gemma3:27b": {"display_name": "Gemma3 27B: Larger, powerful model, runs on more powerful hardware"},
 }
@@ -53,7 +54,7 @@ IMAGE_BATCH_PROMPT_JSON: Final[str] = (
 )
 
 IMAGE_PROMPT: Final[str] = (
-    "Describe the image briefly."
+    "Describe the image briefly. Be factual and avoid speculation."
 )
 
 

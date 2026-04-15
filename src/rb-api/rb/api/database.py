@@ -65,7 +65,7 @@ def create_db_and_tables():
                     conn.execute(text(f"DROP INDEX IF EXISTS {idx_name}"))
                     conn.execute(text(f"DELETE FROM {table}"))
                     conn.execute(text(f"ALTER TABLE {table} DROP COLUMN embedding"))
-                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN embedding vector(1024)"))
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN embedding vector(768)"))
     except Exception:
         pass
     

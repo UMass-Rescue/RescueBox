@@ -86,7 +86,7 @@ def task_schema() -> TaskSchema:
 
     top_k_desc = RangedIntParameterDescriptor(
         range=IntRangeDescriptor(min=1, max=20),
-        default=5,
+        default=10,
     )
     min_similarity_desc = RangedFloatParameterDescriptor(
         range=FloatRangeDescriptor(min=0.0, max=1.0),
@@ -99,7 +99,7 @@ def task_schema() -> TaskSchema:
             ParameterSchema(
                 key="model_name",
                 label="CLIP model",
-                subtitle="CLIP stays fuzzy on queries like 'boy' use a caption 'a young boy' for better results",
+                subtitle="search for images with a ML model",
                 value=model_enum,
             ),
             ParameterSchema(
@@ -111,7 +111,7 @@ def task_schema() -> TaskSchema:
             ParameterSchema(
                 key="min_similarity",
                 label="Match threshold",
-                subtitle="Similarity >= this counts as a match (CLIP text–image scores are often ~0.2–0.35)",
+                subtitle="Similarity >= this counts as a match ( often > 0.13)",
                 value=min_similarity_desc,
             ),
         ],
@@ -164,7 +164,7 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     input_dir = str(inputs["input_dir"].path)
     query_text = inputs["query"].text
     model_name = parameters.get("model_name", "laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K")
-    top_k = int(parameters.get("top_k", 5))
+    top_k = int(parameters.get("top_k", 15))
     min_similarity = float(parameters.get("min_similarity", 0.13))
 
     cuda_ok = torch.cuda.is_available()
@@ -196,17 +196,20 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         logger.info("Apple Metal (MPS) GPU in use for CLIP")
 
     model = CLIPModel.from_pretrained(model_name)
-    processor = CLIPProcessor.from_pretrained(model_name)
+    processor = CLIPProcessor.from_pretrained(model_name, interpolation="bicubic")
     model = model.to(device)
     model.eval()
     param_dev = next(model.parameters()).device
     _pdim = getattr(model.config, "projection_dim", None)
     logger.info(
-        "CLIP model loaded on device=%s (parameter device=%s) model_name=%s projection_dim=%s",
+        "CLIP model loaded on device=%s (parameter device=%s) model_name=%s projection_dim=%s "
+        "do_normalize=%s resample=%s",
         device,
         param_dev,
         model_name,
         _pdim,
+        getattr(processor.image_processor, "do_normalize", None),
+        getattr(processor.image_processor, "resample", None),
     )
 
     def _inputs_to_device(batch):
@@ -343,7 +346,7 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                 sim = float(row.similarity)
                 search_results.append(
                     {
-                        "id": row.id,
+                        #"id": row.id,
                         "path": row.path,
                         "similarity": round(sim, 4),
                         "is_match": sim >= min_similarity,
@@ -366,8 +369,8 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                     "Query": query_text,
                     "Similarity": str(sim),
                     "Match": "Yes" if is_match else "No",
-                    "Model": model_name,
-                    "id": str(row.get("id", "")),
+                    #"Model": model_name,
+                    #"id": str(row.get("id", "")),
                 },
             )
         )
@@ -391,7 +394,7 @@ def parameters_cli_parse(value: str) -> Parameters:
     parts = [p.strip() for p in value.split(",")]
     model_name = parts[0] if len(parts) > 0 and parts[0] else "apple/DFN5B-CLIP-ViT-H-14-378"
     top_k = int(parts[1]) if len(parts) > 1 and parts[1] else 5
-    min_similarity = float(parts[2]) if len(parts) > 2 and parts[2] else 0.21
+    min_similarity = float(parts[2]) if len(parts) > 2 and parts[2] else 0.113
     return Parameters(
         model_name=model_name,
         top_k=top_k,
