@@ -41,44 +41,6 @@ class ResultRenderer:
             return 1
 
     @staticmethod
-    def create_success_header(
-        job_id: Optional[str] = None,
-        *,
-        pipeline_intermediate: bool = False,
-        pipeline_completed_step: Optional[int] = None,
-        pipeline_total_steps: Optional[int] = None,
-    ):
-        """Create the success header with icon and job info."""
-        try:
-            from frontend.components.results.success_header import render_success_header
-            # Create the column under the current slot, then let render_success_header `with container:`
-            # attach children. Do NOT wrap in `with header_wrap:` first — that double-enters the same
-            # column's slot and corrupts NiceGUI's stack (empty green result card in background jobs).
-            header_wrap = ui.column().classes('w-full')
-            render_success_header(
-                header_wrap,
-                job_id,
-                pipeline_intermediate=pipeline_intermediate,
-                pipeline_completed_step=pipeline_completed_step,
-                pipeline_total_steps=pipeline_total_steps,
-            )
-        except Exception:
-            logger.exception("Success header render failed; using inline fallback")
-            with ui.column().classes('w-full'):
-                with ui.row().classes('items-center gap-3 mb-6'):
-                    ui.icon('celebration', size='2rem').classes('text-green-600')
-                    with ui.column():
-                        if pipeline_intermediate and pipeline_completed_step and pipeline_total_steps:
-                            ui.label('Job complete').classes('text-2xl font-bold text-green-800')
-                            ui.label(
-                                f'Step {pipeline_completed_step} of {pipeline_total_steps} finished'
-                            ).classes('text-sm text-green-700')
-                        else:
-                            ui.label('Job Completed Successfully!').classes('text-2xl font-bold text-green-800')
-                        if job_id:
-                            ui.label(f'Job ID: {job_id}').classes('text-sm text-green-600 font-mono')
-
-    @staticmethod
     def create_result_card(result_type: str, result_title: str, result_count: int, on_expand, job_id: Optional[str] = None, **kwargs):
         """Create the main result card with expand functionality."""
         try:
@@ -293,7 +255,7 @@ class TextResultStrategy(ResultRenderingStrategy):
                 ResultsPreview.render(ui.column(), response_data)
             else:
                 # Simple text rendering
-                ui.label('📄 Text Result').classes('text-lg font-semibold mb-2')
+                ui.label('Text Result').classes('text-lg font-semibold mb-2')
                 ui.label(root.get('value', 'No content')).classes('text-zinc-700 whitespace-pre-wrap')
 
 

@@ -106,7 +106,7 @@ async def model_details_page(model_uid: str):
                 except Exception as e:
                     logger.exception("Failed to render model info card component: %s", e)
                     with ui.card().classes('bg-sky-50 border border-sky-300 p-6 sticky top-24'):
-                        ui.label('Model Information').classes('text-xl font-bold mb-4')
+                        ui.label('Plugin').classes('text-xl font-bold mb-4')
                         # Fallback inline rendering (minimal)
                         ui.label(f'Author: {author}').classes('text-sm')
                         ui.label(f'Status: {server_status}').classes('text-sm')

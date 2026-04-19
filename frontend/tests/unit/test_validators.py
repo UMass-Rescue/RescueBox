@@ -33,12 +33,7 @@ from rb.api.models import (
 
 
 class TestValidateFormData:
-    """Tests for validate_form_data function.
-
-    This class tests the core form validation logic that ensures
-    submitted form data matches the expected task schema structure
-    and parameter constraints.
-    """
+    """Tests for validate_form_data (inputs + optional raster; parameters pass-through)."""
 
     def test_validate_valid_form_data(self, sample_task_schema, temp_directory):
         """Test validation of valid form data.
@@ -102,8 +97,112 @@ class TestValidateFormData:
         assert result['is_valid'] is False
         assert 'input_dir' in result['errors']
 
-    def test_image_endpoint_rejects_dir_without_image_files(self, sample_task_schema, tmp_path):
-        """Image-style endpoints require at least one common raster file under input_dir."""
+    def test_query_text_input_must_not_be_empty(self, tmp_path):
+        """image_embeddings/search_images (and similar) require a non-blank ``query`` input."""
+        from rb.api.models import (
+            TaskSchema,
+            InputSchema,
+            ParameterSchema,
+            InputType,
+            EnumParameterDescriptor,
+            EnumVal,
+        )
+
+        corpus = tmp_path / "corpus"
+        corpus.mkdir()
+        (corpus / "note.txt").write_text("x")
+        schema = TaskSchema(
+            inputs=[
+                InputSchema(
+                    key="input_dir",
+                    label="Folder of files to search",
+                    inputType=InputType.DIRECTORY,
+                ),
+                InputSchema(
+                    key="query",
+                    label="Text query to find the most similar images",
+                    inputType=InputType.TEXT,
+                ),
+            ],
+            parameters=[
+                ParameterSchema(
+                    key="model",
+                    label="Model",
+                    value=EnumParameterDescriptor(
+                        enumVals=[EnumVal(key="m", value="m", label="m")],
+                        default="m",
+                    ),
+                )
+            ],
+        )
+        base = {
+            "inputs": {
+                "input_dir": {"path": str(corpus)},
+                "query": {"text": "   "},
+            },
+            "parameters": {"model": "m"},
+        }
+        empty = validate_form_data(dict(base), schema)
+        assert empty["is_valid"] is False
+        assert "query" in empty["errors"]
+        assert "search" in empty["errors"]["query"].lower()
+
+        ok = validate_form_data(
+            {
+                "inputs": {
+                    "input_dir": {"path": str(corpus)},
+                    "query": {"text": "person in red"},
+                },
+                "parameters": {"model": "m"},
+            },
+            schema,
+        )
+        assert ok["is_valid"] is True
+
+    def test_image_endpoint_rejects_dir_without_image_files(self, tmp_path):
+        """Raster rule follows schema copy: directory labeled for images must contain rasters."""
+        from rb.api.models import (
+            TaskSchema,
+            InputSchema,
+            ParameterSchema,
+            InputType,
+            RangedFloatParameterDescriptor,
+            FloatRangeDescriptor,
+            EnumParameterDescriptor,
+            EnumVal,
+        )
+
+        schema = TaskSchema(
+            inputs=[
+                InputSchema(
+                    key="input_dir",
+                    label="Path to the directory containing the input images",
+                    inputType=InputType.DIRECTORY,
+                ),
+                InputSchema(key="prompt", label="Prompt", inputType=InputType.TEXT),
+            ],
+            parameters=[
+                ParameterSchema(
+                    key="confidence",
+                    label="Confidence",
+                    value=RangedFloatParameterDescriptor(
+                        range=FloatRangeDescriptor(min=0.0, max=1.0),
+                        default=0.8,
+                    ),
+                ),
+                ParameterSchema(
+                    key="mode",
+                    label="Processing Mode",
+                    value=EnumParameterDescriptor(
+                        enumVals=[
+                            EnumVal(key="fast", value="fast", label="Fast"),
+                            EnumVal(key="accurate", value="accurate", label="Accurate"),
+                        ],
+                        default="fast",
+                    ),
+                ),
+            ],
+        )
         d = tmp_path / "evidence"
         d.mkdir()
         (d / "notes.txt").write_text("no images")
@@ -111,14 +210,54 @@ class TestValidateFormData:
             'inputs': {'input_dir': {'path': str(d)}, 'prompt': {'text': 'captions'}},
             'parameters': {'confidence': 0.8, 'mode': 'fast'},
         }
-        result = validate_form_data(
-            form_data, sample_task_schema, endpoint='image_summary/summarize-images'
-        )
+        result = validate_form_data(form_data, schema)
         assert result['is_valid'] is False
         assert 'input_dir' in result['errors']
         assert 'image' in result['errors']['input_dir'].lower()
 
-    def test_image_endpoint_accepts_dir_with_jpeg(self, sample_task_schema, tmp_path):
+    def test_image_endpoint_accepts_dir_with_jpeg(self, tmp_path):
+        from rb.api.models import (
+            TaskSchema,
+            InputSchema,
+            ParameterSchema,
+            InputType,
+            RangedFloatParameterDescriptor,
+            FloatRangeDescriptor,
+            EnumParameterDescriptor,
+            EnumVal,
+        )
+
+        schema = TaskSchema(
+            inputs=[
+                InputSchema(
+                    key="input_dir",
+                    label="Path to the directory containing the input images",
+                    inputType=InputType.DIRECTORY,
+                ),
+                InputSchema(key="prompt", label="Prompt", inputType=InputType.TEXT),
+            ],
+            parameters=[
+                ParameterSchema(
+                    key="confidence",
+                    label="Confidence",
+                    value=RangedFloatParameterDescriptor(
+                        range=FloatRangeDescriptor(min=0.0, max=1.0),
+                        default=0.8,
+                    ),
+                ),
+                ParameterSchema(
+                    key="mode",
+                    label="Processing Mode",
+                    value=EnumParameterDescriptor(
+                        enumVals=[
+                            EnumVal(key="fast", value="fast", label="Fast"),
+                            EnumVal(key="accurate", value="accurate", label="Accurate"),
+                        ],
+                        default="fast",
+                    ),
+                ),
+            ],
+        )
         d = tmp_path / "evidence"
         d.mkdir()
         (d / "kid.jpeg").write_bytes(b'\xff\xd8\xff\xd9')
@@ -126,12 +265,168 @@ class TestValidateFormData:
             'inputs': {'input_dir': {'path': str(d)}, 'prompt': {'text': 'x'}},
             'parameters': {'confidence': 0.8, 'mode': 'fast'},
         }
-        result = validate_form_data(
-            form_data, sample_task_schema, endpoint='image_summary/summarize-images'
-        )
+        result = validate_form_data(form_data, schema)
         assert result['is_valid'] is True
 
-    def test_audio_endpoint_skips_image_content_check(self, sample_task_schema, tmp_path):
+    def test_image_endpoint_skips_raster_check_for_output_dir(self, tmp_path):
+        """Output folders are often empty until the job runs; do not require raster files there."""
+        from rb.api.models import (
+            TaskSchema,
+            InputSchema,
+            ParameterSchema,
+            InputType,
+            RangedFloatParameterDescriptor,
+            FloatRangeDescriptor,
+            EnumParameterDescriptor,
+            EnumVal,
+        )
+
+        input_dir = tmp_path / "in"
+        input_dir.mkdir()
+        (input_dir / "pic.jpg").write_bytes(b"\xff\xd8\xff\xd9")
+        output_dir = tmp_path / "out"
+        output_dir.mkdir()
+        (output_dir / "readme.txt").write_text("no images here")
+
+        schema = TaskSchema(
+            inputs=[
+                InputSchema(
+                    key="input_dir",
+                    label="Folder of images",
+                    inputType=InputType.DIRECTORY,
+                ),
+                InputSchema(
+                    key="output_dir",
+                    label="Path to the directory for the output summaries",
+                    inputType=InputType.DIRECTORY,
+                ),
+                InputSchema(key="prompt", label="Prompt", inputType=InputType.TEXT),
+            ],
+            parameters=[
+                ParameterSchema(
+                    key="confidence",
+                    label="Confidence",
+                    value=RangedFloatParameterDescriptor(
+                        range=FloatRangeDescriptor(min=0.0, max=1.0),
+                        default=0.8,
+                    ),
+                ),
+                ParameterSchema(
+                    key="mode",
+                    label="Processing Mode",
+                    value=EnumParameterDescriptor(
+                        enumVals=[
+                            EnumVal(key="fast", value="fast", label="Fast"),
+                            EnumVal(key="accurate", value="accurate", label="Accurate"),
+                        ],
+                        default="fast",
+                    ),
+                ),
+            ],
+        )
+        form_data = {
+            "inputs": {
+                "input_dir": {"path": str(input_dir)},
+                "output_dir": {"path": str(output_dir)},
+                "prompt": {"text": "captions"},
+            },
+            "parameters": {"confidence": 0.8, "mode": "fast"},
+        }
+        result = validate_form_data(form_data, schema)
+        assert result["is_valid"] is True
+
+    def test_text_summarization_paired_dirs_skip_raster_check(self, tmp_path):
+        """input_dir + output_dir for text summary must not require image rasters."""
+        from rb.api.models import (
+            TaskSchema,
+            InputSchema,
+            ParameterSchema,
+            InputType,
+            EnumParameterDescriptor,
+            EnumVal,
+        )
+
+        input_dir = tmp_path / "docs"
+        input_dir.mkdir()
+        (input_dir / "a.md").write_text("# hello")
+        output_dir = tmp_path / "out"
+        output_dir.mkdir()
+        schema = TaskSchema(
+            inputs=[
+                InputSchema(
+                    key="input_dir",
+                    label="Path to the directory containing the input files",
+                    inputType=InputType.DIRECTORY,
+                ),
+                InputSchema(
+                    key="output_dir",
+                    label="Path to the directory containing the output files",
+                    inputType=InputType.DIRECTORY,
+                ),
+            ],
+            parameters=[
+                ParameterSchema(
+                    key="model",
+                    label="Model",
+                    value=EnumParameterDescriptor(
+                        enumVals=[EnumVal(key="m", value="m", label="m")],
+                        default="m",
+                    ),
+                )
+            ],
+        )
+        form_data = {
+            "inputs": {
+                "input_dir": {"path": str(input_dir)},
+                "output_dir": {"path": str(output_dir)},
+            },
+            "parameters": {"model": "m"},
+        }
+        assert validate_form_data(form_data, schema)["is_valid"] is True
+
+    def test_audio_endpoint_skips_image_content_check(self, tmp_path):
+        from rb.api.models import (
+            TaskSchema,
+            InputSchema,
+            ParameterSchema,
+            InputType,
+            RangedFloatParameterDescriptor,
+            FloatRangeDescriptor,
+            EnumParameterDescriptor,
+            EnumVal,
+        )
+
+        schema = TaskSchema(
+            inputs=[
+                InputSchema(
+                    key="input_dir",
+                    label="Provide audio files directory",
+                    inputType=InputType.DIRECTORY,
+                ),
+                InputSchema(key="prompt", label="Prompt", inputType=InputType.TEXT),
+            ],
+            parameters=[
+                ParameterSchema(
+                    key="confidence",
+                    label="Confidence",
+                    value=RangedFloatParameterDescriptor(
+                        range=FloatRangeDescriptor(min=0.0, max=1.0),
+                        default=0.8,
+                    ),
+                ),
+                ParameterSchema(
+                    key="mode",
+                    label="Processing Mode",
+                    value=EnumParameterDescriptor(
+                        enumVals=[
+                            EnumVal(key="fast", value="fast", label="Fast"),
+                            EnumVal(key="accurate", value="accurate", label="Accurate"),
+                        ],
+                        default="fast",
+                    ),
+                ),
+            ],
+        )
         d = tmp_path / "audio_in"
         d.mkdir()
         (d / "speech.txt").write_text('x')
@@ -139,7 +434,7 @@ class TestValidateFormData:
             'inputs': {'input_dir': {'path': str(d)}, 'prompt': {'text': 'x'}},
             'parameters': {'confidence': 0.8, 'mode': 'fast'},
         }
-        result = validate_form_data(form_data, sample_task_schema, endpoint='audio/transcribe')
+        result = validate_form_data(form_data, schema)
         assert result['is_valid'] is True
 
     def test_validate_invalid_schema_dict(self):
@@ -152,27 +447,23 @@ class TestValidateFormData:
         assert result['is_valid'] is False
         assert 'schema' in result['errors']
     
-    def test_validate_parameter_range(self, sample_task_schema, temp_directory):
-        """Test parameter range validation.
-
-        Ensures that parameters outside their valid ranges are properly
-        detected and reported as validation errors.
-        """
+    def test_validate_form_data_parameters_pass_through(self, sample_task_schema, temp_directory):
+        """``validate_form_data`` does not range-check parameters against the task schema."""
         form_data = {
-            'inputs': {
-                'input_dir': {'path': str(temp_directory)},
-                'prompt': {'text': 'Test'}
+            "inputs": {
+                "input_dir": {"path": str(temp_directory)},
+                "prompt": {"text": "Test"},
             },
-            'parameters': {
-                'confidence': 1.5,  # Out of range (valid: 0.0-1.0)
-                'mode': 'fast'
-            }
+            "parameters": {
+                "confidence": 1.5,
+                "mode": "fast",
+            },
         }
-        
+
         result = validate_form_data(form_data, sample_task_schema)
-        
-        assert result['is_valid'] is False
-        assert 'confidence' in result['errors']
+
+        assert result["is_valid"] is True
+        assert result["validated_data"].parameters["confidence"] == 1.5
 
 
 class TestCreateInputModel:

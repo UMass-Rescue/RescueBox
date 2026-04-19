@@ -15,7 +15,6 @@ def render_text_card(container: ui.element, text: str, title: str = "Text Result
             ):
                 # Header strip #505759 (see ui_readability_css .rb-job-text-result-header)
                 with ui.row().classes('rb-job-text-result-header w-full p-4 items-center'):
-                    ui.icon('article', size='1.5rem').classes('mr-3')
                     ui.label('Text Result').classes('text-lg font-bold')
                     if title and title != 'Text Result':
                         ui.label(f'• {title}').classes('ml-2 opacity-90 text-sm font-medium')

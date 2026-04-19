@@ -135,7 +135,9 @@ async def show_tool_selection(container: ui.element, endpoint: str):
                         ui.label('Assistant').classes(
                             'font-semibold !text-sm text-zinc-500 uppercase tracking-wide'
                         )
-                        ui.label(f"Running {endpoint} operation.").classes(
+                        ui.label(
+                            f"Running {ToolRegistry.display_name_for_endpoint(endpoint)} operation."
+                        ).classes(
                             '!text-base sm:!text-lg leading-snug text-zinc-800'
                         )
             logger.debug("Tool selection message displayed (fallback)")

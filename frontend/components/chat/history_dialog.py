@@ -35,9 +35,6 @@ def show_history_dialog(
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
             ui.label('Chat History').classes(Design.PANEL_SHELL_HEADER_TITLE)
             with ui.row().classes('gap-2 items-center'):
-                ui.button('Refresh', icon='refresh', on_click=_refresh).classes(
-                    f'{Design.BTN_PRIMARY_TIGHT} !text-sm !py-1 min-h-0'
-                )
                 ui.button(icon='close', on_click=dialog.close, color=None).props(
                     'flat round dense'
                 ).classes(Design.PANEL_SHELL_HEADER_ICON)

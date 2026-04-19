@@ -144,7 +144,7 @@ class TestModelsPageIntegration:
         
         await user.open('/models')
         await user.should_see('Available Plugins')
-        await user.should_see('Refresh')
+        
     
     @pytest.mark.asyncio
     async def test_models_page_displays_models(self, user: User, api_client: httpx.AsyncClient):
@@ -185,7 +185,6 @@ class TestJobsPageIntegration:
         # Jobs page loads from database, not API
         await user.open('/jobs')
         await user.should_see('Jobs')
-        await user.should_see('Refresh')
     
     @pytest.mark.asyncio
     async def test_jobs_page_displays_jobs(self, user: User):

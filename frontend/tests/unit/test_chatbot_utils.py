@@ -229,6 +229,21 @@ class TestNormalizeArguments:
         assert INPUT_DIR_KEY in result
         assert OUTPUT_DIR_KEY in result
 
+    def test_normalize_preserves_search_query_for_image_embeddings(self):
+        """CLIP / image search: ``query`` must stay as the text phrase, not ``query_directory``."""
+        args = {"input_dir": TEST_IMAGES_PATH, "query": "food"}
+        ep = "image_embeddings/search_images"
+        result = normalize_arguments(args, endpoint=ep)
+        assert result.get("query") == "food"
+        assert result.get("input_dir") == TEST_IMAGES_PATH
+
+    def test_normalize_preserves_search_query_for_text_embeddings(self):
+        args = {"input_dir": "/tmp/summaries", "query": "witness statement"}
+        result = normalize_arguments(
+            args, endpoint="text_embeddings/search"
+        )
+        assert result.get("query") == "witness statement"
+
 
 class TestIsRescueboxRequest:
     """Tests for RescueBox request validation and content filtering.

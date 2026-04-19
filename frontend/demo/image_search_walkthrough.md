@@ -4,13 +4,6 @@
 
 Run **search Images**  from the chat **Assistant** using a **natural-language prompt**. 
 
-- The **Search Images** plugin is a ML based app that scan images and provides descriptions. 
-
-- you provide a query string to find an image that matches this string.
-  example : **search these images for a young girl**
-
-- The rescuebox assistant proposes the tool; you confirm inputs, submit the job, then view results.
-
 ---
 
 ---
@@ -27,15 +20,17 @@ Run **search Images**  from the chat **Assistant** using a **natural-language pr
 
 1. In the chat input, ("Type your request") type a request prompt, for example:
 
-   - **search these images for a small child**
+   - **search these images for sports or games**
 
-   - or **search these images for sports or games**
+   - or **search these images for food**
+
+   - or **search these images for a small child**
+
+   - or **search these photos for a computer**
 
 {{SCREENSHOT:chat.png}}
 
 2. Send the message. The chat assistant should respond with an input form for the plugin.
-
-note: if you type something not understood by rescuebox, you should see a help output
 
 ---
 
@@ -49,7 +44,7 @@ note: if you type something not understood by rescuebox, you should see a help o
 
 2. For **Text query to find the most similar images** input,
 
-  if its not already set type "**small child**"
+  if its not already set type "**sports or games**"
 
 3. For other inputs keep the defaults.
 
@@ -65,7 +60,7 @@ note: if you type something not understood by rescuebox, you should see a help o
 
 2. Open the job to view **outputs**. A list of top-5 likely matches in images is returned. 
 
-NOTE: Some of these "**low similiarity**" rows could be incorrect, for example insead of "small child" query is "age < 10" or "kid" !
+NOTE: Some of these "**low similiarity**" rows could be incorrect, for example insead of "small child" query is changed to "age < 10" or a "kid" !
 
 ---
 

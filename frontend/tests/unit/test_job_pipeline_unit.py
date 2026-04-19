@@ -27,22 +27,22 @@ def _minimal_request_and_schema():
 class TestComputeJobResultsTitle:
     def test_multi_step_chain_uses_arrow_join(self):
         title = compute_job_results_title(
-            "text_embeddings/search",
-            ["image_summary/summarize-images", "text_embeddings/search"],
+            "Search Text",
+            ["Describe Images", "Search Text"],
         )
         assert title.startswith("Results for:")
         assert "→" in title
-        assert "image_summary/summarize-images" in title
-        assert "text_embeddings/search" in title
+        assert "Describe Images" in title
+        assert "Search Text" in title
 
     def test_single_endpoint_in_chain(self):
-        assert compute_job_results_title(None, ["audio/transcribe"]) == "Results for audio/transcribe"
+        assert compute_job_results_title(None, ["Transcribe Audio"]) == "Results for Transcribe Audio"
 
-    def test_fallback_to_endpoint_when_no_chain(self):
-        assert compute_job_results_title("audio/transcribe", None) == "Results for audio/transcribe"
-        assert compute_job_results_title("audio/transcribe", []) == "Results for audio/transcribe"
+    def test_fallback_to_name_when_no_chain(self):
+        assert compute_job_results_title("Transcribe Audio", None) == "Results for Transcribe Audio"
+        assert compute_job_results_title("Transcribe Audio", []) == "Results for Transcribe Audio"
 
-    def test_empty_without_endpoint(self):
+    def test_empty_without_name(self):
         assert compute_job_results_title(None, None) == "Results"
 
 

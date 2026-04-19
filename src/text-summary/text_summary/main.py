@@ -49,7 +49,7 @@ class Parameters(TypedDict):
 def task_schema() -> TaskSchema:
     input_dir_schema = InputSchema(
         key="input_dir",
-        label="Path to the directory containing the input files",
+        label="Path to the directory containing the input text files",
         input_type=InputType.DIRECTORY,
     )
     output_dir_schema = InputSchema(

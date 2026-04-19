@@ -75,7 +75,7 @@ def task_schema() -> TaskSchema:
     )
     query_schema = InputSchema(
         key="query",
-        label="Search query",
+        label="Search query text",
         input_type=InputType.TEXT,
     )
 

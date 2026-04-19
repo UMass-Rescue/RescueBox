@@ -41,10 +41,6 @@ def convert_arguments_to_initial_values(arguments: Dict[str, Any], task_schema: 
     initial_values = {'inputs': {}, 'parameters': {}}
     path_types = {InputType.DIRECTORY, InputType.FILE}
 
-    for args in normalized_args:
-        if args == "query":
-            initial_values['inputs']['query'] = ""
-    
     for input_schema in task_schema.inputs:
         if (key := input_schema.key) in normalized_args:
             wrapper = 'path' if input_schema.input_type in path_types else 'text'

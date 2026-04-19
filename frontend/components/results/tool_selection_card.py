@@ -1,5 +1,8 @@
 import logging
 from nicegui import ui
+
+from frontend.chatbot.config import ToolRegistry
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 # Keep a weak set of active selection cards so we can aggressively clear any orphaned cards.
@@ -12,7 +15,13 @@ def render_tool_selection_message(container: ui.element, endpoint: str):
     Render a small tool selection message card indicating the selected tool.
     Returns the created card element so the caller can manage its lifecycle.
     """
-    logger.debug("Rendering tool selection card for endpoint=%s into container=%r", endpoint, container)
+    plugin_label = ToolRegistry.display_name_for_endpoint(endpoint)
+    logger.debug(
+        "Rendering tool selection card for endpoint=%s label=%s into container=%r",
+        endpoint,
+        plugin_label,
+        container,
+    )
     # Create the card inside the (chat area) provided container context to avoid creating it
     # in the currently active UI context (which could be an input-area wrapper).
     with container:
@@ -24,7 +33,7 @@ def render_tool_selection_message(container: ui.element, endpoint: str):
                 ui.label('Assistant').classes(
                     'font-semibold !text-sm text-zinc-500 uppercase tracking-wide'
                 )
-                ui.label(f"Running {endpoint} operation.").classes(
+                ui.label(f"Running {plugin_label} operation.").classes(
                     '!text-base sm:!text-lg leading-snug text-zinc-800'
                 )
     try:

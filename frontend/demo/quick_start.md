@@ -48,15 +48,13 @@ The welcome page lists the main actions.
 
 **RescueBox Assistant** — Open **[Assistant](/chatbot)**, 
 
-- Either, click the **Menu** button 
+- Either, click the **Menu** button  or **type in a prompt**, to get an input form 
 
-- or **type in a prompt**, to get a input form 
-
-- Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown)
+- Complete **Inputs** / **Parameters** (use **Browse** for input paths on disk)
 
 - then **submit Job** and view results under **Jobs**.
 
-The three walkthoughs in this demo familiarize you with these operations.
+The **three walkthoughs in this demo** familiarize you with these operations.
 
 ---
 

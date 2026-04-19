@@ -13,6 +13,7 @@ from frontend.database import JobStatus, get_chat_history_db
 from frontend.database.job_db import get_job_db
 from frontend.utils.logging_context import set_logging_context
 
+from frontend.chatbot.config import ToolRegistry
 from frontend.pages.chatbot.utils.message_service import MessageService
 
 logger = logging.getLogger(__name__)
@@ -99,7 +100,7 @@ class DatabaseService:
             await chat_history.add_message(
                 conversation_id=conversation_id,
                 role='assistant',
-                content=f"Selected tool: {endpoint}",
+                content=f"Selected tool: {ToolRegistry.display_name_for_endpoint(endpoint)}",
                 message_type='tool_call',
                 tool_calls=[{
                     'name': endpoint,
@@ -118,7 +119,7 @@ class DatabaseService:
             await chat_history.add_message(
                 conversation_id=conversation_id,
                 role='assistant',
-                content=f"Job {job_id} started for {endpoint}",
+                content=f"Job {job_id} started for {ToolRegistry.display_name_for_endpoint(endpoint)}",
                 message_type='tool_result',
                 tool_call_endpoint=endpoint,
                 metadata={'job_id': job_id, 'status': 'RUNNING'}

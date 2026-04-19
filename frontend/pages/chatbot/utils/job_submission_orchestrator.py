@@ -21,6 +21,7 @@ from frontend.chatbot.multi_tool_handler import (
     batch_items_have_age_gender_metadata,
 )
 from frontend.components.shared.notifications import notify_info, notify_warning
+from frontend.chatbot.config import ToolRegistry
 from frontend.pages.chatbot.chatbot_forms import get_global_chat_container, show_results, load_and_show_form
 from frontend.pages.chatbot.utils.chat_layout_context import resolve_chat_container
 from frontend.chatbot import api_helpers
@@ -176,12 +177,13 @@ class JobSubmissionOrchestrator:
 
         # Persist an assistant message indicating which tool will be used.
         # This is saved when the form is submitted so cancelling the form leaves no history.
+        _plugin_label = ToolRegistry.display_name_for_endpoint(endpoint)
         try:
             if conversation_id:
                 await DatabaseService.save_message_to_history(
                     conversation_id,
                     role='assistant',
-                    content=f"Running {endpoint} operation.",
+                    content=f"Running {_plugin_label} operation.",
                     message_type='tool_selection',
                     tool_call_endpoint=endpoint,
                 )
@@ -196,7 +198,11 @@ class JobSubmissionOrchestrator:
             from frontend.components.results.tool_selection_card import render_tool_selection_message
             import nicegui
             # Create message and add to in-memory state manager for UI rendering
-            assistant_msg = ChatMessage('assistant', f"Running {endpoint} operation.", message_type='tool_selection')
+            assistant_msg = ChatMessage(
+                'assistant',
+                f"Running {_plugin_label} operation.",
+                message_type='tool_selection',
+            )
             # Add to state_manager if available
             if getattr(self.form_handler, 'state_manager', None):
                 try:
@@ -271,14 +277,16 @@ class JobSubmissionOrchestrator:
         # Build API endpoint path using helper
         api_endpoint = api_helpers.make_api_path(core.config.RESCUEBOX_HOST, endpoint)
 
-        # Create "Job running" message with updatable label (before _do_submit so closure captures it)
+        # Ephemeral status row (removed on success so only the green results banner remains).
+        _job_created_text = f'Job created {job_id}' if job_id else 'Job created'
         running_label_ref = []
+        running_status_shell_ref = []
         try:
-            from frontend.pages.chatbot.chatbot_message import ChatMessage
             target = resolve_chat_container(container)
             if target is not None:
                 with target:
-                    with ui.row().classes('w-full items-start'):
+                    with ui.row().classes('w-full items-start') as status_shell:
+                        running_status_shell_ref.append(status_shell)
                         with ui.card().classes(
                             'bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm max-w-sm'
                         ):
@@ -286,16 +294,12 @@ class JobSubmissionOrchestrator:
                                 ui.label('Assistant').classes(
                                     'font-medium text-xs text-indigo-900'
                                 )
-                                content_label = ui.label('Job running…').classes('text-sm text-zinc-800')
+                                content_label = ui.label(_job_created_text).classes('text-sm text-zinc-800')
                                 running_label_ref.append(content_label)
-                try:
-                    self.form_handler.state_manager.add_message(ChatMessage('assistant', 'Job running…'))
-                except Exception:
-                    pass
                 _run_client = getattr(target, 'client', None)
                 ui.timer(0.1, lambda c=_run_client: UIOperations.scroll_to_bottom(client=c), once=True)
         except Exception as render_err:
-            self.logger.debug("Could not render job running message: %s", render_err)
+            self.logger.debug("Could not render job status message: %s", render_err)
 
         async def _do_submit():
             try:
@@ -320,12 +324,14 @@ class JobSubmissionOrchestrator:
                 try:
                     if container is not None:
                         _ = container.client
-                        # Update "Job running" to "Job completed" before showing results
-                        if running_label_ref:
+                        # Drop ephemeral assistant status row; completion UI is the green results banner only.
+                        if running_status_shell_ref:
                             try:
-                                running_label_ref[0].text = 'Job completed'
+                                running_status_shell_ref[0].delete()
                             except Exception:
                                 pass
+                            running_status_shell_ref.clear()
+                            running_label_ref.clear()
                         # show_results will handle container validity internally
                         logger.info("job_submission_orchestrator: about to show_results container=%r job_id=%s", container, job_id)
                         try:
@@ -479,12 +485,12 @@ class JobSubmissionOrchestrator:
             # Fallback to asyncio task if background_tasks not available
             asyncio.create_task(_do_submit())
 
-        # Keep processing state and show "Job running" so user sees status (like smart analyze)
+        # Keep processing state; status line matches ephemeral card above when job_id exists.
         try:
             if getattr(self.form_handler, 'state_manager', None):
                 try:
                     self.form_handler.state_manager.set_processing(True)
-                    self.form_handler.state_manager.set_status('Job running…')
+                    self.form_handler.state_manager.set_status(_job_created_text)
                 except Exception:
                     pass
         except Exception:

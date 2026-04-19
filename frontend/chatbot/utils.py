@@ -75,14 +75,12 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
         else:
             new_key = key_mappings.get(key_lower, key)
 
-        # text_embeddings/search: "query" is search text, not query_directory - preserve it
+        # text_embeddings/search: "query" is search text, not query_directory — keep key and value.
         if "text_embeddings" in endpoint and key_lower == "query":
             new_key = "query"
-            value = ""
-        # image_embeddings/search_images: "query" is search text, not query_directory - preserve it
+        # image_embeddings/search_images: same — do not blank the model's search phrase.
         elif "image_embeddings" in endpoint and key_lower == "query":
             new_key = "query"
-            value = ""
         # Endpoint-specific overrides (from rescuebox_tool.py)
         elif ("age_gender" in endpoint or "age-gender" in endpoint) and new_key == "input_dir":
             new_key = "image_directory"

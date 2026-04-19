@@ -92,7 +92,7 @@ class ModelsPage:
                             UI_BUTTONS['open_assistant'],
                             on_click=lambda: ui.navigate.to(NAV_LINKS['chatbot'])
                         ).classes('rb-brand-primary text-white rounded-xl')
-                        ui.button(UI_BUTTONS['refresh'], on_click=self.load_models).classes('rb-brand-primary text-white')
+                       
 
                     render_page_header(UI_TITLES['models'], actions_callable=_header_actions)
                 except Exception:

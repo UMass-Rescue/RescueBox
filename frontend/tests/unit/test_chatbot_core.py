@@ -170,7 +170,33 @@ class TestChatbotCore:
             endpoint="ufdr_mounter/mount",
         )
         assert initial_values["inputs"]["mount_name"]["text"] == "/tmp/case3"
-    
+
+    def test_convert_arguments_preserves_image_search_query(self, core):
+        """Granite tool args include ``query``; form pre-fill must not drop the phrase."""
+        from rb.api.models import TaskSchema, InputSchema, InputType
+
+        schema = TaskSchema(
+            inputs=[
+                InputSchema(
+                    key="input_dir",
+                    label="Images",
+                    input_type=InputType.DIRECTORY,
+                ),
+                InputSchema(
+                    key="query",
+                    label="Search",
+                    input_type=InputType.TEXT,
+                ),
+            ],
+            parameters=[],
+        )
+        initial_values = core.convert_arguments_to_initial_values(
+            {"input_dir": "/data/evidence/photos", "query": "food"},
+            schema,
+            endpoint="image_embeddings/search_images",
+        )
+        assert initial_values["inputs"]["query"]["text"] == "food"
+
     @pytest.mark.asyncio
     async def test_submit_job_success(self, core):
         """Test successful job submission"""

@@ -153,6 +153,14 @@ class ToolRegistry:
         return None
 
     @staticmethod
+    def display_name_for_endpoint(endpoint: Optional[str]) -> str:
+        """User-facing plugin label for an API route; falls back to the route string."""
+        ep = (endpoint or "").strip().lstrip("/")
+        if not ep:
+            return "plugin"
+        return ToolRegistry.tool_menu_name_for_endpoint(ep) or ep
+
+    @staticmethod
     def ordered_plugin_uids() -> List[str]:
         """
         Plugin ``uid`` values (first path segment of each TOOL_MENU endpoint) in tool-picker order.

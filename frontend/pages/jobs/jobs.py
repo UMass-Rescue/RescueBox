@@ -8,6 +8,7 @@ including job details, cancellation, and deletion.
 import logging
 from nicegui import ui
 from typing import List, Dict
+from frontend.chatbot.config import ToolRegistry
 from frontend.components.shared import create_navbar
 from frontend.components.jobs import render_job_row
 from frontend.pages.jobs.job_utils import extract_job_fields, get_plugin_name
@@ -66,14 +67,9 @@ class JobsPage:
         """
         #logger.info("Rendering jobs page")
         with ui.column().classes('container mx-auto p-8'):
-            try:
-                from frontend.components.jobs.jobs_header import render_jobs_header
-                render_jobs_header(ui.column(), UI_TITLES['jobs'], on_refresh=self.load_jobs)
-            except Exception:
-                # Fallback inline
-                ui.label(UI_TITLES['jobs']).classes('text-4xl font-bold mb-6')
-                ui.button(UI_BUTTONS['refresh'], on_click=self.load_jobs).classes('mb-4 rb-brand-primary text-white')
-
+            with ui.row().classes('items-center justify-between mb-6'):
+                ui.label(UI_TITLES['jobs']).classes('text-4xl font-bold')
+            
             # Jobs table
             #logger.debug("Creating jobs container")
             self.jobs_container = ui.column().classes('space-y-2 w-full')
@@ -139,7 +135,7 @@ class JobsPage:
                 'w-full flex-nowrap'
             ):
                 ui.label('Job ID').classes('w-40 shrink-0')
-                ui.label('Model').classes('flex-1 min-w-0')
+                ui.label('Plugin').classes('flex-1 min-w-0')
                 ui.label('Time').classes('w-64 shrink-0')
                 ui.label('Status').classes('w-32 shrink-0')
                 ui.label('Actions').classes('w-48 shrink-0')
@@ -173,7 +169,9 @@ class JobsPage:
 
                     plugin_name = await get_plugin_name(self.api_client, job_fields['modelUid'])
                     if not plugin_name and job_fields['endpoint']:
-                        plugin_name = job_fields['endpoint']
+                        plugin_name = ToolRegistry.display_name_for_endpoint(
+                            job_fields['endpoint']
+                        )
 
                     render_job_row(
                         group_wrap,

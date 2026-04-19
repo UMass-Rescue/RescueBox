@@ -85,6 +85,32 @@ def _serve_route_for_path(file_path: str) -> str:
     return f"/_serve/{token}/{os.path.basename(file_path)}"
 
 
+def open_text_markdown_modal(filename: str, body: str) -> None:
+    """
+    Show full text (e.g. summary ``.txt``) in a scrollable modal.
+
+    Uses a readonly ``textarea`` so plain ``.txt`` always shows reliably (``ui.markdown``
+    inside flex ``scroll_area`` can collapse to an empty-looking view for some payloads).
+    """
+    text = body if body is not None else ""
+    with ui.dialog() as dialog, ui.card().classes(
+        'max-w-[92vw] w-[min(56rem,92vw)] max-h-[90vh] flex flex-col p-4 gap-3'
+    ):
+        ui.label(filename or 'Document').classes('text-lg font-semibold shrink-0 text-zinc-900')
+        with ui.scroll_area().classes(
+            'w-full min-h-[50vh] max-h-[75vh] border border-zinc-200 rounded-lg bg-white'
+        ):
+            if text.strip():
+                ui.textarea(value=text).props(
+                    'readonly outlined dense input-class=font-mono'
+                ).classes('w-full min-h-[48vh]').style('white-space: pre-wrap')
+            else:
+                ui.label('No content').classes('text-zinc-500 italic p-4')
+        with ui.row().classes('justify-end shrink-0'):
+            ui.button('Close', on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
+    dialog.open()
+
+
 def _open_image_preview_dialog(file_path: str, route: str) -> None:
     """Show image in a modal with path and quick access to the containing folder."""
     folder = os.path.dirname(file_path)

@@ -102,7 +102,7 @@ def create_navbar():
                         ('Jobs', '/jobs'),
                         ('Logs', '/logs'),
                         ('Demo', '/demo'),
-                        ('Browse Plugins', '/models'),
+                        ('Readme', '/models'),
                         ('About', constants.NAV_LINKS['about']),
                     )
                     for label, path in _nav_items:

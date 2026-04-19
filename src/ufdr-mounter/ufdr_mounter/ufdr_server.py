@@ -185,7 +185,7 @@ def ufdr_task_schema() -> TaskSchema:
             InputSchema(key="ufdr_file", label="Path to the UFDR File", input_type=InputType.FILE),
             InputSchema(
                 key="mount_name",
-                label="Mount folder (required: /tmp/<name> , e.g. /tmp/case123)",
+                label="Mount folder , take default or /tmp/<name> , e.g. /tmp/case123",
                 input_type=InputType.TEXT,
             ),
         ],

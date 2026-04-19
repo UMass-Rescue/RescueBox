@@ -5,6 +5,7 @@ from frontend.components.results import ResultsPreview
 from frontend.components.results.image_summary_results_view import (
     augment_response_model_dump_for_image_summary,
 )
+from frontend.chatbot.config import ToolRegistry
 from frontend.pages.jobs.job_utils import extract_job_fields, compute_job_results_title
 from frontend.pages.jobs.components import render_error_status, render_job_action_buttons, render_compact_inputs_summary
 
@@ -25,6 +26,12 @@ async def render_job_outputs_card(container, api_client, job):
     task_schema_dict = job_fields['taskSchema']
     endpoint = job_fields['endpoint']
     endpoint_chain = job_fields.get('endpointChain')
+    endpoint_name = ToolRegistry.display_name_for_endpoint(endpoint) if endpoint else None
+    endpoint_name_chain = (
+        [ToolRegistry.display_name_for_endpoint(ep) for ep in endpoint_chain]
+        if isinstance(endpoint_chain, list) and endpoint_chain
+        else None
+    )
 
     logger.info("Rendering job outputs for job: %s", job_uid)
 
@@ -65,7 +72,7 @@ async def render_job_outputs_card(container, api_client, job):
                 try:
                     if isinstance(task_schema_dict, dict):
                         TaskSchema(**task_schema_dict)
-                    task_title = compute_job_results_title(endpoint, endpoint_chain)
+                    task_title = compute_job_results_title(endpoint_name, endpoint_name_chain)
                 except Exception:
                     task_title = (
                         task_schema_dict.get("shortTitle", "Results")

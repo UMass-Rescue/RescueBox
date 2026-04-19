@@ -66,28 +66,34 @@ async def demo_page(walkthrough: Optional[str] = None):
                 
         else:
             ui.label('RescueBox Demo').classes('text-3xl font-bold mb-4')
-            ui.label('Follow the step-by-step guide to learn RescueBox.').classes('text-zinc-600 mb-6')
+            ui.label('Follow the step-by-step guide to learn RescueBox.').classes('text-black-600 mb-6')
             with ui.column().classes('gap-3 items-start'):
+                # Neutral outline: no Quasar primary / no brand fill (color=None + flat outline).
                 _demo_btn = (
-                    'rb-brand-primary text-white px-6 py-3 rounded-xl '
-                    'font-semibold shadow-md shadow-indigo-200/50 transition-all'
+                    'text-zinc-800 px-6 py-3 rounded-xl font-semibold '
+                    'bg-white border border-zinc-300 hover:bg-zinc-50 transition-colors'
                 )
+                _demo_btn_props = 'flat unelevated no-caps'
                 ui.button(
                     'Quick start guide',
                     on_click=lambda: ui.navigate.to('/demo/quick-start'),
-                ).classes(_demo_btn)
+                    color=None,
+                ).classes(_demo_btn).props(_demo_btn_props)
                 ui.button(
                     '1 Plugins menu walkthrough',
                     on_click=lambda: ui.navigate.to('/demo/transcribe-walkthrough'),
-                ).classes(_demo_btn)
+                    color=None,
+                ).classes(_demo_btn).props(_demo_btn_props)
                 ui.button(
                     '2 Chat mode walkthrough',
                     on_click=lambda: ui.navigate.to('/demo/image-search-walkthrough'),
-                ).classes(_demo_btn)
+                    color=None,
+                ).classes(_demo_btn).props(_demo_btn_props)
                 ui.button(
                     '3 Interesting Scenarios walkthrough',
                     on_click=lambda: ui.navigate.to('/demo/other-walkthrough'),
-                ).classes(_demo_btn)
+                    color=None,
+                ).classes(_demo_btn).props(_demo_btn_props)
 
             ui.separator().classes('my-8')
 
