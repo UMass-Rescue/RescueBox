@@ -28,32 +28,10 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
     This function maps common key variations to standardized API parameter names.
     For example, it converts "input_directory", "input_path", "input", "path",
     "directory", or "folder" all to the standard "input_dir" key.
-    
-    The function also handles endpoint-specific overrides where certain endpoints
-    expect different parameter names even after general normalization.
-    
-    Args:
-        user_args (Dict[str, Any]): Dictionary of arguments from tool call or user input.
-            Keys may use various formats (e.g., "input_directory", "input_dir")
-        endpoint (str): Endpoint name for endpoint-specific normalization overrides.
-            Used to apply special cases (e.g., age_gender expects "image_directory")
         
     Returns:
         Dict[str, Any]: Dictionary with normalized argument keys matching API expectations.
             Original values are preserved, only keys are normalized.
-    
-    Examples:
-        >>> normalize_arguments({"input_directory": "/tmp", "output_path": "/out"})
-        {'input_dir': '/tmp', 'output_dir': '/out'}
-        
-    >>> normalize_arguments({"input_dir": "/tmp"}, endpoint="age-gender/predict")
-    {'image_directory': '/tmp'}  # Special override for age-gender endpoint
-    
-    Tips:
-    - Always pass the endpoint name when available for accurate normalization
-    - Unknown keys are preserved as-is (no mapping found)
-    - Normalization is case-insensitive (INPUT_DIRECTORY -> input_dir)
-    - Endpoint-specific overrides take precedence over general mappings
     """
     logger.info("Normalizing arguments for endpoint: %s", endpoint or 'generic')
     logger.debug("Input arguments: %s", list(user_args.keys()))
@@ -100,9 +78,11 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
         # text_embeddings/search: "query" is search text, not query_directory - preserve it
         if "text_embeddings" in endpoint and key_lower == "query":
             new_key = "query"
+            value = ""
         # image_embeddings/search_images: "query" is search text, not query_directory - preserve it
         elif "image_embeddings" in endpoint and key_lower == "query":
             new_key = "query"
+            value = ""
         # Endpoint-specific overrides (from rescuebox_tool.py)
         elif ("age_gender" in endpoint or "age-gender" in endpoint) and new_key == "input_dir":
             new_key = "image_directory"
@@ -233,7 +213,7 @@ def get_rejection_message(reason: str) -> str:
         "## 🚫 Request Not Supported\n\nI am **RescueBox Forensic Assistant**..."
         
         >>> get_rejection_message("no_match")
-        "## ❓ I Didn't Understand Your Request\n\nI am **RescueBox Forensic Assistant**..."
+        "#### I am a **RescueBox Forensic Assistant**..."
     
     Tips:
     - Messages are in markdown format for rich display in UI
@@ -245,21 +225,21 @@ def get_rejection_message(reason: str) -> str:
     
     if reason == "non_forensic":
         logger.debug("Using non_forensic rejection message")
-        return """## 🚫 Request Not Supported
+        return """
 
-I am **RescueBox Forensic Assistant** - I only handle forensic analysis tasks.
+**RescueBox chat Assistant** - only handles specific prompts.
 
-### What I CAN Do:
+### What will work:
 
 | Task | Example |
 |------|---------|
-| 🎤 **Transcribe Audio** | Transcribe recordings in /evidence/audio |
-| 🖼️ **Describe Images** | Describe photos in /case/images |
-| 👤 **Age & Gender** | Classify faces in /suspects |
-| 🔍 **Detect Deepfakes** | Check /evidence/videos for deepfakes |
-| 📤 **Upload Faces** | Upload faces from /known to suspects collection |
-| 🔎 **Find Faces** | Find matching faces in /unknown |
-| 📝 **Summarize Text** | Summarize documents in /case/reports |
+| **Transcribe Audio** | Transcribe recordings in /evidence/audio |
+| **Describe Images** | Describe photos in /case/images |
+| **Age & Gender** | Classify faces in /suspects |
+| **Detect Deepfakes** | Check /evidence/videos for deepfakes |
+| **Upload Faces** | Upload faces from /known to suspects collection |
+| **Find Faces** | Find matching faces in /unknown |
+| **Summarize Text** | Summarize documents in /case/reports |
 
 Please rephrase your request as a forensic analysis task."""
     else:  # no_match

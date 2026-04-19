@@ -14,7 +14,7 @@ def render_model_info_card(container: ui.element, model_info: Any, model_info_di
     """
     try:
         with container:
-            with ui.card().classes('bg-sky-50 border border-sky-300 p-6 sticky top-24'):
+            with ui.card().classes('bg-zinc-50  border border-sky-300 p-6 sticky top-24'):
                 ui.label('Model Information').classes('text-xl font-bold mb-4')
 
                 # Version

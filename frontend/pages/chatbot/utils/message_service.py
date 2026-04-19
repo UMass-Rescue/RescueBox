@@ -76,7 +76,7 @@ class MessageService:
         if role == 'tool_call' and not content and hasattr(record, 'tool_calls') and record.tool_calls:
             tool_call = record.tool_calls[0] if record.tool_calls else {}
             endpoint = tool_call.get('name', 'unknown')
-            content = f"🔧 Tool Call: {endpoint}"
+            content = f"Tool call: {endpoint}"
             message.content = content
 
         # Set timestamp if available
@@ -143,7 +143,7 @@ class MessageService:
                 ep = endpoint
                 if not ep and message and getattr(message, 'content', None):
                     import re
-                    m = re.search(r"I'll use (.+?) to help you\.", message.content, re.DOTALL)
+                    m = re.search(r"Running (.+?) operation\.", message.content, re.DOTALL)
                     ep = m.group(1).strip() if m else None
                 if ep:
                     render_tool_selection_message(container, ep)
@@ -163,7 +163,7 @@ class MessageService:
                 # Render tool call with result and re-run button (fallback)
                 with container:
                     with ui.card().classes(UIStyling.CARD_TOOL_CALL):
-                        ui.label(f"🔧 Model Call: {endpoint}").classes(UIStyling.LABEL_TOOL_CALL_TITLE)
+                        ui.label(f"Model call · {endpoint}").classes(UIStyling.LABEL_TOOL_CALL_TITLE)
 
                         # Show arguments if any
                         if arguments:
@@ -171,7 +171,7 @@ class MessageService:
 
                         # Show result if available
                         if result_content:
-                            ui.label("✅ Result:").classes(UIStyling.LABEL_TOOL_RESULT_TITLE)
+                            ui.label('Result').classes(UIStyling.LABEL_TOOL_RESULT_TITLE)
                             ui.label(result_content).classes(UIStyling.LABEL_TOOL_RESULT_CONTENT)
 
                         # Add re-run button
@@ -192,14 +192,14 @@ class MessageService:
             except Exception:
                 with container:
                     with ui.card().classes(UIStyling.CARD_TOOL_RESULT):
-                        ui.label("✅ Result").classes(UIStyling.LABEL_TOOL_RESULT_TITLE)
+                        ui.label('Result').classes(UIStyling.LABEL_TOOL_RESULT_TITLE)
                         ui.label(message.content).classes(UIStyling.LABEL_TOOL_RESULT_CONTENT)
 
         elif message_type == 'error':
             # Render error message
             with container:
                 with ui.card().classes(UIStyling.CARD_ERROR):
-                    ui.label("❌ Error").classes(UIStyling.LABEL_ERROR_TITLE)
+                    ui.label('Error').classes(UIStyling.LABEL_ERROR_TITLE)
                     ui.label(message.content).classes(UIStyling.LABEL_ERROR_CONTENT)
 
         else:

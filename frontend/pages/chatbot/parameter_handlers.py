@@ -198,15 +198,15 @@ async def handle_rerun_parameter(message_id: str, chatbot: Optional[ChatbotPage]
         message = await chat_history.get_tool_call_by_id(message_id)
 
         if not message:
-            ui.notify('Tool call not found for rerun', type='negative')
+            ui.notify('Tool call not found for rerun', type='negative', classes='rb-notify-505759')
             return
 
         if not message.tool_call_endpoint or not message.tool_call_arguments:
-            ui.notify('Invalid tool call data for rerun', type='negative')
+            ui.notify('Invalid tool call data for rerun', type='negative', classes='rb-notify-505759')
             return
 
         # Show what we're rerunning
-        ui.notify(f'Re-running: {message.tool_call_endpoint}', type='info')
+        ui.notify(f'Re-running: {message.tool_call_endpoint}', type='info', classes='rb-notify-505759')
 
         # Create a temporary chatbot instance to handle the rerun
         # We'll simulate sending the tool call through the normal flow
@@ -224,7 +224,7 @@ async def handle_rerun_parameter(message_id: str, chatbot: Optional[ChatbotPage]
             pass
         except Exception as e:
             logger.error("Error during load_and_show_form: %s", e)
-            ui.notify(f"Failed to rerun tool call: {e}", type='negative')
+            ui.notify(f"Failed to rerun tool call: {e}", type='negative', classes='rb-notify-505759')
             return
 
         try:
@@ -235,7 +235,7 @@ async def handle_rerun_parameter(message_id: str, chatbot: Optional[ChatbotPage]
 
     except Exception as e:
         logger.error("Error handling rerun parameter: %s", str(e))
-        ui.notify(f'Failed to rerun tool call: {str(e)}', type='negative')
+        ui.notify(f'Failed to rerun tool call: {str(e)}', type='negative', classes='rb-notify-505759')
 
 
 async def handle_load_conversation_parameter(conversation_id: str, chatbot: Optional[ChatbotPage] = None):
@@ -260,7 +260,7 @@ async def handle_load_conversation_parameter(conversation_id: str, chatbot: Opti
 
         if not conversation or not messages:
             logger.warning("handle_load_conversation_parameter: conversation not found or empty")
-            ui.notify('Conversation not found or empty', type='negative')
+            ui.notify('Conversation not found or empty', type='negative', classes='rb-notify-505759')
             return
 
         active_chatbot = chatbot or ChatbotPage()
@@ -285,8 +285,8 @@ async def handle_load_conversation_parameter(conversation_id: str, chatbot: Opti
         await active_chatbot.load_conversation_from_data(conversation_data)
         await active_chatbot.scroll_to_bottom()
         logger.info("handle_load_conversation_parameter: loaded successfully, title=%s", conversation.title)
-        ui.notify(f'Loaded conversation: {conversation.title}', type='positive')
+        UIOperations.safe_notify(f"Loaded conversation: {conversation.title}")
 
     except Exception as e:
         logger.error("handle_load_conversation_parameter failed: %s", str(e), exc_info=True)
-        ui.notify(f'Failed to load conversation: {str(e)}', type='negative')
+        UIOperations.safe_notify(f"Failed to load conversation: {str(e)}", type="negative")

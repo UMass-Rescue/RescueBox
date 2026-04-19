@@ -20,18 +20,35 @@ async def render_job_details_panel(container: ui.element, api_client, job_fields
     request_body_dict = job_fields.get('request', {})
     task_schema_dict = job_fields.get('taskSchema')
     case_notes = job_fields.get('caseNotes')
+    pipeline_filter = job_fields.get('pipelineMetadataFilterCriteria')
 
     with container:
-        with ui.card().classes('w-full min-w-0 max-w-full self-stretch bg-white border border-gray-300 p-6'):
+        with ui.card().classes('w-full min-w-0 max-w-full self-stretch bg-white border border-zinc-300 p-6'):
             # Job metadata header
             with ui.column().classes('gap-4 w-full min-w-0 max-w-full'):
                 ui.label('Job Information').classes('text-2xl font-bold')
 
+                # Classifier metadata filter (age/gender pipeline → next step), if recorded
+                if pipeline_filter is not None:
+                    with ui.column().classes('gap-2'):
+                        ui.label('Classifier filter (next pipeline step)').classes(
+                            'font-semibold text-zinc-700'
+                        )
+                        _txt = (pipeline_filter or '').strip()
+                        ui.label(
+                            _txt
+                            if _txt
+                            else 'No age/gender filter — all images were eligible for the next step.'
+                        ).classes(
+                            'text-sm text-zinc-800 whitespace-pre-wrap rounded p-3 '
+                            'bg-amber-50/80 border border-amber-100'
+                        )
+
                 # Case notes section
                 if case_notes:
                     with ui.column().classes('gap-2'):
-                        ui.label('Case Notes').classes('font-semibold text-gray-700')
-                        ui.label(case_notes).classes('text-gray-800 whitespace-pre-wrap rounded p-3 bg-gray-50 border border-gray-200')
+                        ui.label('Case Notes').classes('font-semibold text-zinc-700')
+                        ui.label(case_notes).classes('text-zinc-800 whitespace-pre-wrap rounded p-3 bg-zinc-50 border border-zinc-200')
                 elif case_notes is not None and case_notes == '':
                     pass  # Empty notes, don't show section
                 # If caseNotes key not present (older jobs), don't show
@@ -44,6 +61,22 @@ async def render_job_details_panel(container: ui.element, api_client, job_fields
                     await render_model_info(api_client, job_fields)
                 except Exception as e:
                     logger.debug("Failed to render model info: %s", e)
+
+                # Failed runs: keep the message with other job fields (not only under Outputs).
+                _status = str(job_fields.get("status") or "")
+                _status_text = (job_fields.get("statusText") or "").strip()
+                if _status == "Failed":
+                    with ui.column().classes("gap-2 w-full min-w-0"):
+                        ui.label("Failure message").classes("font-semibold text-zinc-800")
+                        if _status_text:
+                            ui.label(_status_text).classes(
+                                "text-sm text-zinc-900 whitespace-pre-wrap rounded p-3 "
+                                "bg-zinc-50 border border-zinc-200"
+                            )
+                        else:
+                            ui.label(
+                                "No error message was recorded for this run."
+                            ).classes("text-sm text-zinc-600 italic")
 
                 # Request body (read-only form)
                 if task_schema_dict:

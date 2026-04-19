@@ -12,6 +12,7 @@ from datetime import datetime
 
 from frontend.database import get_chat_history_db, ConversationRecord, ChatMessageRecord
 from frontend.constants import UI_BUTTONS
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -19,7 +20,9 @@ logger.setLevel(logging.INFO)
 
 def create_history_panel(
     on_conversation_select: Optional[Callable[[str], None]] = None,
-    on_rerun_tool: Optional[Callable[[str], None]] = None
+    on_rerun_tool: Optional[Callable[[str], None]] = None,
+    *,
+    show_title: bool = True,
 ) -> ui.column:
     """
     Create a chat history panel component.
@@ -45,16 +48,9 @@ def create_history_panel(
     panel = ui.column().classes('w-full h-full')
 
     with panel:
-        # Header
-        with ui.row().classes('items-center justify-between mb-4'):
-            ui.label('Chat History').classes('text-xl font-bold')
-            ui.button('Refresh', on_click=lambda: refresh_conversations(panel)).classes('text-sm')
-
-        # Search box
-        search_input = ui.input(
-            placeholder='Search conversations...',
-            on_change=lambda e: filter_conversations(panel, e.value)
-        ).classes('w-full mb-4')
+        if show_title:
+            with ui.row().classes('items-center justify-between mb-4'):
+                ui.label('Chat History').classes('text-xl font-bold')
 
         # Conversations list
         conversations_container = ui.column().classes('space-y-2 overflow-y-auto')
@@ -104,7 +100,7 @@ async def refresh_conversations(container: ui.column):
 
         if not conversations:
             with conversations_container:
-                ui.label('No conversations yet').classes('text-gray-500 text-center py-8')
+                ui.label('No conversations yet').classes('text-zinc-500 text-center py-8')
             logger.info("No conversations found - displaying empty message")
             return
 
@@ -155,11 +151,11 @@ def render_conversation_card(container: ui.column, conversation: ConversationRec
     except Exception:
         # fallback to inline rendering if component fails
         with container:
-            with ui.card().classes('p-4 cursor-pointer hover:bg-gray-50'):
+            with ui.card().classes('p-4 cursor-pointer hover:bg-zinc-50'):
                 # Title and timestamp
                 with ui.row().classes('items-center justify-between mb-2'):
                     ui.label(conversation.title).classes('font-semibold flex-1')
-                    ui.label(_format_timestamp(conversation.updated_at)).classes('text-xs text-gray-500')
+                    ui.label(_format_timestamp(conversation.updated_at)).classes('text-xs text-zinc-500')
 
                 # Message count (includes user queries, assistant responses, tool results, errors)
                 try:
@@ -167,19 +163,19 @@ def render_conversation_card(container: ui.column, conversation: ConversationRec
                 except Exception:
                     msg_count = 0
                 if msg_count > 0:
-                    ui.label(f'{msg_count} messages').classes('text-sm text-gray-600 mb-2')
+                    ui.label(f'{msg_count} messages').classes('text-sm text-zinc-600 mb-2')
 
                 # Actions
                 with ui.row().classes('gap-2'):
                     ui.button(
                         'View',
                         on_click=lambda cid=conversation.conversation_id: view_conversation(cid)
-                    ).classes('text-sm bg-blue-600 text-white')
+                    ).classes('text-sm rb-brand-primary text-white')
 
                     ui.button(
                         'Load',
                         on_click=lambda cid=conversation.conversation_id: load_conversation(cid)
-                    ).classes('text-sm bg-green-600 text-white')
+                    ).classes('text-sm rb-brand-primary text-white rounded-lg')
 
 
 def filter_conversations(container: ui.column, search_term: str):

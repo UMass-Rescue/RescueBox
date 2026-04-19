@@ -7,6 +7,8 @@ from typing import Any, Dict
 
 from nicegui import ui
 
+from frontend.design_tokens import Design
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,10 +32,12 @@ def render_case_export_button(job_fields: Dict[str, Any]) -> None:
             ui.download(data, f"rescuebox-job-{uid}.jsonld")
         except Exception as e:
             logger.exception("CASE export failed: %s", e)
-            ui.notify(f"Export failed: {e}", type="negative")
+            ui.notify(f"Export failed: {e}", type="negative", classes="rb-notify-505759")
 
     ui.button(
         "Export CASE JSON-LD",
         icon="download",
         on_click=_download,
-    ).props("outline dense").tooltip("Download a JSON-LD fragment (UCO-oriented) for this job")
+    ).classes(Design.BTN_MEDIUM_GRAY).props("dense").tooltip(
+        "Download a JSON-LD fragment (UCO-oriented) for this job"
+    )

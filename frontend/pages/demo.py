@@ -57,33 +57,37 @@ async def demo_page(walkthrough: Optional[str] = None):
             with ui.column().props('id=sample-inputs').classes('scroll-mt-24 w-full'):
                 ui.label('Sample inputs & outputs').classes('text-2xl font-bold mb-1')
                 if preset in _SAMPLE_FILTER_BLURB:
-                    ui.label(_SAMPLE_FILTER_BLURB[preset]).classes('text-gray-600 text-sm mb-3')
+                    ui.label(_SAMPLE_FILTER_BLURB[preset]).classes('text-zinc-600 text-sm mb-3')
                 guide = _WALKTHROUGH_GUIDE_PATH.get(preset)
                 label = _BACK_TO_GUIDE_LABEL.get(preset)
                 render_demo_files_explorer(ui.column().classes('w-full min-w-0'), walkthrough=preset)
                 if guide and label:
-                    ui.link(label, guide).classes('text-blue-600 hover:underline text-sm mb-4 inline-block')
+                    ui.link(label, guide).classes('text-indigo-600 hover:underline text-sm mb-4 inline-block')
                 
         else:
             ui.label('RescueBox Demo').classes('text-3xl font-bold mb-4')
-            ui.label('Follow the step-by-step guide to learn RescueBox.').classes('text-black-600 mb-6')
+            ui.label('Follow the step-by-step guide to learn RescueBox.').classes('text-zinc-600 mb-6')
             with ui.column().classes('gap-3 items-start'):
+                _demo_btn = (
+                    'rb-brand-primary text-white px-6 py-3 rounded-xl '
+                    'font-semibold shadow-md shadow-indigo-200/50 transition-all'
+                )
                 ui.button(
                     'Quick start guide',
                     on_click=lambda: ui.navigate.to('/demo/quick-start'),
-                ).classes('bg-blue-600 text-white px-6 py-3')
+                ).classes(_demo_btn)
                 ui.button(
                     '1 Plugins menu walkthrough',
                     on_click=lambda: ui.navigate.to('/demo/transcribe-walkthrough'),
-                ).classes('bg-green-600 text-white px-6 py-3')
+                ).classes(_demo_btn)
                 ui.button(
                     '2 Chat mode walkthrough',
                     on_click=lambda: ui.navigate.to('/demo/image-search-walkthrough'),
-                ).classes('bg-violet-600 text-white px-6 py-3')
+                ).classes(_demo_btn)
                 ui.button(
                     '3 Interesting Scenarios walkthrough',
                     on_click=lambda: ui.navigate.to('/demo/other-walkthrough'),
-                ).classes('bg-amber-600 text-white px-6 py-3')
+                ).classes(_demo_btn)
 
             ui.separator().classes('my-8')
 
@@ -91,10 +95,10 @@ async def demo_page(walkthrough: Optional[str] = None):
                 ui.label('Sample inputs & outputs').classes('text-2xl font-bold mb-2')
                 ui.label(
                     'Rescuebox demo folders for each plugin.'
-                ).classes('text-black-600 mb-4')
+                ).classes('text-zinc-600 mb-4')
 
                 render_demo_files_explorer(ui.column().classes('w-full min-w-0'), walkthrough=preset)
 
-            ui.link('Rescuebox Home', NAV_LINKS['home']).classes('mt-8 text-blue-600 hover:underline')
+            ui.link('Rescuebox Home', NAV_LINKS['home']).classes('mt-8 text-indigo-600 hover:underline')
 
     schedule_hash_fragment_scroll()

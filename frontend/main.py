@@ -84,6 +84,7 @@ BACKEND_AVAILABLE = _backend_integration.BACKEND_AVAILABLE
 prefetch_and_cache_models = _backend_integration.prefetch_and_cache_models
 setup_backend_routes = _backend_integration.setup_backend_routes
 
+from frontend.design_tokens import Design
 from frontend.utils.nicegui_storage import (
     clear_explicit_user_id,
     ensure_explicit_user_id_for_tests,
@@ -124,12 +125,12 @@ async def index():
         logger.debug("Creating main content container")
         if explicit_user_id:
             ui.label(UI_TITLES["home"]).classes("text-4xl font-bold mb-4")
-            ui.label(UI_TITLES["home_subtitle"]).classes("text-xl text-gray-600")
-            with ui.card().classes("w-full max-w-xl mt-4 p-4 bg-gray-50"):
+            ui.label(UI_TITLES["home_subtitle"]).classes("text-xl text-zinc-600")
+            with ui.card().classes("w-full max-w-xl mt-4 p-4 bg-zinc-50"):
                 ui.label(f"{HOME_USER_ID['current_prefix']} {explicit_user_id}").classes(
                     "text-sm font-medium"
                 )
-                ui.label(HOME_USER_ID["change_user_hint"]).classes("text-xs text-gray-500 mt-1")
+                ui.label(HOME_USER_ID["change_user_hint"]).classes("text-xs text-zinc-500 mt-1")
                 with ui.row().classes("mt-3"):
 
                     def _change_user_id():
@@ -139,7 +140,7 @@ async def index():
                    # ui.button(
                    #     HOME_USER_ID["change_user_button"],
                    #     on_click=_change_user_id,
-                   # ).classes("bg-gray-200 text-gray-800")
+                   # ).classes("bg-zinc-200 text-zinc-800")
 
             with ui.row().classes("gap-4 mt-8"):
                 logger.debug("Creating action buttons")
@@ -147,18 +148,18 @@ async def index():
                 ui.button(
                     UI_BUTTONS["browse_models"],
                     on_click=lambda: ui.navigate.to(NAV_LINKS["models"]),
-                ).classes("bg-blue-600 text-white px-6 py-3")
+                ).classes(Design.BTN_PRIMARY)
                 logger.debug("Browse Models button created")
 
                 ui.button(
                     UI_BUTTONS["open_assistant"],
                     on_click=lambda: ui.navigate.to(NAV_LINKS["chatbot"]),
-                ).classes("bg-green-600 text-white px-6 py-3")
+                ).classes(Design.BTN_PRIMARY)
                 logger.debug("Open Assistant button created")
         else:
             with ui.card().classes("w-full max-w-xl p-6 shadow-md border"):
                 ui.label(HOME_USER_ID["title"]).classes("text-xl font-semibold mb-2")
-                ui.label(HOME_USER_ID["blurb"]).classes("text-gray-600 mb-4")
+                ui.label(HOME_USER_ID["blurb"]).classes("text-zinc-600 mb-4")
                 uid_input = ui.input(
                     HOME_USER_ID["input_label"],
                     placeholder=HOME_USER_ID["placeholder"],
@@ -167,10 +168,10 @@ async def index():
                 def _save_home_user_id():
                     val = (uid_input.value or "").strip()
                     if not val:
-                        ui.notify("Please enter a User ID.", type="warning")
+                        ui.notify("Please enter a User ID.", type="warning", classes="rb-notify-505759")
                         return
                     if not is_valid_explicit_user_id(val):
-                        ui.notify(HOME_USER_ID["invalid_format"], type="warning")
+                        ui.notify(HOME_USER_ID["invalid_format"], type="warning", classes="rb-notify-505759")
                         return
                     set_explicit_user_id(val)
                     ui.timer(0.3, lambda: ui.navigate.reload(), once=True)
@@ -183,7 +184,7 @@ async def index():
                 ui.button(
                     HOME_USER_ID["save_button"],
                     on_click=_save_home_user_id,
-                ).classes("mt-4 bg-blue-600 text-white")
+                ).classes(f"mt-4 {Design.BTN_PRIMARY}")
 
     logger.info("Main dashboard page rendered successfully")
 
@@ -227,7 +228,8 @@ if __name__ in {"__main__", "__mp_main__"}:
 
     from frontend.utils.ui_readability_css import inject_global_readability_css
 
-    app.on_startup(inject_global_readability_css)
+    # Register brand + readability CSS before ui.run so it is not lost vs. on_startup ordering.
+    inject_global_readability_css()
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request, exc):

@@ -91,8 +91,8 @@ class ModelsPage:
                         ui.button(
                             UI_BUTTONS['open_assistant'],
                             on_click=lambda: ui.navigate.to(NAV_LINKS['chatbot'])
-                        ).classes('bg-green-600 text-white')
-                        ui.button(UI_BUTTONS['refresh'], on_click=self.load_models).classes('bg-blue-600 text-white')
+                        ).classes('rb-brand-primary text-white rounded-xl')
+                        ui.button(UI_BUTTONS['refresh'], on_click=self.load_models).classes('rb-brand-primary text-white')
 
                     render_page_header(UI_TITLES['models'], actions_callable=_header_actions)
                 except Exception:
@@ -102,8 +102,8 @@ class ModelsPage:
                             ui.button(
                                 UI_BUTTONS['open_assistant'],
                                 on_click=lambda: ui.navigate.to(NAV_LINKS['chatbot'])
-                            ).classes('bg-green-600 text-white')
-                            ui.button(UI_BUTTONS['refresh'], on_click=self.load_models).classes('bg-blue-600 text-white')
+                            ).classes('rb-brand-primary text-white rounded-xl')
+                            ui.button(UI_BUTTONS['refresh'], on_click=self.load_models).classes('rb-brand-primary text-white')
 
                 # Loading indicator
                 logger.debug("Creating models container")

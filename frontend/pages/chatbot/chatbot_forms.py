@@ -7,7 +7,7 @@ form submission, and results display in the chatbot interface.
 Components have been extracted to separate modules:
 - constants.py: FormConfig class with styling constants
 - pickers.py: ToolPicker and AnalysisPicker classes
-- results.py: ResultRenderer class for result display
+- results.py: ResultRenderer for popups and non-chat result views
 """
 
 import asyncio
@@ -19,8 +19,6 @@ from frontend.chatbot.config import ToolRegistry
 from frontend.utils.error_handling import handle_api_error, show_error_to_user
 from frontend.pages.chatbot.constants import FormConfig
 from frontend.pages.chatbot.pickers import ToolPicker, AnalysisPicker
-from frontend.pages.chatbot.utils.ui_styling import UIStyling
-from frontend.pages.chatbot.results import ResultRenderer
 from frontend.utils.nicegui_storage import get_user_id
 from frontend.pages.chatbot.utils.safe_ui import is_ephemeral_ui_error
 
@@ -130,17 +128,15 @@ async def show_tool_selection(container: ui.element, endpoint: str):
             # Safety: ensure container still valid before creating fallback UI
             _ = container.client
             with container:
-                with ui.card().classes('w-full max-w-2xl bg-blue-50 shadow-sm'):
+                with ui.card().classes(
+                    'w-full max-w-2xl bg-white ring-1 ring-zinc-200 shadow-sm rounded-2xl rounded-tl-none'
+                ):
                     with ui.column().classes('p-4 gap-2 w-full min-w-0'):
-                        ui.label('🤖 Assistant').classes('font-semibold !text-base sm:!text-lg text-blue-900')
-                        ui.label(f"I'll use {endpoint} to help you.").classes(
-                            '!text-base sm:!text-lg leading-snug text-gray-800'
+                        ui.label('Assistant').classes(
+                            'font-semibold !text-sm text-zinc-500 uppercase tracking-wide'
                         )
-                        ui.label('🔧 Selected Tool').classes(
-                            'font-semibold !text-base sm:!text-lg text-blue-900 mt-1'
-                        )
-                        ui.label(endpoint).classes(
-                            '!text-base sm:!text-lg font-mono text-gray-700 break-all'
+                        ui.label(f"Running {endpoint} operation.").classes(
+                            '!text-base sm:!text-lg leading-snug text-zinc-800'
                         )
             logger.debug("Tool selection message displayed (fallback)")
         except RuntimeError:
@@ -367,36 +363,17 @@ async def show_results(
     pipeline_user_id: Optional[str] = None,
 ):
     """
-    Show job results with modern expandable interface using ResultRenderer.
+    Show a compact “job completed” strip with one green button to open full results on the job page.
 
-    Displays job results using a modern, expandable interface that prevents
-    overlap and provides better organization of result types.
-
-    Args:
-        container (ui.element): Container to add results to
-        response_body: ResponseBody Pydantic model with results
-        job_id (Optional[str]): Job ID for inline View Job (final pipeline step only)
-        pipeline_total_steps: Total steps in a multi-tool pipeline (optional)
-        remaining_calls_after_step: Remaining tool calls after this step
-
-    Returns:
-        None
-
-    Tips:
-        - Results are displayed in expandable sections to prevent overlap
-        - Each result type has its own popup dialog for detailed viewing
-        - Modern card design with hover effects and smooth transitions
+    ``response_body`` is kept for API compatibility with callers; rendering does not depend on its shape.
     """
-    is_intermediate = bool(
-        pipeline_total_steps
-        and pipeline_total_steps >= 2
-        and remaining_calls_after_step is not None
-        and len(remaining_calls_after_step) > 0
-    )
+    # More steps queued after this job → pipeline step, not the final completion (no "View results" yet).
+    _rem = remaining_calls_after_step
+    is_intermediate = bool(_rem is not None and len(_rem) > 0)
     completed_step = None
     next_step = None
-    if is_intermediate and pipeline_total_steps is not None and remaining_calls_after_step is not None:
-        completed_step = pipeline_total_steps - len(remaining_calls_after_step)
+    if is_intermediate and pipeline_total_steps is not None and _rem is not None:
+        completed_step = pipeline_total_steps - len(_rem)
         next_step = completed_step + 1
     show_view_job = bool(job_id and not is_intermediate)
 
@@ -449,97 +426,45 @@ async def _show_results_body(
     remaining_calls_after_step: Optional[List[Any]],
     show_view_job: bool,
 ) -> None:
-    """Inner render for show_results (runs inside pipeline_index_scope when provided)."""
+    """Green-accent card: pipeline step status, or final job line + View results (final step only)."""
+    del response_body, show_view_job  # API compatibility / unused
     try:
         with container:
-            # Modern success card with gradient
-            # rb-job-result-anchor: scroll_to_bottom targets this after async render (nested overflow / below-input).
-            with ui.card().classes(f'{FormConfig.SUCCESS_CARD_CLASSES} rb-job-result-anchor'):
-                with ui.column().classes('p-6'):
-                    # Success header with icon and job info
-                    ResultRenderer.create_success_header(
-                        job_id,
-                        pipeline_intermediate=is_intermediate,
-                        pipeline_completed_step=completed_step,
-                        pipeline_total_steps=pipeline_total_steps if is_intermediate else None,
+            # rb-job-result-anchor: scroll helpers target this after async render
+            with ui.card().classes(
+                'rb-job-result-anchor w-full max-w-md rounded-xl border-2 border-green-400 '
+                'bg-gradient-to-br from-green-50 to-emerald-50 p-4 shadow-sm flex flex-col gap-3'
+            ):
+                if is_intermediate:
+                    if completed_step and pipeline_total_steps and next_step:
+                        ui.label(
+                            f'Step {completed_step} of {pipeline_total_steps} complete, continuing to step {next_step}.'
+                        ).classes('text-sm text-green-900')
+                    else:
+                        ui.label('Pipeline step finished. Continuing…').classes(
+                            'text-sm text-green-900'
+                        )
+                else:
+                    ui.label('Job completed').classes('text-base font-semibold text-green-900')
+
+                # Open job/results only after the last step (no remaining pipeline calls).
+                if job_id and not is_intermediate:
+
+                    def _open_results(_jid: str = job_id) -> None:
+                        ui.navigate.to(f'/jobs/{_jid}')
+
+                    ui.button(
+                        'View results',
+                        icon='open_in_new',
+                        on_click=_open_results,
+                    ).classes(
+                        'w-full bg-green-600 hover:bg-green-700 text-white '
+                        'font-medium py-3 rounded-lg shadow-sm'
                     )
+                elif not job_id and not is_intermediate:
+                    ui.label('Open Jobs from the menu to see run details.').classes('text-sm text-zinc-600')
 
-                    if is_intermediate and completed_step and pipeline_total_steps and next_step:
-                        with ui.row().classes('w-full items-start mb-4'):
-                            with ui.card().classes('bg-gray-100 max-w-2xl border border-gray-200'):
-                                with ui.column().classes('p-3 gap-1'):
-                                    ui.label('🤖 Assistant').classes('font-medium text-xs text-gray-600')
-                                    ui.label(
-                                        f'Step {completed_step} of {pipeline_total_steps} completed successfully. '
-                                        f'Proceeding to step {next_step}.'
-                                    ).classes('text-sm text-gray-800')
-
-                    # Get response data
-                    response_dict = response_body.model_dump() if hasattr(response_body, 'model_dump') else response_body
-                    logger.debug("Response dict keys: %s", list(response_dict.keys()) if isinstance(response_dict, dict) else type(response_dict))
-                    logger.debug("Response dict: %s", response_dict)
-
-                    # Handle both response formats:
-                    # 1. {'root': {'output_type': 'batchtext', ...}} - wrapped in root
-                    # 2. {'output_type': 'batchtext', ...} - direct root object
-                    if 'root' in response_dict:
-                        root = response_dict['root']
-                        logger.debug("Using wrapped root format")
-                    else:
-                        root = response_dict
-                        logger.debug("Using direct root format")
-
-                    logger.debug("Root data: %s", root)
-
-                    # Validate response data
-                    if not root or not isinstance(root, dict):
-                        logger.error("Invalid response: root is empty or not a dict")
-                        ResultRenderer.show_error_message(
-                            'Invalid response format',
-                            'The server returned an incomplete response. Please try again or contact support.',
-                            response_dict
-                        )
-                        return
-
-                    # Determine result type and create appropriate display
-                    result_type = root.get('output_type', 'unknown')
-                    logger.debug("Result type: %s", result_type)
-
-                    if not result_type or result_type == 'unknown':
-                        logger.error("Invalid response: missing output_type in root")
-                        ResultRenderer.show_error_message(
-                            'Invalid response format',
-                            'The server response is missing required information. Please try again.',
-                            root
-                        )
-                        return
-
-                    result_count = ResultRenderer.get_result_count(root)
-                    result_title = ResultRenderer.get_result_title(result_type, result_count)
-
-                    # Main result card with click-to-expand
-                    async def show_result_details():
-                        await ResultRenderer.show_result_popup(root, result_type, result_title, response_dict)
-
-                    # Pass job_id into result card so it can render its inline action button if applicable
-                    # If this result is associated with a job, render the tool_result card (which shows "✅ Result")
-                    if job_id:
-                        try:
-                            from frontend.components.chat.tool_result_card import render_tool_result_card
-                            render_tool_result_card(
-                                ui.column(),
-                                result_title,
-                                UIStyling,
-                                job_id=job_id,
-                                show_view_job=show_view_job,
-                            )
-                        except (ImportError, RuntimeError, AttributeError) as e:
-                            logger.debug("Failed to render tool_result_card for job_id %s: %s", job_id, e)
-                            ResultRenderer.create_result_card(result_type, result_title, result_count, show_result_details)
-                    else:
-                        ResultRenderer.create_result_card(result_type, result_title, result_count, show_result_details)
-
-        logger.debug("Modern results interface displayed successfully")
+        logger.debug('Job completion banner rendered (View results -> /jobs/%s)', job_id)
     except (RuntimeError, ValueError, TypeError, OSError) as e:
         logger.error("Error in results body: %s", str(e))
         raise

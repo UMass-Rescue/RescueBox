@@ -67,7 +67,7 @@ def render_message(container: ui.element, message: ChatMessage):
         None
     
     Tips:
-    - User messages: Blue background, right-aligned
+    - User messages: White bubble, right-aligned
     - Assistant messages: Gray background, left-aligned
     - Assistant messages starting with '##' are rendered as markdown; user messages are plain text.
     """
@@ -80,21 +80,27 @@ def render_message(container: ui.element, message: ChatMessage):
         from frontend.components.chat.message_card import (
             ASSISTANT_MARKDOWN_CLASSES,
             ASSISTANT_PLAIN_CLASSES,
-            USER_MARKDOWN_CLASSES,
             USER_PLAIN_CLASSES,
         )
+        from frontend.design_tokens import Design
 
         with container:
-            alignment = 'items-end' if message.role == 'user' else 'items-start'
-            bg_color = 'bg-blue-600 text-white' if message.role == 'user' else 'bg-gray-200'
+            alignment = "items-end" if message.role == "user" else "items-start"
+            bubble = (
+                Design.CHAT_USER_BUBBLE
+                if message.role == "user"
+                else Design.CHAT_ASSISTANT_BUBBLE
+            )
 
-            with ui.row().classes(f'w-full {alignment}'):
-                with ui.card().classes(f'{bg_color} max-w-sm shadow-sm'):
-                    with ui.row().classes('p-1.5 items-center gap-2 flex-wrap'):
-                        if message.role == 'user':
-                            ui.label('YOU:').classes('font-semibold !text-sm sm:!text-base text-white')
+            with ui.row().classes(f"w-full {alignment}"):
+                with ui.card().classes(f"{bubble} max-w-sm"):
+                    with ui.row().classes("p-1.5 items-center gap-2 flex-wrap"):
+                        if message.role == "user":
+                            ui.label("YOU:").classes(Design.CHAT_USER_LABEL)
                         else:
-                            ui.label('🤖 Assistant').classes('font-medium !text-sm sm:!text-base')
+                            ui.label("Assistant").classes(
+                                "font-medium !text-sm sm:!text-base text-zinc-600"
+                            )
 
                         if message.content.startswith('##') and message.role != 'user':
                             ui.markdown(message.content).classes(ASSISTANT_MARKDOWN_CLASSES)
@@ -130,7 +136,7 @@ def show_error_message(container: ui.element, message: str):
     - Error messages use assistant role styling
     """
     logger.error("Showing error message: %s", message)
-    ui.notify(message, type='negative', position='top')
+    ui.notify(message, type='negative', position='top', classes='rb-notify-505759')
 
     # Create and render error message using extracted component when available
     try:
@@ -138,5 +144,5 @@ def show_error_message(container: ui.element, message: str):
         render_error_message(container, f'Error: {message}')
     except Exception:
         # Fallback: create and render error message
-        error_msg = ChatMessage('assistant', f'❌ Error: {message}')
+        error_msg = ChatMessage('assistant', f'Error: {message}')
         render_message(container, error_msg)

@@ -11,6 +11,8 @@ import subprocess
 import platform
 from nicegui import ui
 from nicegui import app
+
+from frontend.design_tokens import Design
 from starlette.responses import FileResponse
 import uuid
 from typing import Dict
@@ -91,13 +93,13 @@ def _open_image_preview_dialog(file_path: str, route: str) -> None:
         ui.label(name).classes('text-lg font-semibold')
         # QImg defaults to fit=cover (crops); contain scales the whole image inside the box.
         ui.image(route).props('fit=contain').classes('w-full max-h-[85vh]')
-        ui.label(file_path).classes('text-xs font-mono break-all text-gray-600')
+        ui.label(file_path).classes('text-xs font-mono break-all text-zinc-600')
         with ui.row().classes('gap-2 flex-wrap mt-2'):
             if folder:
                 ui.button('Open folder', icon='folder_open', on_click=lambda f=folder: open_folder(f)).props(
                     'outline'
                 )
-            ui.button('Close', on_click=dialog.close)
+            ui.button('Close', on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
     dialog.open()
 
 
@@ -117,7 +119,7 @@ def open_file(file_path: str):
         route = _serve_route_for_path(file_path)
     except Exception as e:
         logger.error("Failed to register served file: %s", e)
-        ui.notify(f'Error opening file: {str(e)}', type='negative')
+        ui.notify(f'Error opening file: {str(e)}', type='negative', classes='rb-notify-505759')
         return
 
     ext = os.path.splitext(file_path)[1].lower()
@@ -131,7 +133,7 @@ def open_file(file_path: str):
         logger.debug("Served file via HTTP at %s", route)
     except Exception as e:
         logger.error("Failed to navigate to served file %s: %s", route, e)
-        ui.notify(f'Error opening file: {str(e)}', type='negative')
+        ui.notify(f'Error opening file: {str(e)}', type='negative', classes='rb-notify-505759')
 
 
 def open_folder(folder_path: str):
@@ -159,7 +161,7 @@ def open_folder(folder_path: str):
     
     if not folder_path:
         logger.warning("Attempted to open empty folder path")
-        ui.notify('Invalid folder path', type='negative')
+        ui.notify('Invalid folder path', type='negative', classes='rb-notify-505759')
         return
     
     try:
@@ -167,13 +169,13 @@ def open_folder(folder_path: str):
         if not os.path.exists(folder_path):
             error_msg = f'Folder not found: {folder_path}'
             logger.warning(error_msg)
-            ui.notify(error_msg, type='negative')
+            ui.notify(error_msg, type='negative', classes='rb-notify-505759')
             return
         
         if not os.path.isdir(folder_path):
             error_msg = f'Path is not a folder: {folder_path}'
             logger.warning(error_msg)
-            ui.notify(error_msg, type='negative')
+            ui.notify(error_msg, type='negative', classes='rb-notify-505759')
             return
         
         if platform.system() == 'Windows':
@@ -186,17 +188,17 @@ def open_folder(folder_path: str):
     except FileNotFoundError as e:
         error_msg = f'Folder not found: {folder_path}'
         logger.error(error_msg, exc_info=True)
-        ui.notify(error_msg, type='negative')
+        ui.notify(error_msg, type='negative', classes='rb-notify-505759')
     except PermissionError as e:
         error_msg = f'Permission denied opening folder: {folder_path}'
         logger.error(error_msg, exc_info=True)
-        ui.notify(error_msg, type='negative')
+        ui.notify(error_msg, type='negative', classes='rb-notify-505759')
     except subprocess.CalledProcessError as e:
         error_msg = f'Failed to open folder: {str(e)}'
         logger.error(error_msg, exc_info=True)
-        ui.notify(error_msg, type='negative')
+        ui.notify(error_msg, type='negative', classes='rb-notify-505759')
     except Exception as e:
         error_msg = f'Error opening folder: {str(e)}'
         logger.error(error_msg, exc_info=True)
-        ui.notify(error_msg, type='negative')
+        ui.notify(error_msg, type='negative', classes='rb-notify-505759')
 

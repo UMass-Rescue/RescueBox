@@ -23,7 +23,7 @@ This walkthrough is to run a **Transcribe Audio** rescuebox plugin using the **M
 Click **[Assistant](/chatbot)** in the top nav (or use **Assistant** from the home page).
 
 
-1. In the Assistant toolbar, clic the  **📋 Menu** button.
+1. In the Assistant toolbar, clic the  **Menu** button.
 
 2. The **plugin selector menu** appears in the chat area with numbered options.
 

@@ -3,6 +3,8 @@ from nicegui import ui
 from typing import Optional
 from pathlib import Path
 
+from frontend.design_tokens import Design
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -15,8 +17,8 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
         with container:
             # Controls row
             with ui.row().classes('gap-4 items-center mb-4'):
-                refresh_btn = ui.button('Refresh').props('icon=refresh').classes('px-4 py-2')
-                ui.label(f'Log file: {str(log_file)}').classes('text-sm text-gray-600')
+                refresh_btn = ui.button('Refresh').props('icon=refresh').classes(Design.BTN_PRIMARY_COMPACT)
+                ui.label(f'Log file: {str(log_file)}').classes('text-sm text-zinc-600')
 
             # Log content display - full width, fill viewport height below navbar
             with ui.card().classes('w-full max-w-full min-w-0'):

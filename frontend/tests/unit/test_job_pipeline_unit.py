@@ -10,6 +10,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from frontend.database import JobStatus, JobRecord
 from frontend.pages.jobs.job_utils import extract_job_fields, compute_job_results_title
+from frontend.pages.jobs.pipeline_job_grouping import (
+    partition_jobs_by_pipeline,
+    pipeline_group_root_id,
+)
 from rb.api.models import RequestBody, TaskSchema
 
 
@@ -57,6 +61,22 @@ class TestExtractJobFieldsEndpointChain:
         fields = extract_job_fields(rec)
         assert fields["endpointChain"] == ["step1", "step2"]
         assert fields["endpoint"] == "step2"
+        assert fields.get("pipelineRootJobId") is None
+
+    def test_job_record_extract_includes_pipeline_root(self):
+        req, ts = _minimal_request_and_schema()
+        rec = JobRecord(
+            uid="JOB_child",
+            startTime="2025-01-01T00:00:00",
+            status=JobStatus.COMPLETED,
+            request=req,
+            taskSchema=ts,
+            endpoint="step2",
+            endpointChain=["step1", "step2"],
+            pipelineRootJobId="JOB_parent",
+        )
+        fields = extract_job_fields(rec)
+        assert fields["pipelineRootJobId"] == "JOB_parent"
 
     def test_dict_legacy_includes_endpoint_chain(self):
         fields = extract_job_fields(
@@ -143,6 +163,35 @@ class TestDatabaseServiceJobHelpers:
             "text_embeddings/search",
         ]
         assert captured.get("endpoint") == "text_embeddings/search"
+        assert captured.get("pipeline_root_job_id") is None
+        assert captured.get("pipeline_total_steps") is None
+
+
+class TestPartitionJobsByPipeline:
+    def test_two_step_pipeline_one_group_ordered_by_start(self):
+        root = "JOB_root01"
+        j1 = {
+            "uid": root,
+            "pipelineRootJobId": root,
+            "startTime": "2025-01-01T10:00:00",
+            "endpoint": "step1",
+        }
+        j2 = {
+            "uid": "JOB_step02",
+            "pipelineRootJobId": root,
+            "startTime": "2025-01-01T10:05:00",
+            "endpoint": "step2",
+        }
+        groups = partition_jobs_by_pipeline([j2, j1])
+        assert len(groups) == 1
+        assert [x["uid"] for x in groups[0]] == [root, "JOB_step02"]
+        assert pipeline_group_root_id(groups[0]) == root
+
+    def test_standalone_jobs_are_separate_groups(self):
+        a = {"uid": "JOB_a", "pipelineRootJobId": None, "startTime": "2025-01-02T10:00:00"}
+        b = {"uid": "JOB_b", "pipelineRootJobId": None, "startTime": "2025-01-01T10:00:00"}
+        groups = partition_jobs_by_pipeline([a, b])
+        assert len(groups) == 2
 
     async def test_update_job_status_accepts_string_completed(self):
         from frontend.pages.chatbot.utils import database_service as ds

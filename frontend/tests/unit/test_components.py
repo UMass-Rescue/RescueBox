@@ -71,7 +71,7 @@ DIRECTORY_RESULT_TITLE = 'Directory Result'
 TEXT_RESULT_TITLE = 'Text Result'
 MARKDOWN_RESULT_TITLE = 'Markdown Result'
 BATCH_FILE_RESULT_TITLE = 'Batch File Result'
-BATCH_TEXT_RESULT_TITLE = 'Batch Text Result'
+BATCH_TEXT_RESULT_TITLE = 'Transcription'
 BATCH_DIRECTORY_RESULT_TITLE = 'Batch Directory Result'
 
 # Table headers

@@ -16,8 +16,10 @@ Usage:
 
 import logging
 from typing import Optional, Union, Any
-from nicegui import ui
 import httpx
+from nicegui import ui
+
+from frontend.design_tokens import Design
 
 # Try to use enhanced notifications if available, fallback to ui.notify
 try:
@@ -81,7 +83,7 @@ async def handle_api_error(
         if _ENHANCED_NOTIFICATIONS:
             notify_error(message)
         else:
-            ui.notify(message, type='negative')
+            ui.notify(message, type='negative', classes="rb-notify-505759")
         logger.debug("Error notification shown to user: %s", message)
 
 
@@ -110,7 +112,7 @@ def show_error_to_user(message: str, type: str = 'negative') -> None:
         else:
             notify_info(message)
     else:
-        ui.notify(message, type=type)
+        ui.notify(message, type=type, classes="rb-notify-505759")
     logger.debug("Error notification shown: %s", message)
 
 
@@ -133,7 +135,7 @@ def show_success_to_user(message: str) -> None:
     if _ENHANCED_NOTIFICATIONS:
         notify_success(message)
     else:
-        ui.notify(message, type='positive')
+        ui.notify(message, type='positive', classes="rb-notify-505759")
     logger.debug("Success notification shown: %s", message)
 
 
@@ -200,13 +202,15 @@ def handle_validation_error(
             # Fallback inline dialog if component unavailable
             with ui.dialog() as error_dialog:
                 with ui.card().classes('max-w-md'):
-                    ui.label('Validation Error').classes('text-lg font-bold text-red-600 mb-4')
+                    ui.label('Validation Error').classes('text-lg font-bold text-[#505759] mb-4')
                     ui.label(primary_error).classes('mb-4')
                     if len(error_messages) > 1:
                         ui.label('Additional errors:').classes('font-semibold mb-2')
                         for additional_error in error_messages[1:]:
                             ui.label(f'• {additional_error}').classes('mb-1')
-                    ui.button('OK', on_click=error_dialog.close).classes('mt-4')
+                    ui.button('OK', on_click=error_dialog.close).classes(
+                        f'mt-4 {Design.BTN_MEDIUM_GRAY}'
+                    )
             error_dialog.open()
 
         # Log additional errors if there are multiple
@@ -216,7 +220,11 @@ def handle_validation_error(
     else:
         # Fallback for unexpected error formats
         logger.warning("No specific error messages generated, using fallback")
-        ui.notify("Please check the form for errors", type='warning')
+        ui.notify(
+            "Please check the form for errors",
+            type='warning',
+            classes="rb-notify-505759",
+        )
 
     logger.debug("Validation error notification shown")
 

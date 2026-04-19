@@ -125,7 +125,7 @@ state = {
 
 # Navigation bar component
 def create_navbar():
-    with ui.header().classes('bg-blue-600 text-white shadow-lg'):
+    with ui.header().classes('bg-indigo-600 text-white shadow-lg'):
         ui.label('🚑 RescueBox Desktop').classes('text-2xl font-bold')
         
         with ui.row().classes('gap-4 ml-auto'):
@@ -141,14 +141,14 @@ async def index():
     
     with ui.column().classes('container mx-auto p-8'):
         ui.label('Welcome to RescueBox Desktop').classes('text-4xl font-bold mb-4')
-        ui.label('Select a model or use the Assistant to get started').classes('text-xl text-gray-600')
+        ui.label('Select a model or use the Assistant to get started').classes('text-xl text-zinc-600')
         
         with ui.row().classes('gap-4 mt-8'):
-            ui.button('Browse Models', on_click=lambda: ui.open('/models')).classes('bg-blue-600 text-white px-6 py-3')
-            ui.button('Open Assistant', on_click=lambda: ui.open('/chatbot')).classes('bg-green-600 text-white px-6 py-3')
+            ui.button('Browse Models', on_click=lambda: ui.open('/models')).classes('bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl')
+            ui.button('Open Assistant', on_click=lambda: ui.open('/chatbot')).classes('bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl')
 
 if __name__ in {"__main__", "__mp_main__"}:
-    ui.run()---
+    ui.run()
 
 ### 2. Chatbot Interface Page
 

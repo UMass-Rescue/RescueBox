@@ -177,7 +177,9 @@ class DatabaseService:
     @staticmethod
     async def create_and_track_job(request_body, endpoint: str, task_schema=None, response_body=None,
                                    case_notes: str = None, user_id: Optional[str] = None,
-                                   endpoint_chain: Optional[list] = None) -> Optional[Dict[str, Any]]:
+                                   endpoint_chain: Optional[list] = None,
+                                   pipeline_root_job_id: Optional[str] = None,
+                                   pipeline_total_steps: Optional[int] = None) -> Optional[Dict[str, Any]]:
         """Create job and return tracking info."""
         for attempt in range(3):
             try:
@@ -202,6 +204,8 @@ class DatabaseService:
                     case_notes=case_notes,
                     user_id=user_id,
                     endpoint_chain=endpoint_chain,
+                    pipeline_root_job_id=pipeline_root_job_id,
+                    pipeline_total_steps=pipeline_total_steps,
                 )
 
                 # Set logging context for this job

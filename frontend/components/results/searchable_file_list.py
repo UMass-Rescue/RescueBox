@@ -39,7 +39,7 @@ def render_searchable_file_list(container: ui.element, file_paths: List[str], ti
 
     if not file_data:
         with container:
-            ui.label('No files found or all files are empty').classes('text-red-600')
+            ui.label('No valid files found').classes('text-red-600')
         return
 
     with container:
@@ -56,7 +56,7 @@ def render_searchable_file_list(container: ui.element, file_paths: List[str], ti
 
                 # Container for table that will be refreshed
                 table_container = ui.column().classes('w-full')
-                result_count_label = ui.label(f'Showing {len(file_data)} of {len(file_data)} files').classes('text-xs text-gray-600')
+                result_count_label = ui.label(f'Showing {len(file_data)} of {len(file_data)} files').classes('text-xs text-zinc-600')
 
                 def update_table(search_term: str = ''):
                     """Update the table based on search term"""

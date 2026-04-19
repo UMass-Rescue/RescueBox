@@ -115,7 +115,9 @@ class ConversationLoader:
         if hasattr(self.chatbot_page, 'chat_container') and messages:
             with self.chatbot_page.chat_container:
                 ui.separator()
-                ui.label("📚 Historical Conversation").classes('text-sm text-gray-500 font-medium')
+                ui.label('Conversation history').classes(
+                    'text-xs font-medium text-zinc-500 uppercase tracking-wide'
+                )
 
         i = 0
         while i < len(messages):

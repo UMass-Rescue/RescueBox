@@ -66,8 +66,8 @@ def render_batch_text(container, response):
         # DEBUG: Add a visible test element first
         # ui.label("🔴 VISIBLE TEST: If you see this, container works").classes('text-white bg-red-600 p-4 rounded-lg font-bold text-lg mb-4 border-4 border-black')
 
-        with ui.card().classes('bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow relative'):
-            # ui.label("🔵 CARD TEST: If you see this, card works").classes('text-white bg-blue-600 p-4 rounded-lg font-bold mb-4')
+        with ui.card().classes('bg-white border border-zinc-200 rounded-lg shadow-sm hover:shadow-md transition-shadow relative'):
+            # ui.label("🔵 CARD TEST: If you see this, card works").classes('text-white rb-brand-primary p-4 rounded-lg font-bold mb-4')
 
             # Content area - test without scroll area
             logger.info("🔍 DEBUG: Creating content without scroll area")
@@ -90,7 +90,7 @@ def render_batch_text(container, response):
 
                     logger.info("🔍 DEBUG: Creating title label")
                     title_label = ui.label(f"📁 INPUT FILE: {text_info.title if hasattr(text_info, 'title') and text_info.title else 'No title'}")
-                    title_label.classes('text-sm bg-blue-200 p-3 rounded border-2 border-blue-800 font-mono mb-2')
+                    title_label.classes('text-sm bg-indigo-200 p-3 rounded border-2 border-indigo-800 font-mono mb-2')
                     logger.info("🔍 DEBUG: Created title label: %s", title_label)
 
                     logger.info("🔍 DEBUG: Creating preview label")
@@ -100,7 +100,7 @@ def render_batch_text(container, response):
 
                     logger.info("🔍 DEBUG: Creating length label")
                     length_label = ui.label(f"📊 LENGTH: {len(full_text)} characters")
-                    length_label.classes('text-sm bg-purple-200 p-3 rounded border-2 border-purple-800 font-mono mb-4')
+                    length_label.classes('text-sm bg-zinc-200 p-3 rounded border-2 border-zinc-700 font-mono mb-4')
                     logger.info("🔍 DEBUG: Created length label: %s", length_label)
 
                     logger.info("🔍 DEBUG: Creating full text label")

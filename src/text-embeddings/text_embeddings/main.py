@@ -1,14 +1,17 @@
-from typing import TypedDict, NotRequired
+from typing import List, NotRequired, TypedDict
 import json
 import logging
 import os
+from pathlib import Path
 
 import typer
+from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
 from rb.lib.utils import apply_torch_cpu_preference
 from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
 from rb.api.models import (
     FloatRangeDescriptor,
+    FileFilterDirectory,
     InputSchema,
     InputType,
     IntRangeDescriptor,
@@ -17,7 +20,6 @@ from rb.api.models import (
     RangedIntParameterDescriptor,
     ResponseBody,
     TaskSchema,
-    DirectoryInput,
     TextInput,
     TextResponse,
     BatchFileInput,
@@ -44,9 +46,19 @@ from sqlmodel import delete, select
 APP_NAME = "text_embeddings"
 logger = logging.getLogger(__name__)
 
+# Text file suffixes scanned by ``resolve_text_file_corpus_paths`` (non-recursive, top-level).
+TEXT_EXTENSIONS = {".txt", ".text", ".md", ".log"}
+
+
+class TextCorpusDirectory(FileFilterDirectory):
+    """Directory must exist, be non-empty, and contain at least one allowed text extension."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(TEXT_EXTENSIONS)
+
 
 class Inputs(TypedDict):
-    input_dir: DirectoryInput
+    input_dir: TextCorpusDirectory
     query: TextInput
 
 
@@ -73,7 +85,7 @@ def task_schema() -> TaskSchema:
     )
     min_similarity_desc = RangedFloatParameterDescriptor(
         range=FloatRangeDescriptor(min=0.0, max=1.0),
-        default=0.5,
+        default=0.45,
     )
 
     return TaskSchema(
@@ -88,7 +100,7 @@ def task_schema() -> TaskSchema:
             ParameterSchema(
                 key="min_similarity",
                 label="Match threshold",
-                subtitle="Similarity >= this value counts as a match (0.5 typical, 0.12/0.19 = weak)",
+                subtitle="Minimum value that counts as a match (> 0.45 typical)",
                 value=min_similarity_desc,
             ),
         ],
@@ -285,9 +297,10 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
     input_dir = str(inputs["input_dir"].path)
     query_text = inputs["query"].text
+
     model_name = _MODEL_NAME
     top_k = int(parameters.get("top_k", 5))
-    min_similarity = float(parameters.get("min_similarity", 0.5))
+    min_similarity = float(parameters.get("min_similarity", 0.45))
 
     file_paths, corpus_err = resolve_text_file_corpus_paths(inputs, input_dir)
     if not file_paths:
@@ -451,7 +464,7 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             "id": row.id,
             "path": row.path,
             "chunk_index": row.chunk_index,
-            "similarity": round(sim, 4),
+            "similarity": sim,
             "is_match": sim >= min_similarity,
             "matching_text": _truncate(row.chunk_text or "", 600),
         })
@@ -478,19 +491,22 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 def inputs_cli_parse(value: str) -> Inputs:
     # Expect "directory_path,query_text" or just directory for backwards compat
     parts = [p.strip() for p in value.split(",", 1)]
-    from pathlib import Path
     input_dir = Path(parts[0]) if parts[0] else Path(".")
     query_text = parts[1] if len(parts) > 1 else ""
-    return Inputs(
-        input_dir=DirectoryInput(path=input_dir),
-        query=TextInput(text=query_text),
-    )
+    try:
+        return Inputs(
+            input_dir=TextCorpusDirectory(path=input_dir),
+            query=TextInput(text=query_text),
+        )
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def parameters_cli_parse(value: str) -> Parameters:
     parts = [p.strip() for p in value.split(",")]
     top_k = int(parts[0]) if len(parts) > 0 and parts[0] else 3
-    min_similarity = float(parts[1]) if len(parts) > 1 and parts[1] else 0.5
+    min_similarity = float(parts[1]) if len(parts) > 1 and parts[1] else 0.45
     return Parameters(top_k=top_k, min_similarity=min_similarity)
 
 
@@ -503,7 +519,7 @@ server.add_ml_service(
     ),
     parameters_cli_parser=typer.Argument(
         parser=parameters_cli_parse,
-        help="top_k,min_similarity (e.g. 5,0.5)",
+        help="top_k,min_similarity (e.g. 0.45)",
     ),
     short_title="Search Text",
     order=0,

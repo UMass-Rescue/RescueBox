@@ -17,6 +17,7 @@ from nicegui import ui
 
 from frontend.config import APP_TITLE, APP_VERSION
 import frontend.constants as constants
+from frontend.design_tokens import Design
 from frontend.utils.nicegui_storage import get_user_id_for_jobs
 
 # Configure logging for this module
@@ -44,15 +45,13 @@ def create_navbar():
     
     Tips:
     - The navbar is sticky, so it will remain visible when scrolling
-    - Links use hover effects (hover:underline, hover:bg-blue-700)
+    - Links use hover effects (hover:underline, hover:bg-white/10)
     - Brand row (logo + title) is left-aligned; links use a tight row with ``flex-1 justify-end``
     - Use consistent styling classes for new navigation links
     """
     #logger.info("Creating navigation bar component")
     
-    with ui.header(wrap=False).classes(
-        'bg-blue-600 text-white shadow-lg sticky top-0 z-50 w-full max-w-[100vw] overflow-hidden'
-    ):
+    with ui.header(wrap=False).classes(Design.NAV_HEADER):
         #logger.debug("Header created with sticky positioning and blue theme")
 
         _logo_px = '11.25rem'
@@ -61,16 +60,14 @@ def create_navbar():
             'min-width:0;min-height:0;display:block;object-fit:contain;'
         )
 
-        _link_cls = (
-            'text-white hover:underline px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded '
-            'hover:bg-blue-700 !text-sm sm:!text-base whitespace-nowrap !leading-snug'
-        )
+        _link_cls = Design.NAV_LINK
         _nav_locked = get_user_id_for_jobs() is None
 
         def _nav_blocked_msg():
             ui.notify(
                 'Enter a valid User ID on the home page.',
                 type='warning',
+                classes='rb-notify-505759'
             )
 
         with ui.row().classes(
@@ -91,9 +88,7 @@ def create_navbar():
                         '!text-base sm:!text-lg lg:!text-xl font-bold !leading-tight text-white '
                         'truncate min-w-0 max-w-[12rem] sm:max-w-[16rem] lg:max-w-[18rem]'
                     )
-                    ui.label(APP_VERSION).classes(
-                        '!text-sm sm:!text-base font-medium text-blue-100 shrink-0'
-                    )
+                    ui.label(APP_VERSION).classes(Design.NAV_VERSION_MUTED)
 
             with ui.row().classes('min-w-0 flex-1 justify-end items-center'):
                 with ui.row().classes(

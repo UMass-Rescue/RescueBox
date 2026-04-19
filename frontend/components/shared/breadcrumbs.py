@@ -74,14 +74,14 @@ def create_breadcrumbs(items: List[Dict[str, Optional[str]]], container=None):
             
             if link:
                 # Add link with hover effect
-                ui.link(label, link).classes('text-blue-600 hover:underline')
+                ui.link(label, link).classes('text-indigo-600 hover:underline')
             else:
                 # Current page (no link)
-                ui.label(label).classes('text-gray-600 font-semibold')
+                ui.label(label).classes('text-zinc-600 font-semibold')
             
             # Add separator (>) except for last item
             if i < len(items) - 1:
-                ui.label('>').classes('text-gray-400 mx-1')
+                ui.label('>').classes('text-zinc-400 mx-1')
     
     logger.debug("Breadcrumbs created successfully")
     return breadcrumb_container

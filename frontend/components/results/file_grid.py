@@ -24,7 +24,7 @@ def render_file_grid(container: ui.element, grouped_files: Dict[str, List[Any]],
                                 ui.button(
                                     os.path.basename(file_path),
                                     on_click=lambda path=file_path: open_handler(path)
-                                ).classes('text-xs truncate text-blue-600 hover:underline').props('flat')
+                                ).classes('text-xs truncate text-indigo-600 hover:underline').props('flat')
     except Exception as e:
         logger.exception("Error rendering file grid: %s", e)
         with container:

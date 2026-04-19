@@ -24,42 +24,49 @@ def create_chat_header(on_new_conversation: Callable, ui_state: dict, ui_styling
     """
     Create the chat header row used by ChatUIBuilder.
 
-    Returns a tuple of (mode_indicator, models_btn, analyze_btn)
+    Returns (models_btn, analyze_btn, history_btn). Title and mode badge are on the main chat card.
     """
     mode_indicator = None
     models_btn = None
     analyze_btn = None
 
-    with ui.row().classes('bg-white border-b shadow-sm items-center justify-between w-full px-4 py-3 sticky top-0 z-10'):
-        # Left side - Title and status
-        with ui.row().classes('items-center gap-3'):
-            ui.icon('smart_toy', size='1.5rem').classes('text-blue-600')
-            # ui.label('🤖 Assistant').classes('text-lg font-semibold text-gray-800 mr-2')
-            ui.label('RescueBox Assistant').classes('text-sm text-gray-600')
-            # Mode indicator
-            mode_indicator = ui.badge('', color='green').classes('text-xs')
+    # Toolbar only: title + mode badge live on the main chat card (see ChatUIBuilder).
+    from frontend.pages.chatbot.utils.ui_styling import UIStyling
 
-        # Right side — action buttons (global .q-btn uses tiny font; !text-* overrides on /chatbot)
-        _btn_lg = (
-            'px-5 py-2.5 rounded-lg !text-base sm:!text-lg font-medium shadow-sm '
-            'min-h-0'
-        )
-        with ui.row().classes('items-center gap-3'):
-            models_btn = ui.button('📋 Menu').classes(f'bg-blue-500 text-white {_btn_lg}')
-            analyze_btn = ui.button('🧠 Chat').classes(f'bg-blue-500 text-white {_btn_lg}')
+    # No bar behind buttons — page background shows through; maroon carries the chrome.
+    with ui.row().classes(
+        "rb-chat-toolbar-floating bg-transparent shadow-none items-center justify-end "
+        "w-full px-4 py-3 sticky top-0 z-10 gap-3"
+    ):
+        _toolbar = UIStyling.CHAT_HEADER_BUTTON
+        # color=None — avoid Quasar color="primary" on dim state (reads bluish vs our maroon CSS).
+        _btn_kw = {"color": None}
+        _props = "unelevated no-caps"
+        with ui.row().classes("items-center gap-3"):
+            models_btn = ui.button("Menu", **_btn_kw).classes(_toolbar).props(_props)
+            analyze_btn = ui.button("Chat", **_btn_kw).classes(_toolbar).props(_props)
             if on_show_history:
-                history_btn = ui.button('📜 History', on_click=on_show_history).classes(
-                    f'bg-gray-200 text-gray-900 {_btn_lg}'
+                history_btn = (
+                    ui.button("History", on_click=on_show_history, **_btn_kw)
+                    .classes(_toolbar)
+                    .props(_props)
                 )
             else:
-                history_btn = ui.button(
-                    '📜 History',
-                    on_click=lambda: ui.notify('No history available', type='info'),
-                ).classes(f'bg-gray-200 text-gray-900 {_btn_lg}')
+                history_btn = (
+                    ui.button(
+                        "History",
+                        on_click=lambda: ui.notify(
+                            "No history available", type="info", classes="rb-notify-505759"
+                        ),
+                        **_btn_kw,
+                    )
+                    .classes(_toolbar)
+                    .props(_props)
+                )
             history_btn.visible = user_has_job_history()
             #i.button('New Conversation', on_click=on_new_conversation).classes(
-            #    f'bg-blue-600 text-white {_btn_lg}'
+            #    f'rb-brand-primary text-white {_btn_lg}'
             #)
 
-    return mode_indicator, models_btn, analyze_btn, history_btn
+    return models_btn, analyze_btn, history_btn
 

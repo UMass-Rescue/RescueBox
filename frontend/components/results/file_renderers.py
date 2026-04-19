@@ -47,7 +47,7 @@ def _is_facematch_find_batch(files) -> bool:
 def _render_facematch_find_batch(container, files) -> None:
     """Show each gallery hit next to the query photo (backend sets ``query_image_path`` metadata)."""
     with container:
-        with ui.card().classes("bg-blue-50 border border-blue-300 p-4"):
+        with ui.card().classes("bg-indigo-50 border border-indigo-300 p-4"):
             with ui.column().classes("gap-3 w-full"):
                 ui.label(
                     f"Finc face ({len(files)}) — left: find photo; right: match from your database"
@@ -57,18 +57,18 @@ def _render_facematch_find_batch(container, files) -> None:
                     qpath = md.get(_FACEMATCH_QUERY_PATH_KEY)
                     mpath = file_info.path
                     title = file_info.title or ""
-                    with ui.card().classes("bg-white p-3 w-full border border-gray-200"):
+                    with ui.card().classes("bg-white p-3 w-full border border-zinc-200"):
                         if title:
-                            ui.label(title).classes("text-sm font-medium text-gray-800 mb-2")
+                            ui.label(title).classes("text-sm font-medium text-zinc-800 mb-2")
                         with ui.row().classes("w-full gap-4 items-start flex-wrap"):
                             with ui.column().classes("gap-1 min-w-[140px] flex-1"):
                                 ui.label("Face Matched").classes(
-                                    "text-xs font-semibold text-gray-600"
+                                    "text-xs font-semibold text-zinc-600"
                                 )
                                 if qpath:
                                     try:
                                         ui.image(qpath).classes(
-                                            "w-full max-w-md max-h-64 object-contain rounded border border-gray-100 cursor-pointer"
+                                            "w-full max-w-md max-h-64 object-contain rounded border border-zinc-100 cursor-pointer"
                                         ).on("click", lambda p=qpath: open_file(p))
                                     except Exception:
                                         ui.label(str(qpath)).classes("text-xs font-mono break-all")
@@ -77,14 +77,14 @@ def _render_facematch_find_batch(container, files) -> None:
                                         on_click=lambda p=qpath: open_file(p),
                                     ).classes("text-xs").props("flat dense color=primary")
                                 else:
-                                    ui.label("—").classes("text-xs text-gray-400")
+                                    ui.label("—").classes("text-xs text-zinc-400")
                             with ui.column().classes("gap-1 min-w-[140px] flex-1"):
                                 ui.label("Match from collection").classes(
-                                    "text-xs font-semibold text-gray-600"
+                                    "text-xs font-semibold text-zinc-600"
                                 )
                                 try:
                                     ui.image(mpath).classes(
-                                        "w-full max-w-md max-h-64 object-contain rounded border border-gray-100 cursor-pointer"
+                                        "w-full max-w-md max-h-64 object-contain rounded border border-zinc-100 cursor-pointer"
                                     ).on("click", lambda p=mpath: open_file(p))
                                 except Exception:
                                     ui.label(str(mpath)).classes("text-xs font-mono break-all")
@@ -166,9 +166,9 @@ def render_batch_file(container, response):
     has_metadata = any(f.metadata for f in files)
 
     with container:
-        with ui.card().classes('bg-blue-50 border border-blue-300 p-4'):
+        with ui.card().classes('bg-indigo-50 border border-indigo-300 p-4'):
             with ui.column().classes('gap-2'):
-                ui.label(f'📦 Batch File Result ({len(files)} files)').classes('font-bold')
+                ui.label(f'Batch File Result ({len(files)} files)').classes('font-bold').classes('text-[#505759]')
 
                 if has_metadata:
                     _render_batch_file_with_metadata(container, files)
@@ -278,5 +278,5 @@ def _render_batch_file_grid(container, files):
                                 ui.button(
                                     os.path.basename(file_path),
                                     on_click=lambda path=file_path: open_file(path)
-                                ).classes('text-xs truncate text-blue-600 hover:underline').props('flat')
+                                ).classes('text-xs truncate text-indigo-600 hover:underline').props('flat')
 

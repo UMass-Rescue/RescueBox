@@ -38,7 +38,7 @@ def render_readonly_form(container: ui.element, task_schema: Any, request_body: 
 
                     with ui.column().classes("w-full min-w-0 max-w-full gap-1"):
                         ui.label(input_schema.label).classes(
-                            "font-semibold text-sm text-gray-800"
+                            "font-semibold text-sm text-zinc-800"
                         )
 
                         if field_input:
@@ -63,7 +63,7 @@ def render_readonly_form(container: ui.element, task_schema: Any, request_body: 
                                 _readonly_value_block(str(input_root), monospace=True)
                         else:
                             ui.label("(not provided)").classes(
-                                "text-sm text-gray-400 italic"
+                                "text-sm text-zinc-400 italic"
                             )
 
             # Parameters
@@ -75,11 +75,11 @@ def render_readonly_form(container: ui.element, task_schema: Any, request_body: 
 
                     with ui.column().classes("w-full min-w-0 max-w-full gap-1"):
                         ui.label(param_schema.label).classes(
-                            "font-semibold text-sm text-gray-800"
+                            "font-semibold text-sm text-zinc-800"
                         )
                         if param_value is None:
                             ui.label("(not provided)").classes(
-                                "text-sm text-gray-400 italic"
+                                "text-sm text-zinc-400 italic"
                             )
                         else:
                             _readonly_value_block(str(param_value))

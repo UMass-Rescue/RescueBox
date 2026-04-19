@@ -73,7 +73,7 @@ class BaseComponent(ABC):
         """
         with ui.row().classes('items-center gap-2') as loading_row:
             ui.spinner(size='sm')
-            ui.label(message).classes('text-sm text-gray-600')
+            ui.label(message).classes('text-sm text-zinc-600')
         return loading_row
 
     def create_success_display(self, message: str) -> ui.element:

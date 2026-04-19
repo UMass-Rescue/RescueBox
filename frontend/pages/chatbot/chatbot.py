@@ -402,7 +402,7 @@ class ChatbotPage:
             if getattr(job, 'status', None) == 'Running' or getattr(job, 'status', None) == JobStatus.RUNNING:
                 # Show a status message in chat (non-blocking) and start polling
                 from frontend.pages.chatbot.chatbot_message import ChatMessage
-                self._add_message(ChatMessage('assistant', f"🔄 Job {job_id} is still running..."))
+                self._add_message(ChatMessage('assistant', f'Job {job_id} is still running…'))
                 try:
                     import asyncio as _asyncio
                     _asyncio.create_task(self._poll_job_status(job_id, endpoint))
@@ -447,7 +447,7 @@ class ChatbotPage:
                     return
                 if status == 'Failed' or status == JobStatus.FAILED:
                     from frontend.pages.chatbot.chatbot_message import ChatMessage
-                    self._add_message(ChatMessage('assistant', f"❌ Job {job_id} failed."))
+                    self._add_message(ChatMessage('assistant', f'Job {job_id} failed.'))
                     self.state_manager.set_input_enabled(True)
                     return
         except Exception as e:

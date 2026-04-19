@@ -1,7 +1,10 @@
 import logging
-from nicegui import ui
-from typing import Dict, Any, Optional
 from pathlib import Path
+from typing import Any, Dict, Optional
+
+from nicegui import ui
+
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -21,7 +24,7 @@ def create_directory_input(
     from frontend.utils.file_browser import browse_directory_simple
 
     with ui.column().classes('w-full min-w-0 gap-1'):
-        ui.label('Directory path').classes('text-sm font-medium text-gray-700')
+        ui.label('Directory path').classes('text-sm font-medium text-zinc-700')
         with ui.row().classes('w-full min-w-0 items-center gap-2 flex-nowrap'):
             dir_input = ui.input(
                 label='',
@@ -29,7 +32,7 @@ def create_directory_input(
                 value=initial_value.get('path', '') if isinstance(initial_value, dict) else '',
             ).classes('flex-1 min-w-0').props('outlined dense')
 
-            validation_status = ui.icon('').classes('text-gray-400 shrink-0')
+            validation_status = ui.icon('').classes('text-zinc-400 shrink-0')
 
             def validate_directory_path():
                 path = dir_input.value.strip()
@@ -40,14 +43,14 @@ def create_directory_input(
                 try:
                     DirectoryInput(path=Path(path))
                     validation_status.name = 'check_circle'
-                    validation_status.classes('text-green-500', remove='text-red-500 text-gray-400')
+                    validation_status.classes('text-green-500', remove='text-red-500 text-zinc-400')
                     if autofill_output_key:
                         from frontend.utils.job_form_paths import maybe_autofill_output_dir_field
 
                         maybe_autofill_output_dir_field(form_widgets, autofill_output_key, path)
                 except Exception:
                     validation_status.name = 'error'
-                    validation_status.classes('text-red-500', remove='text-green-500 text-gray-400')
+                    validation_status.classes('text-red-500', remove='text-green-500 text-zinc-400')
 
             dir_input.on('change', validate_directory_path)
             if dir_input.value:
@@ -58,7 +61,7 @@ def create_directory_input(
                 on_click=lambda: browse_directory_simple(
                     dir_input, on_after_select=validate_directory_path
                 ),
-            ).classes('shrink-0 bg-gray-300')
+            ).classes(f'shrink-0 {Design.BTN_MEDIUM_GRAY}')
 
     form_widgets[field_id] = dir_input
     return dir_input
@@ -77,7 +80,7 @@ def create_file_input(
     from frontend.utils.file_browser import browse_file_simple
 
     with ui.column().classes('w-full min-w-0 gap-1'):
-        ui.label('File path').classes('text-sm font-medium text-gray-700')
+        ui.label('File path').classes('text-sm font-medium text-zinc-700')
         with ui.row().classes('w-full min-w-0 items-center gap-2 flex-nowrap'):
             file_input = ui.input(
                 label='',
@@ -85,7 +88,7 @@ def create_file_input(
                 value=initial_value.get('path', '') if isinstance(initial_value, dict) else '',
             ).classes('flex-1 min-w-0').props('outlined dense')
 
-            file_validation_status = ui.icon('').classes('text-gray-400 shrink-0')
+            file_validation_status = ui.icon('').classes('text-zinc-400 shrink-0')
 
             def validate_file_path():
                 path = file_input.value.strip()
@@ -96,7 +99,7 @@ def create_file_input(
                 try:
                     FileInput(path=Path(path))
                     file_validation_status.name = 'check_circle'
-                    file_validation_status.classes('text-green-500', remove='text-red-500 text-gray-400')
+                    file_validation_status.classes('text-green-500', remove='text-red-500 text-zinc-400')
                     if autofill_mount_name_key:
                         from frontend.utils.job_form_paths import (
                             maybe_autofill_ufdr_mount_name_field,
@@ -107,7 +110,7 @@ def create_file_input(
                         )
                 except Exception:
                     file_validation_status.name = 'error'
-                    file_validation_status.classes('text-red-500', remove='text-green-500 text-gray-400')
+                    file_validation_status.classes('text-red-500', remove='text-green-500 text-zinc-400')
 
             file_input.on('change', validate_file_path)
             if file_input.value:
@@ -118,7 +121,7 @@ def create_file_input(
                 on_click=lambda: browse_file_simple(
                     file_input, on_after_select=validate_file_path
                 ),
-            ).classes('shrink-0 bg-gray-300')
+            ).classes(f'shrink-0 {Design.BTN_MEDIUM_GRAY}')
 
     form_widgets[field_id] = file_input
     return file_input

@@ -65,12 +65,11 @@ def create_db_and_tables():
                     conn.execute(text(f"DROP INDEX IF EXISTS {idx_name}"))
                     conn.execute(text(f"DELETE FROM {table}"))
                     conn.execute(text(f"ALTER TABLE {table} DROP COLUMN embedding"))
-                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN embedding vector(768)"))
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN embedding vector(1024)"))
     except Exception:
         pass
     
-    # Image plugin default: CLIP ViT-L/14 (e.g. laion/CLIP-ViT-L-14-*) → 768-dim joint embeddings.
-    # ViT-H/14 models use 1024; if the column width does not match the running plugin default, migrate.
+    # Image embeddings: plugin default openai/clip-vit-large-patch14-336 → projection_dim 768.
     try:
         from sqlalchemy import text
         with engine.begin() as conn:
@@ -101,6 +100,17 @@ def create_db_and_tables():
             postgresql_ops={"embedding": "vector_l2_ops"},
         )
         chunk_index.create(engine)
+    except Exception:
+        pass  # Index may already exist
+    try:
+        img_index = Index(
+            "image_embeddings_hnsw_idx",
+            ImageEmbedding.embedding,
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_l2_ops"},
+        )
+        img_index.create(engine)
     except Exception:
         pass  # Index may already exist
 
@@ -135,7 +145,7 @@ class ImageEmbedding(SQLModel, table=True):
     path: str = Field(index=True)
     # SHA-256 hex of file bytes; reuse embeddings when path changes but content matches.
     content_sha256: str = Field(default="", index=True)
-    # CLIP ViT-L/14 joint embedding size (must match image_embeddings plugin default model projection_dim).
+    # CLIP ViT-L/14 @336px joint embedding size (must match image_embeddings plugin default projection_dim).
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(768)))
 
 # TODO: There is probably a way to do this without this try kludge

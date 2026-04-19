@@ -16,7 +16,7 @@ Keep docs **small and current**. This index plus nine topic files are what we ma
 | Topic | Doc |
 |--------|-----|
 | End-to-end workflow (chat, tools, API) | [workflow.md](./workflow.md) |
-| Look & feel (Tailwind, dark mode, layout) | [style-theme.md](./style-theme.md) |
+| Look & feel (Tailwind, indigo/zinc, `Design` tokens, dark mode) | [style-theme.md](./style-theme.md) |
 | Conversations, messages, rerun | [chat-history.md](./chat-history.md) |
 | Job lifecycle, submission, polling | [jobs.md](./jobs.md) |
 | SQLite files, storage | [database.md](./database.md) |

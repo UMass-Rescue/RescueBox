@@ -5,6 +5,7 @@ import json
 import typer
 import os
 
+from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
 from rb.lib.plugin_io import ImageSummaryFilePair
 from rb.lib.utils import (
@@ -14,7 +15,7 @@ from rb.lib.utils import (
 )
 from rb.api.models import (
     BatchFileInput,
-    BatchFileInput,
+    FileFilterDirectory,
     InputSchema,
     InputType,
     ParameterSchema,
@@ -27,7 +28,7 @@ from rb.api.models import (
 )
 
 from .model import SUPPORTED_MODELS
-from .process import process_images_batch
+from .process import SUPPORTED_IMAGE_EXTENSIONS, process_images_batch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,9 +36,16 @@ logger = logging.getLogger(__name__)
 APP_NAME = "image_summary"
 
 
+class ImageSummaryInputDirectory(FileFilterDirectory):
+    """``input_dir`` must contain at least one supported raster image (see ``process``)."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(SUPPORTED_IMAGE_EXTENSIONS)
+
+
 class Inputs(TypedDict):
-    input_dir: DirectoryInput
-    output_dir: DirectoryInput # Optional: from chained BatchFileResponse filter
+    input_dir: ImageSummaryInputDirectory
+    output_dir: DirectoryInput  # Optional: from chained BatchFileResponse filter
 
 
 class Parameters(TypedDict):
@@ -182,10 +190,14 @@ def inputs_cli_parse(input: str) -> Inputs:
         raise ValueError("Input directory does not exist.")
     if not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
-    return {
-        "input_dir": DirectoryInput(path=input_dir),
-        "output_dir": DirectoryInput(path=output_dir),
-    }
+    try:
+        return {
+            "input_dir": ImageSummaryInputDirectory(path=input_dir),
+            "output_dir": DirectoryInput(path=output_dir),
+        }
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def parameters_cli_parse(model: str) -> Parameters:

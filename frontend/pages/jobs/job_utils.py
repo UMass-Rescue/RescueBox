@@ -54,6 +54,7 @@ def extract_job_fields(job) -> Dict[str, Any]:
             - taskUid (Optional[str])
             - endpoint (Optional[str])
             - endpointChain (Optional[list[str]]): ordered endpoints for multi-step chatbot jobs
+            - pipelineRootJobId (Optional[str]): first job id for a multi-step pipeline run
             - startTime (Optional[str])
             - endTime (Optional[str])
             - status (str)
@@ -79,6 +80,10 @@ def extract_job_fields(job) -> Dict[str, Any]:
             'taskUid': job.taskUid,
             'endpoint': job.endpoint,
             'endpointChain': getattr(job, 'endpointChain', None),
+            'pipelineRootJobId': getattr(job, 'pipelineRootJobId', None),
+            'pipelineMetadataFilterCriteria': getattr(
+                job, 'pipelineMetadataFilterCriteria', None
+            ),
             'startTime': job.startTime,
             'endTime': job.endTime,
             'status': job.status.value if hasattr(job.status, 'value') else str(job.status),
@@ -96,6 +101,8 @@ def extract_job_fields(job) -> Dict[str, Any]:
             'taskUid': job.get('taskUid'),
             'endpoint': job.get('endpoint'),
             'endpointChain': job.get('endpointChain'),
+            'pipelineRootJobId': job.get('pipelineRootJobId'),
+            'pipelineMetadataFilterCriteria': job.get('pipelineMetadataFilterCriteria'),
             'startTime': job.get('startTime'),
             'endTime': job.get('endTime'),
             'status': job.get('status', 'Unknown'),

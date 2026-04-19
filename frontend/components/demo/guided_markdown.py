@@ -95,14 +95,14 @@ def render_guided_markdown_body(
     base = image_base_url.rstrip("/") or "/demo"
     segments = list(iter_md_and_images(markdown_text))
     if not segments:
-        ui.label("Guide content is empty.").classes("text-gray-500")
+        ui.label("Guide content is empty.").classes("text-zinc-500")
         return
     with container:
         for kind, payload in segments:
             if kind == "md":
                 # Tailwind text-* on the element; use ! so global body { font-size: 0.8rem !important } does not win.
                 ui.markdown(payload).classes(
-                    "prose prose-slate max-w-none "
+                    "prose prose-zinc max-w-none "
                     "!text-xl leading-relaxed "
                     "[&_p]:!text-xl [&_li]:!text-xl "
                     "[&_h1]:!text-3xl [&_h2]:!text-2xl [&_h3]:!text-2xl"
@@ -113,5 +113,5 @@ def render_guided_markdown_body(
                     logger.warning("Ignoring unsafe screenshot name: %s", payload)
                     continue
                 ui.image(f"{base}/{safe}").classes(
-                    "w-full max-w-3xl rounded-lg border border-gray-200 shadow-md my-4"
+                    "w-full max-w-3xl rounded-lg border border-zinc-200 shadow-md my-4"
                 )

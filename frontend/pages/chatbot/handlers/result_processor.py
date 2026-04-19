@@ -153,16 +153,18 @@ class ResultProcessor:
         from frontend.components.shared.notifications import notify_info
 
         tool_calls = result.get('tool_calls', [])
-        notify_info(f"Processing {len(tool_calls)} tool call(s) sequentially...")
+        notify_info(
+            f"Processing {len(tool_calls)} tool call(s) sequentially...",
+        )
 
         # Create a proper ChatMessage object
-        from frontend.pages.chatbot.chatbot_message import ChatMessage
-        message = ChatMessage('assistant',
-            f"🔄 I'll process {len(tool_calls)} task(s) sequentially:\n" +
-            "\n".join([f"{i+1}. {call['endpoint']}" for i, call in enumerate(tool_calls)])
-        )
+        #from frontend.pages.chatbot.chatbot_message import ChatMessage
+        #message = ChatMessage('assistant',
+        #    f"Processing {len(tool_calls)} task(s) sequentially:\n" +
+        #    "\n".join([f"{i+1}. {call['endpoint']}" for i, call in enumerate(tool_calls)])
+        #)
         # Do not scroll to bottom here: scroll_to_bottom retries (~700ms) override form scrollIntoView.
-        add_message_callback(message, False)
+        #add_message_callback(message, False)
 
         # Start with first tool call
         if tool_calls and load_form_callback:

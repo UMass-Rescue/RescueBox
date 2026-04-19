@@ -2,6 +2,8 @@ import logging
 from nicegui import ui
 from typing import Callable
 
+from frontend.design_tokens import Design
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -75,7 +77,7 @@ def render_form_actions(container: ui.element, on_cancel: Callable, on_submit: C
                 ui.button(
                     'Cancel',
                     on_click=_cancel_wrapper
-                ).classes('bg-gray-300')
+                ).classes(Design.BTN_MEDIUM_GRAY)
 
                 btn_ref = [None]  # Use list to allow closure to capture mutable ref
 
@@ -113,7 +115,7 @@ def render_form_actions(container: ui.element, on_cancel: Callable, on_submit: C
                 submit_btn = ui.button(
                     '▶ Submit Job',
                     on_click=_submit_wrapper
-                ).classes('bg-green-600 text-white')
+                ).classes('rb-brand-primary text-white rounded-xl')
                 btn_ref[0] = submit_btn
 
             return submit_btn

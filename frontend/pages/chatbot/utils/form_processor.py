@@ -64,7 +64,16 @@ class FormProcessor:
 
         # Setup database and job
         job_db = await self._get_job_database()
-        job = await self._create_job_record(job_db, request_body, task_schema, endpoint)
+        pipeline_total = (1 + len(remaining_calls)) if remaining_calls else None
+        endpoint_chain_first = [endpoint] if endpoint else None
+        job = await self._create_job_record(
+            job_db,
+            request_body,
+            task_schema,
+            endpoint,
+            endpoint_chain=endpoint_chain_first,
+            pipeline_total_steps=pipeline_total,
+        )
 
         try:
             # Submit job
@@ -91,7 +100,6 @@ class FormProcessor:
             # Save results to chat history
             await self._save_success_to_history(conversation_id_ref, job_uid)
 
-            pipeline_total = 1 + len(remaining_calls) if remaining_calls else None
             await show_results(
                 chat_container,
                 response_body,
@@ -110,6 +118,7 @@ class FormProcessor:
                 # Use JobSubmissionOrchestrator's logic for consistency
                 # We pass None as the handler since we are providing the load_form_func callback
                 orchestrator = JobSubmissionOrchestrator(None)
+                root_uid = job.uid if job else None
                 await orchestrator.handle_remaining_calls(
                     remaining_calls,
                     response_body,
@@ -118,6 +127,8 @@ class FormProcessor:
                     load_and_show_form_func,
                     accumulated_endpoint_chain=[endpoint],
                     pipeline_total_steps=pipeline_total,
+                    pipeline_root_job_id=root_uid,
+                    completed_step_job_id=job.uid if job else None,
                 )
 
         except Exception as e:
@@ -136,12 +147,25 @@ class FormProcessor:
         """Get job database instance."""
         return get_job_db()
 
-    async def _create_job_record(self, job_db, request_body, task_schema, endpoint):
-        """Create job record in database."""
+    async def _create_job_record(
+        self,
+        job_db,
+        request_body,
+        task_schema,
+        endpoint,
+        *,
+        endpoint_chain=None,
+        pipeline_total_steps=None,
+        pipeline_root_job_id=None,
+    ):
+        """Create job record in database (same pipeline columns as chat orchestrator)."""
         job = await job_db.create_job(
             request_body=request_body,
             task_schema=task_schema,
-            endpoint=endpoint
+            endpoint=endpoint,
+            endpoint_chain=endpoint_chain,
+            pipeline_total_steps=pipeline_total_steps,
+            pipeline_root_job_id=pipeline_root_job_id,
         )
         self.logger.info("Job %s created in database", job.uid)
         return job

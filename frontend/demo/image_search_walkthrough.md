@@ -65,7 +65,7 @@ note: if you type something not understood by rescuebox, you should see a help o
 
 2. Open the job to view **outputs**. A list of top-5 likely matches in images is returned. 
 
-NOTE: Some of these "**low similiarity**" rows could be incorrect, for example "small child" is replaced with "age < 10"
+NOTE: Some of these "**low similiarity**" rows could be incorrect, for example insead of "small child" query is "age < 10" or "kid" !
 
 ---
 

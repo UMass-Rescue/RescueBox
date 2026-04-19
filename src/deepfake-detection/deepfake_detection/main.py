@@ -4,9 +4,12 @@ import warnings
 import typer
 from typing import Any, Dict, List, Optional, TypedDict
 from pathlib import Path
+
+from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     DirectoryInput,
+    FileFilterDirectory,
     FileResponse,
     InputSchema,
     InputType,
@@ -37,6 +40,16 @@ logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore")
 APP_NAME = "deepfake_detection"
+
+# Extensions scanned by ``defaultDataset`` in ``sim_data`` (top-level files only).
+DEEPFAKE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
+
+
+class DeepfakeImageDirectory(FileFilterDirectory):
+    """Directory must exist, be non-empty, and contain at least one allowed image extension."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(DEEPFAKE_IMAGE_EXTENSIONS)
 
 print("start")
 
@@ -104,7 +117,7 @@ def create_transform_case_task_schema() -> TaskSchema:
 
 # Specify the input and output types for the task
 class Inputs(TypedDict):
-    input_dir: DirectoryInput
+    input_dir: DeepfakeImageDirectory
     output_dir: DirectoryInput
 
 
@@ -176,10 +189,14 @@ def cli_parser(input: str) -> Inputs:
 
     print(f"Input dataset: {input_dir}")
     print(f"Output directory: {output_dir}")
-    return {
-        "input_dir": DirectoryInput(path=str(input_dir)),
-        "output_dir": DirectoryInput(path=str(output_dir)),
-    }
+    try:
+        return Inputs(
+            input_dir=DeepfakeImageDirectory(path=input_dir),
+            output_dir=DirectoryInput(path=str(output_dir)),
+        )
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def param_parser(facecrop: str = "false") -> Parameters:

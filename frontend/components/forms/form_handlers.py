@@ -8,7 +8,7 @@ validate them against TaskSchema definitions.
 
 import logging
 from nicegui import ui
-from typing import Dict, Callable, Optional
+from typing import Callable, Dict, Optional
 from pathlib import Path
 import sys
 
@@ -123,6 +123,7 @@ def validate_form(
     task_schema: TaskSchema,
     form_widgets: Dict,
     initial_inputs: Optional[Dict] = None,
+    endpoint: Optional[str] = None,
 ) -> tuple[bool, Dict]:
     """
     Validate form data using Pydantic models.
@@ -133,6 +134,8 @@ def validate_form(
     Args:
         task_schema (TaskSchema): Schema to validate against
         form_widgets (Dict): Dictionary of form widgets to collect data from
+        initial_inputs (Optional[Dict]): Merged pipeline inputs not represented as widgets
+        endpoint (Optional[str]): Task endpoint for :func:`validate_form_data` (e.g. image-folder checks)
     
     Returns:
         tuple[bool, Dict]: A tuple containing:
@@ -146,7 +149,7 @@ def validate_form(
     """
     logger.debug("Validating form data")
     form_data = collect_form_data(task_schema.model_dump(), form_widgets, initial_inputs)
-    validation_result = validate_form_data(form_data, task_schema)
+    validation_result = validate_form_data(form_data, task_schema, endpoint=endpoint)
     
     if not validation_result['is_valid']:
         errors = validation_result.get('errors', {})
@@ -162,6 +165,7 @@ async def handle_form_submit(
     form_widgets: Dict,
     onSubmit: Callable,
     initial_inputs: Optional[Dict] = None,
+    endpoint: Optional[str] = None,
 ) -> bool:
     """
     Handle form submission.
@@ -173,6 +177,8 @@ async def handle_form_submit(
         task_schema (TaskSchema): Schema used for validation
         form_widgets (Dict): Dictionary of form widgets to collect data from
         onSubmit (Callable): Callback function to call with validated form data
+        initial_inputs (Optional[Dict]): Extra inputs merged at collection time
+        endpoint (Optional[str]): Task endpoint for validators (e.g. image-folder checks)
     
     Returns:
         bool: True if job was submitted, False if validation/collection failed or error (caller may re-enable submit button)
@@ -186,7 +192,7 @@ async def handle_form_submit(
     
     try:
         # Validate form
-        is_valid, errors = validate_form(task_schema, form_widgets, initial_inputs)
+        is_valid, errors = validate_form(task_schema, form_widgets, initial_inputs, endpoint=endpoint)
         if not is_valid:
             logger.warning("Form validation failed with %d errors", len(errors))
             handle_validation_error(errors, "Form submission validation")

@@ -56,7 +56,7 @@ async def demo_transcribe_walkthrough_page():
             ui.button(
                 "Back to Demo",
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
-            ).classes("bg-blue-600 text-white")
+            ).classes("rb-brand-primary text-white")
 
     schedule_hash_fragment_scroll()
     logger.debug("Transcribe walkthrough page rendered")

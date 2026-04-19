@@ -40,11 +40,8 @@ def find_chat_textarea(user: "User"):
 
 
 async def assert_chatbot_header_visible(user: "User") -> None:
-    """Header may be emoji+Assistant or RescueBox Assistant depending on layout."""
+    """Header shows RescueBox Assistant and/or Assistant depending on layout."""
     try:
         await user.should_see("RescueBox Assistant")
     except AssertionError:
-        try:
-            await user.should_see("🤖 Assistant")
-        except AssertionError:
-            await user.should_see("Assistant")
+        await user.should_see("Assistant")

@@ -10,7 +10,7 @@ def render_loading_row(message: str = "Loading..."):
     """Render a small loading row with spinner and label."""
     with ui.row().classes('items-center gap-2') as loading_row:
         ui.spinner(size='sm')
-        ui.label(message).classes('text-sm text-gray-600')
+        ui.label(message).classes('text-sm text-zinc-600')
     return loading_row
 
 
@@ -79,7 +79,8 @@ def notify_success(
         type='positive',
         position=position,
         timeout=int(duration * 1000) if duration > 0 else 0,
-        close_button=close_button
+        close_button=close_button,
+        classes='rb-notify-505759'
     )
     logger.debug("Success notification shown: %s", message)
 
@@ -110,7 +111,8 @@ def notify_error(
         type='negative',
         position=position,
         timeout=int(duration * 1000) if duration > 0 else 0,
-        close_button=close_button
+        close_button=close_button,
+        classes='rb-notify-505759'
     )
     logger.debug("Error notification shown: %s", message)
 
@@ -119,30 +121,42 @@ def notify_info(
     message: str,
     duration: float = 3.0,
     position: str = 'top',
-    close_button: bool = True
+    close_button: bool = True,
+    *,
+    color: Optional[str] = None,
 ) -> None:
     """
     Show info notification.
-    
+
     Args:
         message: Info message to display
         duration: Duration in seconds (0 = persistent)
         position: Position ('top', 'bottom', 'left', 'right')
         close_button: Whether to show close button
-    
+        color: Optional Quasar color name (e.g. ``indigo``); adds ``type='info'`` for Quasar tinting
+            (default calls use only the ``rb-notify-505759`` medium-gray skin)
+
     Returns:
         None
-    
+
     Usage:
         notify_info("Processing your request...")
+        notify_info("Running steps…", color="indigo")
     """
-    ui.notify(
-        message,
-        type='info',
+    kwargs: dict = dict(
+        message=message,
         position=position,
         timeout=int(duration * 1000) if duration > 0 else 0,
-        close_button=close_button
+        close_button=close_button,
+        classes="rb-notify-505759",
     )
+    # With medium-gray skin, omit Quasar ``type`` so ``bg-info`` / teal does not override
+    # the skin (same rule as ``UIOperations.safe_notify``). Optional ``color`` opts back into
+    # Quasar styling for rare branded info toasts.
+    if color:
+        kwargs["type"] = "info"
+        kwargs["color"] = color
+    ui.notify(**kwargs)
     logger.debug("Info notification shown: %s", message)
 
 
@@ -172,7 +186,8 @@ def notify_warning(
         type='warning',
         position=position,
         timeout=int(duration * 1000) if duration > 0 else 0,
-        close_button=close_button
+        close_button=close_button,
+        classes='rb-notify-505759'
     )
     logger.debug("Warning notification shown: %s", message)
 

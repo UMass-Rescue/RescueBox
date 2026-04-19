@@ -19,6 +19,7 @@ from rb.api.models import (
     DirectoryInput,
     FileInput,
 )
+from frontend.design_tokens import Design
 from frontend.utils.file_browser import browse_directory_simple, browse_file_simple
 
 # Configure logging for this module
@@ -70,7 +71,7 @@ async def create_input_field(
         label_text = label
         if subtitle:
             ui.label(label_text).classes('font-semibold')
-            ui.label(subtitle).classes('text-sm text-gray-500')
+            ui.label(subtitle).classes('text-sm text-zinc-500')
         else:
             ui.label(label_text).classes('font-semibold')
 
@@ -98,10 +99,10 @@ async def create_input_field(
                             ).classes('w-full')
 
                             # Visible full-path label under the input to avoid horizontal scrolling
-                            full_path_label = ui.label(dir_input.value or '').classes('text-xs font-mono text-gray-600 mt-1 break-words')
+                            full_path_label = ui.label(dir_input.value or '').classes('text-xs font-mono text-zinc-600 mt-1 break-words')
 
                         # Add validation feedback (hidden until user enters a value)
-                        validation_status = ui.icon('').classes('text-gray-400 q-mr-sm')
+                        validation_status = ui.icon('').classes('text-zinc-400 q-mr-sm')
                         validation_status.hide()
 
                         def validate_directory_path():
@@ -119,7 +120,7 @@ async def create_input_field(
                             p = Path(path)
                             if p.exists() and p.is_dir():
                                 validation_status.name = 'check_circle'
-                                validation_status.classes('text-green-500 q-mr-sm', remove='text-red-500 text-gray-400')
+                                validation_status.classes('text-green-500 q-mr-sm', remove='text-red-500 text-zinc-400')
                                 validation_status.show()
                                 if autofill_output_key:
                                     from frontend.utils.job_form_paths import (
@@ -131,7 +132,7 @@ async def create_input_field(
                                     )
                             else:
                                 validation_status.name = 'error'
-                                validation_status.classes('text-red-500 q-mr-sm', remove='text-green-500 text-gray-400')
+                                validation_status.classes('text-red-500 q-mr-sm', remove='text-green-500 text-zinc-400')
                                 validation_status.show()
 
                         dir_input.on('change', validate_directory_path)
@@ -148,7 +149,7 @@ async def create_input_field(
                                     on_click=lambda: browse_directory_simple(
                                         dir_input, on_after_select=validate_directory_path
                                     ),
-                                ).classes('bg-gray-300')
+                                ).classes(Design.BTN_MEDIUM_GRAY)
                         form_widgets[field_id] = dir_input
 
             elif input_type == InputType.FILE:
@@ -163,7 +164,7 @@ async def create_input_field(
                         )
                     except Exception:
                         with ui.column().classes('w-full min-w-0 gap-1'):
-                            ui.label('File path').classes('text-sm font-medium text-gray-700')
+                            ui.label('File path').classes('text-sm font-medium text-zinc-700')
                             with ui.row().classes('w-full min-w-0 items-center gap-2 flex-nowrap'):
                                 file_input = ui.input(
                                     label='',
@@ -171,7 +172,7 @@ async def create_input_field(
                                     value=initial_value.get('path', '') if isinstance(initial_value, dict) else ''
                                 ).classes('flex-1 min-w-0').props('outlined dense')
 
-                                file_validation_status = ui.icon('').classes('text-gray-400 shrink-0')
+                                file_validation_status = ui.icon('').classes('text-zinc-400 shrink-0')
                                 file_validation_status.hide()
 
                                 def validate_file_path():
@@ -184,7 +185,7 @@ async def create_input_field(
                                     p = Path(path)
                                     if p.exists() and p.is_file():
                                         file_validation_status.name = 'check_circle'
-                                        file_validation_status.classes('text-green-500', remove='text-red-500 text-gray-400')
+                                        file_validation_status.classes('text-green-500', remove='text-red-500 text-zinc-400')
                                         file_validation_status.show()
                                         if autofill_ufdr_mount_key:
                                             from frontend.utils.job_form_paths import (
@@ -198,7 +199,7 @@ async def create_input_field(
                                             )
                                     else:
                                         file_validation_status.name = 'error'
-                                        file_validation_status.classes('text-red-500', remove='text-green-500 text-gray-400')
+                                        file_validation_status.classes('text-red-500', remove='text-green-500 text-zinc-400')
                                         file_validation_status.show()
 
                                 file_input.on('change', validate_file_path)
@@ -210,7 +211,7 @@ async def create_input_field(
                                     on_click=lambda: browse_file_simple(
                                         file_input, on_after_select=validate_file_path
                                     ),
-                                ).classes('shrink-0 bg-gray-300')
+                                ).classes(f'shrink-0 {Design.BTN_MEDIUM_GRAY}')
                         form_widgets[field_id] = file_input
 
             elif input_type == InputType.TEXTAREA:

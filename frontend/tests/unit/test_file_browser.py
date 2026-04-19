@@ -368,7 +368,7 @@ class TestFileBrowser:
                         except ImportError:
                             ui.label('win32api not available').classes('text-yellow-600')
                     else:
-                        ui.label('Not Windows').classes('text-gray-600')
+                        ui.label('Not Windows').classes('text-zinc-600')
                 
                 ui.button('Test Drives', on_click=test_drives)
             

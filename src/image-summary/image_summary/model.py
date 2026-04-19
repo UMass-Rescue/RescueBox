@@ -29,7 +29,7 @@ SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
     },
 '''
 
-IMAGE_PROMPT_GEMMA: Final[str] = (
+IMAGE_PROMPT: Final[str] = (
     "You are a vision model. Provide a detailed description of the image. "
     "Identify: (1) scene and setting, (2) key objects with attributes (colors, counts, relative positions), "
     "(3) people dress and actions if present, (4) any visible text (quote verbatim), (5) notable details and context, "
@@ -53,8 +53,8 @@ IMAGE_BATCH_PROMPT_JSON: Final[str] = (
     "Do not wrap the JSON in markdown code fences or add any text before or after the array."
 )
 
-IMAGE_PROMPT: Final[str] = (
-    "Describe the image briefly. Be factual and avoid speculation."
+IMAGE_PROMPT_GEMMA: Final[str] = (
+    "Describe the image briefly. People dress and actions if present. Avoid speculation. Output only the description."
 )
 
 

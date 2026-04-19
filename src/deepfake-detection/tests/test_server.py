@@ -107,8 +107,8 @@ class TestDeepFakeServer(RBAppTest):
         predict_api = f"/{APP_NAME}/predict"
         payload = {
             "inputs": {
-                "input_dataset": {"path": str(input_dir)},
-                "output_file": {"path": str(output_dir)},
+                "input_dir": {"path": str(input_dir)},
+                "output_dir": {"path": str(output_dir)},
             },
             "parameters": {
                 "facecrop": "false",

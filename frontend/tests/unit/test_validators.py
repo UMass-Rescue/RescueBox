@@ -78,7 +78,70 @@ class TestValidateFormData:
         # Should fail validation due to invalid path
         assert result['is_valid'] is False
         assert 'input_dir' in result['errors']
-    
+
+    def test_validate_missing_input_dir(self, sample_task_schema):
+        """Submitting without a declared input path must fail before RequestBody."""
+        form_data = {
+            'inputs': {'prompt': {'text': 'Test'}},
+            'parameters': {},
+        }
+        result = validate_form_data(form_data, sample_task_schema)
+        assert result['is_valid'] is False
+        assert 'input_dir' in result['errors']
+
+    def test_validate_empty_directory_path(self, sample_task_schema):
+        """Empty path string must be rejected for directory inputs."""
+        form_data = {
+            'inputs': {
+                'input_dir': {'path': '   '},
+                'prompt': {'text': 'Test'},
+            },
+            'parameters': {},
+        }
+        result = validate_form_data(form_data, sample_task_schema)
+        assert result['is_valid'] is False
+        assert 'input_dir' in result['errors']
+
+    def test_image_endpoint_rejects_dir_without_image_files(self, sample_task_schema, tmp_path):
+        """Image-style endpoints require at least one common raster file under input_dir."""
+        d = tmp_path / "evidence"
+        d.mkdir()
+        (d / "notes.txt").write_text("no images")
+        form_data = {
+            'inputs': {'input_dir': {'path': str(d)}, 'prompt': {'text': 'captions'}},
+            'parameters': {'confidence': 0.8, 'mode': 'fast'},
+        }
+        result = validate_form_data(
+            form_data, sample_task_schema, endpoint='image_summary/summarize-images'
+        )
+        assert result['is_valid'] is False
+        assert 'input_dir' in result['errors']
+        assert 'image' in result['errors']['input_dir'].lower()
+
+    def test_image_endpoint_accepts_dir_with_jpeg(self, sample_task_schema, tmp_path):
+        d = tmp_path / "evidence"
+        d.mkdir()
+        (d / "kid.jpeg").write_bytes(b'\xff\xd8\xff\xd9')
+        form_data = {
+            'inputs': {'input_dir': {'path': str(d)}, 'prompt': {'text': 'x'}},
+            'parameters': {'confidence': 0.8, 'mode': 'fast'},
+        }
+        result = validate_form_data(
+            form_data, sample_task_schema, endpoint='image_summary/summarize-images'
+        )
+        assert result['is_valid'] is True
+
+    def test_audio_endpoint_skips_image_content_check(self, sample_task_schema, tmp_path):
+        d = tmp_path / "audio_in"
+        d.mkdir()
+        (d / "speech.txt").write_text('x')
+        form_data = {
+            'inputs': {'input_dir': {'path': str(d)}, 'prompt': {'text': 'x'}},
+            'parameters': {'confidence': 0.8, 'mode': 'fast'},
+        }
+        result = validate_form_data(form_data, sample_task_schema, endpoint='audio/transcribe')
+        assert result['is_valid'] is True
+
     def test_validate_invalid_schema_dict(self):
         """Test validation with invalid schema dictionary"""
         form_data = {'inputs': {}, 'parameters': {}}

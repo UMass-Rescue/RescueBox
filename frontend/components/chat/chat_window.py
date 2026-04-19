@@ -10,11 +10,15 @@ def render_welcome_message(container: ui.element) -> None:
     Keeps all three entry points consistent with the same friendly greeting.
     """
     with container:
-        with ui.card().classes('w-full max-w-sm bg-blue-50 shadow-sm'):
+        with ui.card().classes(
+            'w-full max-w-sm bg-white ring-1 ring-zinc-200 shadow-sm rounded-2xl rounded-tl-none'
+        ):
             with ui.column().classes('p-3 gap-1'):
-                ui.label('🤖 Assistant').classes('font-medium !text-base')
+                ui.label('Assistant').classes(
+                    'font-medium !text-sm text-zinc-500 uppercase tracking-wide'
+                )
                 ui.label('New conversation. How can I help you?').classes(
-                    '!text-base !leading-relaxed text-gray-700'
+                    '!text-base !leading-relaxed text-zinc-800'
                 )
 
 
@@ -26,10 +30,13 @@ def create_chat_window() -> Any:
     Uses NiceGUI's native clear() for proper container clearing when switching modes.
     Shows a friendly welcome message when the chat first opens.
     """
-    # rb-chat-messages-scroll: UIOperations.scroll_to_bottom scrolls this element (overflow-auto),
-    # not only the window — required for Plugins mode where the chat column scrolls independently.
+    # rb-chat-messages-scroll: UIOperations.scroll_to_bottom scrolls this element.
+    # Height follows content up to max-h so short threads sit above the input without a flex gap;
+    # long threads scroll inside this column (not flex-1 filling the viewport).
     container = ui.column().classes(
-        'rb-chat-messages-scroll flex-1 overflow-auto p-4 space-y-4 w-full bg-white rounded-lg shadow-sm border'
+        'rb-chat-messages-scroll w-full overflow-y-auto overflow-x-hidden '
+        'p-6 space-y-4 bg-white '
+        'max-h-[min(70vh,calc(100dvh-14rem))]'
     )
 
     render_welcome_message(container)

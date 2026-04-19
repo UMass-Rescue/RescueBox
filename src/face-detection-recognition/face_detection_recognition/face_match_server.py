@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import typer
@@ -10,7 +11,6 @@ from rb.api.models import (
     BatchTextResponse,
     FileFilterDirectory,
     BatchFileInput,
-    DirectoryInput,
     BatchFileResponse,
     EnumParameterDescriptor,
     EnumVal,
@@ -63,12 +63,13 @@ server.add_app_metadata(
     gpu=True,
 )
 
-IMAGE_EXTENSIONS = {".jpg", ".png"}
+# Raster types accepted for directory-based face-match tasks (top-level files only).
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp"}
 
 
 class ImageDirectory(FileFilterDirectory):
     path: DirectoryPath
-    file_extensions: List[str] = IMAGE_EXTENSIONS
+    file_extensions: List[str] = list(IMAGE_EXTENSIONS)
 
 
 # Legacy default store handle (used where a module-level DB reference is still handy)
@@ -323,7 +324,11 @@ def get_ingest_bulk_query_image_task_schema() -> TaskSchema:
 
 def find_face_bulk_cli_parser(inputs):
     query_directory = inputs
-    return {"query_directory": DirectoryInput(path=query_directory)}
+    try:
+        return {"query_directory": ImageDirectory(path=query_directory)}
+    except Exception as e:
+        logger.error("CLI parse error: %s", e)
+        raise typer.Abort() from e
 
 
 def find_face_bulk_param_parser(inputs):
@@ -447,7 +452,11 @@ def get_ingest_bulk_test_query_image_task_schema() -> TaskSchema:
 
 def find_face_bulk_test_cli_parser(inputs):
     query_directory = inputs
-    return {"query_directory": DirectoryInput(path=query_directory)}
+    try:
+        return {"query_directory": ImageDirectory(path=query_directory)}
+    except Exception as e:
+        logger.error("CLI parse error: %s", e)
+        raise typer.Abort() from e
 
 
 def find_face_bulk_test_param_parser(inputs):
@@ -559,7 +568,11 @@ def get_ingest_images_task_schema() -> TaskSchema:
 
 def bulk_upload_cli_parser(inputs):
     directory_path = inputs
-    return {"directory_path": DirectoryInput(path=directory_path)}
+    try:
+        return {"directory_path": ImageDirectory(path=directory_path)}
+    except Exception as e:
+        logger.error("CLI parse error: %s", e)
+        raise typer.Abort() from e
 
 
 def bulk_upload_param_parser(params):
@@ -671,7 +684,11 @@ def get_multi_pipeline_ingest_images_task_schema() -> TaskSchema:
 
 def multi_pipeline_bulk_upload_cli_parser(inputs):
     directory_path = inputs
-    return {"directory_path": DirectoryInput(path=directory_path)}
+    try:
+        return {"directory_path": ImageDirectory(path=directory_path)}
+    except Exception as e:
+        logger.error("CLI parse error: %s", e)
+        raise typer.Abort() from e
 
 
 def multi_pipeline_bulk_upload_param_parser(params):
@@ -847,7 +864,11 @@ def get_multi_pipeline_face_find_bulk_task_schema() -> TaskSchema:
 
 def multi_pipeline_face_find_bulk_cli_parser(inputs):
     directory_path = inputs
-    return {"directory_path": DirectoryInput(path=directory_path)}
+    try:
+        return {"directory_path": ImageDirectory(path=directory_path)}
+    except Exception as e:
+        logger.error("CLI parse error: %s", e)
+        raise typer.Abort() from e
 
 
 def multi_pipeline_face_find_bulk_param_parser(params):

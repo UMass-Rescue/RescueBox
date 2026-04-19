@@ -6,12 +6,16 @@ message history, and UI state in the chatbot interface.
 """
 
 import logging
-from typing import List, Optional
+from typing import Any, List, Optional
 from frontend.pages.chatbot.chatbot_message import ChatMessage
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Collapse the chat composer when input is "disabled" (pending form, processing, etc.).
+# Uses a dedicated class so we do not remove Plugins mode's Tailwind `hidden` on the same element.
+_INPUT_PENDING_HIDE_CLASS = "rb-chat-input-pending-only"
 
 
 class ChatbotStateManager:
@@ -38,6 +42,14 @@ class ChatbotStateManager:
         self.input_area = None  # Optional: container with input_field + send_button
 
         logger.debug("ChatbotStateManager initialized")
+
+    def attach_processing_strip(self, element: Any) -> None:
+        """Show ``element`` only while :meth:`set_processing` is True (model call).
+
+        Uses NiceGUI ``bind_visibility_from`` so updates propagate even though
+        ``is_processing`` is a plain attribute (binding refresh polls the source).
+        """
+        element.bind_visibility_from(self, 'is_processing')
 
     def add_message(self, message: ChatMessage):
         """
@@ -127,13 +139,28 @@ class ChatbotStateManager:
     def set_input_enabled(self, enabled: bool):
         """
         Enable or disable the input area based on whether the system is ready for a new prompt.
-        Input is enabled only when there is no pending chat interaction.
+        When disabled, the composer strip (textarea + send) is hidden (not greyed out) so the
+        form / results flow is the only call to action. Forms appended under ``input_area`` stay
+        visible (e.g. re-run after loading history). Plugins mode still uses ``hidden`` on the
+        outer input area; this method toggles ``rb-chat-input-pending-only`` on the inner composer
+        when available so both can compose safely.
 
         Args:
-            enabled: True to enable (ready for new prompt), False to disable
+            enabled: True to show the composer and allow typing; False to hide and block input
         """
         try:
             area = self.input_area or (self.input_field and getattr(self.input_field, 'parent', None))
+            # Hide only the textarea/send strip when present so forms rendered as siblings
+            # inside ``input_area`` (e.g. re-run after loading chat history) remain visible.
+            composer = (
+                getattr(self.input_area, "composer_strip", None) if self.input_area else None
+            )
+            hide_target = composer or self.input_area or area
+            if hide_target:
+                if enabled:
+                    hide_target.classes(remove=_INPUT_PENDING_HIDE_CLASS)
+                else:
+                    hide_target.classes(_INPUT_PENDING_HIDE_CLASS)
             if area:
                 field = getattr(area, 'input_field', None) or self.input_field
                 btn = getattr(area, 'send_button', None)
@@ -156,6 +183,7 @@ class ChatbotStateManager:
         self.clear_messages()
         self.conversation_id = None
         self.clear_input()
+        self.is_processing = False
         self.set_status("Ready")
         logger.info("Conversation reset")
 

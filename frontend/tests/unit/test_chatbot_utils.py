@@ -81,8 +81,8 @@ KEYWORD_MATCH_REASON = "keyword_match"
 PATH_DETECTED_REASON = "path_detected"
 
 # Rejection message content
-REJECTION_TITLE = "🚫 Request Not Supported"
-DIDNT_UNDERSTAND_TITLE = "❓ I Didn't Understand"
+REJECTION_TITLE = "Request Not Supported"
+DIDNT_UNDERSTAND_TITLE = "I Didn't Understand"
 RESCUEBOX_ASSISTANT_TEXT = "RescueBox Forensic Assistant"
 WHAT_I_CAN_DO_TEXT = "What I CAN Do"
 EXAMPLES_TEXT = "Examples:"
@@ -374,7 +374,7 @@ class TestGetRejectionMessage:
     def test_non_forensic_rejection(self):
         """Test rejection message for non-forensic requests"""
         message = get_rejection_message("non_forensic")
-        assert "🚫 Request Not Supported" in message
+        assert "Request Not Supported" in message
         assert "RescueBox Forensic Assistant" in message
         assert "What I CAN Do" in message
     

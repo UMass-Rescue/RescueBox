@@ -56,10 +56,10 @@ async def demo_other_walkthrough_page():
             ui.button(
                 "Back to Demo",
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
-            ).classes("bg-blue-600 text-white")
+            ).classes("rb-brand-primary text-white")
             
-            ui.link("Open Assistant", NAV_LINKS["chatbot"]).classes("text-blue-600 hover:underline")
-            ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes("text-blue-600 hover:underline")
+            ui.link("Open Assistant", NAV_LINKS["chatbot"]).classes("text-indigo-600 hover:underline")
+            ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes("text-indigo-600 hover:underline")
 
     schedule_hash_fragment_scroll()
     logger.debug("Other walkthrough page rendered")

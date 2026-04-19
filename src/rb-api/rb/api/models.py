@@ -93,7 +93,7 @@ class FileFilterDirectory(DirectoryInput):
         ]
         if len(number_of_matched_files) < 1:
             raise ValueError(
-                f"validate directory: No file extensions matching {self.file_extensions} found in directory: {path_obj}"
+                f"input directory validate failed: No file extensions matching {self.file_extensions} found in directory: {path_obj}"
             )
         return self
 

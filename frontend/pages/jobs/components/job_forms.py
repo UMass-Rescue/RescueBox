@@ -47,8 +47,8 @@ def render_compact_inputs_summary(task_schema: TaskSchema, request_body: Request
     except Exception as e:
         logger.exception("Component render failed, falling back to inline: %s", e)
         # Fallback to inline rendering (original behavior)
-        with ui.expansion('📋 View Inputs & Parameters', icon='description').classes('w-full mb-4'):
-            with ui.column().classes('gap-3 p-4 bg-gray-50 rounded'):
+        with ui.expansion('View inputs & parameters', icon='description').classes('w-full mb-4'):
+            with ui.column().classes('gap-3 p-4 bg-zinc-50 rounded'):
                 # Inputs
                 if task_schema.inputs:
                     ui.label('Inputs').classes('font-semibold text-lg')
@@ -68,18 +68,18 @@ def render_compact_inputs_summary(task_schema: TaskSchema, request_body: Request
                                     path_str = str(input_root.path)
                                     # Truncate long paths
                                     display_path = path_str if len(path_str) < 80 else path_str[:77] + '...'
-                                    ui.label(display_path).classes('flex-1 text-sm font-mono text-gray-700')
+                                    ui.label(display_path).classes('flex-1 text-sm font-mono text-zinc-700')
                                 elif hasattr(input_root, 'text'):
                                     # TextInput - show first line
                                     text = input_root.text
                                     first_line = text.split('\\n')[0] if '\\n' in text else text
                                     display_text = first_line if len(first_line) < 100 else first_line[:97] + '...'
-                                    ui.label(display_text).classes('flex-1 text-sm text-gray-700')
+                                    ui.label(display_text).classes('flex-1 text-sm text-zinc-700')
                                 else:
                                     # Batch types or other
-                                    ui.label(str(input_root)).classes('flex-1 text-sm text-gray-700')
+                                    ui.label(str(input_root)).classes('flex-1 text-sm text-zinc-700')
                             else:
-                                ui.label('(not provided)').classes('flex-1 text-sm text-gray-400 italic')
+                                ui.label('(not provided)').classes('flex-1 text-sm text-zinc-400 italic')
 
                 # Parameters
                 if task_schema.parameters:
@@ -90,7 +90,7 @@ def render_compact_inputs_summary(task_schema: TaskSchema, request_body: Request
 
                         with ui.row().classes('items-center gap-2'):
                             ui.label(param_schema.label).classes('w-32 font-semibold text-sm')
-                            ui.label(str(param_value) if param_value is not None else '(not provided)').classes('flex-1 text-sm text-gray-700')
+                            ui.label(str(param_value) if param_value is not None else '(not provided)').classes('flex-1 text-sm text-zinc-700')
 
 
 def render_readonly_form(task_schema: TaskSchema, request_body: RequestBody):
@@ -134,7 +134,7 @@ def render_readonly_form(task_schema: TaskSchema, request_body: RequestBody):
                     field_input = request_body.inputs.get(field_id)
 
                     with ui.column().classes('w-full min-w-0 max-w-full gap-1'):
-                        ui.label(input_schema.label).classes('font-semibold text-sm text-gray-800')
+                        ui.label(input_schema.label).classes('font-semibold text-sm text-zinc-800')
 
                         if field_input:
                             input_root = field_input.root if hasattr(field_input, 'root') else field_input
@@ -161,7 +161,7 @@ def render_readonly_form(task_schema: TaskSchema, request_body: RequestBody):
                                     'readonly outlined dense autogrow'
                                 )
                         else:
-                            ui.label('(not provided)').classes('text-sm text-gray-400 italic')
+                            ui.label('(not provided)').classes('text-sm text-zinc-400 italic')
 
             # Parameters
             if task_schema.parameters:
@@ -171,9 +171,9 @@ def render_readonly_form(task_schema: TaskSchema, request_body: RequestBody):
                     param_value = request_body.parameters.get(param_id)
 
                     with ui.column().classes('w-full min-w-0 max-w-full gap-1'):
-                        ui.label(param_schema.label).classes('font-semibold text-sm text-gray-800')
+                        ui.label(param_schema.label).classes('font-semibold text-sm text-zinc-800')
                         if param_value is None:
-                            ui.label('(not provided)').classes('text-sm text-gray-400 italic')
+                            ui.label('(not provided)').classes('text-sm text-zinc-400 italic')
                         else:
                             ui.textarea(
                                 label='',

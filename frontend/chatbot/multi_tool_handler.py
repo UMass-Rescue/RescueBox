@@ -594,7 +594,8 @@ async def execute_tool_call_sequence(
             logger.debug("Auto-submitting call %d with provided arguments", call_index + 1)
             request_body = validate_request_body(
                 {'inputs': initial_values.get('inputs', {}), 'parameters': initial_values.get('parameters', {})},
-                task_schema
+                task_schema,
+                endpoint=endpoint,
             )
             
             if isinstance(request_body, dict) and not request_body.get('is_valid', True):

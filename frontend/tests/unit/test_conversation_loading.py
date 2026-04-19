@@ -190,7 +190,7 @@ class TestConversationStorage:
         assert chatbot.state_manager.messages[1].role == 'assistant'
         assert chatbot.state_manager.messages[1].content == 'Yes, I can help you!'
         assert chatbot.state_manager.messages[2].role == 'tool_call'
-        assert '🔧 Tool Call: audio/transcribe' in chatbot.state_manager.messages[2].content
+        assert 'Tool call: audio/transcribe' in chatbot.state_manager.messages[2].content
 
         # Note: Container is not cleared - messages are appended to existing content
         # mock_chat_container.clear.assert_not_called()

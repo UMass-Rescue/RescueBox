@@ -14,7 +14,7 @@ building to form_field_builders and form handling to form_handlers.
 
 import logging
 from nicegui import ui
-from typing import Dict, Callable, Optional, Union
+from typing import Callable, Dict, Optional, Union
 from pathlib import Path
 import sys
 
@@ -84,7 +84,8 @@ class FormGenerator:
         initial_values: Optional[Dict] = None,
         onSubmit: Optional[Callable] = None,
         onCancel: Optional[Callable] = None,
-        compact: bool = False
+        compact: bool = False,
+        endpoint: Optional[str] = None,
     ):
         """
         Generate a dynamic form from TaskSchema.
@@ -106,6 +107,7 @@ class FormGenerator:
             onSubmit (Optional[Callable]): Async callback function called when form is submitted.
                 Receives validated form data dictionary. Defaults to None (no submission handler)
             compact (bool): Whether to use compact spacing and smaller layout. Defaults to False
+            endpoint (Optional[str]): Task endpoint string for validators (e.g. image-folder checks).
         
         Returns:
             None: Form is added directly to the container
@@ -169,7 +171,7 @@ class FormGenerator:
                 button_row_classes = 'mt-6 gap-2'
 
             with ui.column().classes(column_classes):
-                ui.label('📋 Input Form').classes(header_classes)
+                ui.label('Input form').classes(header_classes)
                 logger.debug("Form header added")
 
                 # Generate input fields
@@ -287,7 +289,8 @@ class FormGenerator:
                             return await handle_form_submit(
                                 task_schema,
                                 self.form_widgets,
-                                onSubmit
+                                onSubmit,
+                                endpoint=endpoint,
                             )
                         return False
 
@@ -313,7 +316,7 @@ class FormGenerator:
                         ui.button(
                             'Cancel',
                             on_click=_fallback_cancel
-                        ).classes('bg-gray-300')
+                        ).classes('bg-zinc-300')
                             
                         import asyncio
                         ui.button(
@@ -321,8 +324,9 @@ class FormGenerator:
                             on_click=lambda: asyncio.create_task(handle_form_submit(
                                 task_schema,
                                 self.form_widgets,
-                                onSubmit
+                                onSubmit,
+                                endpoint=endpoint,
                             )) if onSubmit else None
-                        ).classes('bg-green-600 text-white')
+                        ).classes('rb-brand-primary text-white rounded-xl')
 
                 logger.info("Form generation completed successfully")

@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent / 'src'))
 
 from rb.api.models import TaskSchema, RequestBody
+from frontend.chatbot.config import ToolRegistry
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -61,24 +62,24 @@ async def render_model_info(api_client, job_fields: Dict[str, Any]):
             plugin_name = await get_plugin_name(api_client, model_uid)
             if plugin_name:
                 with ui.row().classes('items-center gap-2 mt-4'):
-                    ui.label('Model:').classes('font-semibold')
+                    ui.label('Plugin:').classes('font-semibold')
                     ui.label(plugin_name).classes('flex-1')
                     ui.button(
                         'Inspect',
                         on_click=lambda: ui.navigate.to(f'/models/{model_uid}/details')
-                    ).classes('bg-blue-600 text-white')
+                    ).classes('rb-brand-primary text-white')
             else:
                 # Try fetching from API
                 response = await api_client.get(f'/models/{model_uid}')
                 if response.status_code == 200:
                     model = response.json()
                     with ui.row().classes('items-center gap-2 mt-4'):
-                        ui.label('Model:').classes('font-semibold')
+                        ui.label('Plugin:').classes('font-semibold')
                         ui.label(model.get('name', 'Unknown')).classes('flex-1')
                         ui.button(
                             'Inspect',
                             on_click=lambda: ui.navigate.to(f'/models/{model_uid}/details')
-                        ).classes('bg-blue-600 text-white')
+                        ).classes('rb-brand-primary text-white')
         except Exception as e:
             logger.debug("Could not fetch model info: %s", str(e))
             pass
@@ -86,10 +87,11 @@ async def render_model_info(api_client, job_fields: Dict[str, Any]):
         # For jobs without modelUid (e.g., chatbot jobs), show endpoint info
         endpoint = job_fields.get('endpoint') or job_fields.get('taskUid')
         if endpoint:
+            plugin_title = ToolRegistry.tool_menu_name_for_endpoint(endpoint) or endpoint
             with ui.row().classes('items-center gap-2 mt-4'):
-                ui.label('Model:').classes('font-semibold')
-                ui.label(endpoint).classes('flex-1 text-sm text-gray-600')
-                logger.debug("Job uses endpoint directly: %s", endpoint)
+                ui.label('Plugin:').classes('font-semibold')
+                ui.label(plugin_title).classes('flex-1 text-sm text-zinc-600')
+                logger.debug("Job plugin display=%r endpoint=%r", plugin_title, endpoint)
 
 
 def render_error_status(status: str, status_text: Optional[str] = None):
@@ -103,8 +105,8 @@ def render_error_status(status: str, status_text: Optional[str] = None):
         status_text (Optional[str]): Additional status text/error message
     """
     with ui.card().classes('bg-red-50 border border-red-300 p-6'):
-        ui.label('Job Failed').classes('text-2xl font-bold text-red-700 mb-2')
-        ui.label(f'Status: {status}').classes('text-lg text-red-600')
+        ui.label('Job Failed').classes('text-2xl font-bold text-black-700 mb-2')
+        ui.label(f'Status: {status}').classes('text-lg text-black-600')
         if status_text:
             ui.label(status_text).classes('text-sm text-red-500 mt-2')
 
@@ -125,7 +127,7 @@ def render_job_metadata(job_fields: Dict[str, Any]):
 
     with ui.column().classes('gap-2 mt-4'):
         ui.label('Job ID:').classes('font-semibold')
-        ui.label(job_uid).classes('text-sm text-gray-600 mb-2')
+        ui.label(job_uid).classes('text-sm text-zinc-600 mb-2')
 
         if start_time:
             try:
@@ -143,9 +145,9 @@ def render_job_metadata(job_fields: Dict[str, Any]):
 
         status_color = {
             'Completed': 'text-green-600',
-            'Running': 'text-blue-600',
+            'Running': 'text-indigo-600',
             'Failed': 'text-red-600',
-            'Canceled': 'text-gray-600'
-        }.get(status, 'text-gray-600')
+            'Canceled': 'text-zinc-600'
+        }.get(status, 'text-zinc-600')
 
         ui.label(f'Status: {status}').classes(f'text-sm font-semibold {status_color}')

@@ -197,22 +197,19 @@ class TestChatbotFormsErrorHandling:
     
     @pytest.mark.asyncio
     async def test_show_results_invalid_response_body(self):
-        """Test handling of invalid response body structure.
+        """show_results delegates to _show_results_body; invalid response shape is not validated here."""
+        container = MagicMock()
+        container.__enter__ = Mock(return_value=container)
+        container.__exit__ = Mock(return_value=False)
 
-        Validates that malformed or unexpected response data structures
-        are detected and handled gracefully during results display,
-        preventing crashes and providing appropriate error feedback.
-        """
-        container = Mock()
-
-        # Response body with invalid structure (missing model_dump method)
         invalid_response = INVALID_RESPONSE_DATA
 
-        with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
-            await show_results(container, invalid_response, None)
+        with patch('frontend.pages.chatbot.chatbot_forms._show_results_body', new_callable=AsyncMock) as mock_body:
+            with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
+                await show_results(container, invalid_response, None)
 
-            # Should show error to user about invalid response format
-            mock_show_error.assert_called_once()
+        mock_body.assert_called_once()
+        mock_show_error.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_show_results_rendering_error(self):
@@ -233,14 +230,14 @@ class TestChatbotFormsErrorHandling:
             )
         )
 
-        # Mock ResultRenderer.get_result_count to raise during rendering (show_results catches ValueError)
-        with patch('frontend.pages.chatbot.results.ResultRenderer.get_result_count', side_effect=ValueError(RENDERING_ERROR_MSG)):
+        # Fail while building the simple result card so the outer handler surfaces the error
+        with patch(
+            'frontend.pages.chatbot.chatbot_forms.ui.card',
+            side_effect=ValueError(RENDERING_ERROR_MSG),
+        ):
             with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
-                with patch('frontend.pages.chatbot.chatbot_forms.ui') as mock_ui:
-                    await show_results(container, response_body, None)
+                await show_results(container, response_body, None)
 
-                    # Should show error to user about rendering pipeline failure
-                    mock_show_error.assert_called_once()
-                    # Container context manager should have been entered
-                    container.__enter__.assert_called()
+                mock_show_error.assert_called_once()
+                container.__enter__.assert_called()
 

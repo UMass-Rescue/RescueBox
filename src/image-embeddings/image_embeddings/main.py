@@ -1,10 +1,11 @@
-from typing import TypedDict
+from typing import List, TypedDict
 import hashlib
 import logging
 import os
 import threading
 
 import typer
+from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
 from rb.lib.utils import apply_torch_cpu_preference
 from rb.api.models import (
@@ -19,7 +20,7 @@ from rb.api.models import (
     FloatRangeDescriptor,
     ResponseBody,
     TaskSchema,
-    DirectoryInput,
+    FileFilterDirectory,
     TextInput,
     BatchFileResponse,
     FileResponse,
@@ -33,6 +34,11 @@ from sqlalchemy import bindparam, text, update
 
 APP_NAME = "image_embeddings"
 logger = logging.getLogger(__name__)
+# Standard HF CLIP only: ``CLIPModel`` / ``CLIPProcessor`` from the same checkpoint.
+# LLM2CLIP and other custom checkpoints are not loadable as ``CLIPModel`` (weight layout differs).
+# Must match ``ImageEmbedding.embedding`` in ``rb.api.database`` (pgvector vector(768)).
+DEFAULT_CLIP_MODEL = "openai/clip-vit-large-patch14-336"
+_EXPECTED_IMAGE_EMBED_DIM = 768
 # Hugging Face hub uses filelock at DEBUG; keep noise down when root logging is DEBUG.
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
@@ -40,6 +46,16 @@ logging.getLogger("filelock").setLevel(logging.WARNING)
 # deployments still need DB or distributed locks).
 _EMBED_LOCKS_GUARD = threading.Lock()
 _EMBED_LOCKS: dict[str, threading.Lock] = {}
+
+# Raster types accepted for CLIP embedding (top-level files under ``input_dir``).
+CLIP_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff"}
+
+
+class ClipImageDirectory(FileFilterDirectory):
+    """Directory must exist, be non-empty, and contain at least one allowed image extension."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(CLIP_IMAGE_EXTENSIONS)
 
 
 def _lock_for_content_hash(content_sha256_hex: str) -> threading.Lock:
@@ -52,7 +68,7 @@ def _lock_for_content_hash(content_sha256_hex: str) -> threading.Lock:
 
 
 class Inputs(TypedDict):
-    input_dir: DirectoryInput
+    input_dir: ClipImageDirectory
     query: TextInput
 
 
@@ -76,12 +92,12 @@ def task_schema() -> TaskSchema:
   
     model_enum = EnumParameterDescriptor(
         enum_vals=[
-            # EnumVal(key="apple/DFN5B-CLIP-ViT-H-14-378", label="DFN5B-CLIP-ViT-H-14-378-apple"),
-            EnumVal(key="laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K", label="laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K"),
-            
+            EnumVal(
+                key=DEFAULT_CLIP_MODEL,
+                label=DEFAULT_CLIP_MODEL,
+            ),
         ],
-        #default="apple/DFN5B-CLIP-ViT-H-14-378",
-        default="laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K",
+        default=DEFAULT_CLIP_MODEL,
     )
 
     top_k_desc = RangedIntParameterDescriptor(
@@ -163,7 +179,8 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
     input_dir = str(inputs["input_dir"].path)
     query_text = inputs["query"].text
-    model_name = parameters.get("model_name", "laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K")
+
+    model_name = parameters.get("model_name", DEFAULT_CLIP_MODEL)
     top_k = int(parameters.get("top_k", 15))
     min_similarity = float(parameters.get("min_similarity", 0.13))
 
@@ -201,6 +218,12 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     model.eval()
     param_dev = next(model.parameters()).device
     _pdim = getattr(model.config, "projection_dim", None)
+    if _pdim != _EXPECTED_IMAGE_EMBED_DIM:
+        raise ValueError(
+            f"CLIP model {model_name!r} has projection_dim={_pdim}; PostgreSQL "
+            f"image_embeddings.embedding is vector({_EXPECTED_IMAGE_EMBED_DIM}). "
+            f"Use {DEFAULT_CLIP_MODEL!r}, or change the DB column and this check together."
+        )
     logger.info(
         "CLIP model loaded on device=%s (parameter device=%s) model_name=%s projection_dim=%s "
         "do_normalize=%s resample=%s",
@@ -216,11 +239,10 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         """Move HuggingFace processor tensors to ``device`` for CLIP forward passes."""
         return {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
 
-    allowed_exts = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
     file_paths: list[str] = []
     for name in sorted(os.listdir(input_dir)):
         path = os.path.join(input_dir, name)
-        if os.path.isfile(path) and os.path.splitext(path)[1].lower() in allowed_exts:
+        if os.path.isfile(path) and os.path.splitext(path)[1].lower() in CLIP_IMAGE_EXTENSIONS:
             file_paths.append(path)
 
     path_to_hash: dict[str, str] = {}
@@ -384,15 +406,19 @@ def inputs_cli_parse(value: str) -> Inputs:
     if "|||" not in value:
         raise ValueError("Expected 'input_dir|||query' (use ||| between folder path and search text).")
     dir_part, query_part = value.split("|||", 1)
-    return Inputs(
-        input_dir=DirectoryInput(path=dir_part.strip()),
-        query=TextInput(text=query_part.strip()),
-    )
+    try:
+        return Inputs(
+            input_dir=ClipImageDirectory(path=dir_part.strip()),
+            query=TextInput(text=query_part.strip()),
+        )
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def parameters_cli_parse(value: str) -> Parameters:
     parts = [p.strip() for p in value.split(",")]
-    model_name = parts[0] if len(parts) > 0 and parts[0] else "apple/DFN5B-CLIP-ViT-H-14-378"
+    model_name = parts[0] if len(parts) > 0 and parts[0] else DEFAULT_CLIP_MODEL
     top_k = int(parts[1]) if len(parts) > 1 and parts[1] else 5
     min_similarity = float(parts[2]) if len(parts) > 2 and parts[2] else 0.113
     return Parameters(

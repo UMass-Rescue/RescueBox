@@ -202,7 +202,7 @@ def ensure_user_id() -> Optional[str]:
         if not is_valid_explicit_user_id(val):
             from frontend.constants import HOME_USER_ID
 
-            ui.notify(HOME_USER_ID["invalid_format"], type="warning")
+            ui.notify(HOME_USER_ID["invalid_format"], type="warning", classes="rb-notify-505759")
             return
         set_explicit_user_id(val)
         dialog.close()
@@ -217,14 +217,14 @@ def ensure_user_id() -> Optional[str]:
         ui.label("Enter your User ID").classes("text-lg font-semibold")
         ui.label(
             "Use this to access your jobs and chat history."
-        ).classes("text-gray-600 mb-4")
+        ).classes("text-zinc-600 mb-4")
         input_field = ui.input(
             "User ID",
             placeholder="??",
         ).classes("w-full")
         input_field.on("keydown", on_keydown)
         with ui.row().classes("mt-4 justify-end gap-2"):
-            ui.button("Continue", on_click=on_submit).classes("bg-blue-600 text-white")
+            ui.button("Continue", on_click=on_submit).classes("rb-brand-primary text-white")
 
     dialog.open()
     return None

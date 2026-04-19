@@ -32,6 +32,7 @@ from rb.api.models import (
     BatchTextInput,
     BatchDirectoryInput,
     InputType,
+    NewFileInputType,
     ParameterType,
     RangedFloatParameterDescriptor,
     RangedIntParameterDescriptor,
@@ -49,7 +50,254 @@ from rb.api.models import (
     ResponseBody,
 )
 
-def validate_form_data(form_data: Dict, schema: Union[TaskSchema, Dict]) -> Dict[str, Any]:
+
+def _required_input_user_message(input_schema: InputSchema) -> str:
+    label = (input_schema.label or "").strip() or input_schema.key
+    return (
+        f"{label} is required. Choose a folder or file with Browse, "
+        "or enter a valid path, before submitting."
+    )
+
+
+def _strip_str(v: Any) -> str:
+    if v is None:
+        return ""
+    return str(v).strip()
+
+
+def _is_empty_input_value(input_schema: InputSchema, value: Any) -> bool:
+    """
+    True when the user left a path/file (or batch thereof) unset.
+
+    Text and textarea fields may be empty unless Pydantic rejects them later.
+    """
+    it = input_schema.input_type
+    if isinstance(it, InputType):
+        type_key = it.value
+    elif isinstance(it, str):
+        type_key = it.lower()
+    elif isinstance(it, NewFileInputType):
+        type_key = "newfile"
+    else:
+        type_key = str(it).lower()
+
+    if type_key in ("file", "directory", "newfile"):
+        if value is None:
+            return True
+        if isinstance(value, dict):
+            return not _strip_str(value.get("path"))
+        return not _strip_str(value)
+
+    if type_key == "batchfile":
+        if value is None:
+            return True
+        files: List[Any]
+        if isinstance(value, dict) and isinstance(value.get("files"), list):
+            files = value["files"]
+        elif isinstance(value, list):
+            files = value
+        else:
+            return True
+        if not files:
+            return True
+        for item in files:
+            if isinstance(item, dict):
+                if not _strip_str(item.get("path")):
+                    return True
+            elif not _strip_str(item):
+                return True
+        return False
+
+    if type_key == "batchdirectory":
+        if value is None:
+            return True
+        items: List[Any]
+        if isinstance(value, dict) and isinstance(value.get("directories"), list):
+            items = value["directories"]
+        elif isinstance(value, list):
+            items = value
+        else:
+            return True
+        if not items:
+            return True
+        for item in items:
+            if isinstance(item, dict):
+                if not _strip_str(item.get("path")):
+                    return True
+            elif not _strip_str(item):
+                return True
+        return False
+
+    if type_key == "batchtext":
+        if value is None:
+            return True
+        texts = value if isinstance(value, list) else []
+        if not texts:
+            return True
+        for item in texts:
+            if isinstance(item, dict):
+                if _strip_str(item.get("text")):
+                    return False
+            elif _strip_str(item):
+                return False
+        return True
+
+    return False
+
+
+# Raster extensions commonly produced by cameras / evidence workflows (case-insensitive match on suffix)
+_COMMON_RASTER_IMAGE_SUFFIXES: tuple[str, ...] = (
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".bmp",
+    ".tiff",
+    ".tif",
+    ".gif",
+    ".heic",
+    ".heif",
+)
+
+# Endpoints whose primary ``directory`` inputs must contain at least one raster image file.
+_IMAGE_DIRECTORY_ENDPOINT_MARKERS: tuple[str, ...] = (
+    "image_summary",
+    "summarize-images",
+    "image_embedding",
+    "image-embedding",
+    "search_images",
+    "search-images",
+    "describe-images",
+    "describe_images",
+    "face_detection",
+    "face-detection",
+    "face_recognition",
+    "face-recognition",
+    "find_face",
+    "find-face",
+    "age_gender",
+    "age-gender",
+    "age_and_gender",
+    "deepfake",
+    "image_bbox",
+    "object_detect",
+    "object-detect",
+)
+
+# If ``endpoint`` is unknown, use label/subtitle/key heuristics, but avoid obvious non-image tasks.
+_IMAGE_DIRECTORY_HINT_POSITIVE: tuple[str, ...] = (
+    "image",
+    "photo",
+    "picture",
+    "jpeg",
+    "png",
+    "webp",
+    "thumbnail",
+    "caption",
+    "visual",
+    "album",
+    "face",
+    "clip",
+)
+_IMAGE_DIRECTORY_HINT_NEGATIVE: tuple[str, ...] = (
+    "audio",
+    "transcript",
+    "speech",
+    "wav",
+    "mp3",
+    "flac",
+    "text file",
+    "folder of .txt",
+    ".txt files",
+    "plain text",
+)
+
+
+def _normalize_endpoint_for_matching(endpoint: Optional[str]) -> str:
+    if not endpoint:
+        return ""
+    return endpoint.lower().replace("_", "-").strip("/ ")
+
+
+def _endpoint_expects_raster_image_directory(endpoint: Optional[str]) -> bool:
+    el = _normalize_endpoint_for_matching(endpoint)
+    if not el:
+        return False
+    if "text_embedding" in el or "text-embedding" in el:
+        return False
+    return any(marker in el for marker in _IMAGE_DIRECTORY_ENDPOINT_MARKERS)
+
+
+def _input_schema_hints_raster_image_directory(input_schema: InputSchema) -> bool:
+    blob = (
+        f"{input_schema.key} {(input_schema.label or '')} "
+        f"{(getattr(input_schema, 'subtitle', None) or '')}"
+    ).lower()
+    if any(s in blob for s in _IMAGE_DIRECTORY_HINT_NEGATIVE):
+        return False
+    return any(s in blob for s in _IMAGE_DIRECTORY_HINT_POSITIVE)
+
+
+def _input_schema_is_directory_type(input_schema: InputSchema) -> bool:
+    it = input_schema.input_type
+    if isinstance(it, InputType):
+        return it == InputType.DIRECTORY
+    if isinstance(it, str):
+        return it.lower() == "directory"
+    return False
+
+
+def _should_check_directory_contains_raster_images(
+    input_schema: InputSchema,
+    endpoint: Optional[str],
+) -> bool:
+    if not _input_schema_is_directory_type(input_schema):
+        return False
+    if _endpoint_expects_raster_image_directory(endpoint):
+        return True
+    if not endpoint and _input_schema_hints_raster_image_directory(input_schema):
+        return True
+    return False
+
+
+def _directory_contains_raster_image(root: Path, *, max_files_scanned: int = 12000) -> bool:
+    """
+    Return True if ``root`` (recursively) contains at least one file whose suffix
+    matches common raster image types. Bounded scan for large trees.
+    """
+    try:
+        resolved = root.expanduser()
+        try:
+            resolved = resolved.resolve(strict=False)
+        except OSError:
+            return False
+    except OSError:
+        return False
+    if not resolved.is_dir():
+        return False
+    scanned = 0
+    try:
+        for p in resolved.rglob("*"):
+            if not p.is_file():
+                continue
+            if p.name.startswith("."):
+                continue
+            scanned += 1
+            if scanned > max_files_scanned:
+                return False
+            low = p.name.lower()
+            if any(low.endswith(suf) for suf in _COMMON_RASTER_IMAGE_SUFFIXES):
+                return True
+    except OSError:
+        return False
+    return False
+
+
+def validate_form_data(
+    form_data: Dict,
+    schema: Union[TaskSchema, Dict],
+    endpoint: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Validate form data against TaskSchema using Pydantic models.
     
@@ -71,6 +319,9 @@ def validate_form_data(form_data: Dict, schema: Union[TaskSchema, Dict]) -> Dict
             }
         schema (Union[TaskSchema, Dict]): TaskSchema Pydantic model or dictionary.
             If dict, it will be converted to TaskSchema
+        endpoint (Optional[str]): Task route (e.g. ``image_summary/summarize-images``). When it
+            matches image-style plugins, ``directory`` inputs must contain at least one common
+            raster image file under the chosen folder (recursive scan, bounded).
     
     Returns:
         Dict[str, Any]: Validation result dictionary with:
@@ -87,8 +338,10 @@ def validate_form_data(form_data: Dict, schema: Union[TaskSchema, Dict]) -> Dict
         ...     request_body = result['validated_data']
     
     Tips:
-    - Missing fields are skipped (not treated as errors)
-    - Each field is validated independently
+    - Every normal (non-pipeline-only) input in the task schema must be present; path/file/batch
+      values must be non-empty. Inputs with ``exclude_from_client_schema`` (e.g. ``file_filter``)
+      are optional when absent; when present they are validated.
+    - Each present field is validated with Pydantic Input models (paths must exist where applicable).
     - Validation errors are formatted for user display
     - Returns RequestBody model on success for direct API submission
     """
@@ -120,17 +373,41 @@ def validate_form_data(form_data: Dict, schema: Union[TaskSchema, Dict]) -> Dict
         
         for input_schema in task_schema.inputs:
             field_id = input_schema.key
+            pipeline_only = getattr(input_schema, "exclude_from_client_schema", False)
+
             if field_id not in inputs_data:
-                # Check if required (currently not in schema, but could be added)
-                logger.debug("Input field '%s' not in form data, skipping", field_id)
+                if pipeline_only:
+                    logger.debug("Pipeline-only input '%s' absent; skipping", field_id)
+                    continue
+                logger.warning("Input field '%s' missing from submitted form data", field_id)
+                errors[field_id] = _required_input_user_message(input_schema)
                 continue
-            
+
             field_value = inputs_data[field_id]
+            if not pipeline_only and _is_empty_input_value(input_schema, field_value):
+                logger.warning("Input field '%s' is empty", field_id)
+                errors[field_id] = _required_input_user_message(input_schema)
+                continue
+            if pipeline_only and _is_empty_input_value(input_schema, field_value):
+                logger.debug("Pipeline-only input '%s' empty; skipping validation", field_id)
+                continue
+
             logger.debug("Validating input field: %s", field_id)
             
             try:
                 # Create appropriate Input model based on input_type
                 input_model = _create_input_model(input_schema, field_value)
+                if _should_check_directory_contains_raster_images(input_schema, endpoint):
+                    if isinstance(input_model, DirectoryInput) and not _directory_contains_raster_image(
+                        input_model.path
+                    ):
+                        label = (input_schema.label or "").strip() or field_id
+                        errors[field_id] = (
+                            f"{label}: this folder has no common image files "
+                            f"({', '.join(s.strip('.') for s in _COMMON_RASTER_IMAGE_SUFFIXES[:6])}, …). "
+                            "Add images or choose another folder."
+                        )
+                        continue
                 inputs_dict[field_id] = Input(root=input_model)
                 logger.debug("Input field '%s' validated successfully", field_id)
             except ValidationError as e:
@@ -387,7 +664,11 @@ def _format_validation_error(e: ValidationError) -> str:
     logger.debug("Formatted validation error: %s", formatted)
     return formatted
 
-def validate_request_body(data: Dict, task_schema: Union[TaskSchema, Dict]) -> Union[RequestBody, Dict[str, Any]]:
+def validate_request_body(
+    data: Dict,
+    task_schema: Union[TaskSchema, Dict],
+    endpoint: Optional[str] = None,
+) -> Union[RequestBody, Dict[str, Any]]:
     """
     Validate and create RequestBody from form data.
     
@@ -397,13 +678,14 @@ def validate_request_body(data: Dict, task_schema: Union[TaskSchema, Dict]) -> U
     Args:
         data (Dict): Form data dictionary
         task_schema (Union[TaskSchema, Dict]): TaskSchema model or dict
+        endpoint (Optional[str]): Passed through to :func:`validate_form_data` for task-kind checks.
     
     Returns:
         Union[RequestBody, Dict[str, Any]]: Validated RequestBody if valid,
             or dict with 'is_valid': False and 'errors' if invalid
     
     Examples:
-        >>> request_body = validate_request_body(form_data, task_schema)
+        >>> request_body = validate_request_body(form_data, task_schema, endpoint=endpoint)
         >>> if isinstance(request_body, RequestBody):
         ...     # Submit to API
         ...     pass
@@ -413,7 +695,7 @@ def validate_request_body(data: Dict, task_schema: Union[TaskSchema, Dict]) -> U
     - Returns error dict on failure (same format as validate_form_data)
     """
     logger.debug("Validating request body")
-    result = validate_form_data(data, task_schema)
+    result = validate_form_data(data, task_schema, endpoint=endpoint)
     
     if result['is_valid']:
         logger.info("RequestBody validation successful")

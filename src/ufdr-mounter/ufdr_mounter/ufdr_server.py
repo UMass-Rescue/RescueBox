@@ -1,35 +1,54 @@
-import os
-import re
-from pathlib import Path
-import time
-import threading
-import platform
-import typer
 import logging
-
-from fastapi import HTTPException, status
-
-from ufdr_mounter.utils import UFDRMount
-from fuse import FUSE
+import os
+import platform
+import re
+import threading
+import time
+from pathlib import Path
 from typing import Optional, Tuple, TypedDict
+
+import typer
+from fastapi import HTTPException, status
+from fuse import FUSE
+from pydantic import model_validator
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     FileInput,
-    TextInput,
     InputSchema,
     InputType,
-    TextResponse,
     ResponseBody,
     TaskSchema,
+    TextInput,
+    TextResponse,
 )
 
+from ufdr_mounter.utils import UFDRMount
+
 APP_NAME = "ufdr_mounter"
+logger = logging.getLogger(__name__)
+
+# Single-file analogue of ``FileFilterDirectory`` / audio ``AUDIO_EXTENSIONS``: only UFDR archives.
+UFDR_EXTENSIONS = {".ufdr"}
+
+
+class UFDRFileInput(FileInput):
+    """Path must exist as a file (``FileInput``) and use an allowed UFDR suffix."""
+
+    @model_validator(mode="after")
+    def validate_ufdr_extension(self) -> "UFDRFileInput":
+        sfx = Path(self.path).suffix.lower()
+        if sfx not in UFDR_EXTENSIONS:
+            raise ValueError(
+                f"validate file: Expected extension {sorted(UFDR_EXTENSIONS)}, got {sfx!r} for path {self.path!r}"
+            )
+        return self
+
 
 server = MLService(APP_NAME)
 
 
 class UFDRInputs(TypedDict):
-    ufdr_file: FileInput
+    ufdr_file: UFDRFileInput
     mount_name: TextInput
 
 
@@ -166,7 +185,7 @@ def ufdr_task_schema() -> TaskSchema:
             InputSchema(key="ufdr_file", label="Path to the UFDR File", input_type=InputType.FILE),
             InputSchema(
                 key="mount_name",
-                label="Mount folder (required: /tmp/<name> only, e.g. /tmp/case123)",
+                label="Mount folder (required: /tmp/<name> , e.g. /tmp/case123)",
                 input_type=InputType.TEXT,
             ),
         ],
@@ -176,7 +195,14 @@ def ufdr_task_schema() -> TaskSchema:
 
 def inputs_cli_parser(arg_str) -> UFDRInputs:
     args = arg_str.split(",")
-    return {"ufdr_file": FileInput(path=args[0]), "mount_name": TextInput(text=args[1])}
+    try:
+        return UFDRInputs(
+            ufdr_file=UFDRFileInput(path=args[0]),
+            mount_name=TextInput(text=args[1]),
+        )
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def parameters_cli_parser(args) -> UFDRParameters:

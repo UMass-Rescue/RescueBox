@@ -198,13 +198,35 @@ class UIOperations:
                 raise
 
     @staticmethod
-    def safe_notify(message: str, type: str = 'info', timeout: Optional[int] = None):
-        """Show notification with safe error handling for test environments."""
+    def safe_notify(
+        message: str,
+        type: str = "info",
+        timeout: Optional[int] = None,
+        *,
+        classes: str = "rb-notify-505759",
+    ):
+        """Show notification with safe error handling for test environments.
+
+        ``classes`` defaults to medium-gray toasts (``rb-notify-505759``). Use ``rb-notify-a2aaad``
+        for UMass light gray (PMS 429) background with dark text.
+
+        With those skin classes, Quasar ``type`` (``info``, ``negative``, etc.) adds ``bg-info`` /
+        ``bg-negative`` / … which often overrides the skin — so ``type`` is omitted and only the
+        skin classes control appearance.
+        """
         try:
+            notify_type = type
+            if classes and (
+                "rb-notify-a2aaad" in classes or "rb-notify-505759" in classes
+            ):
+                if notify_type in ("info", "positive", "negative", "warning", "ongoing"):
+                    notify_type = None
+            kwargs: dict = {"classes": classes}
+            if notify_type is not None:
+                kwargs["type"] = notify_type
             if timeout:
-                ui.notify(message, type=type, timeout=timeout)
-            else:
-                ui.notify(message, type=type)
+                kwargs["timeout"] = timeout
+            ui.notify(message, **kwargs)
         except RuntimeError as ui_error:
             if "slot cannot be determined" in str(ui_error):
                 logger.debug("UI notification skipped in test environment: %s", ui_error)

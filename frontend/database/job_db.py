@@ -98,6 +98,14 @@ class JobRecord(BaseModel):
     endpointChain: Optional[List[str]] = Field(
         None, description="Ordered endpoints for multi-step chatbot pipelines (includes current job endpoint)"
     )
+    pipelineRootJobId: Optional[str] = Field(
+        None,
+        description="Stable id for the first job in a multi-step pipeline; links sibling step jobs",
+    )
+    pipelineMetadataFilterCriteria: Optional[str] = Field(
+        None,
+        description="Classifier metadata filter (e.g. age/gender) applied when chaining to the next pipeline step",
+    )
     filterId: Optional[str] = Field(None, description="Optional persisted filter id linking to file_filters")
     caseNotes: Optional[str] = Field(None, description="User-entered case notes for the job")
     startTime: str = Field(..., description="Job start time in ISO format")
@@ -206,6 +214,8 @@ class JobRecord(BaseModel):
             data['filterId'] = None
         if 'caseNotes' not in data:
             data['caseNotes'] = None
+        if 'pipelineRootJobId' not in data:
+            data['pipelineRootJobId'] = None
         if data.get('endpointChain') is not None:
             data['endpointChain'] = json.dumps(data['endpointChain'])
         else:
@@ -320,6 +330,47 @@ class JobDB(BaseDatabase):
             else:
                 raise
 
+    def _ensure_pipeline_root_job_id_column(self, conn: sqlite3.Connection) -> None:
+        """Ensure ``pipelineRootJobId`` exists (links steps in a multi-job pipeline)."""
+        try:
+            conn.execute("SELECT pipelineRootJobId FROM jobs LIMIT 1")
+        except sqlite3.OperationalError as e:
+            if 'no such column' in str(e).lower():
+                logger.info("pipelineRootJobId column missing; adding column")
+                try:
+                    conn.execute("ALTER TABLE jobs ADD COLUMN pipelineRootJobId TEXT")
+                    conn.execute(
+                        "CREATE INDEX IF NOT EXISTS idx_jobs_pipelineRootJobId ON jobs(pipelineRootJobId)"
+                    )
+                    conn.commit()
+                    logger.info("Added pipelineRootJobId column to jobs table")
+                except Exception as e_add:
+                    logger.exception("Failed to add pipelineRootJobId column: %s", e_add)
+                    raise
+            else:
+                raise
+
+    def _ensure_pipeline_metadata_filter_criteria_column(self, conn: sqlite3.Connection) -> None:
+        """Ensure ``pipelineMetadataFilterCriteria`` exists (pipeline age/gender filter text)."""
+        try:
+            conn.execute("SELECT pipelineMetadataFilterCriteria FROM jobs LIMIT 1")
+        except sqlite3.OperationalError as e:
+            if 'no such column' in str(e).lower():
+                logger.info("pipelineMetadataFilterCriteria column missing; adding column")
+                try:
+                    conn.execute(
+                        "ALTER TABLE jobs ADD COLUMN pipelineMetadataFilterCriteria TEXT"
+                    )
+                    conn.commit()
+                    logger.info("Added pipelineMetadataFilterCriteria column to jobs table")
+                except Exception as e_add:
+                    logger.exception(
+                        "Failed to add pipelineMetadataFilterCriteria column: %s", e_add
+                    )
+                    raise
+            else:
+                raise
+
     def connect(self) -> sqlite3.Connection:
         """
         Connect to SQLite database.
@@ -393,6 +444,8 @@ class JobDB(BaseDatabase):
             self._ensure_userid_column(conn)
             self._ensure_caseNotes_column(conn)
             self._ensure_endpoint_chain_column(conn)
+            self._ensure_pipeline_root_job_id_column(conn)
+            self._ensure_pipeline_metadata_filter_criteria_column(conn)
         except Exception:
             logger.debug("Column migration encountered an error during initialization")
     
@@ -406,6 +459,8 @@ class JobDB(BaseDatabase):
         case_notes: Optional[str] = None,
         user_id: Optional[str] = None,
         endpoint_chain: Optional[List[str]] = None,
+        pipeline_root_job_id: Optional[str] = None,
+        pipeline_total_steps: Optional[Any] = None,
     ) -> JobRecord:
         """
         Create a new job record.
@@ -452,6 +507,8 @@ class JobDB(BaseDatabase):
             self._ensure_userid_column(conn)
             self._ensure_caseNotes_column(conn)
             self._ensure_endpoint_chain_column(conn)
+            self._ensure_pipeline_root_job_id_column(conn)
+            self._ensure_pipeline_metadata_filter_criteria_column(conn)
         except Exception:
             logger.debug("Failed to ensure columns before insert")
         
@@ -478,6 +535,16 @@ class JobDB(BaseDatabase):
         elif endpoint:
             chain = [endpoint]
 
+        stored_pipeline_root: Optional[str] = None
+        if pipeline_root_job_id and str(pipeline_root_job_id).strip():
+            stored_pipeline_root = str(pipeline_root_job_id).strip()
+        elif pipeline_total_steps is not None:
+            try:
+                if int(pipeline_total_steps) > 1:
+                    stored_pipeline_root = uid
+            except (TypeError, ValueError):
+                pass
+
         job_record = JobRecord(
             uid=uid,
             userId=user_id,
@@ -485,6 +552,7 @@ class JobDB(BaseDatabase):
             taskUid=task_uid,
             endpoint=endpoint,
             endpointChain=chain,
+            pipelineRootJobId=stored_pipeline_root,
             filterId=maybe_filter_id,
             caseNotes=case_notes or None,
             startTime=start_time,
@@ -502,9 +570,10 @@ class JobDB(BaseDatabase):
         logger.info("Creating job %s (model_uid=%s, task_uid=%s, endpoint=%s)", uid, model_uid, task_uid, endpoint)
 
         insert_sql = """
-            INSERT INTO jobs (uid, userId, modelUid, taskUid, endpoint, endpointChain, startTime, endTime,
-                            status, statusText, request, response, taskSchema, filterId, caseNotes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO jobs (uid, userId, modelUid, taskUid, endpoint, endpointChain, pipelineRootJobId,
+                            pipelineMetadataFilterCriteria, startTime, endTime, status, statusText, request,
+                            response, taskSchema, filterId, caseNotes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
             job_data['uid'],
@@ -513,6 +582,8 @@ class JobDB(BaseDatabase):
             job_data['taskUid'],
             job_data['endpoint'],
             job_data.get('endpointChain'),
+            job_data.get('pipelineRootJobId'),
+            job_data.get('pipelineMetadataFilterCriteria'),
             job_data['startTime'],
             job_data['endTime'],
             job_data['status'],
@@ -579,6 +650,8 @@ class JobDB(BaseDatabase):
             self._ensure_userid_column(conn)
             self._ensure_caseNotes_column(conn)
             self._ensure_endpoint_chain_column(conn)
+            self._ensure_pipeline_root_job_id_column(conn)
+            self._ensure_pipeline_metadata_filter_criteria_column(conn)
         except Exception:
             logger.debug("Failed to ensure columns before fetch by uid")
         
@@ -627,6 +700,8 @@ class JobDB(BaseDatabase):
             self._ensure_userid_column(conn)
             self._ensure_caseNotes_column(conn)
             self._ensure_endpoint_chain_column(conn)
+            self._ensure_pipeline_root_job_id_column(conn)
+            self._ensure_pipeline_metadata_filter_criteria_column(conn)
         except Exception:
             logger.debug("Failed to ensure columns before fetching jobs; continuing without change")
         
@@ -662,6 +737,63 @@ class JobDB(BaseDatabase):
                 logger.warning("Failed to validate job %s as JobRecord: %s, skipping", job_dict.get('uid', 'unknown'), e)
         
         return jobs
+
+    async def list_jobs_for_pipeline_root(self, user_id: str, root_uid: str) -> List[JobRecord]:
+        """
+        Return jobs belonging to one pipeline run (same ``pipelineRootJobId`` or the root row).
+
+        Ordered by ``startTime`` ascending (pipeline step order).
+        """
+        if not user_id or not root_uid:
+            return []
+        conn = self.connect()
+        try:
+            self._ensure_pipeline_root_job_id_column(conn)
+            self._ensure_pipeline_metadata_filter_criteria_column(conn)
+        except Exception:
+            logger.debug("pipelineRootJobId ensure failed before list_jobs_for_pipeline_root")
+        cursor = conn.execute(
+            """
+            SELECT * FROM jobs
+            WHERE userId = ? AND (pipelineRootJobId = ? OR uid = ?)
+            ORDER BY startTime ASC
+            """,
+            (user_id, root_uid, root_uid),
+        )
+        out: List[JobRecord] = []
+        for row in cursor.fetchall():
+            job_dict = self._row_to_dict(row)
+            try:
+                out.append(JobRecord(**job_dict))
+            except Exception as e:
+                logger.warning("Skip invalid job in pipeline list: %s", e)
+        return out
+
+    async def update_job_pipeline_metadata_filter_criteria(
+        self, uid: str, criteria: str
+    ) -> bool:
+        """
+        Persist classifier metadata filter criteria on the job that produced batch output
+        (e.g. age-gender) before chaining to the next pipeline step.
+        """
+        if not (uid or "").strip():
+            return False
+        conn = self.connect()
+        try:
+            self._ensure_pipeline_metadata_filter_criteria_column(conn)
+        except Exception:
+            logger.debug("ensure pipelineMetadataFilterCriteria failed before update")
+        capped = (criteria or "")[:4000]
+        try:
+            cur = conn.execute(
+                "UPDATE jobs SET pipelineMetadataFilterCriteria = ? WHERE uid = ?",
+                (capped, uid.strip()),
+            )
+            conn.commit()
+            return cur.rowcount > 0
+        except sqlite3.Error as e:
+            logger.warning("update_job_pipeline_metadata_filter_criteria failed: %s", e)
+            return False
 
     def get_job_count_for_user(self, user_id: Optional[str]) -> int:
         """

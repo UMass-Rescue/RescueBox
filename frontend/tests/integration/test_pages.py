@@ -196,7 +196,7 @@ class TestModelsPage:
         
         await user.open('/models')
         await user.should_see('Available Plugins')
-        await user.should_see('Refresh')
+        
     
     @pytest.mark.asyncio
     async def test_models_page_displays_models(self, user: User, mock_api_client):

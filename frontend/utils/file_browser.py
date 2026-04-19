@@ -13,6 +13,8 @@ import os
 import platform
 from pathlib import Path
 from rb.api.models import DirectoryInput, FileInput
+
+from frontend.design_tokens import Design
 from pydantic import ValidationError
 
 # Configure logging for this module
@@ -184,17 +186,19 @@ class DirectoryBrowser:
         """Create the dialog header with title."""
         try:
             from frontend.components.file_browser.header import render_file_browser_header
-            render_file_browser_header("Select Directory", icon='folder_open')
+            render_file_browser_header(
+                "Select Directory", icon="folder_open", light_directory_header=True
+            )
         except (ImportError, ModuleNotFoundError):
-            with ui.row().classes('bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 items-center'):
-                ui.icon('folder_open', size='2rem').classes('mr-3')
-                ui.label('Select Directory').classes('text-xl font-semibold')
+            with ui.row().classes("rb-select-directory-header w-full p-4 items-center"):
+                ui.icon("folder_open", size="2rem").classes("mr-3 shrink-0")
+                ui.label("Select Directory").classes("text-xl font-semibold text-zinc-900")
 
     def _jump_to_path(self, raw: str) -> None:
         """Navigate to an absolute or user-relative path (e.g. UFDR mount under /tmp)."""
         s = (raw or "").strip()
         if not s:
-            ui.notify("Enter a folder path", type="warning")
+            ui.notify("Enter a folder path", type="warning", classes="rb-notify-505759")
             return
         try:
             p = Path(s).expanduser()
@@ -202,24 +206,24 @@ class DirectoryBrowser:
                 p = Path(os.getcwd()) / p
             rp = str(p.resolve())
             if not os.path.isdir(rp):
-                ui.notify(f"Not a directory or not accessible: {rp}", type="negative")
+                ui.notify(f"Not a directory or not accessible: {rp}", type="negative", classes="rb-notify-505759")
                 return
             self._render_directory_tree(rp)
         except OSError as e:
-            ui.notify(f"Invalid path: {e}", type="negative")
+            ui.notify(f"Invalid path: {e}", type="negative", classes="rb-notify-505759")
 
     def _create_navigation_bar(self):
         """Create the navigation bar with address bar and buttons."""
-        with ui.row().classes('bg-gray-50 border-b p-3 items-center gap-2'):
-            ui.icon('home', size='1.2rem').classes('text-gray-500')
+        with ui.row().classes('bg-zinc-50 border-b p-3 items-center gap-2'):
+            ui.icon('home', size='1.2rem').classes('text-zinc-500')
             try:
-                self.full_path_label = ui.label(self.state['current_path']).classes('text-xs font-mono text-gray-600 mt-1 break-words')
+                self.full_path_label = ui.label(self.state['current_path']).classes('text-xs font-mono text-zinc-600 mt-1 break-words')
                 self.full_path_label.bind_text_from(self.state, 'current_path')
             except Exception:
                 # binding may not be available in test environments; best-effort only
                 pass
         # Second-row path input hidden — redundant with path label above / footer; navigate via list.
-        # with ui.row().classes('bg-gray-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
+        # with ui.row().classes('bg-zinc-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
         #     jump = ui.input(
         #         placeholder="Paste a folder path and press Enter",
         #         value=self.state["current_path"],
@@ -235,24 +239,24 @@ class DirectoryBrowser:
         """Create the file list container."""
         self.drive_container = ui.column().classes('mx-3 my-2')
         # Ensure items are left-aligned and text is left-justified
-        self.file_list = ui.column().classes('bg-white border-t border-gray-200 max-h-96 overflow-auto items-start text-left')
+        self.file_list = ui.column().classes('bg-white border-t border-zinc-200 max-h-96 overflow-auto items-start text-left')
 
     def _create_footer(self):
         """Create the dialog footer with action buttons."""
-        with ui.row().classes('bg-gray-50 border-t p-4 justify-between items-center'):
+        with ui.row().classes('bg-zinc-50 border-t p-4 justify-between items-center'):
             with ui.column().classes('flex-1'):
-                ui.label(f'Current: {Path(self.state["current_path"]).name or "Root"}').classes('text-sm text-gray-600')
+                ui.label(f'Current: {Path(self.state["current_path"]).name or "Root"}').classes('text-sm text-zinc-600')
 
             with ui.row().classes('gap-2'):
                 ui.button(
                     'Cancel',
                     on_click=self.dialog.close
-                ).classes('px-6 py-2 bg-gray-100 border border-gray-300 text-gray-800 hover:bg-gray-50 rounded-lg transition-colors')
+                ).classes(f'px-6 py-2 {Design.BTN_MEDIUM_GRAY}')
 
                 ui.button(
                     'Select Folder',
                     on_click=self._select_current_directory
-                ).classes('px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium')
+                ).classes('px-6 py-2 rb-brand-primary text-white rounded-lg transition-colors font-medium')
 
     def _navigate_up(self):
         """Navigate to parent directory."""
@@ -292,7 +296,7 @@ class DirectoryBrowser:
                 ui.button(
                     'navigate_up',
                     on_click=lambda p=parent_path: self._navigate_to_directory(p)
-                ).classes('w-full justify-start p-3 hover:bg-blue-50 border-b border-gray-100 text-blue-600').props('flat icon=arrow_upward prepend-icon')
+                ).classes('w-full justify-start p-3 hover:bg-indigo-50 border-b border-zinc-100 text-indigo-600').props('flat icon=arrow_upward prepend-icon')
 
         try:
             items = sorted(path_obj.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
@@ -304,7 +308,7 @@ class DirectoryBrowser:
             for directory in directories:
                 dir_path = str(directory)
                 with self.file_list:
-                    row = ui.row().classes('w-full items-center p-3 hover:bg-blue-50 border-b border-gray-100 cursor-pointer')
+                    row = ui.row().classes('w-full items-center p-3 hover:bg-indigo-50 border-b border-zinc-100 cursor-pointer')
                     try:
                         row.on('click', lambda e, p=dir_path: self._navigate_to_directory(p))
                     except Exception:
@@ -316,16 +320,16 @@ class DirectoryBrowser:
             for file_path in display_files:
                 with self.file_list:
                     with ui.row().classes(
-                        'w-full items-center p-3 border-b border-gray-100 bg-gray-50/80'
+                        'w-full items-center p-3 border-b border-zinc-100 bg-zinc-50/80'
                     ):
-                        ui.icon('insert_drive_file').classes('text-gray-500 mr-3 shrink-0')
-                        ui.label(file_path.name).classes('truncate flex-1 text-left text-gray-700')
+                        ui.icon('insert_drive_file').classes('text-zinc-500 mr-3 shrink-0')
+                        ui.label(file_path.name).classes('truncate flex-1 text-left text-zinc-700')
 
             if not directories and not display_files:
                 with self.file_list:
                     if hide_files and files:
                         # delete  files from the file list
-                        ui.label('Empty folder').classes('text-gray-500 p-3 text-center')
+                        ui.label('Empty folder').classes('text-zinc-500 p-3 text-center')
 
         except PermissionError:
             with self.file_list:
@@ -347,7 +351,11 @@ class DirectoryBrowser:
             self.on_select(str(dir_input.path))
             self.dialog.close()
         except (ValidationError, ValueError, TypeError) as e:
-            ui.notify(f'Invalid directory: {str(e)}', type='negative')
+            ui.notify(
+                f'Invalid directory: {str(e)}',
+                type='negative',
+                classes='rb-notify-505759',
+            )
 
     def show(self):
         """Show the directory browser dialog."""
@@ -431,17 +439,21 @@ class FileBrowser:
         """Create the dialog header with title."""
         try:
             from frontend.components.file_browser.header import render_file_browser_header
-            render_file_browser_header("Select File", icon='description')
+            render_file_browser_header(
+                "Select File",
+                icon="description",
+                light_directory_header=True,
+            )
         except (ImportError, ModuleNotFoundError):
-            with ui.row().classes('bg-gradient-to-r from-green-600 to-green-700 text-white p-4 items-center'):
-                ui.icon('description', size='2rem').classes('mr-3')
-                ui.label('Select File').classes('text-xl font-semibold')
+            with ui.row().classes("rb-select-directory-header w-full p-4 items-center"):
+                ui.icon("description", size="2rem").classes("mr-3 shrink-0")
+                ui.label("Select File").classes("text-xl font-semibold text-zinc-900")
 
     def _jump_to_path_file(self, raw: str) -> None:
         """Jump file browser to a folder (same as directory browser for UFDR paths)."""
         s = (raw or "").strip()
         if not s:
-            ui.notify("Enter a folder path", type="warning")
+            ui.notify("Enter a folder path", type="warning", classes="rb-notify-505759")
             return
         try:
             p = Path(s).expanduser()
@@ -449,43 +461,43 @@ class FileBrowser:
                 p = Path(os.getcwd()) / p
             rp = str(p.resolve())
             if not os.path.isdir(rp):
-                ui.notify(f"Not a directory or not accessible: {rp}", type="negative")
+                ui.notify(f"Not a directory or not accessible: {rp}", type="negative", classes="rb-notify-505759")
                 return
             self._update_file_list(rp)
         except OSError as e:
-            ui.notify(f"Invalid path: {e}", type="negative")
+            ui.notify(f"Invalid path: {e}", type="negative", classes="rb-notify-505759")
 
     def _create_navigation_bar(self):
         """Create the navigation bar with address bar and buttons."""
-        with ui.row().classes('bg-gray-50 border-b p-3 items-center gap-2'):
-            ui.icon('home', size='1.2rem').classes('text-gray-500')
-            ui.icon('chevron_right', size='1.2rem').classes('text-gray-400')
+        with ui.row().classes('bg-zinc-50 border-b p-3 items-center gap-2'):
+            ui.icon('home', size='1.2rem').classes('text-zinc-500')
+            ui.icon('chevron_right', size='1.2rem').classes('text-zinc-400')
 
             # Readonly "current directory" input hidden — redundant with full path label below; navigate via list.
             # self.path_input = ui.input(
             #     value=self.state['current_path'],
             #     placeholder='Current directory...'
-            # ).classes('flex-1 border border-gray-300 rounded px-3 py-1 text-sm bg-gray-50').props('readonly')
+            # ).classes('flex-1 border border-zinc-300 rounded px-3 py-1 text-sm bg-zinc-50').props('readonly')
             # self.path_input.bind_value_from(self.state, 'current_path')
 
             # Navigation buttons
             ui.button(
                 icon='arrow_upward',
                 on_click=self._navigate_up
-            ).classes('px-2 py-1 text-gray-600 hover:bg-gray-200 rounded').props('flat dense')
+            ).classes('px-2 py-1 text-zinc-600 hover:bg-zinc-200 rounded').props('flat dense')
 
             ui.button(
                 icon='refresh',
                 on_click=self._refresh_current
-            ).classes('px-2 py-1 text-gray-600 hover:bg-gray-200 rounded').props('flat dense')
+            ).classes('rb-brand-primary text-white').props('dense round')
             # Also render a full-path label below the address bar that wraps for long paths
             try:
-                self.full_path_label = ui.label(self.state['current_path']).classes('text-xs font-mono text-gray-600 mt-1 break-words')
+                self.full_path_label = ui.label(self.state['current_path']).classes('text-xs font-mono text-zinc-600 mt-1 break-words')
                 self.full_path_label.bind_text_from(self.state, 'current_path')
             except Exception:
                 pass
         # Second-row path input hidden — same as directory browser.
-        # with ui.row().classes('bg-gray-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
+        # with ui.row().classes('bg-zinc-50 border-b px-3 pb-3 pt-0 items-center gap-2 flex-wrap'):
         #     fjump = ui.input(
         #         placeholder="Paste a folder path and press Enter",
         #         value=self.state["current_path"],
@@ -502,11 +514,11 @@ class FileBrowser:
         self.drive_container = ui.column().classes('mx-3 my-2')
         # assign an id to the file list so we can control scrolling via JS
         self._file_list_id = f"file_list_{id(self)}"
-        self.file_list = ui.column().classes('bg-white border-t border-gray-200 max-h-96 overflow-auto').props(f"id={self._file_list_id}")
+        self.file_list = ui.column().classes('bg-white border-t border-zinc-200 max-h-96 overflow-auto').props(f"id={self._file_list_id}")
 
     def _create_footer(self):
         """Create the dialog footer with file info and action buttons."""
-        with ui.row().classes('bg-gray-50 border-t p-4 justify-between items-center'):
+        with ui.row().classes('bg-zinc-50 border-t p-4 justify-between items-center'):
             with ui.column().classes('flex-1'):
                 self._update_selected_display()
 
@@ -514,12 +526,12 @@ class FileBrowser:
                 ui.button(
                     'Cancel',
                     on_click=self.dialog.close
-                ).classes('px-6 py-2 bg-gray-100 border border-gray-300 text-gray-800 hover:bg-gray-50 rounded-lg transition-colors')
+                ).classes(f'px-6 py-2 {Design.BTN_MEDIUM_GRAY}')
 
                 ui.button(
                     'Select File',
                     on_click=self._select_file_path
-                ).classes('px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium')
+                ).classes('px-6 py-2 rb-brand-primary text-white rounded-lg transition-colors font-medium')
 
     def _update_selected_display(self):
         """Update the selected file display in the footer."""
@@ -535,7 +547,7 @@ class FileBrowser:
         if self.selected_display:
             self.selected_display.text = display_text
         else:
-            self.selected_display = ui.label(display_text).classes('text-sm text-gray-600')
+            self.selected_display = ui.label(display_text).classes('text-sm text-zinc-600')
 
     def _navigate_up(self):
         """Navigate to parent directory."""
@@ -583,7 +595,7 @@ class FileBrowser:
                 ui.button(
                     'arrow_upward',
                     on_click=lambda p=parent_path: self._navigate_to_directory(p)
-                ).classes('w-full justify-start p-3 hover:bg-blue-50 border-b border-gray-100 text-blue-600').props('flat icon=arrow_upward prepend-icon')
+                ).classes('w-full justify-start p-3 hover:bg-indigo-50 border-b border-zinc-100 text-indigo-600').props('flat icon=arrow_upward prepend-icon')
 
         # List items
         try:
@@ -595,7 +607,7 @@ class FileBrowser:
                     # Directory
                     dir_path = str(item)
                     with self.file_list:
-                        row = ui.row().classes('w-full items-center p-3 hover:bg-blue-50 border-b border-gray-100 cursor-pointer')
+                        row = ui.row().classes('w-full items-center p-3 hover:bg-indigo-50 border-b border-zinc-100 cursor-pointer')
                         try:
                             row.on('click', lambda e, p=dir_path: self._navigate_to_directory(p))
                         except Exception:
@@ -615,17 +627,17 @@ class FileBrowser:
                         ui.button(
                             item.name,
                             on_click=lambda fp=file_path: self._select_file(fp)
-                        ).classes('w-full justify-start p-3 hover:bg-green-50 border-b border-gray-100 text-left').props('flat icon=insert_drive_file prepend-icon')
+                        ).classes('w-full justify-start p-3 hover:bg-indigo-50 border-b border-zinc-100 text-left').props('flat icon=insert_drive_file prepend-icon')
 
             if not items:
                 with self.file_list:
-                    ui.label('No files or directories').classes('text-gray-500 p-3 text-center')
+                    ui.label('No files or directories').classes('text-zinc-500 p-3 text-center')
             elif hide_files and any(i.is_file() for i in items) and not any(i.is_dir() for i in items):
                 with self.file_list:
                     ui.label(
                         'Files are not listed in folders named “outputs” (often previous job results). '
                         'Open the parent folder, pick a subfolder, or paste a path above.'
-                    ).classes('text-gray-600 p-3 text-center')
+                    ).classes('text-zinc-600 p-3 text-center')
 
         except PermissionError:
             with self.file_list:
@@ -648,7 +660,7 @@ class FileBrowser:
         self._update_selected_display()
 
         # Visual feedback
-        ui.notify(f'Selected: {Path(file_path).name}', type='info', timeout=1000)
+        ui.notify(f'Selected: {Path(file_path).name}', type='info', timeout=1000, classes="rb-notify-505759")
 
     def _handle_drive_change(self, drive: str):
         """Handle Windows drive change."""
@@ -663,9 +675,13 @@ class FileBrowser:
                 self.on_select(str(file_input.path))
                 self.dialog.close()
             except (ValidationError, ValueError, TypeError) as e:
-                ui.notify(f'Invalid file: {str(e)}', type='negative')
+                ui.notify(f'Invalid file: {str(e)}', type='negative', classes="rb-notify-505759")
         else:
-            ui.notify('Please select a file first', type='warning')
+            ui.notify(
+                'Please select a file first',
+                type='warning',
+                classes='rb-notify-505759',
+            )
 
     def show(self):
         """Show the file browser dialog."""

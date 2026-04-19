@@ -20,10 +20,10 @@ class FormConfig:
 
     # Card styling
     TOOL_PICKER_CLASSES = (
-        'w-full max-w-md min-w-0 mx-auto bg-gradient-to-br from-purple-50 to-violet-100 '
-        'border-2 border-purple-500 shadow-md rounded-xl text-base'
+        'w-full max-w-md min-w-0 mx-auto bg-gradient-to-br from-indigo-50 via-white to-zinc-100 '
+        'border-2 border-indigo-500 shadow-md rounded-xl text-base'
     )
-    ANALYSIS_PICKER_CLASSES = 'w-full max-w-md bg-green-50 border-2 border-green-500 text-sm'
+    ANALYSIS_PICKER_CLASSES = 'w-full max-w-md bg-indigo-50 border-2 border-indigo-500 text-sm'
     SUCCESS_CARD_CLASSES = 'w-full max-w-md bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-400 shadow-lg rounded-xl overflow-hidden text-sm'
     RESULT_DETAIL_CLASSES = 'w-full max-w-2xl max-h-[70vh] bg-white rounded-xl shadow-xl overflow-hidden text-sm'
 

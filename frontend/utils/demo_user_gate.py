@@ -21,6 +21,6 @@ def require_demo_user_session() -> bool:
         ui.label('Demo access requires a valid User ID').classes('text-xl font-semibold mb-2')
         ui.label(
             'Enter the User ID on the home page.'
-        ).classes('text-gray-600 mb-4')
-        ui.button('Go to home', on_click=lambda: ui.navigate.to('/')).classes('bg-blue-600 text-white')
+        ).classes('text-zinc-600 mb-4')
+        ui.button('Go to home', on_click=lambda: ui.navigate.to('/')).classes('rb-brand-primary text-white')
     return False

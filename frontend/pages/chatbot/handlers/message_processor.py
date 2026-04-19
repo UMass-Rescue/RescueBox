@@ -67,11 +67,12 @@ class MessageProcessor:
             Optional[Dict[str, Any]]: The handler result, or None if failed
         """
         try:
-            # Set processing state
+            # Set processing state and hide composer; then yield so the client can paint
+            # (processing strip uses bind_visibility_from; composer uses pending-only class).
             self.state_manager.set_processing(True)
-            update_status_callback("Processing message...")
-            # Disable input area (rule: input enabled only when no pending chat interaction)
             self.state_manager.set_input_enabled(False)
+            await sleep(0)
+            update_status_callback("Processing message...")
 
             # Create and add user message
             user_message = ChatMessage('user', message_text)
@@ -98,26 +99,27 @@ class MessageProcessor:
                 message = ChatMessage('assistant', content)
                 add_message_callback(message)
                 logger.info("Handled message result directly: %s", content[:50])
+                # Model call finished; hide processing strip before post-render delay.
+                self.state_manager.set_processing(False)
 
                 # Clear input
                 self.state_manager.clear_input()
 
-                # Brief delay to show processing completion with spinner visible
+                # Brief delay so status / layout can settle
                 await sleep(0.5)
 
-                # Then reset processing state and update status
-                self.state_manager.set_processing(False)
                 self.state_manager.set_input_enabled(True)  # Terminal result: no pending interaction
-                update_status_callback("✅ Rescuebox waiting for user..")
+                update_status_callback("Rescuebox waiting for user..")
                 return None  # Don't process this result further
 
             elif result:
+                # Model / router finished; hide strip before form or picker UI work.
+                self.state_manager.set_processing(False)
                 # Process complex results through the result processor
                 await process_result_callback(result)
                 # Ensure input is cleared and processing state reset for non-'message' results
                 try:
                     self.state_manager.clear_input()
-                    self.state_manager.set_processing(False)
                     result_type = result.get('type', '')
                     # Rule: input enabled only when no pending chat interaction.
                     # Keep disabled for picker/form types; enable for error/help.
@@ -144,7 +146,7 @@ class MessageProcessor:
             self.state_manager.set_processing(False)
             self.state_manager.set_input_enabled(True)
 
-            update_status_callback("✅ Rescuebox waiting for user..")
+            update_status_callback("Rescuebox waiting for user..")
             logger.info("Message processing completed")
             return result
 

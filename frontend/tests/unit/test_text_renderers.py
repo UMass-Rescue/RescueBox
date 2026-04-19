@@ -71,7 +71,7 @@ BATCH_ITEM2_CONTENT = 'Second text item'
 # Expected UI text
 TEXT_RESULT_TITLE_UI = 'Text Result'
 MARKDOWN_RESULT_TITLE_UI = 'Markdown Result'
-BATCH_TEXT_RESULT_TITLE_UI = 'Batch Text Result'
+BATCH_TEXT_RESULT_TITLE_UI = 'Transcription'
 SEARCH_LABEL = 'Search'
 FILENAME_HEADER = 'Filename'
 HASH_HEADER = '#'
@@ -257,12 +257,7 @@ class TestTextRenderers:
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_batch_text(self, user: User):
-        """Test rendering batch text response with multiple items.
-
-        Validates that collections of text items are properly displayed
-        with individual colored sections for filename, preview, length,
-        and full transcribed text content.
-        """
+        """Test rendering batch text response with multiple items."""
         texts = [
             TextResponse(
                 output_type='text',
@@ -284,19 +279,12 @@ class TestTextRenderers:
             render_batch_text(container, response)
 
         await user.open('/test')
-        # Test first item display
-        await user.should_see('INPUT FILE:')
+        await user.should_see(BATCH_TEXT_RESULT_TITLE_UI)
+        await user.should_see('2 file(s)')
+        await user.should_see('Source')
         await user.should_see(BATCH_ITEM1_TITLE)
-        await user.should_see('PREVIEW:')
-        await user.should_see(BATCH_ITEM1_CONTENT[:20])  # First part of content
-        await user.should_see('LENGTH:')
-        await user.should_see('characters')
-        await user.should_see('TRANSCRIBED TEXT:')
         await user.should_see(BATCH_ITEM1_CONTENT)
-
-        # Test second item display
         await user.should_see(BATCH_ITEM2_TITLE)
-        await user.should_see(BATCH_ITEM2_CONTENT[:20])  # First part of content
         await user.should_see(BATCH_ITEM2_CONTENT)
 
     @pytest.mark.asyncio
@@ -325,11 +313,10 @@ class TestTextRenderers:
             render_batch_text(container, response)
 
         await user.open('/test')
+        await user.should_see(BATCH_TEXT_RESULT_TITLE_UI)
         await user.should_see('Long Content Test')
         await user.should_see('This is a very long piece')
-        await user.should_see('characters')  # Length display
-        await user.should_see(long_content[:50])  # Preview
-        await user.should_see(long_content)  # Full content
+        await user.should_see(long_content[:80])
 
     @pytest.mark.asyncio
     @pytest.mark.integration
@@ -362,7 +349,6 @@ class TestTextRenderers:
         await user.open('/test')
         await user.should_see('Empty Content Test')
         await user.should_see('None Content Test')
-        await user.should_see('LENGTH:')  # Should still show length even for empty content
 
     @pytest.mark.asyncio
     @pytest.mark.integration

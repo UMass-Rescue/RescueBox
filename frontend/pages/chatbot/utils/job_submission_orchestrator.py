@@ -31,8 +31,49 @@ import asyncio
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+
+# NiceGUI ``ui.select`` stores dict *keys* as values; use tokens (not ``<`` / ``<=``) so
+# ChoiceElement validation and Quasar serialization stay reliable.
+_AGE_OP_TOKEN_TO_SYMBOL = {
+    "lt": "<",
+    "lte": "<=",
+    "eq": "=",
+    "gt": ">",
+    "gte": ">=",
+}
+
+
+def _compose_age_gender_pipeline_filter(
+    gender_value: str,
+    age_op_token: str,
+    age_raw: Optional[float],
+) -> str:
+    """
+    Build a comma-separated criteria string for :func:`apply_metadata_filter`.
+
+    Gender uses ``Gender=value`` (male/female). Age uses spaced bare comparison
+    (e.g. ``Age < 40``) so the existing parser's regex matches reliably.
+    """
+    parts: List[str] = []
+    g = (gender_value or "").strip().lower()
+    if g in ("male", "female"):
+        parts.append(f"Gender={g}")
+    if age_raw is not None:
+        token = (age_op_token or "lt").strip().lower()
+        sym = _AGE_OP_TOKEN_TO_SYMBOL.get(token, "<")
+        parts.append(f"Age {sym} {age_raw}")
+    return ", ".join(parts)
+
+
 class JobSubmissionOrchestrator:
     """Orchestrates the complete job submission workflow."""
+
+    def _enable_chat_input_safe(self) -> None:
+        try:
+            if getattr(self.form_handler, 'state_manager', None):
+                self.form_handler.state_manager.set_input_enabled(True)
+        except Exception:
+            pass
 
     def __init__(self, form_handler):
         """
@@ -140,7 +181,7 @@ class JobSubmissionOrchestrator:
                 await DatabaseService.save_message_to_history(
                     conversation_id,
                     role='assistant',
-                    content=f"I'll use {endpoint} to help you.",
+                    content=f"Running {endpoint} operation.",
                     message_type='tool_selection',
                     tool_call_endpoint=endpoint,
                 )
@@ -155,7 +196,7 @@ class JobSubmissionOrchestrator:
             from frontend.components.results.tool_selection_card import render_tool_selection_message
             import nicegui
             # Create message and add to in-memory state manager for UI rendering
-            assistant_msg = ChatMessage('assistant', f"I'll use {endpoint} to help you.", message_type='tool_selection')
+            assistant_msg = ChatMessage('assistant', f"Running {endpoint} operation.", message_type='tool_selection')
             # Add to state_manager if available
             if getattr(self.form_handler, 'state_manager', None):
                 try:
@@ -198,6 +239,8 @@ class JobSubmissionOrchestrator:
         job_info = await DatabaseService.create_and_track_job(
             request_body, endpoint, task_schema, response_body=None, case_notes=case_notes, user_id=user_id,
             endpoint_chain=endpoint_chain,
+            pipeline_root_job_id=pipeline_root_job_id,
+            pipeline_total_steps=pipeline_total_steps,
         )
         job_id = job_info.get('job_id') if job_info else None
         effective_pipeline_root_id = pipeline_root_job_id or job_id
@@ -236,13 +279,17 @@ class JobSubmissionOrchestrator:
             if target is not None:
                 with target:
                     with ui.row().classes('w-full items-start'):
-                        with ui.card().classes('bg-gray-200 max-w-sm shadow-sm'):
+                        with ui.card().classes(
+                            'bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm max-w-sm'
+                        ):
                             with ui.column().classes('p-1.5 w-full gap-1'):
-                                ui.label('🤖 Assistant').classes('font-medium text-xs')
-                                content_label = ui.label("🔄 Job running...").classes('text-sm')
+                                ui.label('Assistant').classes(
+                                    'font-medium text-xs text-indigo-900'
+                                )
+                                content_label = ui.label('Job running…').classes('text-sm text-zinc-800')
                                 running_label_ref.append(content_label)
                 try:
-                    self.form_handler.state_manager.add_message(ChatMessage('assistant', "🔄 Job running..."))
+                    self.form_handler.state_manager.add_message(ChatMessage('assistant', 'Job running…'))
                 except Exception:
                     pass
                 _run_client = getattr(target, 'client', None)
@@ -276,7 +323,7 @@ class JobSubmissionOrchestrator:
                         # Update "Job running" to "Job completed" before showing results
                         if running_label_ref:
                             try:
-                                running_label_ref[0].text = "✅ Job completed"
+                                running_label_ref[0].text = 'Job completed'
                             except Exception:
                                 pass
                         # show_results will handle container validity internally
@@ -294,6 +341,13 @@ class JobSubmissionOrchestrator:
                             )
                         except Exception as idx_e:
                             self.logger.warning("Pipeline index skipped: %s", idx_e)
+                        _hide_inp = False
+                        _rem = remaining_calls or []
+                        if not _rem and pipeline_total_steps is not None:
+                            try:
+                                _hide_inp = int(pipeline_total_steps) > 1
+                            except (TypeError, ValueError):
+                                _hide_inp = False
                         await show_results(
                             container=container,
                             response_body=response_data,
@@ -334,15 +388,14 @@ class JobSubmissionOrchestrator:
                                 accumulated_endpoint_chain=accumulated,
                                 pipeline_total_steps=pipeline_total_steps,
                                 pipeline_root_job_id=effective_pipeline_root_id,
+                                completed_step_job_id=job_id,
                             )
                             # Next form is showing - stay disabled (rule: input only when no pending interaction)
                         else:
-                            # No more forms - ready for new prompt
-                            try:
-                                if getattr(self.form_handler, 'state_manager', None):
-                                    self.form_handler.state_manager.set_input_enabled(True)
-                            except Exception:
-                                pass
+                            # No more forms — re-enable composer unless final multi-step pipeline
+                            # (composer stays hidden; user uses View results / new conversation).
+                            if not _hide_inp:
+                                self._enable_chat_input_safe()
                         # Only scroll to absolute bottom when there is no next-step form (handle_remaining_calls scrolls the form).
                         if not remaining_calls:
                             try:
@@ -390,7 +443,7 @@ class JobSubmissionOrchestrator:
                 try:
                     from frontend.pages.chatbot.chatbot_message import ChatMessage, render_message
                     target_container = resolve_chat_container(container)
-                    friendly = ChatMessage('assistant', f"⚠️ Job submission failed: {err_text}")
+                    friendly = ChatMessage('assistant', f'Job submission failed: {err_text}')
                     try:
                         render_message(target_container, friendly)
                     except Exception:
@@ -431,7 +484,7 @@ class JobSubmissionOrchestrator:
             if getattr(self.form_handler, 'state_manager', None):
                 try:
                     self.form_handler.state_manager.set_processing(True)
-                    self.form_handler.state_manager.set_status("🔄 Job running...")
+                    self.form_handler.state_manager.set_status('Job running…')
                 except Exception:
                     pass
         except Exception:
@@ -470,6 +523,13 @@ class JobSubmissionOrchestrator:
             self.logger.warning("Pipeline index (sync path) skipped: %s", idx_e)
 
         # Show results
+        _hide_inp = False
+        _rem = remaining_calls or []
+        if not _rem and pipeline_total_steps is not None:
+            try:
+                _hide_inp = int(pipeline_total_steps) > 1
+            except (TypeError, ValueError):
+                _hide_inp = False
         await show_results(
             container=container,
             response_body=response_body,
@@ -507,10 +567,12 @@ class JobSubmissionOrchestrator:
                 accumulated_endpoint_chain=accumulated,
                 pipeline_total_steps=pipeline_total_steps,
                 pipeline_root_job_id=eff_root,
+                completed_step_job_id=job_id,
             )
             # Next form: handle_remaining_calls already scrolled the new form into view.
         else:
-            self.form_handler.state_manager.set_input_enabled(True)
+            if not _hide_inp:
+                self._enable_chat_input_safe()
 
         # Clear processing state
         self.form_handler.state_manager.set_processing(False)
@@ -543,16 +605,58 @@ class JobSubmissionOrchestrator:
             with ui.dialog() as dialog, ui.card().classes('w-[400px]'):
                 ui.label('Filter files before next step').classes('text-lg font-semibold')
                 ui.label(
-                    'e.g. Gender=Male, Age<10, or Age < 10 (spaces optional). Leave empty to use all.'
-                ).classes('text-sm text-gray-600')
-                inp = ui.input(placeholder='Gender=Male, Age < 10').classes('w-full mt-2')
-                with ui.row().classes('mt-4 gap-2'):
-                    # Resolve value before closing so NiceGUI does not drop input state on close
-                    ui.button('Use all', on_click=lambda: (_finish(''), dialog.close()))
-                    ui.button(
-                        'Apply filter',
-                        on_click=lambda: (_finish(inp.value or ''), dialog.close()),
+                    'Use classifier metadata from the previous step. Leave age empty to skip age filtering.'
+                ).classes('text-sm text-zinc-600')
+                gender_select = ui.select(
+                    options={'': 'Any gender', 'male': 'Male', 'female': 'Female'},
+                    value='',
+                    label='Gender',
+                ).classes('w-full mt-2')
+                ui.label('Age').classes('text-sm font-medium text-zinc-700 mt-3')
+                with ui.row().classes('w-full items-end gap-2 flex-wrap'):
+                    age_op_select = ui.select(
+                        options={
+                            'lt': 'Less than',
+                            'lte': 'At most',
+                            'eq': 'Equals',
+                            'gt': 'Greater than',
+                            'gte': 'At least',
+                        },
+                        value='lt',
+                        label='Compare',
+                    ).classes('min-w-[9rem] flex-1')
+                    age_number = ui.number(
+                        label='Years',
+                        value=None,
+                        min=0,
+                        max=120,
+                        format='%.0f',
+                    ).classes('min-w-[6rem] flex-1')
+
+                def _use_all() -> None:
+                    _finish('')
+                    dialog.close()
+
+                def _apply_filter() -> None:
+                    raw = age_number.value
+                    age_val: Optional[float] = None
+                    if raw is not None and raw != '':
+                        try:
+                            age_val = float(raw)
+                        except (TypeError, ValueError):
+                            notify_warning('Enter a valid age number, or leave age empty.')
+                            return
+                    crit = _compose_age_gender_pipeline_filter(
+                        str(gender_select.value or ''),
+                        str(age_op_select.value or 'lt'),
+                        age_val,
                     )
+                    _finish(crit.strip())
+                    dialog.close()
+
+                with ui.row().classes('mt-4 gap-2'):
+                    ui.button('Use all', on_click=_use_all)
+                    ui.button('Apply filter', on_click=_apply_filter)
             dialog.open()
         try:
             return await asyncio.wait_for(future, timeout=120.0)
@@ -567,7 +671,8 @@ class JobSubmissionOrchestrator:
                                      load_form_func: Optional[Callable] = None,
                                      accumulated_endpoint_chain: Optional[List[str]] = None,
                                      pipeline_total_steps: Optional[int] = None,
-                                     pipeline_root_job_id: Optional[str] = None):
+                                     pipeline_root_job_id: Optional[str] = None,
+                                     completed_step_job_id: Optional[str] = None):
         """
         Handle remaining calls in a multi-call sequence.
 
@@ -578,6 +683,7 @@ class JobSubmissionOrchestrator:
             core: ChatbotCore instance
             load_form_func: Optional function to load next form
             pipeline_total_steps: Total steps in the pipeline (for nested submit_job)
+            completed_step_job_id: Job uid of the step that just finished (persists classifier filter criteria)
         """
         if not remaining_calls:
             return
@@ -637,6 +743,26 @@ class JobSubmissionOrchestrator:
                     len(filtered_paths),
                     filtered_paths,
                 )
+                if (
+                    completed_step_job_id
+                    and batch_items_have_age_gender_metadata(items)
+                ):
+                    try:
+                        from frontend.database import get_job_db
+
+                        jdb = get_job_db()
+                        ok = await jdb.update_job_pipeline_metadata_filter_criteria(
+                            completed_step_job_id, criteria
+                        )
+                        if not ok:
+                            self.logger.debug(
+                                "Pipeline filter criteria not stored (job missing?): %s",
+                                completed_step_job_id,
+                            )
+                    except Exception as e:
+                        self.logger.warning(
+                            "Could not persist pipeline metadata filter criteria: %s", e
+                        )
             else:
                 self.logger.warning(
                     "Pipeline metadata filter skipped: no batch file items extracted for chaining step "
@@ -662,7 +788,9 @@ class JobSubmissionOrchestrator:
                         )
                 
                 if next_schema:
-                    notify_info(f"Proceeding to next tool: {next_endpoint}")
+                    notify_info(
+                        f"Proceeding to next operation: {next_endpoint}",
+                    )
                 await load_and_show_form(
                     container=container,
                     core=core,
