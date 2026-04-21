@@ -92,15 +92,15 @@ def test_inputs_cli_parse_missing_separator():
 
 
 def test_parameters_cli_parse_full():
-    parsed = parameters_cli_parse("apple/DFN5B-CLIP-ViT-H-14-378,7,0.55")
-    assert parsed["model_name"] == "apple/DFN5B-CLIP-ViT-H-14-378"
+    parsed = parameters_cli_parse("openai/clip-vit-base-patch32,7,0.55")
+    assert parsed["model_name"] == "openai/clip-vit-base-patch32"
     assert parsed["top_k"] == 7
     assert parsed["min_similarity"] == 0.55
 
 
 def test_parameters_cli_parse_defaults():
     parsed = parameters_cli_parse("")
-    assert parsed["model_name"] == "apple/DFN5B-CLIP-ViT-H-14-378"
+    assert parsed["model_name"] == "openai/clip-vit-base-patch32"
     assert parsed["top_k"] == 5
     assert parsed["min_similarity"] == 0.5
 

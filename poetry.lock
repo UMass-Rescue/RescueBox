@@ -1786,13 +1786,13 @@ develop = true
 
 [package.dependencies]
 numpy = "*"
+onnxruntime = "*"
 pgvector = "*"
 pillow = "*"
 pydantic = "*"
 rb-api = {path = "../rb-api", develop = true}
 sqlalchemy = "*"
 sqlmodel = "*"
-torch = "*"
 transformers = "*"
 typer = "*"
 

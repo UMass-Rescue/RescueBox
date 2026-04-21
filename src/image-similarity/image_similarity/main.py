@@ -4,10 +4,14 @@ import logging
 import os
 import threading
 
+from pathlib import Path
+
 import numpy as np
+import onnxruntime as ort
 import typer
+from PIL import Image
+from transformers import CLIPImageProcessor
 from rb.lib.ml_service import MLService
-from rb.lib.utils import apply_torch_cpu_preference
 from rb.api.models import (
     InputSchema,
     InputType,
@@ -37,6 +41,9 @@ logger = logging.getLogger(__name__)
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
 ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
+_DEFAULT_MODEL = "openai/clip-vit-base-patch32"
+_MODELS_DIR = Path(__file__).resolve().parent / "onnx_models"
+_DEFAULT_ONNX_PATH = _MODELS_DIR / "clip-vit-base-patch32.onnx"
 
 _EMBED_LOCKS_GUARD = threading.Lock()
 _EMBED_LOCKS: dict[str, threading.Lock] = {}
@@ -62,12 +69,63 @@ class Parameters(TypedDict):
     min_similarity: float
 
 
+# ---------------------------------------------------------------------------
+#  ONNX Runtime helpers  (same pattern as deepfake-detection / face-match)
+# ---------------------------------------------------------------------------
+
+def _get_ort_providers() -> list[str]:
+    available = ort.get_available_providers()
+    providers: list[str] = []
+    if "CUDAExecutionProvider" in available:
+        providers.append("CUDAExecutionProvider")
+    if "CoreMLExecutionProvider" in available:
+        providers.append("CoreMLExecutionProvider")
+    providers.append("CPUExecutionProvider")
+    return providers
+
+
+def _load_onnx_vision_model() -> tuple[ort.InferenceSession, CLIPImageProcessor]:
+    """Load the bundled CLIP vision ONNX model and image processor."""
+    if not _DEFAULT_ONNX_PATH.exists():
+        raise FileNotFoundError(
+            f"ONNX model not found at {_DEFAULT_ONNX_PATH}. "
+            "Download clip-vit-base-patch32.onnx into the onnx_models/ directory."
+        )
+    session = ort.InferenceSession(
+        str(_DEFAULT_ONNX_PATH), providers=_get_ort_providers(),
+    )
+    processor = CLIPImageProcessor.from_pretrained(_DEFAULT_MODEL)
+    return session, processor
+
+
+def _embed_image(
+    ort_session: ort.InferenceSession,
+    processor: CLIPImageProcessor,
+    image_path: str,
+) -> np.ndarray:
+    """Compute a normalised image embedding via ONNX Runtime.  Returns a 1-D float32 array."""
+    image = Image.open(image_path).convert("RGB")
+    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(
+        np.float32
+    )
+    outputs = ort_session.run(None, {"pixel_values": pixel_values})
+    image_embeds = outputs[0]
+    image_embeds = image_embeds / np.linalg.norm(
+        image_embeds, axis=-1, keepdims=True
+    )
+    return image_embeds.squeeze()
+
+
+# ---------------------------------------------------------------------------
+#  Task schema
+# ---------------------------------------------------------------------------
+
 def task_schema() -> TaskSchema:
     model_enum = EnumParameterDescriptor(
         enum_vals=[
-            EnumVal(key="apple/DFN5B-CLIP-ViT-H-14-378", label="CLIP-ViT-H-14-378-Apple"),
+            EnumVal(key="openai/clip-vit-base-patch32", label="CLIP-ViT-B-32-OpenAI"),
         ],
-        default="apple/DFN5B-CLIP-ViT-H-14-378",
+        default="openai/clip-vit-base-patch32",
     )
     top_k_desc = RangedIntParameterDescriptor(
         range=IntRangeDescriptor(min=1, max=20),
@@ -145,11 +203,8 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-def _embed_and_store_images(session, storage, file_paths, path_to_hash, model, processor, device, _inputs_to_device):
-    """Ensure every path has an embedding row in ``image_embeddings``. Returns paths ready for search."""
-    import torch
-    from PIL import Image
-
+def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor):
+    """Ensure every path has an embedding row in ``image_embeddings``.  Returns paths ready for search."""
     already = _paths_already_embedded(session, file_paths)
     file_paths_set = set(file_paths)
     paths_for_search: list[str] = []
@@ -172,16 +227,10 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, model, p
                 ).first()
                 if row is None:
                     try:
-                        image = Image.open(path).convert("RGB")
-                        with torch.no_grad():
-                            inputs_processed = _inputs_to_device(
-                                processor(images=image, return_tensors="pt", do_rescale=True)
-                            )
-                            image_features = model.get_image_features(**inputs_processed)
-                            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-                            storage.save_embedding(
-                                path, image_features.squeeze().cpu().numpy().tolist(), content_sha256=h,
-                            )
+                        embedding = _embed_image(ort_session, processor, path)
+                        storage.save_embedding(
+                            path, embedding.tolist(), content_sha256=h,
+                        )
                         paths_for_search.append(path)
                         newly_embedded += 1
                         already.add(path)
@@ -219,44 +268,19 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, model, p
 
 def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """Find images visually similar to a query image inside ``input_dir``."""
-    apply_torch_cpu_preference()
-    import torch
-    from PIL import Image
-    from transformers import CLIPProcessor, CLIPModel  # type: ignore
 
     input_dir = str(inputs["input_dir"].path)
     query_image_path = str(inputs["query_image"].path)
-    model_name = parameters.get("model_name", "apple/DFN5B-CLIP-ViT-H-14-378")
+    model_name = parameters.get("model_name", _DEFAULT_MODEL)
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
 
-    cuda_ok = torch.cuda.is_available()
-    mps_ok = bool(getattr(torch.backends, "mps", None)) and torch.backends.mps.is_available()
-    if cuda_ok:
-        device = torch.device("cuda")
-    elif mps_ok:
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
-
-    logger.info("CLIP runtime: cuda_available=%s mps_available=%s -> selected device=%s", cuda_ok, mps_ok, device)
-    if cuda_ok and device.type == "cuda":
-        try:
-            idx = torch.cuda.current_device()
-            logger.info("CUDA GPU in use: name=%s index=%s", torch.cuda.get_device_name(idx), idx)
-        except Exception as e:
-            logger.debug("Could not read CUDA device name: %s", e)
-    elif device.type == "mps":
-        logger.info("Apple Metal (MPS) GPU in use for CLIP")
-
-    model = CLIPModel.from_pretrained(model_name)
-    processor = CLIPProcessor.from_pretrained(model_name)
-    model = model.to(device)
-    model.eval()
-    logger.info("CLIP model loaded on device=%s model_name=%s", device, model_name)
-
-    def _inputs_to_device(batch):
-        return {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
+    ort_session, processor = _load_onnx_vision_model()
+    logger.info(
+        "ONNX vision model loaded: providers=%s model=%s",
+        ort_session.get_providers(),
+        model_name,
+    )
 
     file_paths: list[str] = []
     for name in sorted(os.listdir(input_dir)):
@@ -280,10 +304,9 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     with Session(engine) as session:
         storage = ImageEmbeddingStorage(session)
         paths_for_search = _embed_and_store_images(
-            session, storage, all_paths, path_to_hash, model, processor, device, _inputs_to_device,
+            session, storage, all_paths, path_to_hash, ort_session, processor,
         )
 
-        # Reuse query embedding from DB when available.
         query_row = session.exec(
             select(ImageEmbedding).where(ImageEmbedding.path == query_image_path)
         ).first()
@@ -291,14 +314,7 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
         if query_row is not None and query_row.embedding is not None:
             query_vec = np.array(list(query_row.embedding), dtype=np.float32)
         else:
-            image = Image.open(query_image_path).convert("RGB")
-            with torch.no_grad():
-                inputs_processed = _inputs_to_device(
-                    processor(images=image, return_tensors="pt", do_rescale=True)
-                )
-                image_features = model.get_image_features(**inputs_processed)
-                image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-                query_vec = image_features.squeeze().cpu().numpy()
+            query_vec = _embed_image(ort_session, processor, query_image_path)
 
         search_paths = [p for p in paths_for_search if p != query_image_path]
         search_results: list[dict] = []
@@ -359,7 +375,7 @@ def inputs_cli_parse(value: str) -> Inputs:
 
 def parameters_cli_parse(value: str) -> Parameters:
     parts = [p.strip() for p in value.split(",")]
-    model_name = parts[0] if len(parts) > 0 and parts[0] else "apple/DFN5B-CLIP-ViT-H-14-378"
+    model_name = parts[0] if len(parts) > 0 and parts[0] else _DEFAULT_MODEL
     top_k = int(parts[1]) if len(parts) > 1 and parts[1] else 5
     min_similarity = float(parts[2]) if len(parts) > 2 and parts[2] else 0.5
     return Parameters(model_name=model_name, top_k=top_k, min_similarity=min_similarity)
