@@ -1,22 +1,15 @@
 <!--
   RescueBox quick start — edit this Markdown for the in-app guide at /demo/quick-start.
-
-  Screenshots: add a line exactly like (file must exist in frontend/demo/):
-  {{SCREENSHOT:rescuebox_home.png}}
-
-  Markdown: blank line before "---" (else Setext heading). Blank line before a bullet list
-  after a paragraph (else list runs together with the paragraph as one line).
 -->
 
 ## **Overview**
 
-RescueBox Desktop connects your browser to **plugins** (AI/ML tools for images, audio, text) to help with forensics  analysis.
+RescueBox Desktop  runs in your browser to execute **plugins** (AI/ML tools for images, audio, text) to help with forensics  analysis.
 You choose a plugin, fill in paths and options, run a **job**, then inspect **results** in **Jobs**
 
 
 ## **Navbar** 
 
-This navigation bar is useful to navigate for daily use.
 {{SCREENSHOT:navbar.png}}
 
 
@@ -24,11 +17,11 @@ This navigation bar is useful to navigate for daily use.
 
 - When you **start RescueBox for the first time**, enter a **unique user id**. 
 
-{{SCREENSHOT:user_id.png}}
-
 - **User ID** must start with `demo_` followed by any 3 characters (use your initials) ,
 
  eg: `demo_ejk` or `demo_shl` 
+
+{{SCREENSHOT:user_id.png}}
 
  **[Home Page](/)**.
 

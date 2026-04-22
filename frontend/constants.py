@@ -47,17 +47,20 @@ UI_TITLES = {
 HOME_USER_ID = {
     'title': 'Set your User ID',
     'blurb': (
-        'Enter the demo User ID '
+        'Enter a demo User ID '
         'Use the same value each time you open RescueBox.'
     ),
     'input_label': 'User ID',
-    'placeholder': '??',
+    'placeholder': 'demo_???',
     'save_button': 'Save and continue',
     'current_prefix': 'User ID:',
     'change_user_button': 'Change User ID',
     'change_user_hint': 'User ID accepted ok.',
     'invalid_format': (
-        'User ID is not correct.'
+        'User ID incorrect. expect demo_??? format'
+    ),
+    'id_taken': (
+        'This User ID is already in use. Choose a different one.'
     ),
 }
 

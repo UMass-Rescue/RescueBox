@@ -71,12 +71,12 @@ def render_model_card(
     - Icons are selected based on model name keywords
     - Card uses Tailwind CSS classes for styling
     """
-    logger.info("Rendering model card for model: %s (UID: %s)", model.get('name', 'Unknown'), model.get('uid', 'N/A'))
-    logger.info("Model online status: %s", is_online)
+    logger.debug("Rendering model card for model: %s (UID: %s)", model.get('name', 'Unknown'), model.get('uid', 'N/A'))
+    logger.debug("Model online status: %s", is_online)
     
     status_indicator = '●' if is_online else '○'
     status_text = 'Online' if is_online else 'Offline'
-    logger.info("Status indicator: %s, status text: %s", status_indicator, status_text)
+    logger.debug("Status indicator: %s, status text: %s", status_indicator, status_text)
 
     with container:
         logger.debug("Creating model card container")
@@ -127,4 +127,4 @@ def render_model_card(
                             ).classes('bg-zinc-600 text-white')
                             logger.debug("Connect button added (model is offline)")
     
-    logger.info("Model card rendered successfully")
+    logger.debug("Model card rendered successfully")

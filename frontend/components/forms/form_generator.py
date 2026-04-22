@@ -128,7 +128,7 @@ class FormGenerator:
         - The form includes a Cancel button that clears the container
         - Input fields are created asynchronously to support file browsing
         """
-        logger.info("Generating dynamic form from TaskSchema")
+        logger.debug("Generating dynamic form from TaskSchema")
         logger.debug("Schema type: %s, initial_values provided: %s", type(schema).__name__, initial_values is not None)
         
         # Convert dict to TaskSchema if needed
@@ -176,7 +176,7 @@ class FormGenerator:
 
                 # Generate input fields
                 if task_schema.inputs:
-                    logger.info("Generating %d input fields", len(task_schema.inputs))
+                    logger.debug("Generating %d input fields", len(task_schema.inputs))
                     ui.label('Inputs').classes(section_classes)
                     inputs_list = list(task_schema.inputs)
                     for idx, input_schema in enumerate(inputs_list):
@@ -199,7 +199,7 @@ class FormGenerator:
 
                 # Generate parameter fields
                 if task_schema.parameters:
-                    logger.info("Generating %d parameter fields", len(task_schema.parameters))
+                    logger.debug("Generating %d parameter fields", len(task_schema.parameters))
                     ui.label('Parameters').classes(section_classes)
                     for param_schema in task_schema.parameters:
                         await create_parameter_field(
@@ -210,7 +210,7 @@ class FormGenerator:
                     logger.debug("Parameter fields generated")
 
                 # Submit button (extracted to component)
-                logger.info("Creating form action buttons (via component)")
+                logger.debug("Creating form action buttons (via component)")
                 try:
                     from frontend.components.forms.form_actions import render_form_actions
 
@@ -329,4 +329,4 @@ class FormGenerator:
                             )) if onSubmit else None
                         ).classes('rb-brand-primary text-white rounded-xl')
 
-                logger.info("Form generation completed successfully")
+                logger.debug("Form generation completed successfully")

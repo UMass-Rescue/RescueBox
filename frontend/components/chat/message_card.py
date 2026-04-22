@@ -32,18 +32,11 @@ def render_message_card(container: ui.element, role: str, content: str, timestam
                 else Design.CHAT_ASSISTANT_BUBBLE
             )
 
-            # Make long or help-style assistant messages wider so help text and
-            # multi-line markdown can use more horizontal space.
-            card_width_class = 'max-w-sm'
-            if role != 'user':
-                # If content looks like generated help/markdown (starts with "###"),
-                # is long, or has line breaks (e.g. multi-step pipeline list), allow wider max width.
-                if (
-                    (isinstance(content, str) and content.strip().startswith('###'))
-                    or (isinstance(content, str) and len(content) > 300)
-                    or (isinstance(content, str) and '\n' in content)
-                ):
-                    card_width_class = 'max-w-3xl'
+            card_width_class = (
+                Design.CHAT_ASSISTANT_BUBBLE_WIDTH
+                if role != "user"
+                else "max-w-sm"
+            )
 
             with ui.row().classes(f"w-full {alignment}"):
                 with ui.card().classes(f"{bubble} {card_width_class}"):

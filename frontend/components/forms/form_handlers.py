@@ -188,7 +188,7 @@ async def handle_form_submit(
     - Form data is collected from all widgets in form_widgets
     - Validation errors are shown as UI notifications
     """
-    logger.info("Handling form submission")
+    logger.debug("Handling form submission")
     
     try:
         # Validate form
@@ -212,7 +212,7 @@ async def handle_form_submit(
         # Call submit callback
         if onSubmit:
             try:
-                logger.info("Calling onSubmit callback")
+                logger.debug("Calling onSubmit callback")
                 result = await onSubmit(form_data)
                 # Only explicit True means success (disable Submit Job). Callbacks must
                 # ``return await submit_form(...)`` so False (e.g. case notes cancelled) is not

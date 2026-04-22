@@ -32,7 +32,7 @@ def convert_arguments_to_initial_values(arguments: Dict[str, Any], task_schema: 
     Convert tool call arguments to initial_values format for form pre-filling.
     Extracted utility from core to keep core thin.
     """
-    logger.info("Converting arguments to initial values for endpoint: %s", endpoint)
+    logger.debug("Converting arguments to initial values for endpoint: %s", endpoint)
     logger.debug("Input arguments keys: %s", list(arguments.keys()))
 
     normalized_args = normalize_arguments(arguments, endpoint)
@@ -58,7 +58,7 @@ def convert_arguments_to_initial_values(arguments: Dict[str, Any], task_schema: 
     if isinstance(ff, dict) and ff.get("files"):
         initial_values["inputs"]["file_filter"] = ff
 
-    logger.info("Conversion complete: %d inputs, %d parameters",
+    logger.debug("Conversion complete: %d inputs, %d parameters",
                len(initial_values['inputs']), len(initial_values['parameters']))
     return initial_values
 

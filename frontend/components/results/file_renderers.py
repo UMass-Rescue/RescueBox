@@ -47,8 +47,10 @@ def _is_facematch_find_batch(files) -> bool:
 def _render_facematch_find_batch(container, files) -> None:
     """Show each gallery hit next to the query photo (backend sets ``query_image_path`` metadata)."""
     with container:
-        with ui.card().classes("bg-indigo-50 border border-indigo-300 p-4"):
-            with ui.column().classes("gap-3 w-full"):
+        with ui.card().classes(
+            "w-full min-w-0 max-w-full p-4 bg-transparent border-0 shadow-none"
+        ).props("flat"):
+            with ui.column().classes("gap-3 w-full min-w-0"):
                 ui.label(
                     f"Finc face ({len(files)}) — left: find photo; right: match from your database"
                 ).classes("font-bold text-sm")
@@ -166,14 +168,19 @@ def render_batch_file(container, response):
     has_metadata = any(f.metadata for f in files)
 
     with container:
-        with ui.card().classes('bg-indigo-50 border border-indigo-300 p-4'):
-            with ui.column().classes('gap-2'):
-                ui.label(f'Batch File Result ({len(files)} files)').classes('font-bold').classes('text-[#505759]')
+        with ui.card().classes(
+            'w-full min-w-0 max-w-full p-4 bg-transparent border-0 shadow-none'
+        ).props('flat'):
+            body_col = ui.column().classes('gap-2 w-full min-w-0')
+            with body_col:
+                ui.label(f'Batch File Result ({len(files)} files)').classes('font-bold').classes(
+                    'text-[#505759]'
+                )
 
-                if has_metadata:
-                    _render_batch_file_with_metadata(container, files)
-                else:
-                    _render_batch_file_grid(container, files)
+            if has_metadata:
+                _render_batch_file_with_metadata(body_col, files)
+            else:
+                _render_batch_file_grid(body_col, files)
 
     logger.debug("Batch file result rendered successfully")
 
@@ -231,11 +238,11 @@ def _render_batch_file_with_metadata(container, files):
     except Exception:
         # Fallback to inline creation if component fails
         with container:
-            table_card = ui.card().classes('bg-white p-4')
+            table_card = ui.card().classes('bg-white p-4 w-full min-w-0 max-w-full')
             with table_card:
-                table_column = ui.column()
+                table_wrap = ui.column().classes('w-full min-w-0 overflow-x-auto')
                 create_sortable_table(
-                    table_column,
+                    table_wrap,
                     columns,
                     rows,
                     row_key='path',

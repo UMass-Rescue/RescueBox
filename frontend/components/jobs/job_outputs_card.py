@@ -33,7 +33,7 @@ async def render_job_outputs_card(container, api_client, job):
         else None
     )
 
-    logger.info("Rendering job outputs for job: %s", job_uid)
+    logger.debug("Rendering job outputs for job: %s", job_uid)
 
     with container:
         if not response:
@@ -117,7 +117,7 @@ async def render_job_outputs_card(container, api_client, job):
             except Exception as e:
                 logger.debug("Could not render inputs summary: %s", str(e))
 
-            results_container = ui.column().classes("w-full gap-4")
+            results_container = ui.column().classes("w-full min-w-0 max-w-full gap-4")
             preview_dump = augment_response_model_dump_for_image_summary(
                 response_body.model_dump(), job_fields
             )

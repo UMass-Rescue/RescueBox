@@ -84,7 +84,7 @@ class ChatUIBuilder:
         Returns:
             tuple: (chat_container, input_field, status_label, input_area, below_input_area)
         """
-        self.logger.info("Building chat UI with proper separation")
+        self.logger.debug("Building chat UI with proper separation")
 
         # Create UI state management
         ui_state = self._create_ui_state()
@@ -197,7 +197,7 @@ class ChatUIBuilder:
             await switch_mode('models')
             # Diagnostic log: record which containers will be used to render the picker/form
             try:
-                logger.info("handle_models_click invoked: chat_container=%r input_area=%r global_chat=%r",
+                logger.debug("handle_models_click invoked: chat_container=%r input_area=%r global_chat=%r",
                             chat_container, input_area, getattr(self, 'chat_container', None))
             except Exception:
                 pass
@@ -216,7 +216,7 @@ class ChatUIBuilder:
                 # Render forms into the chat container so the selection message and form
                 # appear inline in the conversation (after assistant/tool-selection).
                 try:
-                    logger.info("ChatUIBuilder loading form: target_chat_container=%r endpoint=%s args=%s", chat_container, endpoint, args)
+                    logger.debug("ChatUIBuilder loading form: target_chat_container=%r endpoint=%s args=%s", chat_container, endpoint, args)
                 except Exception:
                     pass
                 def _on_cancel():

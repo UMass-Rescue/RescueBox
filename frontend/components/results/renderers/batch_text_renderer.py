@@ -59,7 +59,7 @@ def render_batch_text(container, response):
                     ).classes('text-sm text-zinc-600')
         return
 
-    logger.info("Rendering batch text result with %d items", len(response.texts))
+    logger.debug("Rendering batch text result with %d items", len(response.texts))
     texts = response.texts
 
     try:

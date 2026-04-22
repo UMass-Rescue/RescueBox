@@ -131,8 +131,8 @@ async def _run() -> int:
     input_dir = os.environ.get("AGE_GENDER_INPUT_DIR", DEFAULT_INPUT)
     out_parent = os.environ.get("PIPELINE_OUTPUT_PARENT", DEFAULT_OUTPUT_PARENT)
     criteria = os.environ.get("PIPELINE_METADATA_FILTER", DEFAULT_METADATA_FILTER)
-    model = os.environ.get("IMAGE_SUMMARY_MODEL", "gemma3:1b")
-    n = int(os.environ.get("CONCURRENT_USERS", "15"))
+    model = os.environ.get("IMAGE_SUMMARY_MODEL", "moondream:latest")
+    n = int(os.environ.get("CONCURRENT_USERS", "40"))
     timeout = float(os.environ.get("PIPELINE_TIMEOUT", "600"))
     serial = os.environ.get("E2E_SERIAL", "").strip().lower() in ("1", "true", "yes")
 

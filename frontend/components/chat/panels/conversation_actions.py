@@ -23,7 +23,7 @@ async def view_conversation(conversation_id: str):
     """
     from .conversation_renderer import render_message_in_dialog
 
-    logger.info("Viewing conversation: %s", conversation_id)
+    logger.debug("Viewing conversation: %s", conversation_id)
 
     chat_history = get_chat_history_db()
     conversation = await chat_history.get_conversation(conversation_id)
@@ -63,15 +63,15 @@ async def load_conversation(conversation_id: str):
     Args:
         conversation_id: Conversation unique identifier
     """
-    logger.info("Loading conversation: %s (using URL param approach)", conversation_id)
+    logger.debug("Loading conversation: %s (using URL param approach)", conversation_id)
 
     try:
         # Navigate with URL param so page load reads it and loads the conversation.
         # This works even when already on /chatbot (forces reload with param).
         target = f'/chatbot?load_conversation={conversation_id}'
-        logger.info("Navigating to %s to load conversation (full reload with param)", target)
+        logger.debug("Navigating to %s to load conversation (full reload with param)", target)
         ui.navigate.to(target)
-        logger.info("load_conversation: navigation triggered for %s", conversation_id)
+        logger.debug("load_conversation: navigation triggered for %s", conversation_id)
     except RuntimeError as ui_error:
         if "slot cannot be determined" in str(ui_error):
             logger.debug("UI navigation skipped in test environment: %s", ui_error)
@@ -95,7 +95,7 @@ async def rerun_tool_call(message_id: str):
     Args:
         message_id: Message ID of the tool call to rerun
     """
-    logger.info("Rerunning tool call: %s", message_id)
+    logger.debug("Rerunning tool call: %s", message_id)
 
     try:
         from frontend.database import get_chat_history_db

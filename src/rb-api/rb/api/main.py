@@ -80,7 +80,14 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()  # For Windows support
     # for pyinstaller exe
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False, log_config=None)
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",
+            port=8000,
+            reload=False,
+            log_config=None,
+            workers=1,
+        )
     else:
         # log_config=None: do not let Uvicorn apply its default dictConfig (would run
         # before the app import and can leave application loggers disconnected from
@@ -91,4 +98,5 @@ if __name__ == "__main__":
             port=8000,
             reload=False,
             log_config=None,
+            workers=1,
         )

@@ -69,4 +69,4 @@ def log_page_action(page_name: str, action: str, details: Optional[str] = None):
     if details:
         message += f" - {details}"
 
-    logger.info(message)
+    logger.debug(message)

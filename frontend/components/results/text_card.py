@@ -13,11 +13,12 @@ def render_text_card(container: ui.element, text: str, title: str = "Text Result
             with ui.card().classes(
                 'rb-job-text-result-card w-full rounded-xl shadow-lg overflow-hidden'
             ):
-                # Header strip #505759 (see ui_readability_css .rb-job-text-result-header)
                 with ui.row().classes('rb-job-text-result-header w-full p-4 items-center'):
-                    ui.label('Text Result').classes('text-lg font-bold')
+                    ui.label('Text Result').classes('text-lg font-bold text-zinc-900')
                     if title and title != 'Text Result':
-                        ui.label(f'• {title}').classes('ml-2 opacity-90 text-sm font-medium')
+                        ui.label(f'• {title}').classes(
+                            'ml-2 opacity-90 text-sm font-medium text-zinc-700'
+                        )
 
                 # Content with scroll area
                 with ui.scroll_area().classes('w-full h-96'):

@@ -62,7 +62,9 @@ async def demo_page(walkthrough: Optional[str] = None):
                 label = _BACK_TO_GUIDE_LABEL.get(preset)
                 render_demo_files_explorer(ui.column().classes('w-full min-w-0'), walkthrough=preset)
                 if guide and label:
-                    ui.link(label, guide).classes('text-indigo-600 hover:underline text-sm mb-4 inline-block')
+                    ui.link(label, guide).classes(
+                        'text-[#a2aaad] hover:text-[#8a9194] hover:underline text-sm mb-4 inline-block'
+                    )
                 
         else:
             ui.label('RescueBox Demo').classes('text-3xl font-bold mb-4')
@@ -105,6 +107,8 @@ async def demo_page(walkthrough: Optional[str] = None):
 
                 render_demo_files_explorer(ui.column().classes('w-full min-w-0'), walkthrough=preset)
 
-            ui.link('Rescuebox Home', NAV_LINKS['home']).classes('mt-8 text-indigo-600 hover:underline')
+            ui.link('Rescuebox Home', NAV_LINKS['home']).classes(
+                'mt-8 text-[#a2aaad] hover:text-[#8a9194] hover:underline'
+            )
 
     schedule_hash_fragment_scroll()

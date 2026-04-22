@@ -49,7 +49,7 @@ class MessageFlowCoordinator:
         # Store state manager for later use
         self._state_manager = state_manager
 
-        self.logger.info("MessageFlowCoordinator initialized")
+        self.logger.debug("MessageFlowCoordinator initialized")
 
     def set_message_handler(self, message_handler):
         """Set the message handler for the message processor."""
@@ -86,7 +86,7 @@ class MessageFlowCoordinator:
             core: Optional ChatbotCore instance for result processing
         """
         try:
-            self.logger.info("Starting user message processing flow")
+            self.logger.debug("Starting user message processing flow")
 
             # Step 1: Process the message through the message handler
             result = await self.message_processor.send_message(
@@ -170,7 +170,7 @@ class MessageFlowCoordinator:
             core: Optional ChatbotCore instance for result processing
         """
         result_type = result.get('type', 'unknown')
-        self.logger.info("Routing result type: %s", result_type)
+        self.logger.debug("Routing result type: %s", result_type)
 
         # Create callbacks for result processor
         callbacks = self._create_result_callbacks(
@@ -186,12 +186,12 @@ class MessageFlowCoordinator:
         container_for_processing = coordinator_chat_container or input_field
         # Detailed diagnostic logging to trace which container is selected for rendering
         try:
-            self.logger.info(
+            self.logger.debug(
                 "Coordinator selected render container: coordinator_chat_container=%r input_field=%r chosen=%r",
                 coordinator_chat_container, input_field, container_for_processing
             )
             # Log a few attributes that help identify input-area vs chat-area
-            self.logger.info(
+            self.logger.debug(
                 "Container attrs: has_input_field=%s has_client=%s",
                 bool(getattr(container_for_processing, 'input_field', None)),
                 bool(getattr(container_for_processing, 'client', None))
@@ -231,15 +231,15 @@ class MessageFlowCoordinator:
             Dict of callback functions
         """
         def add_assistant_message_func(message, scroll_after=True):
-            logger.info("Coordinator callback called with message: role=%s, content='%s'", message.role, message.content[:50])
+            logger.debug("Coordinator callback called with message: role=%s, content='%s'", message.role, message.content[:50])
             try:
                 add_message_func(message, scroll_after)
-                logger.info("Coordinator callback completed successfully")
+                logger.debug("Coordinator callback completed successfully")
             except Exception as e:
                 logger.error("Error in coordinator callback: %s", str(e))
 
         async def load_and_show_form_func(endpoint: str, arguments: dict, remaining_calls=None):
-            self.logger.info("Loading form for endpoint: %s", endpoint)
+            self.logger.debug("Loading form for endpoint: %s", endpoint)
             if self.form_loader:
                 await self.form_loader(endpoint, arguments, remaining_calls)
             else:
@@ -247,7 +247,7 @@ class MessageFlowCoordinator:
 
         async def show_results_func(response_body, job_id=None):
             # This would integrate with result display
-            self.logger.info("Showing results for job: %s", job_id)
+            self.logger.debug("Showing results for job: %s", job_id)
             # Implementation would delegate to result display logic
 
         return {
@@ -292,4 +292,4 @@ class MessageFlowCoordinator:
     async def reset_conversation(self):
         """Reset the conversation state."""
         self.state_manager.reset_conversation()
-        self.logger.info("Conversation reset through coordinator")
+        self.logger.debug("Conversation reset through coordinator")

@@ -1,22 +1,28 @@
 # Style and theme (RescueBox frontend)
 
-This document describes the **strict indigo + zinc** look used across NiceGUI screens. The machine-readable contract is **`frontend/design.json`** (currently **v2.2.0**); the Python source of truth for shared class strings is **`frontend/design_tokens.py`** (`Design`).
+This document describes how **color, typography, and surfaces** are applied across NiceGUI screens **as implemented today**. The machine-readable contract is **`frontend/design.json`** (currently **v3.0**); the Python source of truth for shared class strings is **`frontend/design_tokens.py`** (`Design`).
+
+The UI is **not** a single “indigo-only” theme: it combines **UMass Maroon** for primary actions, **UMass Medium Gray (#505759)** for key chrome (navbar, some borders and plugin rows), **zinc** for neutrals, and **indigo** for several **legacy / secondary accents** (links, focus rings, some panels). That mix matches `design.json` `meta.notes` and `design_tokens.py`.
 
 ---
 
 ## Approach
 
 - **Tailwind** utility classes on NiceGUI elements (`.classes('...')`) — layout, spacing, color, typography.
-- **Prefer** importing **`Design`** from `frontend.design_tokens` for nav, primary buttons, chat bubbles, inputs, and tool cards so chrome stays consistent.
-- **Neutrals:** use the **zinc** scale for text, borders, and surfaces in Python UI (`text-zinc-*`, `bg-zinc-*`, `border-zinc-*`, `ring-zinc-*`). Do **not** introduce new **`gray-*`** utilities in frontend Python — they were migrated to zinc for a single neutral family.
-- **Brand / primary actions:** **indigo-600** with **indigo-700** on hover (`Design.BTN_PRIMARY`, `BTN_PRIMARY_TIGHT`, etc.).
-- **Elevated surfaces:** **indigo-50** with **indigo-100** / **indigo-200** borders where appropriate (navbar-adjacent panels, tool-call cards, jobs table header, plugin/analysis pickers, “job running” chips).
-- **Panel headers (gradients):** **indigo-500 → indigo-700** (or **600 → 800**) for file browser, text search, help, markdown cards — see `design.json` → `gradients.panel_headers`.
-- **Markdown in-app:** Tailwind **`prose-zinc`** for guides and chat-adjacent markdown.
+- **Prefer** importing **`Design`** from `frontend.design_tokens` for nav, primary buttons, chat bubbles, inputs, tool cards, and dialogs where tokens already exist.
+- **Neutrals:** use the **zinc** scale for text, borders, and surfaces in Python UI (`text-zinc-*`, `bg-zinc-*`, `border-zinc-*`, `ring-zinc-*`). Do **not** introduce new **`gray-*`** utilities in frontend Python — use zinc for a single neutral family (`design.json` → `brand.neutrals`).
+- **Brand / primary actions (buttons):** **UMass Maroon** `#881c1c` with darker hover `#6a1616` via **`Design.BTN_PRIMARY`**, **`BTN_PRIMARY_COMPACT`**, **`BTN_PRIMARY_TIGHT`** (classes **`rb-brand-primary`**; Quasar `--q-primary` at `:root` is aligned in **`frontend/utils/ui_readability_css.py`**). Do **not** describe primary CTAs as indigo — that is outdated.
+- **Navigation bar:** **Medium Gray #505759** background on **`.q-header.rb-brand-nav`** (`Design.NAV_HEADER`); white nav links (`Design.NAV_LINK`). Header scope sets **`--q-primary`** to `#505759` so Quasar controls in the bar match the bar (see `ui_readability_css.py`).
+- **Secondary solid actions (Browse, Cancel, etc.):** **`Design.BTN_MEDIUM_GRAY`** → **`.rb-btn-medium-gray`** (`#505759` fill, documented in `ui_readability_css.py`).
+- **Accent / links / focus (still indigo in tokens):** **`Design.LINK`** uses **`text-indigo-600`**; **`Design.INPUT_MODERN`** / **`INPUT_OUTLINED`** use **indigo** focus rings; **`Design.CHAT_SYSTEM_TOOL`** uses a **left border indigo** strip; **`Design.STATUS_PROCESSING`** / **`SPINNER_PROCESSING`** use **`text-indigo-600`**. Many pages also use **inline indigo** for links and panels. **`design.json`** explicitly notes that **links, pickers, and many surfaces still use indigo + zinc** until a future consolidation.
+- **Brand-aligned borders without indigo:** some surfaces use **`border-[#505759]`** (e.g. plugin menu rows `CHATBOT_PLUGIN_MENU_ROW`, image-summary style shells). That is intentional **Medium Gray** chrome, not a mistake vs zinc borders elsewhere.
+- **Elevated surfaces:** **`design.json`** still calls out **`indigo-50` / `indigo-100`** for examples such as jobs table header and tool-call context; **`Design.CARD_TOOL_CALL`** / **`CARD_TOOL_RESULT`** use **zinc-50** and **zinc-200** borders (check call sites for any extra indigo wrappers).
+- **Panel headers (gradients):** **`design.json` → `gradients.panel_headers`** — **indigo-500 → indigo-700** (or 600 → 800) for some file browser / text search style headers; Help-style flows may use **zinc** panel shell + **`prose-zinc`**.
+- **Markdown in-app:** Tailwind **`prose-zinc`** for guides and chat-adjacent markdown where applied.
 
 ### Semantic colors (keep)
 
-These are **not** replaced by indigo; they carry meaning:
+These carry meaning and are **not** replaced by brand maroon or #505759:
 
 | Role | Typical classes | Where |
 |------|-----------------|--------|
@@ -24,6 +30,10 @@ These are **not** replaced by indigo; they carry meaning:
 | Error | `red-*` | Errors, destructive emphasis |
 | Warning | `yellow-*` / Quasar | Warnings |
 | Info | Quasar `type='info'` | Toasts |
+
+### Quasar + global CSS (must read with tokens)
+
+**`frontend/utils/ui_readability_css.py`** injects global rules: e.g. **`:root`** `--q-primary` for **maroon**, **`.q-header.rb-brand-nav`** for navbar **#505759**, **`.rb-brand-primary`** and **`.rb-btn-medium-gray`** for button chrome, notification overrides, and other app-wide fixes. **Default `ui.button` / Quasar `color='primary'`** are affected by these layers — when debugging colors, inspect **CSS + Tailwind + `Design`**, not Tailwind alone.
 
 ---
 
@@ -37,7 +47,7 @@ These are **not** replaced by indigo; they carry meaning:
 ## Where to change look
 
 - **Tokens & contract:** `frontend/design.json`, `frontend/design_tokens.py`.
-- **Global readability / notification sizing:** `frontend/utils/ui_readability_css.py`.
+- **Global readability / Quasar overrides / notification sizing:** `frontend/utils/ui_readability_css.py`.
 - **App bootstrap / root styling hooks:** `frontend/main.py`.
 - **Shared chrome:** `frontend/components/shared/navbar.py`, chat under `frontend/components/chat/`.
 - **Forms:** `frontend/components/forms/form_generator.py` and builders under `forms/builders/`, `forms/fields/`.
@@ -46,20 +56,28 @@ These are **not** replaced by indigo; they carry meaning:
 
 ## `Design` class (canonical imports)
 
-Files that **import `Design` from `frontend.design_tokens`** (use these as examples when adding new UI):
+Files that **import `Design` from `frontend.design_tokens`** (use as examples; list may grow — verify with repo search):
 
 | File | Typical use |
 |------|-------------|
-| `frontend/main.py` | Root / global button or layout classes |
+| `frontend/main.py` | Root / global layout / `Design` usage |
 | `frontend/components/shared/navbar.py` | `NAV_HEADER`, `NAV_LINK`, `NAV_VERSION_MUTED` |
-| `frontend/components/chat/chat_header.py` | Chat header styling |
+| `frontend/components/chat/chat_header.py` | Chat header (may use local classes; check file) |
 | `frontend/components/chat/input_area.py` | `INPUT_MODERN` |
 | `frontend/components/chat/message_card.py` | `CHAT_*_BUBBLE`, tool styling |
+| `frontend/components/chat/help_dialog.py`, `history_dialog.py`, `conversation_view_dialog.py` | Dialog chrome |
 | `frontend/pages/chatbot/utils/ui_styling.py` | Tool call/result cards, form field classes |
-| `frontend/pages/chatbot/chatbot_message.py` | Message-level `Design` usage |
+| `frontend/pages/chatbot/utils/chat_ui_builder.py` | Chat layout / `Design` |
+| `frontend/pages/chatbot/chatbot_message.py` | Message-level `Design` (import on code path) |
 | `frontend/components/jobs/job_row.py` | `BTN_PRIMARY_TIGHT` for row actions |
+| `frontend/components/forms/*`, `frontend/components/errors/validation_dialog.py` | Forms, validation UI |
+| `frontend/components/logs/log_viewer.py`, `frontend/pages/logs/logs.py` | Logs UI |
+| `frontend/utils/file_browser.py`, `frontend/utils/error_handling.py` | File browser, errors |
+| `frontend/components/results/results_utils.py`, `image_bbox_preview.py`, `image_summary_results_view.py`, `text_search_results_view.py` | Results / previews |
+| `frontend/components/pickers/*`, `frontend/pages/chatbot/pickers.py` | Pickers |
+| `frontend/components/jobs/case_export_button.py` | Case export |
 
-Elsewhere, many components use **inline Tailwind** strings that **mirror** `Design` (indigo + zinc). When touching a file, consider switching repeated patterns to `Design.*`.
+Elsewhere, many components use **inline Tailwind** strings that **mirror** parts of `Design` or add **indigo / #505759 / zinc** combinations. When touching a file, consider switching repeated patterns to **`Design.*`** for easier refactors.
 
 ---
 
@@ -68,39 +86,30 @@ Elsewhere, many components use **inline Tailwind** strings that **mirror** `Desi
 | Do | Don’t |
 |----|--------|
 | Use **zinc** for neutrals | Introduce **`gray-*`** in new Python UI code |
-| Use **indigo** for primary buttons, links, picker chrome, result **summary** cards | Use **violet / purple / slate** for app chrome (legacy passes removed these) |
-| Use **`Design`** for nav, chat, and repeated buttons | Duplicate long indigo button strings in many files without consolidating |
-| Keep **green** for tool **result** panels and true success semantics | Use **green-600** as a generic “primary” button (use indigo) |
+| Use **`Design.BTN_PRIMARY`** (maroon / `rb-brand-primary`) for **primary** actions | Use **indigo** for primary CTA buttons (outdated; maroon is the brand primary) |
+| Use **`Design.BTN_MEDIUM_GRAY`** for Browse / Cancel-style **secondary solid** actions | Confuse **#505759** chrome with maroon primary — different roles |
+| Use **`Design.NAV_*`** for navbar | Assume **`color=None`** on `ui.button` inherits nav colors without checking Quasar + `ui_readability_css.py` |
+| Keep **indigo** where tokens/docs still specify it (links, some focus rings, some panels) **or** migrate deliberately | Introduce **violet / purple / slate** for new app chrome |
+| Keep **green** for tool **result** semantics and completed steps | Use **green** as a generic substitute for **maroon** primary buttons |
+| Read **`design.json` + `ui_readability_css.py`** when changing “brand” colors | Update only `design_tokens.py` and assume Quasar picks it up everywhere |
 
 ---
 
-## TODO: migrate inline Tailwind to `Design`
+## TODO: migrate inline Tailwind to `Design` (and optional accent unification)
 
-Most UI still passes **long Tailwind strings** to `.classes('...')` instead of **`Design`** from `frontend/design_tokens.py`. Visually the app follows indigo + zinc; the gap is **duplication** and **harder global refactors** until more code uses tokens.
-
-**Current state:** only these files import `Design` (everything else with `.classes(` is inline unless it only consumes helpers from `ui_styling.py`):
-
-- `frontend/main.py`
-- `frontend/components/shared/navbar.py`
-- `frontend/components/chat/chat_header.py`
-- `frontend/components/chat/input_area.py`
-- `frontend/components/chat/message_card.py`
-- `frontend/components/jobs/job_row.py`
-- `frontend/pages/chatbot/utils/ui_styling.py`
-- `frontend/pages/chatbot/chatbot_message.py` (import inside a code path)
+Most UI still passes **long Tailwind strings** to `.classes('...')` instead of **`Design`**. The gap is **duplication** and **harder refactors**. A **separate**, larger effort would be to **reduce indigo** in favor of maroon / #505759 / zinc only — **`design.json`** already notes indigo remains in many places; treat that as **planned**, not **bug**.
 
 **TODO (incremental):**
 
-- [ ] When editing a module, replace repeated primary buttons / inputs / cards with `Design.BTN_*`, `Design.INPUT_*`, `Design.CARD_*`, etc., instead of copying new indigo/zinc strings.
-- [ ] **High-churn / large files** good candidates: `frontend/utils/file_browser.py`, jobs pages under `frontend/pages/jobs/`, results under `frontend/components/results/`, `frontend/components/forms/form_generator.py`, demo pages under `frontend/pages/demo*.py`.
-- [ ] Add or extend thin wrappers in `ui_styling.py` (or small module-level constants next to `Design`) where chat-adjacent patterns repeat but should not live in `design_tokens.py` itself.
-- [ ] After meaningful migration, re-run the **`zinc-`** file list in the appendix and update counts if needed.
+- [ ] When editing a module, replace repeated primary buttons / inputs / cards with `Design.BTN_*`, `Design.INPUT_*`, `Design.CARD_*`, etc.
+- [ ] **High-churn / large files** (good candidates): `frontend/utils/file_browser.py`, jobs under `frontend/pages/jobs/`, results under `frontend/components/results/`, `frontend/components/forms/form_generator.py`, demo pages under `frontend/pages/demo*.py`.
+- [ ] After meaningful migration, re-run the **`zinc-`** inventory script below and refresh the appendix counts and list.
 
 ---
 
 ## Files inventory (styling adoption)
 
-The indigo/zinc alignment touched modules that set Tailwind classes (bulk **gray → zinc**, then **slate → zinc**, **violet/purple → indigo**, primary **greens → indigo** where the control was a brand action). **Every path** under `frontend/` that currently contains the substring **`zinc-`** is listed exhaustively below (**78** Python files as of the last doc update). Regenerate with:
+**`zinc-` in Python:** Regenerate the list and count with:
 
 ```bash
 python3 -c "
@@ -114,39 +123,39 @@ for dirpath,_,files in os.walk(root):
             try:
                 with open(p,'rb') as fh:
                     if b'zinc-' in fh.read():
-                        paths.append(p)
+                        paths.append(p.replace(os.sep,'/'))
             except OSError:
                 pass
+print(len(paths))
 for p in sorted(paths):
-    print(p.replace(os.sep,'/'))
+    print(p)
 "
 ```
 
-### Appendix: exhaustive list — `frontend/**/*.py` containing `zinc-` (78 files)
+### Appendix: `frontend/**/*.py` containing `zinc-` (**78** files, last regenerated with the script above)
 
+- `frontend/chatbot/forms.py`
 - `frontend/components/about/license_documents.py`
 - `frontend/components/base_component.py`
-- `frontend/components/chat/chat_header.py`
 - `frontend/components/chat/chat_window.py`
 - `frontend/components/chat/conversation_card.py`
-- `frontend/components/chat/conversation_view_dialog.py`
 - `frontend/components/chat/help_dialog.py`
 - `frontend/components/chat/input_area.py`
 - `frontend/components/chat/message_card.py`
-- `frontend/components/chat/panels/conversation_actions.py`
 - `frontend/components/chat/panels/conversation_renderer.py`
 - `frontend/components/chat/panels/history_panel.py`
 - `frontend/components/chat/tool_call_card.py`
+- `frontend/components/chat/tool_result_card.py`
 - `frontend/components/component_utils.py`
 - `frontend/components/demo/demo_files_explorer.py`
 - `frontend/components/demo/guided_markdown.py`
 - `frontend/components/errors/error_boundary.py`
 - `frontend/components/errors/error_display.py`
+- `frontend/components/file_browser/header.py`
 - `frontend/components/forms/builders/input_field_builder.py`
 - `frontend/components/forms/builders/parameter_field_builder.py`
 - `frontend/components/forms/case_notes_dialog.py`
 - `frontend/components/forms/fields/input_widgets.py`
-- `frontend/components/forms/form_actions.py`
 - `frontend/components/forms/form_generator.py`
 - `frontend/components/jobs/compact_inputs_summary.py`
 - `frontend/components/jobs/job_details_panel.py`
@@ -155,8 +164,10 @@ for p in sorted(paths):
 - `frontend/components/jobs/readonly_form.py`
 - `frontend/components/logs/log_viewer.py`
 - `frontend/components/models/model_card.py`
+- `frontend/components/models/model_info_card.py`
 - `frontend/components/pickers/analysis_picker_dialog.py`
 - `frontend/components/pickers/tool_picker_dialog.py`
+- `frontend/components/results/batch_text_item.py`
 - `frontend/components/results/directory_card.py`
 - `frontend/components/results/directory_renderers.py`
 - `frontend/components/results/file_card.py`
@@ -194,7 +205,6 @@ for p in sorted(paths):
 - `frontend/pages/jobs/components/job_forms.py`
 - `frontend/pages/jobs/components/job_metadata.py`
 - `frontend/pages/jobs/job_details.py`
-- `frontend/pages/jobs/jobs.py`
 - `frontend/pages/logs/logs.py`
 - `frontend/tests/unit/test_file_browser.py`
 - `frontend/tests/unit/test_stepper.py`
@@ -215,7 +225,12 @@ rg 'gray-[0-9]' frontend --glob '*.py'
 
 # Find straggler slate/violet/purple chrome (should be none in normal paths)
 rg 'slate-[0-9]|border-violet|from-violet|purple-[0-9]{3}' frontend --glob '*.py'
+
+# Files that import Design (maintainers: refresh list periodically)
+rg 'from frontend\.design_tokens import Design' frontend --glob '*.py'
 ```
+
+*(If `rg` is not installed, use `grep -R` equivalents.)*
 
 ---
 

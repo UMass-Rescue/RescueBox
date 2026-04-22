@@ -6,45 +6,23 @@ This guide walks a **demo user** through other interesting plugins like **Age & 
 
 ---
 
-## Part A — run using Menu for Plugins
+## Part A — run using Chat for Plugins
 
-Use the **plugins menu** to run the desired operation.
+Use the **chat mode** to run the desired operation.
 
-1. Open **[Assistant](/chatbot)** and click the  **Menu** button.
+1. Open **[Assistant](/chatbot)** and  type this prompt
 
-2. Choose **👤 Age & Gender** plugin
+**Detect age and gender of these photos**
 
-3. the **input form** appears, use **Browse** to pick the **age-gender-classifier** subfolder **inputs**
-
-- [Browse input folders](/demo?walkthrough=other#sample-inputs)
-
-4. **Submit Job**. and review esults.
-
-
----
-
----
-
-## Part B — run using  Chat Assistant prompts
-
-Run the **Describe Images plugin** job by typing a natural-language requests in the chat box (“Type your request”).
-
-1. Open **[Assistant](/chatbot)**.
-
-3. Type in request:
-
-   **describe these photos**.
-
-3. fill **Browse** fields, **input** directory path and **output** directory path, 
-choose the default model, and **Submit Job** .
+2. the **input form** appears, use **Browse** to pick the **age-gender-classifier** subfolder **inputs**
 
 - [Browse input folders](/demo?walkthrough=other#sample-inputs)
 
-4. click on **view job** results after job is completed successfully.
+3. **Submit Job**. and review esults.
 
 ---
 
-## Part C — Pipeline: detect age/gender, filter and summarize 
+## Part B — Pipeline: detect age/gender, filter and summarize 
 
 **Type this prompt** in the chat assistant **[Chat](/chatbot)**.:
 

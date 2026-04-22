@@ -177,4 +177,4 @@ def log_component_event(component_name: str, event: str, details: Optional[Dict[
     if details:
         message += f" - {details}"
 
-    logger.info(message)
+    logger.debug(message)

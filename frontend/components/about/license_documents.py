@@ -134,83 +134,83 @@ def render_license_documents_section(
     ):
         ui.label("License & Copyright").classes("text-xl font-semibold text-[#505759] mb-2")
         ui.label(
-            "RescueBox LICENSE, COPYRIGHT, and NOTICE at the top; bundled third-party notices when you choose Third party."
+            "RescueBox LICENSE, COPYRIGHT, and NOTICE, see bundled third-party notices when you choose Third party."
         ).classes("text-sm text-zinc-600 mb-4")
 
-        if not root.is_dir():
-            ui.label(f"Folder not found: {root}").classes("text-red-600")
-            return
-        if not files:
-            ui.label("No license documents found in that folder.").classes("text-zinc-600")
-            return
+    if not root.is_dir():
+        ui.label(f"Folder not found: {root}").classes("text-red-600")
+        return
+    if not files:
+        ui.label("No license documents found in that folder.").classes("text-zinc-600")
+        return
 
-        primary_entries, third_party_files = _primary_and_third_party_paths(files)
+    primary_entries, third_party_files = _primary_and_third_party_paths(files)
 
-        rel = unquote(doc) if doc else ""
-        if rel not in files:
-            if DEFAULT_LICENSE_REL in files:
-                rel = DEFAULT_LICENSE_REL
-            elif primary_entries:
-                rel = primary_entries[0][1]
-            else:
-                rel = files[0]
-
-        base = page_path.rstrip("/") or "/about"
-
-        def _navigate_to_doc(new_rel: str) -> None:
-            if new_rel in files:
-                ui.navigate.to(f"{base}?doc={quote(new_rel, safe='')}")
-
-        # Main picker: primary docs + optional "Third party".
-        # NiceGUI dict options are {value: label} (keys are selected values; values are shown in the UI).
-        main_options: dict[str, str] = {path: label for label, path in primary_entries}
-        if third_party_files:
-            main_options[_THIRD_PARTY_SENTINEL] = "Third party"
-
-        if rel in third_party_files:
-            main_value = _THIRD_PARTY_SENTINEL
+    rel = unquote(doc) if doc else ""
+    if rel not in files:
+        if DEFAULT_LICENSE_REL in files:
+            rel = DEFAULT_LICENSE_REL
+        elif primary_entries:
+            rel = primary_entries[0][1]
         else:
-            main_value = next(
-                (path for label, path in primary_entries if path == rel),
-                primary_entries[0][1] if primary_entries else rel,
+            rel = files[0]
+
+    base = page_path.rstrip("/") or "/about"
+
+    def _navigate_to_doc(new_rel: str) -> None:
+        if new_rel in files:
+            ui.navigate.to(f"{base}?doc={quote(new_rel, safe='')}")
+
+    # Main picker: primary docs + optional "Third party".
+    # NiceGUI dict options are {value: label} (keys are selected values; values are shown in the UI).
+    main_options: dict[str, str] = {path: label for label, path in primary_entries}
+    if third_party_files:
+        main_options[_THIRD_PARTY_SENTINEL] = "Third party"
+
+    if rel in third_party_files:
+        main_value = _THIRD_PARTY_SENTINEL
+    else:
+        main_value = next(
+            (path for label, path in primary_entries if path == rel),
+            primary_entries[0][1] if primary_entries else rel,
+        )
+
+    def _on_main_pick(e) -> None:
+        v = e.value
+        if not isinstance(v, str):
+            return
+        if v == _THIRD_PARTY_SENTINEL and third_party_files:
+            target = (
+                rel
+                if rel in third_party_files
+                else third_party_files[0]
             )
+            _navigate_to_doc(target)
+        elif v != _THIRD_PARTY_SENTINEL:
+            _navigate_to_doc(v)
 
-        def _on_main_pick(e) -> None:
-            v = e.value
-            if not isinstance(v, str):
-                return
-            if v == _THIRD_PARTY_SENTINEL and third_party_files:
-                target = (
-                    rel
-                    if rel in third_party_files
-                    else third_party_files[0]
-                )
-                _navigate_to_doc(target)
-            elif v != _THIRD_PARTY_SENTINEL:
-                _navigate_to_doc(v)
+    ui.select(
+        options=main_options,
+        value=main_value,
+        label="Document",
+        on_change=_on_main_pick,
+    ).classes("w-full max-w-2xl")
 
-        ui.select(
-            options=main_options,
-            value=main_value,
-            label="Document",
-            on_change=_on_main_pick,
-        ).classes("w-full max-w-2xl").props("outlined dense")
+    if third_party_files:
+        with ui.column().classes("w-full max-w-2xl mt-2") as third_wrap:
+            third_wrap.visible = rel in third_party_files
 
-        if third_party_files:
-            with ui.column().classes("w-full max-w-2xl mt-2") as third_wrap:
-                third_wrap.visible = rel in third_party_files
+            def _on_third_pick(e) -> None:
+                v = e.value
+                if isinstance(v, str) and v in third_party_files:
+                    _navigate_to_doc(v)
 
-                def _on_third_pick(e) -> None:
-                    v = e.value
-                    if isinstance(v, str) and v in third_party_files:
-                        _navigate_to_doc(v)
+            ui.select(
+                options=third_party_files,
+                value=rel if rel in third_party_files else third_party_files[0],
+                label="Third-party document",
+                on_change=_on_third_pick,
+            ).classes("w-full")
 
-                ui.select(
-                    options=third_party_files,
-                    value=rel if rel in third_party_files else third_party_files[0],
-                    label="Third-party document",
-                    on_change=_on_third_pick,
-                ).classes("w-full").props("outlined dense")
-
-        body = ui.column().classes("w-full min-w-0 mt-6")
-        render_one_file(body, root, rel, static_url=static_url)
+    body = ui.column().classes("w-full min-w-0 mt-6")
+    render_one_file(body, root, rel, static_url=static_url)

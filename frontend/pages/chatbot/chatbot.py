@@ -75,7 +75,7 @@ class ChatbotPage:
             config (Optional[ChatbotConfig]): Configuration for the chatbot.
                 If None, creates a default configuration.
         """
-        logger.info("Initializing ChatbotPage")
+        logger.debug("Initializing ChatbotPage")
 
         # Configuration and core components
         self.config = config or ChatbotConfig()
@@ -119,7 +119,7 @@ class ChatbotPage:
         Returns:
             None: UI is added directly to the current context
         """
-        logger.info("Rendering chatbot UI")
+        logger.debug("Rendering chatbot UI")
 
         # Set up event handler callbacks
         self.event_handler.set_callbacks(
@@ -162,7 +162,7 @@ class ChatbotPage:
         # Set input area in state manager (enables set_input_enabled for both field and send button)
         self.state_manager.set_input_area(self.input_area)
 
-        logger.info("Chatbot UI rendered successfully")
+        logger.debug("Chatbot UI rendered successfully")
         # Ensure a conversation exists for this session (create if missing)
         try:
             if not self.state_manager.conversation_id:
@@ -172,7 +172,7 @@ class ChatbotPage:
                 self.state_manager.set_conversation_id(conv_id)
                 # Persist to NiceGUI storage (or fallback test storage)
                 set_current_conversation_id(conv_id)
-                logger.info("Initialized new conversation on page load: %s", conv_id)
+                logger.debug("Initialized new conversation on page load: %s", conv_id)
         except Exception as e:
             logger.warning("Failed to auto-create conversation on load: %s", e)
 
@@ -199,7 +199,7 @@ class ChatbotPage:
             endpoint: Tool endpoint name
             arguments: Tool arguments dictionary
         """
-        logger.info("Re-running tool: %s with args: %s", endpoint, arguments)
+        logger.debug("Re-running tool: %s with args: %s", endpoint, arguments)
 
         try:
             # Attempt to find the input area container to render the form there
@@ -238,7 +238,7 @@ class ChatbotPage:
                 ui.timer(0.35, lambda c=_c: UIOperations.scroll_form_into_view_with_retries(client=c), once=True)
             except Exception:
                 pass
-            logger.info("Tool re-run initiated successfully: %s", endpoint)
+            logger.debug("Tool re-run initiated successfully: %s", endpoint)
         except Exception as e:
             logger.error("Error re-running tool %s: %s", endpoint, str(e))
             # Note: ui.notify removed because this runs in background task without UI context
@@ -312,7 +312,7 @@ class ChatbotPage:
                 # Ignore storage errors in test environments
                 pass
 
-            logger.info("New conversation created: %s", conv_id)
+            logger.debug("New conversation created: %s", conv_id)
             return conv_id
         except Exception as e:
             logger.error("Failed to create new conversation: %s", e)
@@ -475,7 +475,7 @@ class ChatbotPage:
         - Form submission triggers handle_form_submit callback
         - If remaining_calls is provided, form submission will continue with next call
         """
-        logger.info("Loading form for endpoint: %s", endpoint)
+        logger.debug("Loading form for endpoint: %s", endpoint)
         logger.debug("Form arguments: %s", arguments)
         if remaining_calls:
             logger.info("Multi-call sequence: %d remaining call(s) after this one", len(remaining_calls))
@@ -510,7 +510,7 @@ class ChatbotPage:
                 on_form_submit=form_submit_handler,
                 on_form_cancel=form_cancel_handler
             )
-            logger.info("Form loaded and displayed for endpoint: %s", endpoint)
+            logger.debug("Form loaded and displayed for endpoint: %s", endpoint)
         except Exception as e:
             logger.error("Failed to load form for endpoint %s: %s", endpoint, str(e))
             await self._show_error(f'Failed to load form: {str(e)}')
@@ -593,7 +593,7 @@ async def chatbot_page(
     Returns:
         None: Page is rendered directly
     """
-    logger.info("Chatbot page route accessed (load_conversation=%s, rerun=%s)", load_conversation, rerun)
+    logger.debug("Chatbot page route accessed (load_conversation=%s, rerun=%s)", load_conversation, rerun)
 
     from frontend.utils.nicegui_storage import ensure_user_id
 
@@ -645,4 +645,4 @@ async def chatbot_page(
     # that might happen shortly after the page is loaded.
     #ui.timer(1.0, chatbot.scroll_to_bottom, once=True)
 
-    logger.debug("Chatbot page route completed")
+    logger.info("receuebox frontend ready")

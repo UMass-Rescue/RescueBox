@@ -478,7 +478,7 @@ def _record_generic_file_pair_artifacts(
 
     if rows:
         insert_pipeline_io_links(user_id, root_job_id, rows)
-        logger.info(
+        logger.debug(
             "Pipeline index: recorded %d generic I/O link(s) for job %s (%s)",
             len(rows),
             root_job_id,
@@ -583,7 +583,7 @@ def record_image_summary_for_pipeline(
 
     if rows:
         insert_chunks(user_id, root_job_id, rows)
-        logger.info(
+        logger.debug(
             "Pipeline index: recorded %d image↔text row(s) for job %s",
             len(rows),
             root_job_id,

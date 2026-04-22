@@ -101,21 +101,7 @@ def render_text(container, response):
         # logger.debug("Text result rendered successfully (via text_card)")
     except Exception as e:
         logger.exception("Failed to render text via text_card: %s", e)
-        # Fallback to inline rendering
-        with container:
-            with ui.card().classes(
-                'rb-job-text-result-card w-full rounded-xl shadow-lg overflow-hidden'
-            ):
-                with ui.row().classes('rb-job-text-result-header w-full p-4 items-center'):
-                    ui.icon('article', size='1.5rem').classes('mr-3')
-                    ui.label('Text Result').classes('text-lg font-bold')
-                    if title and title != 'Text Result':
-                        ui.label(f'• {title}').classes('ml-2 opacity-90 text-sm font-medium')
-                with ui.scroll_area().classes('w-full h-96'):
-                    with ui.column().classes('w-full p-6'):
-                        ui.markdown(text).classes(
-                            'prose prose-sm max-w-none text-zinc-900 leading-relaxed'
-                        )
+        
 
 
 def _render_searchable_file_list(container, file_paths: list, title: str):

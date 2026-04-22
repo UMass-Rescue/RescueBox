@@ -1,4 +1,6 @@
-from typing import List, TypedDict
+from __future__ import annotations
+
+from typing import Any, List, TypedDict
 import hashlib
 import logging
 import os
@@ -46,6 +48,19 @@ logging.getLogger("filelock").setLevel(logging.WARNING)
 # deployments still need DB or distributed locks).
 _EMBED_LOCKS_GUARD = threading.Lock()
 _EMBED_LOCKS: dict[str, threading.Lock] = {}
+
+# Concurrent HTTP workers may call ``search_images`` at once; Hugging Face ``transformers`` lazy
+# exports can race on first import ("cannot import name 'CLIPProcessor'"). Serialize CLIP class
+# resolution and prefer submodule imports (avoid ``transformers`` package __init__ entirely).
+_CLIP_IMPORT_LOCK = threading.Lock()
+_CLIP_MODEL_CLS: type | None = None
+_CLIP_PROCESSOR_CLS: type | None = None
+
+# Serialize CLIP weight load + ``.to(device)``. Prefer eager Hub ``load_state_dict`` (CPU tensors) —
+# HF ``from_pretrained`` builds with ``meta`` placeholders on some transformers/CUDA stacks and
+# ``model.to(cuda)`` fails. Fallback to ``from_pretrained`` only if Hub has no single-file checkpoint.
+_CLIP_INSTANCE_LOCK = threading.Lock()
+_CLIP_INSTANCE_CACHE: dict[tuple[str, str], tuple[Any, Any]] = {}
 
 # Raster types accepted for CLIP embedding (top-level files under ``input_dir``).
 CLIP_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff"}
@@ -167,6 +182,115 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
+def _get_clip_classes() -> tuple[type, type]:
+    """Return ``(CLIPModel, CLIPProcessor)`` (cached, thread-safe)."""
+    global _CLIP_MODEL_CLS, _CLIP_PROCESSOR_CLS
+    if _CLIP_MODEL_CLS is not None and _CLIP_PROCESSOR_CLS is not None:
+        return _CLIP_MODEL_CLS, _CLIP_PROCESSOR_CLS
+    with _CLIP_IMPORT_LOCK:
+        if _CLIP_MODEL_CLS is not None and _CLIP_PROCESSOR_CLS is not None:
+            return _CLIP_MODEL_CLS, _CLIP_PROCESSOR_CLS
+        try:
+            from transformers.models.clip.modeling_clip import CLIPModel
+            from transformers.models.clip.processing_clip import CLIPProcessor
+        except ImportError:
+            from transformers import CLIPModel, CLIPProcessor  # type: ignore
+
+        _CLIP_MODEL_CLS = CLIPModel
+        _CLIP_PROCESSOR_CLS = CLIPProcessor
+        logger.debug("CLIP classes bound (thread-safe lazy init)")
+        return _CLIP_MODEL_CLS, _CLIP_PROCESSOR_CLS
+
+
+def _clip_model_load_pretrained_cpu(model_cls: type, model_name: str) -> Any:
+    """
+    Instantiate CLIP from config and ``load_state_dict`` from Hub files — real CPU tensors only.
+
+    Avoids HF ``from_pretrained``'s meta-device construction path so ``model.to(cuda)`` cannot hit
+    "Cannot copy out of meta tensor".
+    """
+    import torch
+    from huggingface_hub import hf_hub_download
+    from huggingface_hub.errors import EntryNotFoundError
+
+    cfg = model_cls.config_class.from_pretrained(model_name)
+    model = model_cls(cfg)
+
+    weight_path: str | None = None
+    last_err: BaseException | None = None
+    for fn in ("model.safetensors", "pytorch_model.bin"):
+        try:
+            weight_path = hf_hub_download(repo_id=model_name, filename=fn)
+            break
+        except EntryNotFoundError as exc:
+            last_err = exc
+
+
+    if weight_path.endswith(".safetensors"):
+        from safetensors.torch import load_file
+
+        sd = load_file(weight_path, device="cpu")
+    else:
+        sd = torch.load(weight_path, map_location=torch.device("cpu"), weights_only=True)
+
+    incomp = model.load_state_dict(sd, strict=False)
+    if incomp.missing_keys:
+        logger.warning(
+            "CLIP load_state_dict missing %d keys (showing first 5): %s",
+            len(incomp.missing_keys),
+            incomp.missing_keys[:5],
+        )
+
+    return model
+
+
+def _get_clip_model_and_processor(model_name: str, device: Any) -> tuple[Any, Any]:
+    """
+    Return a loaded CLIP model and processor, reusing a process-wide cache per (model, device).
+
+    Serializes the full load + ``.to(device)`` under a lock so parallel requests do not call
+    ``from_pretrained`` / ``.to(cuda)`` concurrently (avoids meta-tensor errors on some stacks).
+    """
+    import torch
+
+    if device.type == "cuda":
+        try:
+            dev_key = f"cuda:{torch.cuda.current_device()}"
+        except Exception:
+            dev_key = "cuda:0"
+    elif device.type == "mps":
+        dev_key = "mps"
+    else:
+        dev_key = "cpu"
+
+    key = (model_name, dev_key)
+    with _CLIP_INSTANCE_LOCK:
+        hit = _CLIP_INSTANCE_CACHE.get(key)
+        if hit is not None:
+            logger.debug("CLIP instance cache hit: %s @ %s", model_name, dev_key)
+            return hit
+
+        CLIPModel, CLIPProcessor = _get_clip_classes()
+        logger.info(
+            "Loading CLIP weights (cache key %s, %s) for shared use across requests",
+            model_name,
+            dev_key,
+        )
+        model = _clip_model_load_pretrained_cpu(CLIPModel, model_name)
+        processor = CLIPProcessor.from_pretrained(
+            model_name, interpolation="bicubic"
+        )
+        for tensor in list(model.parameters()) + list(model.buffers()):
+            if getattr(tensor, "is_meta", False):
+                raise RuntimeError(
+                    f"CLIP {model_name!r} still has meta tensors after eager CPU weight load."
+                )
+        model = model.to(device)
+        model.eval()
+        _CLIP_INSTANCE_CACHE[key] = (model, processor)
+        return model, processor
+
+
 def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """
     Embed images under ``input_dir`` that are not already stored, then rank
@@ -175,7 +299,6 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     apply_torch_cpu_preference()
     import torch
     from PIL import Image
-    from transformers import CLIPProcessor, CLIPModel  # type: ignore
 
     input_dir = str(inputs["input_dir"].path)
     query_text = inputs["query"].text
@@ -212,10 +335,7 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     elif device.type == "mps":
         logger.info("Apple Metal (MPS) GPU in use for CLIP")
 
-    model = CLIPModel.from_pretrained(model_name)
-    processor = CLIPProcessor.from_pretrained(model_name, interpolation="bicubic")
-    model = model.to(device)
-    model.eval()
+    model, processor = _get_clip_model_and_processor(model_name, device)
     param_dev = next(model.parameters()).device
     _pdim = getattr(model.config, "projection_dim", None)
     if _pdim != _EXPECTED_IMAGE_EMBED_DIM:

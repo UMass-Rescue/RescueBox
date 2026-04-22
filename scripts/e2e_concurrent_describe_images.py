@@ -9,7 +9,7 @@ Environment:
   DESCRIBE_INPUT_DIR      Directory containing input images (default: demo path below)
   DESCRIBE_OUTPUT_PARENT  Parent directory; each user writes to ``.../user-{i}/`` (created if missing)
   IMAGE_SUMMARY_MODEL     Ollama model id (default: gemma3:4b)
-  CONCURRENT_USERS        Number of requests (default: 5)
+  CONCURRENT_USERS        Number of requests (default: 15)
   DESCRIBE_TIMEOUT        Per-request timeout in seconds (default: 600)
   E2E_SERIAL              If ``1`` or ``true``, run requests **one after another**.
 

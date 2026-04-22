@@ -75,7 +75,7 @@ try:
     import rb.api.routes  # noqa: F401 — verify backend package is importable
 
     _backend_integration.set_backend_available(True)
-    logger.info("Backend routes package available")
+    logger.debug("Backend routes package available")
 except ImportError as e:
     _backend_integration.set_backend_available(False)
     logger.warning("Backend routes not available: %s. Running frontend only.", e)
@@ -90,13 +90,14 @@ from frontend.utils.nicegui_storage import (
     ensure_explicit_user_id_for_tests,
     get_explicit_user_id,
     set_explicit_user_id,
+    try_claim_explicit_user_id,
 )
 
 
 @ui.page("/")
 async def index():
     """Main dashboard / home page."""
-    logger.info("Rendering main dashboard page (index route)")
+    logger.debug("Rendering main dashboard page (index route)")
 
     from frontend.utils.theme import apply_saved_theme
 
@@ -173,8 +174,19 @@ async def index():
                     if not is_valid_explicit_user_id(val):
                         ui.notify(HOME_USER_ID["invalid_format"], type="warning", classes="rb-notify-505759")
                         return
+                    claim = try_claim_explicit_user_id(val)
+                    if claim == "taken":
+                        ui.notify(
+                            HOME_USER_ID["id_taken"],
+                            type="warning",
+                            classes="rb-notify-a2aaad",
+                        )
+                        return
+                    if claim != "ok":
+                        return
                     set_explicit_user_id(val)
-                    ui.timer(0.3, lambda: ui.navigate.reload(), once=True)
+                    # After set_explicit_user_id (deferred browser write); reload must run later.
+                    ui.timer(0.08, lambda: ui.navigate.reload(), once=True)
 
                 def _on_uid_keydown(e):
                     if getattr(e, "args", None) and e.args.get("key") == "Enter":
@@ -186,29 +198,29 @@ async def index():
                     on_click=_save_home_user_id,
                 ).classes(f"mt-4 {Design.BTN_PRIMARY}")
 
-    logger.info("Main dashboard page rendered successfully")
+    logger.debug("Main dashboard page rendered successfully")
 
 
 _LICENSES_COPYRIGHT_DIR = _project_root / "License&Copyright"
 
 
 if __name__ in {"__main__", "__mp_main__"}:
-    logger.info("Starting unified %s application", APP_TITLE)
-    logger.info("Server will be available at http://localhost:%s", APP_PORT)
+    logger.debug("Starting unified %s application", APP_TITLE)
+    logger.debug("Server will be available at http://localhost:%s", APP_PORT)
 
     init_db()
     setup_backend_routes(api_base_url=API_BASE_URL)
-    logger.info("Backend API routes integrated: %s", BACKEND_AVAILABLE)
+    logger.debug("Backend API routes integrated: %s", BACKEND_AVAILABLE)
 
     demo_dir = Path(__file__).parent / "demo"
     if demo_dir.exists():
         app.add_static_files(url_path="/demo", local_directory=str(demo_dir))
-        logger.info("Demo static files served at /demo/")
+        logger.debug("Demo static files served at /demo/")
 
     icons_dir = Path(__file__).parent / "icons"
     if icons_dir.is_dir():
         app.add_static_files(url_path="/icons", local_directory=str(icons_dir))
-        logger.info("Icons served at /icons/")
+        logger.debug("Icons served at /icons/")
 
     # Same pattern as /demo: NiceGUI static files (not Starlette mount + directory index iframe).
     if _LICENSES_COPYRIGHT_DIR.is_dir():
@@ -216,7 +228,7 @@ if __name__ in {"__main__", "__mp_main__"}:
             url_path="/license-copyright",
             local_directory=str(_LICENSES_COPYRIGHT_DIR),
         )
-        logger.info(
+        logger.debug(
             "License & Copyright: About page /about, static /license-copyright/ (%s)",
             _LICENSES_COPYRIGHT_DIR,
         )

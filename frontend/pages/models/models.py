@@ -80,7 +80,7 @@ class ModelsPage:
         Returns:
             None: UI is added directly to the current context
         """
-        logger.info("Rendering models page")
+        logger.debug("Rendering models page")
         try:
             with ui.column().classes('container mx-auto p-8'):
                 # Header

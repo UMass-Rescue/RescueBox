@@ -73,7 +73,7 @@ def render_job_row(
     - Buttons are conditionally rendered based on callbacks and job status
     - Row uses hover effects for better user experience
     """
-    #logger.info("Rendering job row for job: %s (Status: %s)", job.get('uid', 'Unknown'), job.get('status', 'Unknown'))
+    logger.debug("Rendering job row for job: %s (Status: %s)", job.get('uid', 'Unknown'), job.get('status', 'Unknown'))
     
     status = job.get('status', 'Unknown')
     status_colors = {

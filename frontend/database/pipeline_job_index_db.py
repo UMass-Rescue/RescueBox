@@ -287,7 +287,7 @@ def insert_pipeline_response_rows(
                 (sid, endpoint, container, ord_i, ot, pj, now),
             )
         conn.commit()
-        logger.info(
+        logger.debug(
             "Pipeline response rows: stored %d row(s) for step_job_id=%s endpoint=%s",
             len(rows),
             sid or "(empty)",

@@ -283,12 +283,12 @@ class JobDB(BaseDatabase):
             conn.execute("SELECT userId FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
             if 'no such column' in str(e).lower():
-                logger.info("userId column missing in jobs table; adding column")
+                logger.debug("userId column missing in jobs table; adding column")
                 try:
                     conn.execute("ALTER TABLE jobs ADD COLUMN userId TEXT")
                     conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_userId ON jobs(userId)")
                     conn.commit()
-                    logger.info("Added userId column and index to jobs table")
+                    logger.debug("Added userId column and index to jobs table")
                 except Exception as e_add:
                     logger.exception("Failed to add userId column to jobs table: %s", e_add)
                     raise
@@ -302,11 +302,11 @@ class JobDB(BaseDatabase):
             conn.execute("SELECT caseNotes FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
             if 'no such column' in str(e).lower():
-                logger.info("caseNotes column missing; adding column")
+                logger.debug("caseNotes column missing; adding column")
                 try:
                     conn.execute("ALTER TABLE jobs ADD COLUMN caseNotes TEXT")
                     conn.commit()
-                    logger.info("Added caseNotes column to jobs table")
+                    logger.debug("Added caseNotes column to jobs table")
                 except Exception as e_add:
                     logger.exception("Failed to add caseNotes column: %s", e_add)
                     raise
@@ -319,11 +319,11 @@ class JobDB(BaseDatabase):
             conn.execute("SELECT endpointChain FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
             if 'no such column' in str(e).lower():
-                logger.info("endpointChain column missing; adding column")
+                logger.debug("endpointChain column missing; adding column")
                 try:
                     conn.execute("ALTER TABLE jobs ADD COLUMN endpointChain TEXT")
                     conn.commit()
-                    logger.info("Added endpointChain column to jobs table")
+                    logger.debug("Added endpointChain column to jobs table")
                 except Exception as e_add:
                     logger.exception("Failed to add endpointChain column: %s", e_add)
                     raise
@@ -336,14 +336,14 @@ class JobDB(BaseDatabase):
             conn.execute("SELECT pipelineRootJobId FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
             if 'no such column' in str(e).lower():
-                logger.info("pipelineRootJobId column missing; adding column")
+                logger.debug("pipelineRootJobId column missing; adding column")
                 try:
                     conn.execute("ALTER TABLE jobs ADD COLUMN pipelineRootJobId TEXT")
                     conn.execute(
                         "CREATE INDEX IF NOT EXISTS idx_jobs_pipelineRootJobId ON jobs(pipelineRootJobId)"
                     )
                     conn.commit()
-                    logger.info("Added pipelineRootJobId column to jobs table")
+                    logger.debug("Added pipelineRootJobId column to jobs table")
                 except Exception as e_add:
                     logger.exception("Failed to add pipelineRootJobId column: %s", e_add)
                     raise
@@ -356,13 +356,13 @@ class JobDB(BaseDatabase):
             conn.execute("SELECT pipelineMetadataFilterCriteria FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
             if 'no such column' in str(e).lower():
-                logger.info("pipelineMetadataFilterCriteria column missing; adding column")
+                logger.debug("pipelineMetadataFilterCriteria column missing; adding column")
                 try:
                     conn.execute(
                         "ALTER TABLE jobs ADD COLUMN pipelineMetadataFilterCriteria TEXT"
                     )
                     conn.commit()
-                    logger.info("Added pipelineMetadataFilterCriteria column to jobs table")
+                    logger.debug("Added pipelineMetadataFilterCriteria column to jobs table")
                 except Exception as e_add:
                     logger.exception(
                         "Failed to add pipelineMetadataFilterCriteria column: %s", e_add
@@ -567,7 +567,7 @@ class JobDB(BaseDatabase):
         # Convert to database format
         job_data = job_record.model_dump_for_db()
         
-        logger.info("Creating job %s (model_uid=%s, task_uid=%s, endpoint=%s)", uid, model_uid, task_uid, endpoint)
+        logger.debug("Creating job %s (model_uid=%s, task_uid=%s, endpoint=%s)", uid, model_uid, task_uid, endpoint)
 
         insert_sql = """
             INSERT INTO jobs (uid, userId, modelUid, taskUid, endpoint, endpointChain, pipelineRootJobId,
@@ -603,7 +603,7 @@ class JobDB(BaseDatabase):
             try:
                 conn.execute(insert_sql, params)
                 conn.commit()
-                logger.info("Job %s created successfully", uid)
+                logger.debug("Job %s created successfully", uid)
                 return await self.get_job_by_uid(uid)
             except sqlite3.IntegrityError as e:
                 # UID collision - generate new UID and retry a few times
@@ -840,7 +840,7 @@ class JobDB(BaseDatabase):
         - Accepts both ResponseBody Pydantic model and dict for backward compatibility
         """
         conn = self.connect()
-        logger.info("Updating job %s status to %s", uid, status.value)
+        logger.debug("Updating job %s status to %s", uid, status.value)
         
         if end_time is None:
             end_time = datetime.now()
@@ -867,7 +867,7 @@ class JobDB(BaseDatabase):
         conn.commit()
         
         if cursor.rowcount > 0:
-            logger.info("Job %s updated successfully", uid)
+            logger.debug("Job %s updated successfully", uid)
             return True
         else:
             logger.warning("Job %s not found for update", uid)
@@ -981,7 +981,7 @@ def get_job_db() -> JobDB:
     global _job_db
     
     if _job_db is None:
-        logger.info("Lazy-initializing job database")
+        logger.debug("Lazy-initializing job database")
         _job_db = JobDB()
         # Connect will auto-create schema if needed
         _job_db.connect()

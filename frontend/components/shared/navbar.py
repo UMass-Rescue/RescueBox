@@ -35,10 +35,8 @@ def create_navbar():
     
     
     Navigation Links:
-    - Models: Browse available ML models (/models)
-    - Jobs: View job history and status (/jobs)
-    - Assistant: Access chatbot interface (/chatbot)
-    - Logs: View application logs (/logs)
+    - Assistant, Jobs, Demo (direct links)
+    - Resources (dropdown): About, Readme (plugins /models), Logs
     
     Returns:
         None: This function directly modifies the UI context
@@ -100,18 +98,39 @@ def create_navbar():
                     _nav_items = (
                         ('Assistant', '/chatbot'),
                         ('Jobs', '/jobs'),
-                        ('Logs', '/logs'),
                         ('Demo', '/demo'),
-                        ('Readme', '/models'),
-                        ('About', constants.NAV_LINKS['about']),
                     )
                     for label, path in _nav_items:
-                        if _nav_locked and label not in ('Demo', 'About'):
+                        if _nav_locked and label != 'Demo':
                             ui.label(label).classes(
                                 _link_cls + ' opacity-50 cursor-not-allowed select-none'
                             ).on('click', lambda _: _nav_blocked_msg())
                         else:
                             ui.link(label, path).classes(_link_cls)
+
+                    def _open_about() -> None:
+                        ui.navigate.to(constants.NAV_LINKS['about'])
+
+                    def _open_readme() -> None:
+                        if _nav_locked:
+                            _nav_blocked_msg()
+                        else:
+                            ui.navigate.to('/models')
+
+                    def _open_logs() -> None:
+                        if _nav_locked:
+                            _nav_blocked_msg()
+                        else:
+                            ui.navigate.to('/logs')
+
+                    with ui.dropdown_button(
+                        'Resources',
+                        color=None,
+                        auto_close=True,
+                    ).classes(_link_cls).props('flat dense no-caps'):
+                        ui.menu_item('Readme', on_click=_open_readme)
+                        ui.menu_item('Logs', on_click=_open_logs)
+                        ui.menu_item('About', on_click=_open_about)
 
                 # Session display removed for demo safety (avoids accidental user actions)
 

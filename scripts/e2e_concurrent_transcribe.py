@@ -7,7 +7,7 @@ Requires a running RescueBox API (default ``http://127.0.0.1:8080``).
 Environment:
   RESCUEBOX_API_BASE   Base URL including ``/api`` (default: http://127.0.0.1:8080/api)
   TRANSCRIBE_INPUT_DIR Directory containing audio files (default: demo path below)
-  CONCURRENT_USERS     Number of requests (default: 5)
+  CONCURRENT_USERS     Number of requests (default: 40)
   TRANSCRIBE_TIMEOUT   Per-request timeout in seconds (default: 600)
   E2E_SERIAL           If ``1`` or ``true``, run requests **one after another** (same paths).
                        Use when parallel POSTs fail with 500 (shared model / GPU not safe for
@@ -30,7 +30,7 @@ from typing import Any
 import httpx
 
 DEFAULT_BASE = "http://127.0.0.1:8080/api"
-DEFAULT_INPUT = "/home/tester/Documents/demo/transcribe-audio/inputs/"
+DEFAULT_INPUT = "/home/tester/Documents/demo1/transcribe-audio/inputs/"
 
 
 def _payload(input_dir: str) -> dict[str, Any]:
@@ -62,7 +62,7 @@ async def _one_transcribe(
 async def _run() -> int:
     base = os.environ.get("RESCUEBOX_API_BASE", DEFAULT_BASE).rstrip("/")
     input_dir = os.environ.get("TRANSCRIBE_INPUT_DIR", DEFAULT_INPUT)
-    n = int(os.environ.get("CONCURRENT_USERS", "15"))
+    n = int(os.environ.get("CONCURRENT_USERS", "44"))
     timeout = float(os.environ.get("TRANSCRIBE_TIMEOUT", "600"))
     serial = os.environ.get("E2E_SERIAL", "").strip().lower() in ("1", "true", "yes")
 
@@ -106,8 +106,9 @@ async def _run() -> int:
     print(f"\nSummary: {ok}/{n} returned HTTP 200")
     if ok < n and not serial:
         print(
-            "\nHint: If parallel runs return 500 (e.g. PyTorch size errors), the ASR model may not\n"
-            "  be safe for concurrent use on this host. Retry with:  E2E_SERIAL=1",
+            "\nHint: If parallel runs return 500 (e.g. PyTorch size errors), raise "
+            "RESCUEBOX_WHISPER_POOL_SIZE on the API (one Whisper load per concurrent job, "
+            "max ~RAM/VRAM) or use E2E_SERIAL=1.",
             file=sys.stderr,
         )
     return 0 if ok == n else 1

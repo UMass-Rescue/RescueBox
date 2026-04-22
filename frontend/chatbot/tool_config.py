@@ -38,7 +38,7 @@ class ImageSummarize(BaseModel):
     """
     input_dir: str = Field(..., description="Folder of images to caption/summarize")
     output_dir: str = Field(..., description="Folder where per-image text summaries are written")
-    model: Literal["gemma3:4b", "gemma3:27b"] = Field(..., description="The vision model version")
+    model: Literal["gemma3:4b", "moondream:latest", "gemma3:27b"] = Field(..., description="The vision model version")
 
 class AudioTranscribe(BaseModel):
     """
@@ -673,9 +673,9 @@ def parse_tool_calls_response(response_text: str) -> Optional[list[dict[str, Any
         tool_list = ToolCallList(**data)
 
         for i, tool_call in enumerate(tool_list.calls, 1):
-            logger.info("--- [Task %d] ---", i)
-            logger.info("Function: %s", tool_call.name)
-            logger.info("Arguments: %s", tool_call.arguments)
+            logger.debug("--- [Task %d] ---", i)
+            logger.debug("Function: %s", tool_call.name)
+            logger.debug("Arguments: %s", tool_call.arguments)
 
             tool_calls.append({
                 'name': tool_call.name,

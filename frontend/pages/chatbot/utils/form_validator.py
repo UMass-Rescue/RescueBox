@@ -32,7 +32,7 @@ class FormValidator:
         Raises:
             ValueError: If validation fails
         """
-        self.logger.info("Validating and preparing job submission for endpoint: %s", endpoint)
+        self.logger.debug("Validating and preparing job submission for endpoint: %s", endpoint)
 
         # Update UI state
         state_manager.set_processing(True)
@@ -79,12 +79,12 @@ class FormValidator:
                         return False
 
                     # Windows 11 specific debugging
-                    self.logger.info("=== WINDOWS PATH DEBUGGING ===")
-                    self.logger.info("Path: %s | Absolute: %s | OS: %s", path_str, path.is_absolute(), os.name)
+                    self.logger.debug("=== WINDOWS PATH DEBUGGING ===")
+                    self.logger.debug("Path: %s | Absolute: %s | OS: %s", path_str, path.is_absolute(), os.name)
 
                     if path.exists():
                         try:
-                            self.logger.info("Permissions - R:%s W:%s X:%s", 
+                            self.logger.debug("Permissions - R:%s W:%s X:%s", 
                                             os.access(path, os.R_OK), 
                                             os.access(path, os.W_OK), 
                                             os.access(path, os.X_OK))
@@ -108,11 +108,11 @@ class FormValidator:
 
     def _log_request_payload(self, request_body, endpoint: str):
         """Log the request payload being sent to backend."""
-        self.logger.info("=== FINAL REQUEST PAYLOAD TO BACKEND ===")
-        self.logger.info("Endpoint: %s", endpoint)
+        self.logger.debug("=== FINAL REQUEST PAYLOAD TO BACKEND ===")
+        self.logger.debug("Endpoint: %s", endpoint)
         self.logger.info("Request body: %s", request_body)
         if hasattr(request_body, 'inputs') and request_body.inputs:
             for key, value in request_body.inputs.items():
                 if hasattr(value, 'root') and hasattr(value.root, 'path'):
-                    self.logger.info("Input %s path: %s", key, value.root.path)
-        self.logger.info("=== END REQUEST PAYLOAD ===")
+                    self.logger.debug("Input %s path: %s", key, value.root.path)
+        self.logger.debug("=== END REQUEST PAYLOAD ===")

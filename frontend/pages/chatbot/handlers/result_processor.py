@@ -61,9 +61,9 @@ class ResultProcessor:
             update_status_callback: Function to update status
             load_form_callback: Function to load forms
         """
-        logger.info("ResultProcessor.process_result called with result type: %s", result.get('type', 'unknown'))
+        logger.debug("ResultProcessor.process_result called with result type: %s", result.get('type', 'unknown'))
         result_type = result.get('type', 'unknown')
-        logger.info("Processing result type: %s", result_type)
+        logger.debug("Processing result type: %s", result_type)
 
         def _set_input(enabled: bool):
             if set_input_enabled_callback:
@@ -88,9 +88,9 @@ class ResultProcessor:
 
             elif result_type == 'message':
                 _set_input(True)
-                logger.info("About to call _handle_message for result: %s", result)
+                logger.debug("About to call _handle_message for result: %s", result)
                 await self._handle_message(result, add_message_callback)
-                logger.info("_handle_message completed")
+                logger.debug("_handle_message completed")
 
             elif result_type == 'error':
                 _set_input(True)
@@ -179,13 +179,13 @@ class ResultProcessor:
     async def _handle_message(self, result: Dict[str, Any], add_message_callback):
         """Handle message result type."""
         content = result.get('content', '')
-        logger.info("Handling message result with content: %s", content[:50])
+        logger.debug("Handling message result with content: %s", content[:50])
         # Create a proper ChatMessage object
         from frontend.pages.chatbot.chatbot_message import ChatMessage
         message = ChatMessage('assistant', content)
-        logger.info("Created ChatMessage: role=%s, content_length=%d", message.role, len(message.content))
+        logger.debug("Created ChatMessage: role=%s, content_length=%d", message.role, len(message.content))
         add_message_callback(message)
-        logger.info("Called add_message_callback for rejection message")
+        logger.debug("Called add_message_callback for rejection message")
 
     async def _handle_error(self, result: Dict[str, Any], show_error_callback):
         """Handle error result type."""

@@ -63,6 +63,8 @@ class Design:
         "bg-white text-zinc-800 ring-1 ring-zinc-200 rounded-2xl rounded-tl-none "
         "px-4 py-3 shadow-sm border-0"
     )
+    # Use with CHAT_ASSISTANT_BUBBLE so assistant text, markdown, and tool-call cards share one column width.
+    CHAT_ASSISTANT_BUBBLE_WIDTH = "w-full max-w-3xl min-w-0"
     CHAT_SYSTEM_TOOL = (
         "bg-zinc-50 border-l-4 border-indigo-500 p-4 italic text-zinc-600 text-sm"
     )

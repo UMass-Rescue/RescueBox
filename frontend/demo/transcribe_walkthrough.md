@@ -54,7 +54,7 @@ An input form opens with typical inputs , a folder of files saved on rescuebox s
 3. You should see status messages in the chat a **job running** indicator.
 
 
-4. Wait till "Job Completed Successfully" box provides result with  **view  job button to click**
+4. Wait till "Job Completed Successfully" box provides result with  **view  job button** to click
 {{SCREENSHOT:job-completed.png}}
 
 5. Review the **outputs and input details** of this job. In the main jobs page notice the "case notes" in the model column.

@@ -54,7 +54,7 @@ def create_sortable_table(
     
     # Create table with sortable columns (add directly to container)
     with container:
-        tc = f"w-full {table_extra_classes}".strip()
+        tc = f"w-full min-w-0 {table_extra_classes}".strip()
         table = ui.table(
             columns=columns,
             rows=rows,

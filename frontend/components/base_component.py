@@ -31,7 +31,7 @@ class BaseComponent(ABC):
         self.config = kwargs
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
-        self.logger.info(f"Initializing {self.__class__.__name__}")
+        self.logger.debug(f"Initializing {self.__class__.__name__}")
 
     @abstractmethod
     def render(self) -> Any:
@@ -102,7 +102,7 @@ class BaseComponent(ABC):
         message = f"{self.__class__.__name__}: {action}"
         if details:
             message += f" - {details}"
-        self.logger.info(message)
+        self.logger.debug(message)
 
 
 class ComponentRegistry:

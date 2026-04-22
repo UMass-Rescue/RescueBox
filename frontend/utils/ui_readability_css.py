@@ -42,9 +42,10 @@ def inject_global_readability_css() -> None:
         .q-notification .q-btn {
             font-size: 0.9375rem !important;
         }
-        /* Optional toast skin (classes="rb-notify-505759" on ui.notify) — Medium Gray #505759.
-           Quasar Notify builds the root as: q-notification … bg-{color} text-{textColor} … + your classes
-           (see Quasar notify/meta.class). type=warning adds bg-warning + text-dark; must override both.
+        /* Optional toast skin (classes="rb-notify-505759" on ui.notify).
+           Brand gray #505759 reserved for icons / accents; panel is light so body text stays dark (readable).
+           Quasar Notify builds the root as: q-notification … bg-{color} text-{textColor} … + your classes;
+           type=warning adds bg-warning + text-dark — override both.
            Use .q-notifications … (not only .q-notifications__list) so portaled / transition wrappers still match. */
         .q-notifications .q-notification.rb-notify-505759,
         .q-notifications .q-notification.rb-notify-505759.bg-positive,
@@ -64,30 +65,30 @@ def inject_global_readability_css() -> None:
         div.q-notifications__list div.q-notification.rb-notify-505759.bg-grey-8,
         div.q-notifications__list div.q-notification.rb-notify-505759.text-dark,
         div.q-notifications__list div.q-notification.rb-notify-505759.text-white {
-            background: #505759 !important;
-            background-color: #505759 !important;
+            background: #e4e7e9 !important;
+            background-color: #e4e7e9 !important;
             background-image: none !important;
-            color: #fff !important;
+            color: #18181b !important;
             box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2), 0 2px 2px rgba(0, 0, 0, 0.14), 0 3px 1px -2px rgba(0, 0, 0, 0.12) !important;
         }
         .q-notifications .q-notification.rb-notify-505759 .q-notification__message,
         .q-notifications .q-notification.rb-notify-505759 .q-notification__caption,
         div.q-notifications__list div.q-notification.rb-notify-505759 .q-notification__message,
         div.q-notifications__list div.q-notification.rb-notify-505759 .q-notification__caption {
-            color: #fff !important;
+            color: #18181b !important;
         }
         .q-notifications .q-notification.rb-notify-505759 .q-icon,
         div.q-notifications__list div.q-notification.rb-notify-505759 .q-icon {
-            color: #fff !important;
+            color: #505759 !important;
         }
         .q-notifications .q-notification.rb-notify-505759 .q-notification__actions .q-btn,
         div.q-notifications__list div.q-notification.rb-notify-505759 .q-notification__actions .q-btn {
-            color: #fff !important;
+            color: #18181b !important;
         }
         .q-notifications .q-notification.rb-notify-505759 .q-notification__progress,
         div.q-notifications__list div.q-notification.rb-notify-505759 .q-notification__progress {
-            background: rgba(255, 255, 255, 0.35) !important;
-            color: #fff !important;
+            background: rgba(24, 24, 27, 0.22) !important;
+            color: #18181b !important;
         }
 
         /* Light gray toast (PMS 429 #a2aaad) — dark text for contrast (same as .rb-select-directory-header). */
@@ -227,13 +228,14 @@ def inject_global_readability_css() -> None:
             border: 2px solid #505759 !important;
             box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08) !important;
         }
-        /* Text Result header strip uses Medium Gray #505759 */
+        /* Text Result header: no filled band (inherits page / card surface) */
         .rb-job-text-result-card .rb-job-text-result-header {
-            background-color: #505759 !important;
-            color: #fff !important;
+            background-color: transparent !important;
+            background-image: none !important;
+            color: #18181b !important;
         }
         .rb-job-text-result-card .rb-job-text-result-header .q-icon {
-            color: #fff !important;
+            color: #3f3f46 !important;
         }
 
         /* Chatbot Menu/Chat/History: transparent strip behind solid maroon buttons */

@@ -33,7 +33,7 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
         Dict[str, Any]: Dictionary with normalized argument keys matching API expectations.
             Original values are preserved, only keys are normalized.
     """
-    logger.info("Normalizing arguments for endpoint: %s", endpoint or 'generic')
+    logger.debug("Normalizing arguments for endpoint: %s", endpoint or 'generic')
     logger.debug("Input arguments: %s", list(user_args.keys()))
     
     key_mappings = {
@@ -99,7 +99,7 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
 
         normalized[new_key] = value
     
-    logger.info("Normalization complete. Output keys: %s", list(normalized.keys()))
+    logger.debug("Normalization complete. Output keys: %s", list(normalized.keys()))
     return normalized
 
 
@@ -152,7 +152,7 @@ def is_rescuebox_request(user_input: str, filter_enabled: bool = True) -> Tuple[
     - Blocked patterns use regex, so be careful with special characters
     - Path detection uses a simple regex pattern - may need adjustment for edge cases
     """
-    logger.info("Checking if request is valid RescueBox request (filter_enabled=%s)", filter_enabled)
+    logger.debug("Checking if request is valid RescueBox request (filter_enabled=%s)", filter_enabled)
     
     if not filter_enabled:
         logger.debug("Filter disabled - allowing all requests")
@@ -163,26 +163,26 @@ def is_rescuebox_request(user_input: str, filter_enabled: bool = True) -> Tuple[
 
     # Allow internal commands (starting with /) - these come from tool picker
     if user_input.strip().startswith('/'):
-        logger.info("Request validated as internal command: %s", user_input)
+        logger.debug("Request validated as internal command: %s", user_input)
         return True, "internal_command"
 
     # Forensic signals before blocked patterns (e.g. "search images for a sports event" must not
     # hit BLOCKED_PATTERNS on the word "sports" before "images" matches RESCUEBOX_KEYWORDS).
     for keyword in ToolRegistry.RESCUEBOX_KEYWORDS:
         if keyword in input_lower:
-            logger.info("Request validated by keyword match: '%s'", keyword)
+            logger.debug("Request validated by keyword match: '%s'", keyword)
             return True, "keyword_match"
 
     if re.search(r'[/\\][\w\-\.]+[/\\]?', user_input):
-        logger.info("Request validated by path detection")
+        logger.debug("Request validated by path detection")
         return True, "path_detected"
 
     for pattern in ToolRegistry.BLOCKED_PATTERNS:
         if re.search(pattern, input_lower):
-            logger.info("Request blocked by pattern: %s...", pattern[:30])
+            logger.debug("Request blocked by pattern: %s...", pattern[:30])
             return False, "non_forensic"
 
-    logger.info("Request did not match any validation criteria")
+    logger.debug("Request did not match any validation criteria")
     return False, "no_match"
 
 
@@ -219,7 +219,7 @@ def get_rejection_message(reason: str) -> str:
     - Consider internationalization if supporting multiple languages
     - Messages should be concise but informative
     """
-    logger.info("Generating rejection message for reason: %s", reason)
+    logger.debug("Generating rejection message for reason: %s", reason)
     
     if reason == "non_forensic":
         logger.debug("Using non_forensic rejection message")

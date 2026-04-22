@@ -51,5 +51,3 @@ The composition is centered, with warm afternoon lighting.
 - gemma3:27b : slow , higher accuracy , about 5 sec/image
 
 - gemma3:4b : fast , reasonable accuracy   2 sec / image
-
-- llama3.2-vision:11b this model only supports one image while more than one image requested

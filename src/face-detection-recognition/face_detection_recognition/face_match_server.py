@@ -306,7 +306,7 @@ def get_ingest_bulk_query_image_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="collection_name",
                 label="Collection Name",
-                subtitle="Select a collection from your database",
+                subtitle="Select a collection database of uploaded images",
                 value=_collection_name_enum_for_find_tasks(),
             ),
             ParameterSchema(

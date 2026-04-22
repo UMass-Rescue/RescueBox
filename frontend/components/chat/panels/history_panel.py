@@ -43,7 +43,7 @@ def create_history_panel(
             on_rerun_tool=lambda msg_id: rerun_tool_call(msg_id)
         )
     """
-    logger.info("Creating chat history panel")
+    logger.debug("Creating chat history panel")
 
     panel = ui.column().classes('w-full h-full')
 
@@ -76,7 +76,7 @@ async def refresh_conversations(container: ui.column):
     Args:
         container: Container to display conversations in
     """
-    logger.info("Refreshing conversations list")
+    logger.debug("Refreshing conversations list")
 
     # Find conversations container (second child after header/search)
     conversations_container = None
@@ -92,11 +92,11 @@ async def refresh_conversations(container: ui.column):
     conversations_container.clear()
 
     try:
-        logger.info("Getting chat history database instance")
+        logger.debug("Getting chat history database instance")
         chat_history = get_chat_history_db()
-        logger.info("Got chat history database, calling get_all_conversations")
+        logger.debug("Got chat history database, calling get_all_conversations")
         conversations = await chat_history.get_all_conversations()
-        # logger.info("get_all_conversations returned: %s", conversations)
+        # logger.debug("get_all_conversations returned: %s", conversations)
 
         if not conversations:
             with conversations_container:

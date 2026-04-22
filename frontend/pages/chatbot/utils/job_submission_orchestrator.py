@@ -216,7 +216,7 @@ class JobSubmissionOrchestrator:
 
             if target_container is not None:
                 try:
-                    logger.info("Rendering assistant selection message into container=%r (global_chat_container=%r provided_container=%r)",
+                    logger.debug("Rendering assistant selection message into container=%r (global_chat_container=%r provided_container=%r)",
                                 target_container, gc, container)
                     render_tool_selection_message(target_container, endpoint)
                     # Schedule scroll to bottom (use ui.timer from NiceGUI)
@@ -288,11 +288,11 @@ class JobSubmissionOrchestrator:
                     with ui.row().classes('w-full items-start') as status_shell:
                         running_status_shell_ref.append(status_shell)
                         with ui.card().classes(
-                            'bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm max-w-sm'
-                        ):
+                            'w-full max-w-sm rounded-xl bg-transparent border-0 shadow-none'
+                        ).props('flat'):
                             with ui.column().classes('p-1.5 w-full gap-1'):
                                 ui.label('Assistant').classes(
-                                    'font-medium text-xs text-indigo-900'
+                                    'font-medium text-xs text-zinc-500'
                                 )
                                 content_label = ui.label(_job_created_text).classes('text-sm text-zinc-800')
                                 running_label_ref.append(content_label)
@@ -333,7 +333,7 @@ class JobSubmissionOrchestrator:
                             running_status_shell_ref.clear()
                             running_label_ref.clear()
                         # show_results will handle container validity internally
-                        logger.info("job_submission_orchestrator: about to show_results container=%r job_id=%s", container, job_id)
+                        logger.debug("job_submission_orchestrator: about to show_results container=%r job_id=%s", container, job_id)
                         try:
                             from frontend.database.pipeline_index_service import (
                                 record_pipeline_job_completion,
@@ -728,13 +728,13 @@ class JobSubmissionOrchestrator:
                     criteria = await self._show_filter_criteria_dialog(container)
                 else:
                     criteria = ""
-                    self.logger.info(
+                    self.logger.debug(
                         "Pipeline metadata filter not shown: no Age/Gender metadata on prior step "
                         "(next_endpoint=%s, batch_item_count=%d) — passing all files.",
                         next_endpoint,
                         len(items),
                     )
-                self.logger.info(
+                self.logger.debug(
                     "Pipeline metadata filter (user input): next_endpoint=%s criteria=%r "
                     "(empty means pass all files) batch_item_count=%d",
                     next_endpoint,

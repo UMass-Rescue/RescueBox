@@ -77,43 +77,8 @@ def render_message(container: ui.element, message: ChatMessage):
         render_message_card(container, message.role, message.content, message.timestamp.strftime('%H:%M'))
     except Exception:
         # Fallback to inline rendering if component fails
-        from frontend.components.chat.message_card import (
-            ASSISTANT_MARKDOWN_CLASSES,
-            ASSISTANT_PLAIN_CLASSES,
-            USER_PLAIN_CLASSES,
-        )
-        from frontend.design_tokens import Design
+       logger.error("Fallback to inline rendering if component fails")
 
-        with container:
-            alignment = "items-end" if message.role == "user" else "items-start"
-            bubble = (
-                Design.CHAT_USER_BUBBLE
-                if message.role == "user"
-                else Design.CHAT_ASSISTANT_BUBBLE
-            )
-
-            with ui.row().classes(f"w-full {alignment}"):
-                with ui.card().classes(f"{bubble} max-w-sm"):
-                    with ui.row().classes("p-1.5 items-center gap-2 flex-wrap"):
-                        if message.role == "user":
-                            ui.label("YOU:").classes(Design.CHAT_USER_LABEL)
-                        else:
-                            ui.label("Assistant").classes(
-                                "font-medium !text-sm sm:!text-base text-zinc-600"
-                            )
-
-                        if message.content.startswith('##') and message.role != 'user':
-                            ui.markdown(message.content).classes(ASSISTANT_MARKDOWN_CLASSES)
-                        else:
-                            body_cls = (
-                                ASSISTANT_PLAIN_CLASSES
-                                if message.role != 'user'
-                                else USER_PLAIN_CLASSES
-                            )
-                            if '\n' in (message.content or ''):
-                                body_cls += ' whitespace-pre-line'
-                            ui.label(message.content).classes(body_cls)
-                        ui.label(message.timestamp.strftime('%H:%M')).classes('text-xs opacity-70')
 
     logger.debug("Message rendered successfully")
 

@@ -154,7 +154,7 @@ def render_demo_files_explorer(
     with container:
         if not root.exists() or not root.is_dir():
             ui.label(f'Demo files folder is not available: {root}').classes(
-                'text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg p-4'
+                'text-zinc-900 bg-[#a2aaad]/15 border border-[#a2aaad] rounded-lg p-4'
             )
             ui.label(
                 'Create it or set RESCUEBOX_DEMO_FILES_DIR to an existing directory.'
@@ -225,7 +225,7 @@ def render_demo_files_explorer(
                     else:
                         row.on('click', lambda *a, f=str(path): open_file(f))
                         with row:
-                            ui.icon('insert_drive_file', size='sm').classes('text-indigo-600 shrink-0')
+                            ui.icon('insert_drive_file', size='sm').classes('text-[#a2aaad] shrink-0')
                             ui.label(name).classes('text-sm text-zinc-800 truncate flex-1 min-w-0')
 
         refresh()

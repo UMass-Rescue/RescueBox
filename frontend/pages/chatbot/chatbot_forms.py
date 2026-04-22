@@ -181,7 +181,7 @@ async def load_and_show_form(
     - Tool selection message informs user which tool was selected
     - Form submission triggers on_form_submit callback
     """
-    logger.info("Loading form for endpoint: %s", endpoint)
+    logger.debug("Loading form for endpoint: %s", endpoint)
     logger.debug("load_and_show_form invocation: provided_container=%r global_chat_container=%r", container, get_global_chat_container())
     logger.debug("Form arguments: %s", arguments)
     # If no container provided, try to render into the input area as a safer default
@@ -214,7 +214,7 @@ async def load_and_show_form(
         
         try:
             initial_values = core.convert_arguments_to_initial_values(arguments, task_schema, endpoint)
-            logger.info("Initial values converted: %d inputs, %d parameters",
+            logger.debug("Initial values converted: %d inputs, %d parameters",
                         len(initial_values.get('inputs', {})), len(initial_values.get('parameters', {})))
         except (ValueError, TypeError) as e:
             # Conversion failures are expected for malformed arguments; fall back to empty initial values
@@ -223,7 +223,7 @@ async def load_and_show_form(
         
         # Tool selection + form share one parent column that fades in after layout (less flicker
         # than painting the selection card and form in separate layout passes).
-        logger.info("load_and_show_form called: endpoint=%s container=%r arguments=%s", endpoint, container, arguments)
+        logger.debug("load_and_show_form called: endpoint=%s arguments=%s", endpoint, arguments)
         render_container = container or get_global_chat_container()
         reveal_outer = None
         try:
@@ -240,7 +240,7 @@ async def load_and_show_form(
             try:
                 global_container = get_global_chat_container()
                 target_for_selection = selection_target or container or global_container
-                logger.info(
+                logger.debug(
                     "Rendering tool selection message into container=%r (explicit=%s global_fallback=%s)",
                     target_for_selection,
                     container is not None,
@@ -339,7 +339,7 @@ async def load_and_show_form(
                     reveal_outer.classes(remove='opacity-0', add='opacity-100')
                 except Exception:
                     pass
-            logger.info("Form loaded and displayed for endpoint: %s (container=%r)", endpoint, wrapper)
+            logger.debug("Form loaded and displayed for endpoint: %s (container=%r)", endpoint, wrapper)
             logger.debug("selection_card=%r form_card=%r", selection_card, form_card)
             return form_card
         except (RuntimeError, ValueError, TypeError, OSError) as e:
@@ -379,7 +379,7 @@ async def show_results(
         next_step = completed_step + 1
     show_view_job = bool(job_id and not is_intermediate)
 
-    logger.info(
+    logger.debug(
         "Showing results (job_id: %s, intermediate_pipeline: %s, show_view_job: %s)",
         job_id,
         is_intermediate,

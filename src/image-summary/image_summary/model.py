@@ -53,8 +53,8 @@ IMAGE_BATCH_PROMPT_JSON: Final[str] = (
     "Do not wrap the JSON in markdown code fences or add any text before or after the array."
 )
 
-IMAGE_PROMPT_GEMMA: Final[str] = (
-    "Describe the image briefly. People dress and actions if present. Avoid speculation. Output only the description."
+IMAGE_PROMPT_MOONDREAM: Final[str] = (
+    "Briefly describe the image."
 )
 
 
@@ -232,9 +232,13 @@ def describe_image(model: str, image_path: str) -> str:
 
     Callers should serialize concurrent jobs (see :mod:`image_summary.process`).
     """
+    if model == "moondream:latest":
+        prompt = IMAGE_PROMPT_MOONDREAM
+    else:
+        prompt = IMAGE_PROMPT
     response = ollama.generate(
         model=model,
-        prompt=IMAGE_PROMPT,
+        prompt=prompt,
         images=[image_path],
     )
     if response and response.get("done"):

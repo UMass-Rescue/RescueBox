@@ -90,7 +90,7 @@ class MessageProcessor:
                 )
 
             # Process the message
-            logger.info("Processing message: %s", message_text[:50])
+            logger.debug("Processing message: %s", message_text[:50])
             result = await self.message_handler.handle_message(message_text, update_status_callback)
 
             # Handle simple message results directly (like rejection messages)
@@ -98,7 +98,7 @@ class MessageProcessor:
                 content = result.get('content', '')
                 message = ChatMessage('assistant', content)
                 add_message_callback(message)
-                logger.info("Handled message result directly: %s", content[:50])
+                logger.debug("Handled message result directly: %s", content[:50])
                 # Model call finished; hide processing strip before post-render delay.
                 self.state_manager.set_processing(False)
 
@@ -147,7 +147,7 @@ class MessageProcessor:
             self.state_manager.set_input_enabled(True)
 
             update_status_callback("Rescuebox waiting for user..")
-            logger.info("Message processing completed")
+            logger.debug("Message processing completed")
             return result
 
         except Exception as e:

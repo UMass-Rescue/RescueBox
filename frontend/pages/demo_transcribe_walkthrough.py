@@ -46,7 +46,7 @@ async def demo_transcribe_walkthrough_page():
     text = load_markdown_file(_MD_FILE, _fallback_markdown)
 
     with ui.column().classes("container mx-auto p-8 max-w-4xl w-full min-w-0 pb-16"):
-        ui.label("Transcribe — tool menu walkthrough").classes("text-3xl font-bold mb-2")
+        ui.label("Transcribe — menu walkthrough").classes("text-3xl font-bold mb-2")
 
         render_guided_markdown_body(ui.column().classes("w-full min-w-0"), text)
 
