@@ -434,7 +434,7 @@ def validate_form_data(
                 parameters=parameters_dict
             )
             # If we get here, validation passed
-            logger.info("Form validation successful: %d inputs, %d parameters", len(inputs_dict), len(parameters_dict))
+            logger.debug("Form validation successful: %d inputs, %d parameters", len(inputs_dict), len(parameters_dict))
             return {
                 'is_valid': True,
                 'errors': {},
