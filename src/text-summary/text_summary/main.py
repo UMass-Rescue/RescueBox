@@ -3,6 +3,7 @@ import logging
 import os
 from pathlib import Path
 from typing import List, TypedDict
+import threading
 
 import typer
 from pydantic import DirectoryPath
@@ -25,6 +26,8 @@ from text_summary.text_parser import PARSERS
 
 APP_NAME = "text_summarization"
 logger = logging.getLogger(__name__)
+
+_SUMMARIZE_LOCK = threading.Lock()
 
 # Extensions handled by ``text_parser.PARSERS`` (top-level files under ``input_dir``).
 TEXT_SUMMARY_EXTENSIONS = frozenset(PARSERS.keys())
@@ -98,7 +101,8 @@ def summarize(
     output_dir = inputs["output_dir"].path
     model = parameters["model"]
 
-    processed_files = process_files(model, input_dir, output_dir)
+    with _SUMMARIZE_LOCK:
+        processed_files = process_files(model, input_dir, output_dir)
 
     response = TextResponse(value=json.dumps(list(processed_files)))
     return ResponseBody(root=response)

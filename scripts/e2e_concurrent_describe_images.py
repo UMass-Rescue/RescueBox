@@ -73,7 +73,7 @@ async def _run() -> int:
     input_dir = os.environ.get("DESCRIBE_INPUT_DIR", DEFAULT_INPUT)
     out_parent = os.environ.get("DESCRIBE_OUTPUT_PARENT", DEFAULT_OUTPUT_PARENT)
     model = os.environ.get("IMAGE_SUMMARY_MODEL", "moondream:latest" )
-    n = int(os.environ.get("CONCURRENT_USERS", "1"))
+    n = int(os.environ.get("CONCURRENT_USERS", "40"))
     timeout = float(os.environ.get("DESCRIBE_TIMEOUT", "600"))
     serial = os.environ.get("E2E_SERIAL", "").strip().lower() in ("1", "true", "yes")
 

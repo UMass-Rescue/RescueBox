@@ -443,18 +443,21 @@ def chain_output_to_input(
     # Extract output path from previous call
     output_path = extract_output_path(previous_output)
     if not output_path:
-        logger.debug("No output path found in previous result, skipping chaining")
+        logger.info("No output path found in previous result, skipping chaining")
         return current_arguments
     
     # Find input directory field in current schema
     input_dir_key = None
+    output_dir_key = None
     for input_schema in current_schema.inputs:
         if input_schema.input_type == InputType.DIRECTORY:
             # Try common names for input directory
             key_lower = input_schema.key.lower()
             if 'input' in key_lower and 'dir' in key_lower:
                 input_dir_key = input_schema.key
-                break
+            if 'output' in key_lower and 'dir' in key_lower:
+                output_dir_key = input_schema.key
+
     
     # Also check arguments for common patterns
     if not input_dir_key:
@@ -466,10 +469,12 @@ def chain_output_to_input(
     
     # Update arguments if input directory found
     if input_dir_key:
-        logger.debug("Chaining output path '%s' to input '%s'", output_path, input_dir_key)
+        logger.info("Chaining path '%s' to input '%s'", output_path, input_dir_key)
         current_arguments = current_arguments.copy()
         current_arguments[input_dir_key] = output_path
-
+        # at least the path is valid in case user forgets to pay attention to this
+        current_arguments[output_dir_key] = output_path
+        logger.info("Chaining path '%s' to output '%s'", output_path, output_dir_key)
         # text_summarization/summarize: default output_dir next to transcripts (sibling folder)
         for inp in current_schema.inputs:
             if inp.input_type != InputType.DIRECTORY:
@@ -508,7 +513,7 @@ def chain_output_to_input(
                         current_arguments["file_filter"] = {
                             "files": [{"path": p} for p in file_paths]
                         }
-                        logger.debug(
+                        logger.info(
                             "Chained %d file(s) to file_filter from prior TextResponse",
                             len(file_paths),
                         )

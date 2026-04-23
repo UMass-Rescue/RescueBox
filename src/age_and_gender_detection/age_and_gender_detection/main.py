@@ -2,6 +2,7 @@ import os
 import logging
 import json
 import typer
+import threading
 import onnxruntime
 from pathlib import Path
 from typing import List, TypedDict
@@ -83,12 +84,15 @@ model = AgeGenderDetector(
     gender_classifier_path=models_dir / "gender_googlenet.onnx",
 )
 
+_PREDICT_LOCK = threading.Lock()
+
 
 def predict(inputs: Inputs) -> ResponseBody:
     input_path = inputs["image_directory"].path
     logger.info(f"Input path: {input_path}")
 
-    predictions_by_image = model.predict_age_and_gender_on_dir(input_path)
+    with _PREDICT_LOCK:
+        predictions_by_image = model.predict_age_and_gender_on_dir(input_path)
     logger.info(f"Response: {predictions_by_image}")
 
     file_responses: list[FileResponse] = []

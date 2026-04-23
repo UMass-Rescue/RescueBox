@@ -66,6 +66,8 @@ def mount_in_background(ufdr_path, mount_path):
         logging.error(f"Mount thread failed: {e}")
 
 
+_MOUNT_LOCK = threading.Lock()
+
 # Mount folder must be exactly ``/tmp/<one_segment>`` (POSIX). See ``validate_mount_name_tmp``.
 _TMP_SINGLE_SEGMENT = re.compile(r"^/tmp/[^/]+$")
 
@@ -219,46 +221,47 @@ def wait_for_mount(path, timeout=10):
 
 # === Main Mount Function ===
 def mount_task(inputs: UFDRInputs, parameters: UFDRParameters) -> ResponseBody:
-    ufdr_path = inputs["ufdr_file"].path
-    mount_name = inputs["mount_name"].text.strip()
-    ok_name, err_name = validate_mount_name_tmp(mount_name)
-    if not ok_name:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=err_name,
+    with _MOUNT_LOCK:
+        ufdr_path = inputs["ufdr_file"].path
+        mount_name = inputs["mount_name"].text.strip()
+        ok_name, err_name = validate_mount_name_tmp(mount_name)
+        if not ok_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=err_name,
+            )
+        mount_path = get_mount_path(mount_name)
+
+        ok, err_msg = validate_mount_folder(mount_path)
+        if not ok:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=err_msg,
+            )
+
+        if not (
+            platform.system() == "Windows" and len(mount_path) == 2 and mount_path[1] == ":"
+        ):
+            os.makedirs(mount_path, exist_ok=True)
+
+        t = threading.Thread(
+            target=mount_in_background, args=(ufdr_path, mount_path), daemon=True
         )
-    mount_path = get_mount_path(mount_name)
+        t.start()
 
-    ok, err_msg = validate_mount_folder(mount_path)
-    if not ok:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=err_msg,
-        )
+        # give FUSE time to mount
+        if not wait_for_mount(mount_path, timeout=10):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Mount failed: Timeout waiting for FUSE mount",
+            )
 
-    if not (
-        platform.system() == "Windows" and len(mount_path) == 2 and mount_path[1] == ":"
-    ):
-        os.makedirs(mount_path, exist_ok=True)
-
-    t = threading.Thread(
-        target=mount_in_background, args=(ufdr_path, mount_path), daemon=True
-    )
-    t.start()
-
-    # give FUSE time to mount
-    if not wait_for_mount(mount_path, timeout=10):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Mount failed: Timeout waiting for FUSE mount",
-        )
-
-    try:
-        msg = f"Mounted at {mount_path}"
-    except Exception as e:
-        msg = f"Mount failed: {e}"
-    print(msg)
-    return ResponseBody(root=TextResponse(value=msg, title="Mount Result"))
+        try:
+            msg = f"Mounted at {mount_path}"
+        except Exception as e:
+            msg = f"Mount failed: {e}"
+        print(msg)
+        return ResponseBody(root=TextResponse(value=msg, title="Mount Result"))
 
 
 server.add_ml_service(

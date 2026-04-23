@@ -135,7 +135,7 @@ class JobSubmissionOrchestrator:
                 )
             else:
                 # Background job scheduled; leave UI state to background worker and return
-                self.logger.info("Background job scheduled; returning to caller (job_info: %s)", job_info)
+                self.logger.debug("Background job scheduled; returning to caller (job_info: %s)", job_info)
                 return
         except Exception as e:
             await self._handle_submission_error(e, endpoint, container, conversation_id)

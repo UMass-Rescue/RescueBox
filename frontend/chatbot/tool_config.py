@@ -38,7 +38,7 @@ class ImageSummarize(BaseModel):
     """
     input_dir: str = Field(..., description="Folder of images to caption/summarize")
     output_dir: str = Field(..., description="Folder where per-image text summaries are written")
-    model: Literal["gemma3:4b", "moondream:latest", "gemma3:27b"] = Field(..., description="The vision model version")
+    model: Literal["moondream:latest", "gemma3:4b", "gemma3:27b"] = Field(..., description="The vision model version")
 
 class AudioTranscribe(BaseModel):
     """
@@ -210,8 +210,6 @@ def generate_tool_definitions() -> list[dict]:
                 "parameters": json_schema
             }
         })
-
-    print("tools_definitions: %s", tools_definitions)
     return tools_definitions
 
 
@@ -288,7 +286,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "image_summary/summarize-images",
-                    "arguments": {"input_dir": "/cases/c10", "output_dir": "/cases/c10/summary", "model": "gemma3:4b"}
+                    "arguments": {"input_dir": "/cases/c10", "output_dir": "/cases/c10/summary", "model": "moondream:latest"}
                 }
             },
             {
@@ -310,7 +308,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "image_summary/summarize-images",
-                    "arguments": {"input_dir": "/evidence/batch2", "output_dir": "/evidence/batch2/summary", "model": "gemma3:4b"}
+                    "arguments": {"input_dir": "/evidence/case1", "output_dir": "/evidence/case1/summaries", "model": "moondream:latest"}
                 }
             },
             {
@@ -416,7 +414,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "image_summary/summarize-images",
-                    "arguments": {"input_dir": "/evidence/batch2", "output_dir": "/evidence/batch2/summary", "model": "gemma3:4b"}
+                    "arguments": {"input_dir": "/evidence/batch2", "output_dir": "/evidence/batch2/summary", "model": "moondream:latest"}
                 }
             },
         ]

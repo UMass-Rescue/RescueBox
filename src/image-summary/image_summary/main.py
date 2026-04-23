@@ -27,8 +27,8 @@ from rb.api.models import (
     DirectoryInput,
 )
 
-from .model import SUPPORTED_MODELS
-from .process import SUPPORTED_IMAGE_EXTENSIONS, process_images_batch
+from image_summary.model import SUPPORTED_MODELS
+from image_summary.process import SUPPORTED_IMAGE_EXTENSIONS, process_images
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ def summarize_images(
         "ImageSummary API: received request | model=%s | input_dir=%s | output_dir=%s | file_filter=%s",
         model, input_dir, output_dir, has_ff
     )
-    file_pairs = process_images_batch(model, input_dir, output_dir, file_filter)
+    file_pairs = process_images(model, input_dir, output_dir, file_filter)
 
     # If output patterns were not obtained from a persisted filter, collect them from uploaded files
     if not output_patterns:

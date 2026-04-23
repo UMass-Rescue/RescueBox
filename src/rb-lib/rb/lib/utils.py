@@ -141,7 +141,7 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
                 assert_never(parameter_type)
 
 
-# --- Filter helper utilities for plugins ----------------------------------
+# ---Pipeline Filter helper utilities for plugins ----------------------------------
 from typing import List, Optional, Tuple
 from pathlib import Path
 

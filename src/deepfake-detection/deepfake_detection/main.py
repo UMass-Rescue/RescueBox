@@ -30,6 +30,7 @@ from deepfake_detection.sim_data import defaultDataset
 from collections import defaultdict
 import logging
 from datetime import datetime
+import threading
 
 logging.basicConfig(
     level=logging.INFO,
@@ -204,6 +205,8 @@ def param_parser(facecrop: str = "false") -> Parameters:
     return {"facecrop": facecrop}
 
 
+_PREDICT_LOCK = threading.Lock()
+
 # @server.route(
 #     "/predict",
 #     task_schema_func=create_transform_case_task_schema,
@@ -212,117 +215,118 @@ def param_parser(facecrop: str = "false") -> Parameters:
 # )
 def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     print("give_prediction called")
-    input_path = inputs["input_dir"].path
-    out = Path(inputs["output_dir"].path)
-    selected_models = ["BNext_M_ModelONNX"]
+    with _PREDICT_LOCK:
+        input_path = inputs["input_dir"].path
+        out = Path(inputs["output_dir"].path)
+        selected_models = ["BNext_M_ModelONNX"]
 
-    logger.info(f"Input path: {input_path}")
-    logger.info(f"Output path: {out}")
-    logger.info(f"Parameters: {parameters}")
-    preview_crop = _preview_face_crop_in_results(parameters.get("facecrop", "false"))
-    logger.info(
-        "Result preview: %s",
-        "face crop image" if preview_crop else "full image",
-    )
-    logger.info(f"Selected models: {selected_models}")
-
-    # Filter models
-    model_map = {
-        "BNext_M_ModelONNX": BNext_M_ModelONNX,
-    }
-    active_models = [model_map[m]() for m in selected_models if m in model_map]
-    logger.info(f"Active models: {[m.__class__.__name__ for m in active_models]}")
-    crop_preview_root = out.parent if out.suffix else out
-    crop_preview_root.mkdir(parents=True, exist_ok=True)
-    for m in active_models:
-        setattr(m, "crop_preview_dir", str(crop_preview_root.resolve()))
-
-    now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-    out = crop_preview_root / f"predictions_{now}.csv"
-
-    # Face-aligned crops improve scores; always load when ONNX is available (``facecrop`` only affects result UI).
-    facecropper: Optional[ort.InferenceSession] = None
-    try:
-        facecropper = _load_face_detector_session()
+        logger.info(f"Input path: {input_path}")
+        logger.info(f"Output path: {out}")
+        logger.info(f"Parameters: {parameters}")
+        preview_crop = _preview_face_crop_in_results(parameters.get("facecrop", "false"))
         logger.info(
-            "Face detector loaded; preprocess uses face alignment when a face is found (headshot uses full frame)."
+            "Result preview: %s",
+            "face crop image" if preview_crop else "full image",
         )
-    except Exception as e:
-        logger.warning(
-            "Face detector unavailable (%s); preprocessing falls back to full images only.",
-            e,
-        )
-    dataset = defaultDataset(dataset_path=input_path, resolution=224)
-    res_list = run_models(active_models, dataset, facecrop=facecropper)
-    logger.debug(f"Results list: {res_list}")
+        logger.info(f"Selected models: {selected_models}")
 
-    # Persist aggregate results beside crop previews (CLI and tests expect predictions_*.csv here).
-    csv_fields = ["model_name", "image_path", "prediction", "confidence"]
-    with open(out, "w", newline="", encoding="utf-8") as csv_f:
-        writer = csv.DictWriter(csv_f, fieldnames=csv_fields, extrasaction="ignore")
-        writer.writeheader()
-        for model_results in res_list:
-            mn = model_results[0]["model_name"]
-            for row in model_results[1:]:
-                writer.writerow(
-                    {
-                        "model_name": mn,
-                        "image_path": row.get("image_path", ""),
-                        "prediction": row.get("prediction", ""),
-                        "confidence": row.get("confidence", ""),
-                    }
-                )
-    logger.info("Wrote predictions CSV to %s", out)
+        # Filter models
+        model_map = {
+            "BNext_M_ModelONNX": BNext_M_ModelONNX,
+        }
+        active_models = [model_mapm for m in selected_models if m in model_map]
+        logger.info(f"Active models: {[m.__class__.__name__ for m in active_models]}")
+        crop_preview_root = out.parent if out.suffix else out
+        crop_preview_root.mkdir(parents=True, exist_ok=True)
+        for m in active_models:
+            setattr(m, "crop_preview_dir", str(crop_preview_root.resolve()))
 
-    # Prepare model data structure
-    model_data = []
-    for model_results in res_list:
-        model_name = model_results[0]["model_name"]
-        predictions = model_results[1:]
-        model_data.append({"name": model_name, "predictions": predictions})
-    
-    file_responses: List[FileResponse] = []
-    if model_data and model_data[0]["predictions"]:
-        num_images = len(model_data[0]["predictions"])
-        for i in range(num_images):
-            row_metadata: Dict[str, Any] = {}
-            # Use the full image_path instead of just the basename
-            full_image_path = model_data[0]["predictions"][i]["image_path"]
-            path_basename = os.path.basename(full_image_path)
-            
-            crop_preview_path = model_data[0]["predictions"][i].get("crop_preview_path")
-            if preview_crop and crop_preview_path:
-                display_path = crop_preview_path
-                title = f"Face crop"
-                row_metadata[f"Image path"] = full_image_path
-                
-            elif preview_crop:
-                display_path = full_image_path
-                title = f"Full image"
-            else:
-                display_path = full_image_path
-                title = f"Full image"
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-            for m_idx, m in enumerate(model_data):
-                pred = m["predictions"][i]["prediction"]
-                conf = m["predictions"][i]["confidence"]
-                model_name = m["name"]
-                row_metadata[f"Prediction"] = pred
-                row_metadata[f"Confidence"] = f"{conf * 100:.0f}%"
+        out = crop_preview_root / f"predictions_{now}.csv"
 
-            file_responses.append(
-                FileResponse(
-                    file_type="img",
-                    path=display_path,
-                    title=title,
-                    metadata=row_metadata,
-                )
+        # Face-aligned crops improve scores; always load when ONNX is available (``facecrop`` only affects result UI).
+        facecropper: Optional[ort.InferenceSession] = None
+        try:
+            facecropper = _load_face_detector_session()
+            logger.info(
+                "Face detector loaded; preprocess uses face alignment when a face is found (headshot uses full frame)."
             )
-    if not file_responses:
-        return ResponseBody(root=TextResponse(value="No predictions generated or no images found."))
-    
-    return ResponseBody(root=BatchFileResponse(files=file_responses))
+        except Exception as e:
+            logger.warning(
+                "Face detector unavailable (%s); preprocessing falls back to full images only.",
+                e,
+            )
+        dataset = defaultDataset(dataset_path=input_path, resolution=224)
+        res_list = run_models(active_models, dataset, facecrop=facecropper)
+        logger.debug(f"Results list: {res_list}")
+
+        # Persist aggregate results beside crop previews (CLI and tests expect predictions_*.csv here).
+        csv_fields = ["model_name", "image_path", "prediction", "confidence"]
+        with open(out, "w", newline="", encoding="utf-8") as csv_f:
+            writer = csv.DictWriter(csv_f, fieldnames=csv_fields, extrasaction="ignore")
+            writer.writeheader()
+            for model_results in res_list:
+                mn = model_results[0]["model_name"]
+                for row in model_results[1:]:
+                    writer.writerow(
+                        {
+                            "model_name": mn,
+                            "image_path": row.get("image_path", ""),
+                            "prediction": row.get("prediction", ""),
+                            "confidence": row.get("confidence", ""),
+                        }
+                    )
+        logger.info("Wrote predictions CSV to %s", out)
+
+        # Prepare model data structure
+        model_data = []
+        for model_results in res_list:
+            model_name = model_results[0]["model_name"]
+            predictions = model_results[1:]
+            model_data.append({"name": model_name, "predictions": predictions})
+        
+        file_responses: List[FileResponse] = []
+        if model_data and model_data[0]["predictions"]:
+            num_images = len(model_data[0]["predictions"])
+            for i in range(num_images):
+                row_metadata: Dict[str, Any] = {}
+                # Use the full image_path instead of just the basename
+                full_image_path = model_data[0]["predictions"][i]["image_path"]
+                path_basename = os.path.basename(full_image_path)
+                
+                crop_preview_path = model_data[0]["predictions"][i].get("crop_preview_path")
+                if preview_crop and crop_preview_path:
+                    display_path = crop_preview_path
+                    title = f"Face crop"
+                    row_metadata[f"Image path"] = full_image_path
+                    
+                elif preview_crop:
+                    display_path = full_image_path
+                    title = f"Full image"
+                else:
+                    display_path = full_image_path
+                    title = f"Full image"
+
+                for m_idx, m in enumerate(model_data):
+                    pred = m["predictions"][i]["prediction"]
+                    conf = m["predictions"][i]["confidence"]
+                    model_name = m["name"]
+                    row_metadata[f"Prediction"] = pred
+                    row_metadata[f"Confidence"] = f"{conf * 100:.0f}%"
+
+                file_responses.append(
+                    FileResponse(
+                        file_type="img",
+                        path=display_path,
+                        title=title,
+                        metadata=row_metadata,
+                    )
+                )
+        if not file_responses:
+            return ResponseBody(root=TextResponse(value="No predictions generated or no images found."))
+        
+        return ResponseBody(root=BatchFileResponse(files=file_responses))
     
 
 # ----------------------------

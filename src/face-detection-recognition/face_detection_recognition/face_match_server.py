@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import typer
+import threading
 from dotenv import load_dotenv
 from typing import List, TypedDict
 
@@ -191,6 +192,7 @@ def get_ingest_query_image_task_schema() -> TaskSchema:
 
 
 # create an instance of the model
+_FACE_MATCH_LOCK = threading.Lock()
 face_match_model = FaceMatchModel()
 
 
@@ -354,57 +356,58 @@ def find_face_bulk_endpoint(
     inputs: FindFaceBulkInputs, parameters: FindFaceBulkParameters
 ) -> ResponseBody:
 
-    # Check CUDNN compatability
-    check_cuDNN_version()
+    with _FACE_MATCH_LOCK:
+        # Check CUDNN compatability
+        check_cuDNN_version()
 
-    _query_path = str(inputs["query_directory"].path)
-    _scope_db = vector_db_for_current_request(_query_path)
-    full_collection_name = _scope_db.create_full_collection_name(
-        parameters["collection_name"],
-        config["detector_backend"],
-        config["model_name"],
-        False,
-    )
+        _query_path = str(inputs["query_directory"].path)
+        _scope_db = vector_db_for_current_request(_query_path)
+        full_collection_name = _scope_db.create_full_collection_name(
+            parameters["collection_name"],
+            config["detector_backend"],
+            config["model_name"],
+            False,
+        )
 
-    # Call model function to find matches
-    status, results = face_match_model.find_face_bulk(
-        inputs["query_directory"].path,
-        parameters["similarity_threshold"],
-        full_collection_name,
-    )
-    log_info(status)
+        # Call model function to find matches
+        status, results = face_match_model.find_face_bulk(
+            inputs["query_directory"].path,
+            parameters["similarity_threshold"],
+            full_collection_name,
+        )
+        log_info(status)
 
-    file_responses = []
-    if status and results:
-        for query_img_name, matched_paths in results.items():
-            # Ensure matched_paths is a list, even if it's a single path
-            if not isinstance(matched_paths, list):
-                matched_paths = [matched_paths]
+        file_responses = []
+        if status and results:
+            for query_img_name, matched_paths in results.items():
+                # Ensure matched_paths is a list, even if it's a single path
+                if not isinstance(matched_paths, list):
+                    matched_paths = [matched_paths]
 
-            query_abs = os.path.normpath(os.path.join(_query_path, query_img_name))
-            for matched_path in matched_paths:
-                matched_filename = os.path.basename(matched_path)
-                file_responses.append(
-                    FileResponse(
-                        file_type="img",
-                        path=matched_path,
-                        title=f'Find "{query_img_name}" -> db image "{matched_filename}"',
-                        metadata={
-                            # Frontend: dual preview (query vs collection hit). Path column = gallery file.
-                            "query_image_path": query_abs,
-                            "Query photo": query_img_name,
-                            "Gallery match": matched_filename,
-                        },
+                query_abs = os.path.normpath(os.path.join(_query_path, query_img_name))
+                for matched_path in matched_paths:
+                    matched_filename = os.path.basename(matched_path)
+                    file_responses.append(
+                        FileResponse(
+                            file_type="img",
+                            path=matched_path,
+                            title=f'Find "{query_img_name}" -> db image "{matched_filename}"',
+                            metadata={
+                                # Frontend: dual preview (query vs collection hit). Path column = gallery file.
+                                "query_image_path": query_abs,
+                                "Query photo": query_img_name,
+                                "Gallery match": matched_filename,
+                            },
+                        )
                     )
-                )
-    
-    if not status or not file_responses:
-        # If results is a string (e.g., an error message), use it directly
-        # Otherwise, convert the dictionary to a string representation
-        error_message = str(results) if isinstance(results, str) else json.dumps(results, indent=2)
-        return ResponseBody(root=TextResponse(value=error_message))
-    
-    return ResponseBody(root=BatchFileResponse(files=file_responses))
+        
+        if not status or not file_responses:
+            # If results is a string (e.g., an error message), use it directly
+            # Otherwise, convert the dictionary to a string representation
+            error_message = str(results) if isinstance(results, str) else json.dumps(results, indent=2)
+            return ResponseBody(root=TextResponse(value=error_message))
+        
+        return ResponseBody(root=BatchFileResponse(files=file_responses))
 
 server.add_ml_service(
     rule="/findfacebulk",
@@ -597,28 +600,29 @@ class BulkUploadParameters(TypedDict):
 def bulk_upload_endpoint(
     inputs: BulkUploadInputs, parameters: BulkUploadParameters
 ) -> ResponseBody:
-    available_collections = _bulk_upload_collection_choices(is_ensemble=False)
-    base_collection_name = _resolve_bulk_upload_base_collection_name(
-        parameters, available_collections
-    )
+    with _FACE_MATCH_LOCK:
+        available_collections = _bulk_upload_collection_choices(is_ensemble=False)
+        base_collection_name = _resolve_bulk_upload_base_collection_name(
+            parameters, available_collections
+        )
 
-    # Check CUDNN compatability
-    check_cuDNN_version()
-    # Get list of directory paths from input
-    input_directory_path = str(inputs["directory_path"].path)
-    log_info(input_directory_path)
-    _scope_db = vector_db_for_current_request(input_directory_path)
-    full_collection_name = _scope_db.create_full_collection_name(
-        base_collection_name,
-        config["detector_backend"],
-        config["model_name"],
-        False,
-    )
-    # Call the model function
-    response = face_match_model.bulk_upload(input_directory_path, full_collection_name)
+        # Check CUDNN compatability
+        check_cuDNN_version()
+        # Get list of directory paths from input
+        input_directory_path = str(inputs["directory_path"].path)
+        log_info(input_directory_path)
+        _scope_db = vector_db_for_current_request(input_directory_path)
+        full_collection_name = _scope_db.create_full_collection_name(
+            base_collection_name,
+            config["detector_backend"],
+            config["model_name"],
+            False,
+        )
+        # Call the model function
+        response = face_match_model.bulk_upload(input_directory_path, full_collection_name)
 
-    # New collections appear on the next task_schema fetch (Chroma list_collections).
-    return ResponseBody(root=TextResponse(value=response))
+        # New collections appear on the next task_schema fetch (Chroma list_collections).
+        return ResponseBody(root=TextResponse(value=response))
 
 
 server.add_ml_service(
@@ -1250,24 +1254,25 @@ class DeleteCollectionParameters(TypedDict):
 def delete_collection_endpoint(
     inputs: DeleteCollectionInputs, parameters: DeleteCollectionParameters
 ) -> ResponseBody:
-    responseValue = ""
-    collection_name = parameters["collection_name"]
-    _db = vector_db_for_current_request(None)
-    full_collection_name = _db.create_full_collection_name(
-        parameters["collection_name"],
-        config["detector_backend"],
-        config["model_name"],
-        False,
-    )
-    try:
-        _db.client.delete_collection(full_collection_name)
-        responseValue = f"Successfully deleted {full_collection_name}"
-        log_info(responseValue)
-    except Exception:
-        responseValue = f"Collection {full_collection_name} does not exist."
-        log_info(responseValue)
+    with _FACE_MATCH_LOCK:
+        responseValue = ""
+        collection_name = parameters["collection_name"]
+        _db = vector_db_for_current_request(None)
+        full_collection_name = _db.create_full_collection_name(
+            parameters["collection_name"],
+            config["detector_backend"],
+            config["model_name"],
+            False,
+        )
+        try:
+            _db.client.delete_collection(full_collection_name)
+            responseValue = f"Successfully deleted {full_collection_name}"
+            log_info(responseValue)
+        except Exception:
+            responseValue = f"Collection {full_collection_name} does not exist."
+            log_info(responseValue)
 
-    return ResponseBody(root=TextResponse(value=responseValue))
+        return ResponseBody(root=TextResponse(value=responseValue))
 
 
 server.add_ml_service(
