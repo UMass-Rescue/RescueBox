@@ -102,7 +102,7 @@ class BaseComponent(ABC):
         message = f"{self.__class__.__name__}: {action}"
         if details:
             message += f" - {details}"
-        self.logger.debug(message)
+        self.logger.info(message)
 
 
 class ComponentRegistry:

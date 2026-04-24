@@ -125,7 +125,7 @@ class BNext_M_ModelONNX:
             "likely fake"
             if confidence < 0.2
             else (
-                "weakly fake"
+                "likely fake"
                 if confidence < 0.4
                 else (
                     "uncertain"

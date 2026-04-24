@@ -234,7 +234,7 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         model_map = {
             "BNext_M_ModelONNX": BNext_M_ModelONNX,
         }
-        active_models = [model_mapm for m in selected_models if m in model_map]
+        active_models = [model_map[m]() for m in selected_models if m in model_map]
         logger.info(f"Active models: {[m.__class__.__name__ for m in active_models]}")
         crop_preview_root = out.parent if out.suffix else out
         crop_preview_root.mkdir(parents=True, exist_ok=True)
