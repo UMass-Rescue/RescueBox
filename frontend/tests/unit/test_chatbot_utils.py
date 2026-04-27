@@ -53,7 +53,7 @@ TEST_DATA_PATH = "/tmp/data/files"
 AGE_GENDER_ENDPOINT = "age-gender/predict"
 DEEPFAKE_ENDPOINT = "deepfake_detection/give_prediction"
 BULK_UPLOAD_ENDPOINT = "face-match/bulk_upload_endpoint"
-FIND_FACE_ENDPOINT = "face-match/find_face_bulk_endpoint"
+FIND_FACE_ENDPOINT = "face-match/findfacebulk"
 
 # Endpoint-specific normalized keys
 IMAGE_DIRECTORY_KEY = "image_directory"
@@ -178,8 +178,8 @@ class TestNormalizeArguments:
         """
         args = {INPUT_DIR_KEY: TEST_VIDEOS_PATH}
         result = normalize_arguments(args, endpoint=DEEPFAKE_ENDPOINT)
-        assert INPUT_DATASET_KEY in result
-        assert result[INPUT_DATASET_KEY] == TEST_VIDEOS_PATH
+        assert INPUT_DIR_KEY in result
+        assert result[INPUT_DIR_KEY] == TEST_VIDEOS_PATH
 
     def test_normalize_bulk_upload_endpoint(self):
         """Test endpoint-specific normalization for face-match bulk upload.
@@ -389,9 +389,8 @@ class TestGetRejectionMessage:
     def test_non_forensic_rejection(self):
         """Test rejection message for non-forensic requests"""
         message = get_rejection_message("non_forensic")
-        assert "Request Not Supported" in message
-        assert "RescueBox Forensic Assistant" in message
-        assert "What I CAN Do" in message
+        assert "RescueBox chat Assistant" in message
+        assert "What will work:" in message
     
     def test_no_match_rejection(self):
         """Test rejection message for unmatched requests"""
@@ -409,6 +408,5 @@ class TestGetRejectionMessage:
     def test_rejection_format(self):
         """Test that rejection messages are properly formatted markdown"""
         message = get_rejection_message("non_forensic")
-        assert message.startswith("##")
+        assert "**RescueBox" in message
         assert "|" in message  # Should contain table
-

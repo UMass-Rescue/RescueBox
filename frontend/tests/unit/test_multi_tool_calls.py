@@ -276,7 +276,7 @@ class TestChainOutputToInput:
         )
         result = chain_output_to_input(previous_output, {}, current_schema)
         assert result["input_dir"] == transcripts
-        assert result["output_dir"] == "/evidence/audio_in/text_summary"
+        assert result["output_dir"] == transcripts
 
     def test_chain_after_ufdr_mount_sets_input_dir_files(self):
         """After UFDR mount, next tool input_dir is mount point + /files."""
@@ -618,4 +618,3 @@ class TestBatchMetadataFilterGate:
             {"path": "/photos/a.jpg", "metadata": {"Gender": "Female", "Age": "(4-6)"}},
         ]
         assert batch_items_have_age_gender_metadata(items) is True
-

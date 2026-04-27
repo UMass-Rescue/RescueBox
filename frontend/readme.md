@@ -607,12 +607,10 @@ frontend/
 │   ├── jobs/                    # Jobs page components
 │   ├── chatbot/                 # Chatbot page (HEAVILY REFACTORED)
 │   │   ├── __init__.py
-│   │   ├── chatbot.py           # Main chatbot orchestrator
-│   │   ├── handlers/            # Specialized handlers
-│   │   ├── utils/               # Utility modules (20+ files)
-│   │   ├── state/               # State management
-│   │   ├── pickers.py           # Tool/model pickers
-│   │   ├── results.py           # Results display
+│   │   ├── chatbot.py           # Main ChatbotPage class
+│   │   ├── chatbot_handlers.py  # Message sending and form handlers
+│   │   ├── utils/               # Utility modules (job orchestrator, layout context, result router, etc.)
+│   │   ├── state/               # State management (ChatbotStateManager)
 │   │   ├── constants.py         # Configuration constants
 │   │   └── parameter_handlers.py # URL parameter processing
 │   └── logs/                    # Logs page
@@ -714,13 +712,11 @@ The frontend has been comprehensively refactored into a modern, modular architec
 
 ##### **Chatbot Page** (Heavily Refactored - 20+ modules)
 - **`chatbot.py`**: Main orchestrator class
-- **`handlers/`**: Specialized handlers (5 modules)
-- **`utils/`**: Utility classes (20+ modules) - message processing, form handling, UI building, etc.
-- **`state/`**: State management classes
+- **`chatbot_handlers.py`**: Message routing, form submission wrapper, etc.
+- **`utils/`**: Utility classes - `JobSubmissionOrchestrator`, `ResultRouter`, `FormProcessor`, etc.
+- **`state/`**: State management classes (`ChatbotStateManager`)
 - **`parameter_handlers.py`**: URL parameter processing
 - **`constants.py`**: Configuration constants
-- **`pickers.py`**: Tool and analysis pickers
-- **`results.py`**: Result rendering coordination
 
 ##### **Database Architecture** (Refactored 2024)
 - **`base_db.py`**: Abstract base class with common database operations

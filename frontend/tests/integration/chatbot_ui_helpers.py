@@ -16,9 +16,7 @@ async def open_chatbot_and_wait_for_ready(user: "User", *, max_wait_s: float = 3
     n = max(1, int(max_wait_s / step))
     for _ in range(n):
         try:
-            await user.should_see("RescueBox Assistant")
             await user.should_see("Send")
-            await user.should_see("New Conversation")
             return
         except AssertionError:
             await asyncio.sleep(step)

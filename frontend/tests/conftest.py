@@ -392,6 +392,8 @@ def _patch_nicegui_background_tasks():
                 def _handle_done(t: asyncio.Task):
                     try:
                         _ = t.result()
+                    except asyncio.CancelledError:
+                        pass
                     except Exception as exc:
                         try:
                             import logging

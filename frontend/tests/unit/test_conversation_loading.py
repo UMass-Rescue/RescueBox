@@ -327,7 +327,9 @@ class TestRerunFunctionality:
             mock_navigate.assert_called_once_with('/chatbot?rerun=msg-123')
 
             # Verify notification
-            mock_notify.assert_called_once_with('Re-running: audio/transcribe', type='info')
+            mock_notify.assert_called_once()
+            assert mock_notify.call_args[0][0] == 'Re-running: audio/transcribe'
+            assert mock_notify.call_args[1].get('type') == 'info'
 
     @pytest.mark.asyncio
     @patch('frontend.database.get_chat_history_db')
@@ -340,7 +342,9 @@ class TestRerunFunctionality:
         with patch('frontend.components.chat.panels.conversation_actions.ui.notify') as mock_notify:
             await rerun_tool_call('nonexistent')
 
-            mock_notify.assert_called_once_with('Tool call not found for rerun', type='negative')
+            mock_notify.assert_called_once()
+            assert mock_notify.call_args[0][0] == 'Tool call not found for rerun'
+            assert mock_notify.call_args[1].get('type') == 'negative'
 
     @pytest.mark.asyncio
     @patch('frontend.database.get_chat_history_db')
@@ -365,7 +369,9 @@ class TestRerunFunctionality:
         with patch('frontend.components.chat.panels.conversation_actions.ui.notify') as mock_notify:
             await rerun_tool_call('msg-456')
 
-            mock_notify.assert_called_once_with('Invalid tool call data for rerun', type='negative')
+            mock_notify.assert_called_once()
+            assert mock_notify.call_args[0][0] == 'Invalid tool call data for rerun'
+            assert mock_notify.call_args[1].get('type') == 'negative'
 
 
 class TestChatbotPageRerun:
@@ -409,7 +415,9 @@ class TestChatbotPageRerun:
                 mock_chatbot.load_and_show_form.assert_called_once_with('audio/transcribe', {'input_dir': '/tmp'})
 
                 # Verify notification
-                mock_notify.assert_called_once_with('Re-running: audio/transcribe', type='info')
+                mock_notify.assert_called_once()
+                assert mock_notify.call_args[0][0] == 'Re-running: audio/transcribe'
+                assert mock_notify.call_args[1].get('type') == 'info'
 
     @patch('frontend.pages.chatbot.parameter_handlers.get_chat_history_db')
     @pytest.mark.asyncio
@@ -425,10 +433,9 @@ class TestChatbotPageRerun:
         with patch('frontend.pages.chatbot.parameter_handlers.ui.notify') as mock_notify:
             await handle_rerun_parameter('nonexistent')
 
-            mock_notify.assert_called_once_with(
-                'Tool call not found for rerun',
-                type='negative'
-            )
+            mock_notify.assert_called_once()
+            assert mock_notify.call_args[0][0] == 'Tool call not found for rerun'
+            assert mock_notify.call_args[1].get('type') == 'negative'
 
 
 class TestErrorHandling:
@@ -443,10 +450,9 @@ class TestErrorHandling:
 
         await load_conversation(TEST_CONVERSATION_ID)
 
-        mock_notify.assert_called_with(
-            "Error loading conversation: Storage error",
-            type="negative",
-        )
+        mock_notify.assert_called()
+        assert mock_notify.call_args[0][0] == "Error loading conversation: Storage error"
+        assert mock_notify.call_args[1].get('type') == 'negative'
 
     @patch('frontend.utils.nicegui_storage.get_conversation_to_load')
     @pytest.mark.asyncio

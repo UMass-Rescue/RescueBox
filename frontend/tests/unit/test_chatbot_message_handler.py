@@ -153,7 +153,7 @@ class TestMessageHandler:
                 result = await handler.handle_smart_analyze("tell me a joke")
                 
                 assert result["type"] == "message"
-                assert "Request Not Supported" in result["content"]
+                assert "RescueBox chat Assistant" in result["content"]
                 # Should not call Granite model
                 mock_call.assert_not_called()
     
@@ -228,4 +228,3 @@ class TestMessageHandler:
         
         assert result["type"] == "show_form"
         handler.handle_smart_analyze.assert_called_once_with("transcribe audio", None)
-

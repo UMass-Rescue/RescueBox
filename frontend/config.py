@@ -16,9 +16,9 @@ from pathlib import Path
 # API Configuration
 # When backend is integrated into NiceGUI, API is on the same port as frontend
 # Default to same port as frontend (unified server)
-_DEFAULT_API_URL = f'http://localhost:{int(os.getenv("RESCUEBOX_PORT", "8080"))}'
+_DEFAULT_API_URL = f'http://0.0.0.0:{int(os.getenv("RESCUEBOX_PORT", "8080"))}'
 _DEFAULT_BACKEND_PORT = 8080
-BACKEND_URL = f'http://localhost:{_DEFAULT_BACKEND_PORT}'
+BACKEND_URL = f'http://0.0.0.0:{_DEFAULT_BACKEND_PORT}'
 # Add /api prefix to the base URL to avoid collisions with UI routes
 API_BASE_URL = os.getenv('RESCUEBOX_API_URL', f"{_DEFAULT_API_URL}/api")
 API_TIMEOUT = float(os.getenv('RESCUEBOX_API_TIMEOUT', '30.0'))

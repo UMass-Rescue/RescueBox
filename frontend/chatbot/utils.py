@@ -52,9 +52,8 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
         "query": "query_directory",
         "collection": "collection_name",
         "threshold": "similarity_threshold",
-        "media_directory": "input_dataset",
-        "videos": "input_dataset",
-        "report": "output_file",
+        "media_directory": "input_dir",
+        "videos": "input_dir",
         "crop": "facecrop",
     }
     
@@ -85,13 +84,10 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
         elif ("age_gender" in endpoint or "age-gender" in endpoint) and new_key == "input_dir":
             new_key = "image_directory"
             logger.debug("Applied age-gender override: %s -> %s", key, new_key)
-        elif "deepfake" in endpoint and new_key == "input_dir":
-            new_key = "input_dataset"
-            logger.debug("Applied deepfake override: %s -> %s", key, new_key)
         elif "bulk_upload" in endpoint and new_key == "input_dir":
             new_key = "directory_path"
             logger.debug("Applied bulk_upload override: %s -> %s", key, new_key)
-        elif "find_face" in endpoint and new_key == "input_dir":
+        elif "findface" in endpoint and new_key == "input_dir":
             new_key = "query_directory"
             logger.debug("Applied find_face override: %s -> %s", key, new_key)
         elif key != new_key:

@@ -72,8 +72,8 @@ class DeepfakeDetection(BaseModel):
     """
     Detect deepfakes in an image directory. Input is a folder of images. Output is a file path of the deepfakes found per input file
     """
-    input_dataset: str = Field(..., description="Input path")
-    output_file: str = Field(..., description="Output report path")
+    input_dir: str = Field(..., description="Input directory of images")
+    output_dir: str = Field(..., description="Output directory for reports and crops")
     facecrop: str = Field("true", description="Face crop settings")
 
 class FileSystemScan(BaseModel):
@@ -292,7 +292,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "deepfake_detection/predict",
-                    "arguments": {"input_dataset": "/cases/c10", "output_file": "/cases/c10/report.json", "facecrop": "true"}
+                    "arguments": {"input_dir": "/cases/c10", "output_dir": "/cases/c10", "facecrop": "true"}
                 }
             }
         ]
@@ -314,7 +314,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "deepfake_detection/predict",
-                    "arguments": {"input_dataset": "/evidence/batch2", "output_file": "/evidence/batch2/report.json", "facecrop": "true"}
+                    "arguments": {"input_dir": "/evidence/batch2", "output_dir": "/evidence/batch2", "facecrop": "true"}
                 }
             }
         ]
@@ -335,7 +335,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "deepfake_detection/predict",
-                    "arguments": {"input_dataset": "/data/evidence/batch5", "output_file": "/data/evidence/batch5/report.json", "facecrop": "true"}
+                    "arguments": {"input_dir": "/data/evidence/batch5", "output_dir": "/data/evidence/batch5", "facecrop": "true"}
                 }
             },
             {
