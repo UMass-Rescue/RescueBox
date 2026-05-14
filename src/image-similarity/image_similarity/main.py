@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
+import pdqhash
 import typer
 from PIL import Image
 from transformers import CLIPImageProcessor
@@ -32,8 +33,9 @@ from rb.api.models import (
 )
 from rb.api.database import ImageEmbedding, engine
 from rb.api.embedding_storage import ImageEmbeddingStorage
+from image_similarity.scorers import ClipScorer, CombinedScorer, PdqScorer
 from sqlmodel import Session, select
-from sqlalchemy import bindparam, text, update
+from sqlalchemy import update
 
 
 APP_NAME = "image_similarity"
@@ -70,6 +72,7 @@ class Parameters(TypedDict):
     model_name: str
     top_k: int
     min_similarity: float
+    scoring_mode: str
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +168,27 @@ def _embed_image(
     return results[image_path]
 
 
+def _compute_pdq_hash(image_path: str) -> str:
+    """Return the 64-char hex-encoded 256-bit PDQ perceptual hash for an image.
+
+    PDQ (Facebook/Meta) is a robust perceptual hash that is invariant to minor
+    crops, rotations, and compression artefacts.  Returns an empty string on
+    failure so callers can treat missing hashes gracefully.
+    """
+    try:
+        img = Image.open(image_path).convert("RGB")
+        img_array = np.array(img, dtype=np.uint8)
+        hash_vector, _quality = pdqhash.compute(img_array)
+        # hash_vector is a list of 256 ints (0 or 1); pack into bytes then hex.
+        bits = 0
+        for bit in hash_vector:
+            bits = (bits << 1) | int(bit)
+        return format(bits, "064x")
+    except Exception as exc:
+        logger.warning("PDQ hash failed for %s: %s", image_path, exc)
+        return ""
+
+
 # ---------------------------------------------------------------------------
 #  Task schema
 # ---------------------------------------------------------------------------
@@ -183,6 +207,14 @@ def task_schema() -> TaskSchema:
     min_similarity_desc = RangedFloatParameterDescriptor(
         range=FloatRangeDescriptor(min=0.0, max=1.0),
         default=0.5,
+    )
+    scoring_mode_enum = EnumParameterDescriptor(
+        enum_vals=[
+            EnumVal(key="combined", label="Combined (CLIP + PDQ)"),
+            EnumVal(key="semantic", label="Semantic only (CLIP)"),
+            EnumVal(key="pdq", label="Perceptual only (PDQ)"),
+        ],
+        default="combined",
     )
 
     return TaskSchema(
@@ -216,6 +248,12 @@ def task_schema() -> TaskSchema:
                 label="Match threshold",
                 subtitle="Similarity >= this counts as a match (image–image scores are typically higher than text–image)",
                 value=min_similarity_desc,
+            ),
+            ParameterSchema(
+                key="scoring_mode",
+                label="Scoring mode",
+                subtitle="Combined averages CLIP semantic cosine similarity and PDQ perceptual hash distance",
+                value=scoring_mode_enum,
             ),
         ],
     )
@@ -252,26 +290,40 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor):
-    """Ensure every path has an embedding row in ``image_embeddings``.  Returns paths ready for search.
+def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
+    """Compute and store PDQ hashes for already-indexed images that lack one.
 
-    GPU optimisation: instead of calling the ONNX session once per image (N
-    separate kernel launches), this function first identifies *all* paths that
-    require a new embedding, deduplicates them by content hash, then feeds the
-    whole set to ``_embed_images_batch`` so the GPU can process them in large
-    batches.  Only after all embeddings are computed does it persist them.
+    Uses a single batch query instead of N individual lookups.
     """
-    already = _paths_already_embedded(session, file_paths)
-    file_paths_set = set(file_paths)
-    paths_for_search: list[str] = []
-    newly_embedded = relocated = cloned = 0
+    if not paths:
+        return 0
+    rows = session.exec(
+        select(ImageEmbedding).where(
+            ImageEmbedding.path.in_(paths),
+            ImageEmbedding.pdq_hash == "",
+        )
+    ).all()
+    filled = 0
+    for row in rows:
+        pdq = _compute_pdq_hash(row.path)
+        if pdq:
+            session.execute(
+                update(ImageEmbedding)
+                .where(ImageEmbedding.id == row.id)
+                .values(pdq_hash=pdq)
+            )
+            filled += 1
+    if filled:
+        session.flush()
+    return filled
 
-    # Phase 1 — single DB pass to discover which content hashes already exist.
+
+def _discover_new_paths(session, file_paths, already, path_to_hash):
+    """Return (hash_row_cache, need_embed) for paths not yet in the DB."""
     hash_row_cache: dict[str, ImageEmbedding | None] = {}
-    need_embed: list[str] = []  # paths whose content has no DB row at all
+    need_embed: list[str] = []
     for path in file_paths:
         if path in already:
-            paths_for_search.append(path)
             continue
         h = path_to_hash[path]
         if h not in hash_row_cache:
@@ -280,118 +332,125 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_sess
             ).first()
         if hash_row_cache[h] is None:
             need_embed.append(path)
+    return hash_row_cache, need_embed
 
-    # Phase 2 — batch-embed all genuinely new content in one GPU pass.
-    # Deduplicate by hash so identical files are only embedded once.
+
+def _batch_embed_and_hash(need_embed, path_to_hash, ort_session, processor):
+    """Batch-embed (CLIP) and batch-hash (PDQ) all genuinely new content.
+
+    Deduplicates by content hash so identical files are processed only once.
+    Returns (batch_embeddings, batch_pdq) keyed by content_sha256.
+    """
     batch_embeddings: dict[str, np.ndarray] = {}
-    if need_embed:
-        hash_to_rep: dict[str, str] = {}
-        for p in need_embed:
-            h = path_to_hash[p]
-            if h not in hash_to_rep:
-                hash_to_rep[h] = p
-        unique_paths = list(hash_to_rep.values())
-        logger.info("Batch-embedding %d new unique image(s) on GPU", len(unique_paths))
-        raw = _embed_images_batch(ort_session, processor, unique_paths)
-        for h, rep in hash_to_rep.items():
-            if rep in raw:
-                batch_embeddings[h] = raw[rep]
+    batch_pdq: dict[str, str] = {}
+    if not need_embed:
+        return batch_embeddings, batch_pdq
 
-    # Phase 3 — persist / relocate / clone using the pre-computed embeddings.
+    hash_to_rep: dict[str, str] = {}
+    for p in need_embed:
+        h = path_to_hash[p]
+        if h not in hash_to_rep:
+            hash_to_rep[h] = p
+    unique_paths = list(hash_to_rep.values())
+
+    logger.info("Batch-embedding %d new unique image(s) on GPU", len(unique_paths))
+    raw = _embed_images_batch(ort_session, processor, unique_paths)
+    for h, rep in hash_to_rep.items():
+        if rep in raw:
+            batch_embeddings[h] = raw[rep]
+        batch_pdq[h] = _compute_pdq_hash(rep)
+
+    return batch_embeddings, batch_pdq
+
+
+def _persist_new_path(
+    path, h, row, batch_embeddings, batch_pdq, file_paths_set,
+    session, storage, paths_for_search, already, counters,
+):
+    """Persist a single new path — insert, relocate, or clone."""
+    if row is None:
+        with _lock_for_content_hash(h):
+            row = session.exec(
+                select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
+            ).first()
+            if row is None:
+                if h in batch_embeddings:
+                    try:
+                        storage.save_embedding(
+                            path, batch_embeddings[h].tolist(),
+                            content_sha256=h,
+                            pdq_hash=batch_pdq.get(h, ""),
+                        )
+                        paths_for_search.append(path)
+                        counters["new"] += 1
+                        already.add(path)
+                        session.flush()
+                    except Exception as e:
+                        logger.warning("Could not store embedding for %s: %s", path, e)
+                else:
+                    logger.warning("Embedding not computed for %s — skipped", path)
+                return
+
+    if row is None:
+        return
+
+    if row.path == path:
+        paths_for_search.append(path)
+        already.add(path)
+        return
+
+    if row.path not in file_paths_set:
+        update_vals: dict = {"path": path}
+        if not row.pdq_hash:
+            pdq = batch_pdq.get(h) or _compute_pdq_hash(path)
+            if pdq:
+                update_vals["pdq_hash"] = pdq
+        session.execute(
+            update(ImageEmbedding).where(ImageEmbedding.id == row.id).values(**update_vals)
+        )
+        counters["relocated"] += 1
+        logger.info("Reused embedding by content hash (path updated): %s -> %s", row.path, path)
+    else:
+        emb = list(row.embedding) if row.embedding is not None else []
+        pdq = row.pdq_hash or batch_pdq.get(h, "")
+        session.add(ImageEmbedding(path=path, embedding=emb, content_sha256=h, pdq_hash=pdq))
+        counters["cloned"] += 1
+
+    paths_for_search.append(path)
+    already.add(path)
+    session.flush()
+
+
+def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor):
+    """Ensure every path has an embedding + PDQ row.  Returns paths ready for search."""
+    already = _paths_already_embedded(session, file_paths)
+    file_paths_set = set(file_paths)
+
+    paths_for_search = [p for p in file_paths if p in already]
+    _backfill_missing_pdq_hashes(session, paths_for_search)
+
+    hash_row_cache, need_embed = _discover_new_paths(
+        session, file_paths, already, path_to_hash,
+    )
+    batch_embeddings, batch_pdq = _batch_embed_and_hash(
+        need_embed, path_to_hash, ort_session, processor,
+    )
+
+    counters = {"new": 0, "relocated": 0, "cloned": 0}
     for path in file_paths:
         if path in already:
             continue
         h = path_to_hash[path]
-        row = hash_row_cache.get(h)
+        _persist_new_path(
+            path, h, hash_row_cache.get(h),
+            batch_embeddings, batch_pdq, file_paths_set,
+            session, storage, paths_for_search, already, counters,
+        )
 
-        if row is None:
-            with _lock_for_content_hash(h):
-                # Re-check after acquiring the lock; a concurrent thread may
-                # have inserted a row for the same content hash while we were
-                # in the batch-embed step above.
-                row = session.exec(
-                    select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
-                ).first()
-                if row is None:
-                    if h in batch_embeddings:
-                        try:
-                            storage.save_embedding(
-                                path, batch_embeddings[h].tolist(), content_sha256=h,
-                            )
-                            paths_for_search.append(path)
-                            newly_embedded += 1
-                            already.add(path)
-                            session.flush()
-                        except Exception as e:
-                            logger.warning("Could not store embedding for %s: %s", path, e)
-                    else:
-                        logger.warning("Embedding not computed for %s — skipped", path)
-                    continue
-
-        if row is not None:
-            if row.path == path:
-                paths_for_search.append(path)
-                already.add(path)
-                session.flush()
-                continue
-            if row.path not in file_paths_set:
-                session.execute(
-                    update(ImageEmbedding).where(ImageEmbedding.id == row.id).values(path=path)
-                )
-                relocated += 1
-                logger.info("Reused embedding by content hash (path updated): %s -> %s", row.path, path)
-            else:
-                emb = list(row.embedding) if row.embedding is not None else []
-                session.add(ImageEmbedding(path=path, embedding=emb, content_sha256=h))
-                cloned += 1
-            paths_for_search.append(path)
-            already.add(path)
-            session.flush()
-            continue
-
-    if newly_embedded or relocated or cloned:
+    if any(counters.values()):
         storage.commit()
 
     return paths_for_search
-
-
-def _cosine_similarity_search(
-    query_vec: np.ndarray,
-    session: Session,
-    search_paths: list[str],
-    top_k: int,
-) -> list[dict]:
-    """Find the top-K most similar embeddings using pgvector's cosine distance.
-
-    Delegates to pgvector's indexed ``<=>`` operator so the DB can leverage
-    HNSW/IVFFlat indexes and handle arbitrarily large candidate sets without
-    loading all vectors into process memory.
-    """
-    if not search_paths:
-        return []
-    qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
-    stmt = (
-        text(
-            """
-            SELECT id, path, 1 - (embedding <=> CAST(:qvec AS vector)) AS similarity
-            FROM image_embeddings
-            WHERE path IN :paths
-            ORDER BY embedding <=> CAST(:qvec AS vector)
-            LIMIT :top_k
-            """
-        ).bindparams(bindparam("paths", expanding=True))
-    )
-    rows = session.execute(
-        stmt, {"qvec": qvec_literal, "paths": search_paths, "top_k": top_k},
-    ).fetchall()
-    return [
-        {
-            "id": row.id,
-            "path": row.path,
-            "similarity": round(float(row.similarity), 4),
-        }
-        for row in rows
-    ]
 
 
 def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
@@ -402,12 +461,14 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     model_name = parameters.get("model_name", _DEFAULT_MODEL)
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
+    scoring_mode = parameters.get("scoring_mode", "combined")
 
     ort_session, processor = _load_onnx_vision_model()
     logger.info(
-        "ONNX vision model loaded: providers=%s model=%s",
+        "ONNX vision model loaded: providers=%s model=%s scoring_mode=%s",
         ort_session.get_providers(),
         model_name,
+        scoring_mode,
     )
 
     file_paths: list[str] = []
@@ -439,34 +500,69 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
             select(ImageEmbedding).where(ImageEmbedding.path == query_image_path)
         ).first()
 
-        if query_row is not None and query_row.embedding is not None:
-            query_vec = np.array(list(query_row.embedding), dtype=np.float32)
-        else:
-            query_vec = _embed_image(ort_session, processor, query_image_path)
+        # Resolve query CLIP embedding (needed for semantic / combined).
+        query_vec: np.ndarray | None = None
+        if scoring_mode in ("semantic", "combined"):
+            if query_row is not None and query_row.embedding is not None:
+                query_vec = np.array(list(query_row.embedding), dtype=np.float32)
+            else:
+                query_vec = _embed_image(ort_session, processor, query_image_path)
+
+        # Resolve query PDQ hash (needed for pdq / combined).
+        query_pdq: str = ""
+        if scoring_mode in ("pdq", "combined"):
+            if query_row is not None and query_row.pdq_hash:
+                query_pdq = query_row.pdq_hash
+            else:
+                query_pdq = _compute_pdq_hash(query_image_path)
 
         search_paths = [p for p in paths_for_search if p != query_image_path]
-        raw_results = _cosine_similarity_search(query_vec, session, search_paths, top_k)
+
+        if scoring_mode == "semantic":
+            assert query_vec is not None
+            scorer = ClipScorer(session, query_vec)
+            raw_results = scorer.score(query_image_path, search_paths, top_k)
+        elif scoring_mode == "pdq":
+            scorer = PdqScorer(session, query_pdq)
+            raw_results = scorer.score(query_image_path, search_paths, top_k)
+        else:  # combined
+            assert query_vec is not None
+            clip_scorer = ClipScorer(session, query_vec)
+            pdq_scorer = PdqScorer(session, query_pdq)
+            scorer = CombinedScorer([
+                ("clip", clip_scorer, 0.5),
+                ("pdq", pdq_scorer, 0.5),
+            ])
+            raw_results = scorer.score(query_image_path, search_paths, top_k)
+
         search_results = [
-            {**hit, "is_match": hit["similarity"] >= min_similarity}
+            {**hit, "is_match": hit["score"] >= min_similarity}
             for hit in raw_results
         ]
 
     query_label = f"Similar to {os.path.basename(query_image_path)}"
     file_responses: list[FileResponse] = []
     for rank, hit in enumerate(search_results, start=1):
+        score = hit["score"]
+        meta: dict[str, str] = {
+            "Query": query_label,
+            "Similarity": str(score),
+            "Match": "Yes" if hit["is_match"] else "No",
+            "Scoring": scoring_mode,
+            "Model": model_name,
+        }
+        if scoring_mode == "combined":
+            if "score_clip" in hit:
+                meta["CLIP score"] = str(hit["score_clip"])
+            if "score_pdq" in hit:
+                meta["PDQ score"] = str(hit["score_pdq"])
         file_responses.append(
             FileResponse(
                 file_type=FileType.IMG,
                 path=str(hit["path"]),
-                title=f"#{rank} · similarity {hit['similarity']}",
+                title=f"#{rank} · similarity {score}",
                 subtitle=query_label,
-                metadata={
-                    "Query": query_label,
-                    "Similarity": str(hit["similarity"]),
-                    "Match": "Yes" if hit["is_match"] else "No",
-                    "Model": model_name,
-                    "id": str(hit.get("id", "")),
-                },
+                metadata=meta,
             )
         )
 
@@ -488,7 +584,11 @@ def parameters_cli_parse(value: str) -> Parameters:
     model_name = parts[0] if len(parts) > 0 and parts[0] else _DEFAULT_MODEL
     top_k = int(parts[1]) if len(parts) > 1 and parts[1] else 5
     min_similarity = float(parts[2]) if len(parts) > 2 and parts[2] else 0.5
-    return Parameters(model_name=model_name, top_k=top_k, min_similarity=min_similarity)
+    raw_mode = parts[3] if len(parts) > 3 and parts[3] else "combined"
+    if raw_mode not in ("semantic", "pdq", "combined"):
+        raise ValueError(f"scoring_mode must be one of semantic/pdq/combined, got: {raw_mode!r}")
+    scoring_mode = raw_mode
+    return Parameters(model_name=model_name, top_k=top_k, min_similarity=min_similarity, scoring_mode=scoring_mode)
 
 
 server.add_ml_service(
@@ -500,7 +600,7 @@ server.add_ml_service(
     ),
     parameters_cli_parser=typer.Argument(
         parser=parameters_cli_parse,
-        help="model_name,top_k,min_similarity",
+        help="model_name,top_k,min_similarity,scoring_mode  (scoring_mode: combined|semantic|pdq)",
     ),
     short_title="Find similar images (image query)",
     order=0,
