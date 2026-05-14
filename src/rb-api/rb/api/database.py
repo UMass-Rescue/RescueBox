@@ -43,6 +43,17 @@ def create_db_and_tables():
             )
     except Exception:
         pass
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_embeddings ADD COLUMN IF NOT EXISTS "
+                    "pdq_hash VARCHAR(64) DEFAULT ''"
+                )
+            )
+    except Exception:
+        pass
     # BGE-M3 and other modern text encoders use 1024-dim vectors; legacy was 384 (MiniLM / bge-small).
     try:
         from sqlalchemy import text
@@ -134,6 +145,8 @@ class ImageEmbedding(SQLModel, table=True):
     # SHA-256 hex of file bytes; reuse embeddings when path changes but content matches.
     content_sha256: str = Field(default="", index=True)
     embedding: list[int] = Field(default=[], sa_column=Column(Vector(1024)))
+    # 64-char hex encoding of the 256-bit PDQ perceptual hash.
+    pdq_hash: str = Field(default="")
 
 # TODO: There is probably a way to do this without this try kludge
 try:

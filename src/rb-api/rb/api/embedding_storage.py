@@ -121,10 +121,12 @@ class ImageEmbeddingStorage(DatabaseEmbeddingStorage):
     """Storage implementation for image embeddings."""
 
     def save_embedding(
-        self, path: str, embedding: list[float], *, content_sha256: str = ""
+        self, path: str, embedding: list[float], *,
+        content_sha256: str = "", pdq_hash: str = "",
     ) -> None:
         record = ImageEmbedding(
-            path=path, embedding=embedding, content_sha256=content_sha256
+            path=path, embedding=embedding,
+            content_sha256=content_sha256, pdq_hash=pdq_hash,
         )
         self.session.add(record)
 
