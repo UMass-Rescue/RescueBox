@@ -44,6 +44,9 @@ ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
 _DEFAULT_MODEL = "openai/clip-vit-base-patch32"
 _MODELS_DIR = Path(__file__).resolve().parent / "onnx_models"
 _DEFAULT_ONNX_PATH = _MODELS_DIR / "clip-vit-base-patch32.onnx"
+# Number of images fed to the ONNX session per GPU kernel launch.
+# Larger values increase GPU utilisation; reduce if VRAM is limited.
+_EMBED_BATCH_SIZE = 32
 
 _EMBED_LOCKS_GUARD = threading.Lock()
 _EMBED_LOCKS: dict[str, threading.Lock] = {}
@@ -98,22 +101,68 @@ def _load_onnx_vision_model() -> tuple[ort.InferenceSession, CLIPImageProcessor]
     return session, processor
 
 
+def _supports_dynamic_batch(ort_session: ort.InferenceSession) -> bool:
+    """Return True if the ONNX model accepts a variable batch dimension."""
+    inp = ort_session.get_inputs()[0]
+    batch_dim = inp.shape[0]
+    return not isinstance(batch_dim, int) or batch_dim != 1
+
+
+def _embed_images_batch(
+    ort_session: ort.InferenceSession,
+    processor: CLIPImageProcessor,
+    image_paths: list[str],
+    batch_size: int = _EMBED_BATCH_SIZE,
+) -> dict[str, np.ndarray]:
+    """Compute normalised embeddings for multiple images, batched when possible.
+
+    If the ONNX model was exported with a dynamic batch axis, images are
+    grouped into batches of ``batch_size`` and processed in a single forward
+    pass per batch — this maximises GPU throughput.  If the model has a fixed
+    batch dimension of 1 (common for default CLIP exports), we fall back to
+    sequential processing but still vectorise the L2 normalisation across all
+    results at the end.
+
+    Returns a dict mapping each successfully processed path to its 1-D
+    float32 embedding vector.
+    """
+    dynamic = _supports_dynamic_batch(ort_session)
+    effective_batch = batch_size if dynamic else 1
+
+    results: dict[str, np.ndarray] = {}
+    for i in range(0, len(image_paths), effective_batch):
+        batch_paths = image_paths[i : i + effective_batch]
+        images: list[Image.Image] = []
+        valid_paths: list[str] = []
+        for p in batch_paths:
+            try:
+                images.append(Image.open(p).convert("RGB"))
+                valid_paths.append(p)
+            except Exception as exc:
+                logger.warning("Could not open %s: %s", p, exc)
+        if not images:
+            continue
+        pixel_values = processor(images=images, return_tensors="np")["pixel_values"].astype(
+            np.float32
+        )
+        outputs = ort_session.run(None, {"pixel_values": pixel_values})
+        embeds = outputs[0]  # (batch, embed_dim)
+        embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
+        for path, vec in zip(valid_paths, embeds):
+            results[path] = vec
+    return results
+
+
 def _embed_image(
     ort_session: ort.InferenceSession,
     processor: CLIPImageProcessor,
     image_path: str,
 ) -> np.ndarray:
-    """Compute a normalised image embedding via ONNX Runtime.  Returns a 1-D float32 array."""
-    image = Image.open(image_path).convert("RGB")
-    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(
-        np.float32
-    )
-    outputs = ort_session.run(None, {"pixel_values": pixel_values})
-    image_embeds = outputs[0]
-    image_embeds = image_embeds / np.linalg.norm(
-        image_embeds, axis=-1, keepdims=True
-    )
-    return image_embeds.squeeze()
+    """Compute a normalised embedding for a single image.  Returns a 1-D float32 array."""
+    results = _embed_images_batch(ort_session, processor, [image_path])
+    if image_path not in results:
+        raise RuntimeError(f"Failed to embed {image_path}")
+    return results[image_path]
 
 
 # ---------------------------------------------------------------------------
@@ -204,39 +253,79 @@ def _sha256_file(path: str) -> str:
 
 
 def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor):
-    """Ensure every path has an embedding row in ``image_embeddings``.  Returns paths ready for search."""
+    """Ensure every path has an embedding row in ``image_embeddings``.  Returns paths ready for search.
+
+    GPU optimisation: instead of calling the ONNX session once per image (N
+    separate kernel launches), this function first identifies *all* paths that
+    require a new embedding, deduplicates them by content hash, then feeds the
+    whole set to ``_embed_images_batch`` so the GPU can process them in large
+    batches.  Only after all embeddings are computed does it persist them.
+    """
     already = _paths_already_embedded(session, file_paths)
     file_paths_set = set(file_paths)
     paths_for_search: list[str] = []
     newly_embedded = relocated = cloned = 0
 
+    # Phase 1 — single DB pass to discover which content hashes already exist.
+    hash_row_cache: dict[str, ImageEmbedding | None] = {}
+    need_embed: list[str] = []  # paths whose content has no DB row at all
     for path in file_paths:
         if path in already:
             paths_for_search.append(path)
             continue
-
         h = path_to_hash[path]
-        row = session.exec(
-            select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
-        ).first()
+        if h not in hash_row_cache:
+            hash_row_cache[h] = session.exec(
+                select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
+            ).first()
+        if hash_row_cache[h] is None:
+            need_embed.append(path)
+
+    # Phase 2 — batch-embed all genuinely new content in one GPU pass.
+    # Deduplicate by hash so identical files are only embedded once.
+    batch_embeddings: dict[str, np.ndarray] = {}
+    if need_embed:
+        hash_to_rep: dict[str, str] = {}
+        for p in need_embed:
+            h = path_to_hash[p]
+            if h not in hash_to_rep:
+                hash_to_rep[h] = p
+        unique_paths = list(hash_to_rep.values())
+        logger.info("Batch-embedding %d new unique image(s) on GPU", len(unique_paths))
+        raw = _embed_images_batch(ort_session, processor, unique_paths)
+        for h, rep in hash_to_rep.items():
+            if rep in raw:
+                batch_embeddings[h] = raw[rep]
+
+    # Phase 3 — persist / relocate / clone using the pre-computed embeddings.
+    for path in file_paths:
+        if path in already:
+            continue
+        h = path_to_hash[path]
+        row = hash_row_cache.get(h)
 
         if row is None:
             with _lock_for_content_hash(h):
+                # Re-check after acquiring the lock; a concurrent thread may
+                # have inserted a row for the same content hash while we were
+                # in the batch-embed step above.
                 row = session.exec(
                     select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
                 ).first()
                 if row is None:
-                    try:
-                        embedding = _embed_image(ort_session, processor, path)
-                        storage.save_embedding(
-                            path, embedding.tolist(), content_sha256=h,
-                        )
-                        paths_for_search.append(path)
-                        newly_embedded += 1
-                        already.add(path)
-                        session.flush()
-                    except Exception as e:
-                        logger.warning("Could not process %s: %s", path, e)
+                    if h in batch_embeddings:
+                        try:
+                            storage.save_embedding(
+                                path, batch_embeddings[h].tolist(), content_sha256=h,
+                            )
+                            paths_for_search.append(path)
+                            newly_embedded += 1
+                            already.add(path)
+                            session.flush()
+                        except Exception as e:
+                            logger.warning("Could not store embedding for %s: %s", path, e)
+                    else:
+                        logger.warning("Embedding not computed for %s — skipped", path)
                     continue
 
         if row is not None:
@@ -264,6 +353,45 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_sess
         storage.commit()
 
     return paths_for_search
+
+
+def _cosine_similarity_search(
+    query_vec: np.ndarray,
+    session: Session,
+    search_paths: list[str],
+    top_k: int,
+) -> list[dict]:
+    """Find the top-K most similar embeddings using pgvector's cosine distance.
+
+    Delegates to pgvector's indexed ``<=>`` operator so the DB can leverage
+    HNSW/IVFFlat indexes and handle arbitrarily large candidate sets without
+    loading all vectors into process memory.
+    """
+    if not search_paths:
+        return []
+    qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
+    stmt = (
+        text(
+            """
+            SELECT id, path, 1 - (embedding <=> CAST(:qvec AS vector)) AS similarity
+            FROM image_embeddings
+            WHERE path IN :paths
+            ORDER BY embedding <=> CAST(:qvec AS vector)
+            LIMIT :top_k
+            """
+        ).bindparams(bindparam("paths", expanding=True))
+    )
+    rows = session.execute(
+        stmt, {"qvec": qvec_literal, "paths": search_paths, "top_k": top_k},
+    ).fetchall()
+    return [
+        {
+            "id": row.id,
+            "path": row.path,
+            "similarity": round(float(row.similarity), 4),
+        }
+        for row in rows
+    ]
 
 
 def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
@@ -317,29 +445,11 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
             query_vec = _embed_image(ort_session, processor, query_image_path)
 
         search_paths = [p for p in paths_for_search if p != query_image_path]
-        search_results: list[dict] = []
-        if search_paths:
-            qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
-            stmt = (
-                text(
-                    """
-                    SELECT id, path, 1 - (embedding <=> CAST(:qvec AS vector)) AS similarity
-                    FROM image_embeddings
-                    WHERE path IN :paths
-                    ORDER BY embedding <=> CAST(:qvec AS vector)
-                    LIMIT :top_k
-                    """
-                ).bindparams(bindparam("paths", expanding=True))
-            )
-            rows = session.execute(
-                stmt, {"qvec": qvec_literal, "paths": search_paths, "top_k": top_k},
-            ).fetchall()
-            for row in rows:
-                sim = float(row.similarity)
-                search_results.append({
-                    "id": row.id, "path": row.path,
-                    "similarity": round(sim, 4), "is_match": sim >= min_similarity,
-                })
+        raw_results = _cosine_similarity_search(query_vec, session, search_paths, top_k)
+        search_results = [
+            {**hit, "is_match": hit["similarity"] >= min_similarity}
+            for hit in raw_results
+        ]
 
     query_label = f"Similar to {os.path.basename(query_image_path)}"
     file_responses: list[FileResponse] = []

@@ -55,6 +55,7 @@ nicegui = "3.2"
 
 # for text_embeddings
 torch = "2.7.1"
+torchvision = "0.22.1"
 transformers = "^4.40.0"
 sentence-transformers = "3.0.1"
 
