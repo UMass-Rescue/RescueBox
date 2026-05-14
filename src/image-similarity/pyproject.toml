@@ -17,6 +17,7 @@ numpy = "*"
 sqlmodel = "*"
 sqlalchemy = "*"
 pgvector = "*"
+pdqhash = "*"
 rb-api = { path = "../rb-api", develop = true }
 
 [build-system]

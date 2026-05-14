@@ -1787,12 +1787,14 @@ develop = true
 [package.dependencies]
 numpy = "*"
 onnxruntime = "*"
+pdqhash = "*"
 pgvector = "*"
 pillow = "*"
 pydantic = "*"
 rb-api = {path = "../rb-api", develop = true}
 sqlalchemy = "*"
 sqlmodel = "*"
+torchvision = ">=0.9.0"
 transformers = "*"
 typer = "*"
 
@@ -3769,6 +3771,25 @@ hyperscan = ["hyperscan (>=0.7)"]
 optional = ["typing-extensions (>=4)"]
 re2 = ["google-re2 (>=1.1)"]
 tests = ["pytest (>=9)", "typing-extensions (>=4.15)"]
+
+[[package]]
+name = "pdqhash"
+version = "0.2.8"
+description = "\"Python bindings for Facebook's PDQ hash\""
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pdqhash-0.2.8-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:01e615089a7a22067627e97c383e371d6db363aca9587f4080a6e43cb6228fff"},
+    {file = "pdqhash-0.2.8-cp310-cp310-win_amd64.whl", hash = "sha256:fa49dfeb82b1549318bd3743ae112e4a1feb3dfeb8a6bb859d7f0cbdc5b7c0be"},
+    {file = "pdqhash-0.2.8-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:5459e57ae2c432429bc2ee1077cd2973a0c24d491f54777d5b4bf249bef35f48"},
+    {file = "pdqhash-0.2.8-cp311-cp311-win_amd64.whl", hash = "sha256:a7b3a626413bad245e3cdd815a4d644a68736982c4b9eb130b52d74dcb48f8e5"},
+    {file = "pdqhash-0.2.8-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:13f106595b566677b0a125d96c6910fd1f1bbf2e86aae3a36ca8e0ed67ded02c"},
+    {file = "pdqhash-0.2.8-cp312-cp312-win_amd64.whl", hash = "sha256:fe082d83432583eaf7938fade50ec14e2ecc597b648dbca3419703b7a36f07f0"},
+    {file = "pdqhash-0.2.8-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:e7f50d8382a8850917a77232e00bc649b63db8e018423e6175842a226b01fad8"},
+    {file = "pdqhash-0.2.8-cp313-cp313-win_amd64.whl", hash = "sha256:b3f892a767708eb63a7b3498e23582a34890a0f2a31833d28fd16c355e1f0d4d"},
+    {file = "pdqhash-0.2.8.tar.gz", hash = "sha256:eb9a9de36745937ce3e481a02ce933fe907c84e0b1748c9dfea52c12ca5c1e35"},
+]
 
 [[package]]
 name = "pefile"
