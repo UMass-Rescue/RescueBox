@@ -4,6 +4,7 @@ import inspect
 
 import pytest
 from image_similarity.main import (
+    _DEFAULT_MODEL,
     search_similar_images,
     task_schema,
     Inputs,
@@ -63,13 +64,13 @@ def test_inputs_structure(tmp_path):
 
 def test_parameters_structure():
     params = Parameters(
-        model_name="openai/clip-vit-base-patch32",
+        model_name=_DEFAULT_MODEL,
         top_k=10,
         min_similarity=0.5,
     )
     assert params["top_k"] == 10
     assert params["min_similarity"] == 0.5
-    assert params["model_name"] == "openai/clip-vit-base-patch32"
+    assert params["model_name"] == _DEFAULT_MODEL
 
 
 # ---------------------------------------------------------------------------
@@ -92,15 +93,15 @@ def test_inputs_cli_parse_missing_separator():
 
 
 def test_parameters_cli_parse_full():
-    parsed = parameters_cli_parse("openai/clip-vit-base-patch32,7,0.55")
-    assert parsed["model_name"] == "openai/clip-vit-base-patch32"
+    parsed = parameters_cli_parse(f"{_DEFAULT_MODEL},7,0.55")
+    assert parsed["model_name"] == _DEFAULT_MODEL
     assert parsed["top_k"] == 7
     assert parsed["min_similarity"] == 0.55
 
 
 def test_parameters_cli_parse_defaults():
     parsed = parameters_cli_parse("")
-    assert parsed["model_name"] == "openai/clip-vit-base-patch32"
+    assert parsed["model_name"] == _DEFAULT_MODEL
     assert parsed["top_k"] == 5
     assert parsed["min_similarity"] == 0.5
 

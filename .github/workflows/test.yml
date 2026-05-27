@@ -30,7 +30,13 @@ jobs:
           mkdir -p "src/face-detection-recognition/face_detection_recognition/models"
           gdown "1oDt1i80rUew0UhtY3UiW9EIyd2WfJTZf" --fuzzy -O ./src/face-detection-recognition/face_detection_recognition/models/retinaface-resnet50.onnx --continue
           gdown "1CVCmumM_6C7giGAXJUwHWT--DPFC9bpI" --fuzzy -O ./src/face-detection-recognition/face_detection_recognition/models/facenet512_model.onnx --continue
-          
+
+      - name: pull onnx model for image-similarity
+        run: |
+          mkdir -p src/image-similarity/image_similarity/onnx_models
+          curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patch14-384.onnx \
+            https://huggingface.co/onnx-community/siglip2-so400m-patch14-384-ONNX/resolve/main/onnx/vision_model.onnx
+
       - name: Install Poetry and dependencies
         run: |
           pip install poetry

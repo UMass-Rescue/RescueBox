@@ -10,7 +10,7 @@ import numpy as np
 import onnxruntime as ort
 import typer
 from PIL import Image
-from transformers import CLIPImageProcessor
+from transformers import AutoProcessor
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     InputSchema,
@@ -30,8 +30,8 @@ from rb.api.models import (
     FileResponse,
     FileType,
 )
-from rb.api.database import ImageEmbedding, engine
-from rb.api.embedding_storage import ImageEmbeddingStorage
+from rb.api.database import ImageSimilarityEmbedding, engine
+from rb.api.embedding_storage import ImageSimilarityEmbeddingStorage
 from sqlmodel import Session, select
 from sqlalchemy import bindparam, text, update
 
@@ -41,9 +41,9 @@ logger = logging.getLogger(__name__)
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
 ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
-_DEFAULT_MODEL = "openai/clip-vit-base-patch32"
+_DEFAULT_MODEL = "google/siglip2-so400m-patch14-384"
 _MODELS_DIR = Path(__file__).resolve().parent / "onnx_models"
-_DEFAULT_ONNX_PATH = _MODELS_DIR / "clip-vit-base-patch32.onnx"
+_DEFAULT_ONNX_PATH = _MODELS_DIR / "siglip2-so400m-patch14-384.onnx"
 
 _EMBED_LOCKS_GUARD = threading.Lock()
 _EMBED_LOCKS: dict[str, threading.Lock] = {}
@@ -84,36 +84,35 @@ def _get_ort_providers() -> list[str]:
     return providers
 
 
-def _load_onnx_vision_model() -> tuple[ort.InferenceSession, CLIPImageProcessor]:
-    """Load the bundled CLIP vision ONNX model and image processor."""
+def _load_onnx_vision_model() -> tuple[ort.InferenceSession, "AutoProcessor"]:
+    """Load the bundled vision ONNX model and its image processor."""
     if not _DEFAULT_ONNX_PATH.exists():
         raise FileNotFoundError(
             f"ONNX model not found at {_DEFAULT_ONNX_PATH}. "
-            "Download clip-vit-base-patch32.onnx into the onnx_models/ directory."
+            f"Download the vision ONNX export of {_DEFAULT_MODEL} into the onnx_models/ directory."
         )
     session = ort.InferenceSession(
         str(_DEFAULT_ONNX_PATH), providers=_get_ort_providers(),
     )
-    processor = CLIPImageProcessor.from_pretrained(_DEFAULT_MODEL)
+    processor = AutoProcessor.from_pretrained(_DEFAULT_MODEL)
     return session, processor
 
 
 def _embed_image(
     ort_session: ort.InferenceSession,
-    processor: CLIPImageProcessor,
+    processor,
     image_path: str,
 ) -> np.ndarray:
-    """Compute a normalised image embedding via ONNX Runtime.  Returns a 1-D float32 array."""
+    """Compute a normalised image embedding via ONNX Runtime."""
     image = Image.open(image_path).convert("RGB")
-    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(
-        np.float32
-    )
+    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(np.float32)
     outputs = ort_session.run(None, {"pixel_values": pixel_values})
-    image_embeds = outputs[0]
-    image_embeds = image_embeds / np.linalg.norm(
-        image_embeds, axis=-1, keepdims=True
-    )
-    return image_embeds.squeeze()
+    # Vision tower returns (last_hidden_state, pooler_output); pooler_output is the per-image vector.
+    output_names = [o.name for o in ort_session.get_outputs()]
+    idx = output_names.index("pooler_output") if "pooler_output" in output_names else 0
+    image_embeds = outputs[idx].squeeze()
+    image_embeds = image_embeds / np.linalg.norm(image_embeds)
+    return image_embeds
 
 
 # ---------------------------------------------------------------------------
@@ -123,9 +122,9 @@ def _embed_image(
 def task_schema() -> TaskSchema:
     model_enum = EnumParameterDescriptor(
         enum_vals=[
-            EnumVal(key="openai/clip-vit-base-patch32", label="CLIP-ViT-B-32-OpenAI"),
+            EnumVal(key=_DEFAULT_MODEL, label="SigLIP2-SO400M-patch14-384"),
         ],
-        default="openai/clip-vit-base-patch32",
+        default=_DEFAULT_MODEL,
     )
     top_k_desc = RangedIntParameterDescriptor(
         range=IntRangeDescriptor(min=1, max=20),
@@ -152,7 +151,7 @@ def task_schema() -> TaskSchema:
         parameters=[
             ParameterSchema(
                 key="model_name",
-                label="CLIP model",
+                label="Vision model",
                 subtitle="Model used to compute image embeddings for similarity comparison",
                 value=model_enum,
             ),
@@ -188,10 +187,15 @@ server.add_app_metadata(
 )
 
 
-def _paths_already_embedded(session: Session, paths: list[str]) -> set[str]:
+def _paths_already_embedded(session: Session, paths: list[str], model_name: str) -> set[str]:
     if not paths:
         return set()
-    rows = session.exec(select(ImageEmbedding.path).where(ImageEmbedding.path.in_(paths))).all()
+    rows = session.exec(
+        select(ImageSimilarityEmbedding.path).where(
+            ImageSimilarityEmbedding.path.in_(paths),
+            ImageSimilarityEmbedding.model_name == model_name,
+        )
+    ).all()
     return set(rows)
 
 
@@ -203,9 +207,9 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor):
-    """Ensure every path has an embedding row in ``image_embeddings``.  Returns paths ready for search."""
-    already = _paths_already_embedded(session, file_paths)
+def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor, model_name):
+    """Ensure every path has an embedding row for ``model_name``. Returns paths ready for search."""
+    already = _paths_already_embedded(session, file_paths, model_name)
     file_paths_set = set(file_paths)
     paths_for_search: list[str] = []
     newly_embedded = relocated = cloned = 0
@@ -217,13 +221,19 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_sess
 
         h = path_to_hash[path]
         row = session.exec(
-            select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
+            select(ImageSimilarityEmbedding).where(
+                ImageSimilarityEmbedding.content_sha256 == h,
+                ImageSimilarityEmbedding.model_name == model_name,
+            )
         ).first()
 
         if row is None:
             with _lock_for_content_hash(h):
                 row = session.exec(
-                    select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
+                    select(ImageSimilarityEmbedding).where(
+                        ImageSimilarityEmbedding.content_sha256 == h,
+                        ImageSimilarityEmbedding.model_name == model_name,
+                    )
                 ).first()
                 if row is None:
                     try:
@@ -247,13 +257,17 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_sess
                 continue
             if row.path not in file_paths_set:
                 session.execute(
-                    update(ImageEmbedding).where(ImageEmbedding.id == row.id).values(path=path)
+                    update(ImageSimilarityEmbedding)
+                    .where(ImageSimilarityEmbedding.id == row.id)
+                    .values(path=path)
                 )
                 relocated += 1
                 logger.info("Reused embedding by content hash (path updated): %s -> %s", row.path, path)
             else:
                 emb = list(row.embedding) if row.embedding is not None else []
-                session.add(ImageEmbedding(path=path, embedding=emb, content_sha256=h))
+                session.add(ImageSimilarityEmbedding(
+                    path=path, embedding=emb, content_sha256=h, model_name=model_name,
+                ))
                 cloned += 1
             paths_for_search.append(path)
             already.add(path)
@@ -302,13 +316,16 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     all_paths = hashed_paths
 
     with Session(engine) as session:
-        storage = ImageEmbeddingStorage(session)
+        storage = ImageSimilarityEmbeddingStorage(session, model_name=model_name)
         paths_for_search = _embed_and_store_images(
-            session, storage, all_paths, path_to_hash, ort_session, processor,
+            session, storage, all_paths, path_to_hash, ort_session, processor, model_name,
         )
 
         query_row = session.exec(
-            select(ImageEmbedding).where(ImageEmbedding.path == query_image_path)
+            select(ImageSimilarityEmbedding).where(
+                ImageSimilarityEmbedding.path == query_image_path,
+                ImageSimilarityEmbedding.model_name == model_name,
+            )
         ).first()
 
         if query_row is not None and query_row.embedding is not None:
@@ -324,15 +341,20 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
                 text(
                     """
                     SELECT id, path, 1 - (embedding <=> CAST(:qvec AS vector)) AS similarity
-                    FROM image_embeddings
-                    WHERE path IN :paths
+                    FROM image_similarity_embeddings
+                    WHERE path IN :paths AND model_name = :model_name
                     ORDER BY embedding <=> CAST(:qvec AS vector)
                     LIMIT :top_k
                     """
                 ).bindparams(bindparam("paths", expanding=True))
             )
             rows = session.execute(
-                stmt, {"qvec": qvec_literal, "paths": search_paths, "top_k": top_k},
+                stmt, {
+                    "qvec": qvec_literal,
+                    "paths": search_paths,
+                    "top_k": top_k,
+                    "model_name": model_name,
+                },
             ).fetchall()
             for row in rows:
                 sim = float(row.similarity)

@@ -135,6 +135,18 @@ class ImageEmbedding(SQLModel, table=True):
     content_sha256: str = Field(default="", index=True)
     embedding: list[int] = Field(default=[], sa_column=Column(Vector(1024)))
 
+
+class ImageSimilarityEmbedding(SQLModel, table=True):
+    """Image embeddings used by the image-to-image similarity search plugin."""
+
+    __tablename__ = "image_similarity_embeddings"
+
+    id: int | None = Field(default=None, primary_key=True)
+    path: str = Field(index=True)
+    content_sha256: str = Field(default="", index=True)
+    model_name: str = Field(default="google/siglip2-so400m-patch14-384", index=True)
+    embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
+
 # TODO: There is probably a way to do this without this try kludge
 try:
     # Create an HNSW index
@@ -165,5 +177,14 @@ try:
         postgresql_ops={"embedding": "vector_l2_ops"},
     )
     img_index.create(engine)
+
+    img_sim_index = Index(
+        "image_similarity_embeddings_hnsw_idx",
+        ImageSimilarityEmbedding.embedding,
+        postgresql_using="hnsw",
+        postgresql_with={"m": 16, "ef_construction": 64},
+        postgresql_ops={"embedding": "vector_l2_ops"},
+    )
+    img_sim_index.create(engine)
 except:
     print("Index probably already exists")
