@@ -80,7 +80,7 @@ class TestWorkflowStepper:
     analytical workflows in RescueBox.
     """
     
-    @patch('frontend.components.shared.stepper.ui.column')
+    @patch('frontend.components.shared.ui.column')
     def test_stepper_initialization(self, mock_column):
         """Test stepper initialization with steps.
 
@@ -88,7 +88,7 @@ class TestWorkflowStepper:
         with a list of step names and maintains correct internal state
         including step tracking and element management.
         """
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation - ui.column() returns a mock container
         mock_container = MagicMock()
@@ -108,7 +108,7 @@ class TestWorkflowStepper:
         for layout management, allowing flexible placement within the
         application's user interface structure.
         """
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         container = MagicMock()
         stepper = WorkflowStepper(STEPS_TWO, current_step=FIRST_STEP_INDEX, container=container)
@@ -123,7 +123,7 @@ class TestWorkflowStepper:
         allowing users to jump to specific steps in the workflow as needed
         for non-linear progress through complex processes.
         """
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -144,7 +144,7 @@ class TestWorkflowStepper:
         rejected with clear error messages, preventing application crashes
         and providing user feedback about invalid navigation attempts.
         """
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -160,7 +160,7 @@ class TestWorkflowStepper:
     
     def test_next_step(self, mock_ui):
         """Test moving to next step"""
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -182,7 +182,7 @@ class TestWorkflowStepper:
         gracefully with appropriate logging, preventing navigation errors and
         maintaining workflow stability at completion boundaries.
         """
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -190,7 +190,7 @@ class TestWorkflowStepper:
 
         stepper = WorkflowStepper(STEPS_TWO, current_step=SECOND_STEP_INDEX)
 
-        with patch('frontend.components.shared.stepper.logger') as mock_logger:
+        with patch('frontend.components.shared.logger') as mock_logger:
             stepper.next_step()
             # Should stay at last step
             assert stepper.current_step == SECOND_STEP_INDEX
@@ -199,7 +199,7 @@ class TestWorkflowStepper:
     
     def test_previous_step(self, mock_ui):
         """Test moving to previous step"""
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -216,7 +216,7 @@ class TestWorkflowStepper:
     
     def test_previous_step_at_first_step(self, mock_ui):
         """Test previous_step when already at first step"""
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
         from unittest.mock import patch
 
         # Mock the container creation
@@ -226,7 +226,7 @@ class TestWorkflowStepper:
         steps = ['Step 1', 'Step 2']
         stepper = WorkflowStepper(steps, current_step=0)
         
-        with patch('frontend.components.shared.stepper.logger') as mock_logger:
+        with patch('frontend.components.shared.logger') as mock_logger:
             stepper.previous_step()
             # Should stay at first step
             assert stepper.current_step == 0
@@ -235,7 +235,7 @@ class TestWorkflowStepper:
     
     def test_get_current_step_name(self, mock_ui):
         """Test getting current step name"""
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -248,7 +248,7 @@ class TestWorkflowStepper:
     
     def test_is_complete(self, mock_ui):
         """Test is_complete method"""
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -267,7 +267,7 @@ class TestWorkflowStepper:
     
     def test_create_workflow_stepper(self, mock_ui):
         """Test create_workflow_stepper convenience function"""
-        from frontend.components.shared.stepper import (
+        from frontend.components.shared import (
             create_workflow_stepper,
             WorkflowStepper
         )
@@ -285,7 +285,7 @@ class TestWorkflowStepper:
     
     def test_stepper_multiple_steps(self, mock_ui):
         """Test stepper with many steps"""
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -305,7 +305,7 @@ class TestWorkflowStepper:
     
     def test_stepper_circle_classes(self, mock_ui):
         """Test circle class generation"""
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -325,7 +325,7 @@ class TestWorkflowStepper:
     
     def test_stepper_label_classes(self, mock_ui):
         """Test label class generation"""
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -343,7 +343,7 @@ class TestWorkflowStepper:
     
     def test_stepper_line_classes(self, mock_ui):
         """Test connector line class generation"""
-        from frontend.components.shared.stepper import WorkflowStepper
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()

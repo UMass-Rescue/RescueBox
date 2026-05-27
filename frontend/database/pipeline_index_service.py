@@ -22,7 +22,7 @@ from frontend.database.pipeline_job_index_db import (
     insert_pipeline_job_step,
     insert_pipeline_response_rows,
 )
-from frontend.components.results.image_summary_results_view import (
+from frontend.components.results import (
     source_image_path_from_summary,
 )
 

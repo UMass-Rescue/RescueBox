@@ -22,7 +22,7 @@ Key Components:
 import logging
 import os
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Optional
+from typing import Dict, List, Optional
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -32,40 +32,10 @@ logger.setLevel(logging.INFO)
 class ChatbotConfig(BaseModel):
     """
     Configuration settings for the chatbot system.
-    
     This Pydantic model defines all configurable parameters for the chatbot,
     including API endpoints, model names, timeouts, and feature flags.
-    
-    Attributes:
-        OLLAMA_HOST (str): Base URL for Ollama API (default: "http://localhost:11434")
-            Used for Granite model inference
-        GRANITE_MODEL (str): Name of the fine-tuned Granite model (default: "granite4:micro")
-            This model handles tool calling and natural language understanding
-        RESCUEBOX_HOST (str): Base URL for RescueBox API (default: "http://localhost:8000")
-            Backend API for job submission and schema fetching
-        TIMEOUT (int): HTTP request timeout in seconds (default: 300)
-            Used for long-running API calls
-        FILTER_ENABLED (bool): Enable input filtering (default: True)
-            When True, filters out non-forensic requests
-    
-    Usage:
-        # Use defaults
-        config = ChatbotConfig()
-        
-        # Custom configuration
-        config = ChatbotConfig(
-            OLLAMA_HOST="http://custom-ollama:11434",
-            GRANITE_MODEL="custom-model",
-            FILTER_ENABLED=False
-        )
-    
-    Tips:
-    - Increase TIMEOUT for very long-running operations (or set ``RESCUEBOX_CHATBOT_TIMEOUT``)
-    - Set FILTER_ENABLED=False during development for easier testing
-    - Ensure OLLAMA_HOST is accessible from the frontend
-    - The GRANITE_MODEL must be available in your Ollama instance
     """
-    OLLAMA_HOST: str = Field(default="http://localhost:11434", description="Ollama API base URL")
+    OLLAMA_HOST: str = Field(default="http://127.0.0.1:11434", description="Ollama API base URL")
     GRANITE_MODEL: str = Field(default="granite4:micro", description="Granite model name for tool calling")
     RESCUEBOX_HOST: str = Field(default="http://localhost:8000", description="RescueBox API base URL")
     TIMEOUT: int = Field(default=60*60*24*7, description="HTTP request timeout in seconds")
@@ -89,7 +59,7 @@ class ChatbotConfig(BaseModel):
             data['RESCUEBOX_HOST'] = env_api_base
         elif env_rescue and 'RESCUEBOX_HOST' not in data:
             data['RESCUEBOX_HOST'] = env_rescue
-        if env_ollama and 'OLLAMA_HOST' not in data:
+        if env_ollama and env_ollama != '0.0.0.0' and 'OLLAMA_HOST' not in data:
             data['OLLAMA_HOST'] = env_ollama
         if env_granite and 'GRANITE_MODEL' not in data:
             data['GRANITE_MODEL'] = env_granite
@@ -104,8 +74,8 @@ class ChatbotConfig(BaseModel):
                     pass
 
         super().__init__(**data)
-        logger.info("ChatbotConfig initialized: RESCUEBOX_HOST=%s, GRANITE_MODEL=%s, TIMEOUT=%s, FILTER_ENABLED=%s",
-                     self.RESCUEBOX_HOST, self.GRANITE_MODEL, self.TIMEOUT, self.FILTER_ENABLED)
+        logger.info("ChatbotConfig initialized: OLLAMA_HOST=%s, RESCUEBOX_HOST=%s, GRANITE_MODEL=%s, TIMEOUT=%s, FILTER_ENABLED=%s",
+                     self.OLLAMA_HOST, self.RESCUEBOX_HOST, self.GRANITE_MODEL, self.TIMEOUT, self.FILTER_ENABLED)
 
 
 class ToolRegistry:

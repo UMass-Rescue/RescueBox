@@ -14,7 +14,7 @@ from frontend.database.chat_history_db import (
     ChatMessageRecord,
     get_chat_history_db
 )
-from frontend.utils.nicegui_storage import get_user_id
+from frontend.utils import get_user_id
 
 
 class TestChatHistoryNiceGUIIntegration:

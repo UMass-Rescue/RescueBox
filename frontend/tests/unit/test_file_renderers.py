@@ -19,9 +19,10 @@ The tests cover:
 import pytest
 from nicegui.testing import User
 from nicegui import ui
+from unittest.mock import patch
 
 # Import file rendering components
-from frontend.components.results.file_renderers import (
+from frontend.components.results import (
     render_file,
     render_batch_file,
 )
@@ -68,7 +69,8 @@ class TestFileRenderers:
         @ui.page('/test')
         def test_page():
             container = ui.column()
-            render_file(container, response)
+            with patch('os.path.exists', return_value=True):
+                render_file(container, response)
 
         await user.open('/test')
         await user.should_see('File Result')
@@ -94,7 +96,8 @@ class TestFileRenderers:
         @ui.page('/test')
         def test_page():
             container = ui.column()
-            render_file(container, response)
+            with patch('os.path.exists', return_value=True):
+                render_file(container, response)
 
         await user.open('/test')
         await user.should_see('File Result')

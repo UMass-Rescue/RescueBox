@@ -25,7 +25,7 @@ from nicegui.testing import User
 from unittest.mock import patch, AsyncMock
 
 from frontend.components.results import ResultsPreview
-from frontend.components.results.results_renderers import (
+from frontend.components.results import (
     render_file,
     render_directory,
     render_batch_file,
@@ -113,7 +113,8 @@ class TestResultsPreview:
         @ui.page('/test')
         def test_page():
             container = ui.column()
-            ResultsPreview.render(container, sample_response_body.model_dump())
+            with patch('os.path.exists', return_value=True):
+                ResultsPreview.render(container, sample_response_body.model_dump())
 
         await user.open('/test')
         await user.should_see(FILE_RESULT_TITLE)
@@ -141,7 +142,8 @@ class TestResultsPreview:
                     title=TEST_DIRECTORY_TITLE
                 )
             )
-            ResultsPreview.render(container, response.model_dump())
+            with patch('os.path.exists', return_value=True):
+                ResultsPreview.render(container, response.model_dump())
 
         await user.open('/test')
         await user.should_see(DIRECTORY_RESULT_TITLE)
@@ -209,7 +211,8 @@ class TestResultsPreview:
                     ]
                 )
             )
-            ResultsPreview.render(container, response.model_dump())
+            with patch('os.path.exists', return_value=True):
+                ResultsPreview.render(container, response.model_dump())
 
         await user.open('/test')
         await user.should_see(BATCH_FILE_RESULT_TITLE)
@@ -300,7 +303,8 @@ class TestResultsPreview:
                     ]
                 )
             )
-            ResultsPreview.render(container, response.model_dump())
+            with patch('os.path.exists', return_value=True):
+                ResultsPreview.render(container, response.model_dump())
 
         await user.open('/test')
         await user.should_see(BATCH_DIRECTORY_RESULT_TITLE)

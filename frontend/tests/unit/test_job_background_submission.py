@@ -1,9 +1,8 @@
-import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from frontend.pages.chatbot.utils.job_submission_orchestrator import JobSubmissionOrchestrator
-from frontend.pages.chatbot.utils import job_submission_orchestrator as orchestrator_module
+from frontend.pages import chatbot as orchestrator_module
+from frontend.pages.chatbot.handlers import JobSubmissionOrchestrator
 
 
 @pytest.mark.asyncio
@@ -11,9 +10,6 @@ async def test_background_submission_schedules_background_task(monkeypatch):
     form_handler = MagicMock()
     form_handler.state_manager = MagicMock()
     orchestrator = JobSubmissionOrchestrator(form_handler)
-
-    # Patch conversation manager to return a conversation id
-    orchestrator.conversation_manager.ensure_conversation = AsyncMock(return_value="conv1")
 
     # Patch DatabaseService.create_and_track_job to return a job id
     monkeypatch.setattr(orchestrator_module, "DatabaseService", MagicMock())
@@ -25,10 +21,11 @@ async def test_background_submission_schedules_background_task(monkeypatch):
     # Patch background_tasks.create to capture scheduling
     called = {"count": 0}
 
-    def fake_create(coro, name=None, handle_exceptions=False):
+    def fake_create_capture_count(coroutine, name=None, handle_exceptions=False):
         called["count"] += 1
-        coro.close()
-    monkeypatch.setattr(orchestrator_module.background_tasks, "create", fake_create)
+        coroutine.close()
+
+    monkeypatch.setattr(orchestrator_module.background_tasks, "create", fake_create_capture_count)
 
     # Prepare dummy request body and core
     request_body = MagicMock()
@@ -40,7 +37,7 @@ async def test_background_submission_schedules_background_task(monkeypatch):
     core.config = MagicMock()
     core.config.RESCUEBOX_HOST = "http://localhost:8000"
 
-    res = await orchestrator._execute_job(request_body, "audio/transcribe", {}, None, core)
+    await orchestrator._execute_job(request_body, "audio/transcribe", {}, None, core)
     # _execute_job returns immediately; background task scheduled
     assert called["count"] == 1
 
@@ -52,10 +49,10 @@ async def test_background_submission_success_enables_input(monkeypatch):
     form_handler.state_manager = MagicMock()
     orchestrator = JobSubmissionOrchestrator(form_handler)
     
-    with patch('frontend.pages.chatbot.utils.job_submission_orchestrator.show_results', new_callable=AsyncMock), \
-         patch('frontend.pages.chatbot.utils.job_submission_orchestrator.DatabaseService.save_tool_result_to_history', new_callable=AsyncMock), \
-         patch('frontend.pages.chatbot.utils.job_submission_orchestrator.UIOperations.safe_container_update', new_callable=AsyncMock), \
-         patch('frontend.pages.chatbot.utils.job_submission_orchestrator.UIOperations.scroll_to_bottom_after_dom_update', new_callable=AsyncMock):
+    with patch('frontend.pages.chatbot.show_results', new_callable=AsyncMock), \
+         patch('frontend.pages.chatbot.DatabaseService.save_tool_result_to_history', new_callable=AsyncMock), \
+         patch('frontend.pages.chatbot.UIOperations.safe_container_update', new_callable=AsyncMock), \
+         patch('frontend.pages.chatbot.UIOperations.scroll_to_bottom_after_dom_update', new_callable=AsyncMock):
          
         await orchestrator._handle_success(
             _request_body=None, endpoint='test', task_schema=None, container=MagicMock(),
@@ -80,10 +77,10 @@ async def test_handle_remaining_calls_passes_on_form_cancel():
     core = MagicMock()
     core.get_task_schema_from_endpoint = AsyncMock(return_value=MagicMock())
 
-    with patch('frontend.pages.chatbot.utils.job_submission_orchestrator.load_and_show_form', new_callable=AsyncMock) as mock_load, \
-         patch('frontend.pages.chatbot.utils.job_submission_orchestrator.coerce_pipeline_response', return_value=response_body), \
-         patch('frontend.pages.chatbot.utils.job_submission_orchestrator.extract_batch_file_items', return_value=[]), \
-         patch('frontend.pages.chatbot.utils.job_submission_orchestrator.chain_output_to_input', return_value={}):
+    with patch('frontend.pages.chatbot.coordinator.load_and_show_form', new_callable=AsyncMock) as mock_load, \
+         patch('frontend.pages.chatbot.coerce_pipeline_response', return_value=response_body), \
+         patch('frontend.pages.chatbot.extract_batch_file_items', return_value=[]), \
+         patch('frontend.pages.chatbot.chain_output_to_input', return_value={}):
         
         await orchestrator.handle_remaining_calls(remaining_calls, response_body, container, core)
 
@@ -105,28 +102,25 @@ async def test_do_submit_error_enables_input(monkeypatch):
     orchestrator = JobSubmissionOrchestrator(form_handler)
     
     do_submit_coro = None
-    def fake_create(coro, name=None, handle_exceptions=False):
+    def fake_create_store_coro(coroutine, name=None, handle_exceptions=False):
         nonlocal do_submit_coro
-        do_submit_coro = coro
-        
-    monkeypatch.setattr(orchestrator_module.background_tasks, "create", fake_create)
+        do_submit_coro = coroutine
+
+    monkeypatch.setattr(orchestrator_module.background_tasks, "create", fake_create_store_coro)
     
     core = MagicMock()
     core.config = MagicMock()
     core.config.RESCUEBOX_HOST = "http://localhost"
     
-    with patch('frontend.pages.chatbot.utils.job_submission_orchestrator.api_helpers.post_job', new_callable=AsyncMock) as mock_post, \
-         patch('frontend.pages.chatbot.utils.job_submission_orchestrator.DatabaseService.create_and_track_job', new_callable=AsyncMock, return_value={'job_id': 'job1'}), \
-         patch('frontend.pages.chatbot.utils.job_submission_orchestrator.DatabaseService.save_user_prompt_if_missing_from_form_submission', new_callable=AsyncMock):
+    with patch('frontend.pages.chatbot.api_helpers.post_job', new_callable=AsyncMock) as mock_post, \
+         patch('frontend.pages.chatbot.DatabaseService.create_and_track_job', new_callable=AsyncMock, return_value={'job_id': 'job1'}), \
+         patch('frontend.pages.chatbot.DatabaseService.save_user_prompt_if_missing_from_form_submission', new_callable=AsyncMock):
         
         mock_post.side_effect = Exception("Simulated API failure")
         
         request_body = MagicMock()
         request_body.inputs = {}
         request_body.parameters = {}
-        
-        orchestrator.conversation_manager.ensure_conversation = AsyncMock(return_value="conv1")
-        orchestrator.conversation_manager.save_tool_call = AsyncMock()
         
         await orchestrator._execute_job(request_body, "test/endpoint", MagicMock(), MagicMock(), core)
         

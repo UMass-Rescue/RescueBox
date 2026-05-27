@@ -2,7 +2,7 @@ import logging
 import multiprocessing
 import os
 import sys
-
+from pathlib import Path
 # Standalone API process: file logging before routes import (routes must not reconfigure).
 from rb.api.logging_setup import configure_backend_logging
 
@@ -13,6 +13,13 @@ from fastapi.staticfiles import StaticFiles
 from rb.api import routes
 from rb.api.facematch_request_context import FacematchRescueboxUserMiddleware
 from rb.api.database import create_db_and_tables
+
+# 1. Safely set the cache paths FIRST
+local_appdata = os.getenv('LOCALAPPDATA', os.path.expanduser('~'))
+app_cache_dir = Path(local_appdata) / 'RescueBox-Desktop'
+
+os.environ['MPLCONFIGDIR'] = str(app_cache_dir / 'matplotlib')
+os.environ['XDG_CACHE_HOME'] = str(app_cache_dir / 'xdg_cache')
 
 app = FastAPI(
     title="RescueBoxAPI",
@@ -82,7 +89,7 @@ if __name__ == "__main__":
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         uvicorn.run(
             "main:app",
-            host="0.0.0.0",
+            host="127.0.0.1",
             port=8000,
             reload=False,
             log_config=None,
@@ -94,7 +101,7 @@ if __name__ == "__main__":
         # the root handlers configured in configure_backend_logging).
         uvicorn.run(
             "rb.api.main:app",
-            host="0.0.0.0",
+            host="127.0.0.1",
             port=8000,
             reload=False,
             log_config=None,

@@ -41,7 +41,7 @@ class TestNiceGUIStorage:
         user-specific data storage and session management.
         """
         from nicegui import ui
-        from frontend.utils.nicegui_storage import get_user_id
+        from frontend.utils import get_user_id
 
         @ui.page('/test')
         async def test_page():
@@ -62,7 +62,7 @@ class TestNiceGUIStorage:
         conversation when no conversation has been set, returning either
         None or a valid string identifier.
         """
-        from frontend.utils.nicegui_storage import get_current_conversation_id
+        from frontend.utils import get_current_conversation_id
         from nicegui import ui
 
         @ui.page('/test')
@@ -82,7 +82,7 @@ class TestNiceGUIStorage:
         allowing users to maintain their current conversation state as they
         navigate through different parts of the application.
         """
-        from frontend.utils.nicegui_storage import (
+        from frontend.utils import (
             set_current_conversation_id,
             get_current_conversation_id
         )
@@ -108,7 +108,7 @@ class TestNiceGUIStorage:
         allowing users to start fresh conversations or reset their
         current session state as needed.
         """
-        from frontend.utils.nicegui_storage import (
+        from frontend.utils import (
             set_current_conversation_id,
             get_current_conversation_id
         )
@@ -131,7 +131,7 @@ class TestNiceGUIStorage:
     @pytest.mark.integration
     async def test_get_draft_message_empty(self, user: User):
         """Test getting draft message when none exists"""
-        from frontend.utils.nicegui_storage import get_draft_message
+        from frontend.utils import get_draft_message
         
         from nicegui import ui
         
@@ -146,7 +146,7 @@ class TestNiceGUIStorage:
     @pytest.mark.integration
     async def test_set_and_get_draft_message(self, user: User):
         """Test setting and getting draft message"""
-        from frontend.utils.nicegui_storage import (
+        from frontend.utils import (
             set_draft_message,
             get_draft_message
         )
@@ -170,7 +170,7 @@ class TestNiceGUIStorage:
     @pytest.mark.integration
     async def test_clear_draft_message(self, user: User):
         """Test clearing draft message"""
-        from frontend.utils.nicegui_storage import (
+        from frontend.utils import (
             set_draft_message,
             get_draft_message
         )
@@ -193,7 +193,7 @@ class TestNiceGUIStorage:
     @pytest.mark.integration
     async def test_get_form_draft_none(self, user: User):
         """Test getting form draft when none exists"""
-        from frontend.utils.nicegui_storage import get_form_draft
+        from frontend.utils import get_form_draft
         
         from nicegui import ui
         
@@ -208,7 +208,7 @@ class TestNiceGUIStorage:
     @pytest.mark.integration
     async def test_set_and_get_form_draft(self, user: User):
         """Test setting and getting form draft"""
-        from frontend.utils.nicegui_storage import (
+        from frontend.utils import (
             set_form_draft,
             get_form_draft
         )
@@ -235,7 +235,7 @@ class TestNiceGUIStorage:
     @pytest.mark.integration
     async def test_clear_form_draft(self, user: User):
         """Test clearing form draft"""
-        from frontend.utils.nicegui_storage import (
+        from frontend.utils import (
             set_form_draft,
             get_form_draft
         )
@@ -263,7 +263,7 @@ class TestUserPreferences:
     @pytest.mark.integration
     async def test_get_user_preferences_defaults(self, user: User):
         """Test getting user preferences with defaults"""
-        from frontend.utils.user_preferences import get_user_preferences
+        from frontend.utils import get_user_preferences
         
         from nicegui import ui
         
@@ -290,7 +290,7 @@ class TestUserPreferences:
     @pytest.mark.integration
     async def test_set_and_get_user_preference(self, user: User):
         """Test setting and getting a single preference"""
-        from frontend.utils.user_preferences import (
+        from frontend.utils import (
             set_user_preference,
             get_user_preference
         )
@@ -312,7 +312,7 @@ class TestUserPreferences:
     @pytest.mark.integration
     async def test_set_user_preferences_multiple(self, user: User):
         """Test setting multiple preferences at once"""
-        from frontend.utils.user_preferences import (
+        from frontend.utils import (
             set_user_preferences,
             get_user_preferences
         )
@@ -340,7 +340,7 @@ class TestUserPreferences:
     @pytest.mark.integration
     async def test_get_user_preference_with_default(self, user: User):
         """Test getting preference with custom default"""
-        from frontend.utils.user_preferences import get_user_preference
+        from frontend.utils import get_user_preference
         
         from nicegui import ui
         
@@ -356,7 +356,7 @@ class TestUserPreferences:
     @pytest.mark.integration
     async def test_reset_user_preferences(self, user: User):
         """Test resetting preferences to defaults"""
-        from frontend.utils.user_preferences import (
+        from frontend.utils import (
             set_user_preference,
             reset_user_preferences,
             get_user_preferences

@@ -1,15 +1,14 @@
 import threading
 from pathlib import Path
 
-import whisper
-
+from faster_whisper import WhisperModel
 # Whisper's PyTorch model is not safe for concurrent transcribe() from multiple threads.
 _transcribe_lock = threading.Lock()
 
 
 class AudioTranscriptionModel:
     def __init__(self, model_path: str = "base"):
-        self.model = whisper.load_model(model_path)
+        self.model = WhisperModel(model_path,device="cpu", compute_type="int8")
         self.audio_extensions = {".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"}
 
     def get_audio_files(self, directory: str) -> list[Path]:
@@ -32,7 +31,8 @@ class AudioTranscriptionModel:
     def transcribe(self, audio_path: str, out_dir: str = None) -> str:
         self._validate_audio_path(audio_path)
         with _transcribe_lock:
-            res = self.model.transcribe(str(audio_path), fp16=False)["text"]
+            segments, _info = self.model.transcribe(str(audio_path))
+            res = "".join(segment.text for segment in segments)
         if out_dir:
             self._write_res_to_dir(
                 [{"file_path": str(audio_path), "result": res}], out_dir
@@ -45,7 +45,7 @@ class AudioTranscriptionModel:
             for audio_path in audio_paths
         ]
 
-    def _write_res_to_dir(self, res: list[str], out_dir: str) -> None:
+    def _write_res_to_dir(self, res: list[dict], out_dir: str) -> None:
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
         for r in res:
@@ -56,8 +56,9 @@ class AudioTranscriptionModel:
 
     def transcribe_files_in_directory(
         self, input_dir: str, out_dir: str = None
-    ) -> list[str]:
-        res = self.transcribe_batch(self.get_audio_files(input_dir))
+    ) -> list[dict]:
+        paths = self.get_audio_files(input_dir)
+        res = self.transcribe_batch([str(p) for p in paths])
         if out_dir:
             self._write_res_to_dir(res, out_dir)
         return res

@@ -245,7 +245,7 @@ class TestChainOutputToInput:
             parameters=[],
         )
         result = chain_output_to_input(previous_output, {}, current_schema)
-        assert result["input_dir"] == str(Path(out_txt).parent)
+        assert result["input_dir"] == Path(out_txt).parent.as_posix()
         assert result["file_filter"]["files"] == [{"path": out_txt}]
 
     def test_chain_transcribe_to_summarize_defaults_output_dir(self):

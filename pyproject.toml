@@ -54,8 +54,6 @@ beautifulsoup4 = "^4.13.3"
 nicegui = "3.2"
 
 # for text_embeddings
-torch = "2.11.0"
-torchvision = "0.26.0"
 transformers = "^4.40.0"
 sentence-transformers = "3.0.1"
 
@@ -91,6 +89,8 @@ cmake = "^4.2.3"
 ninja = "^1.13.0"
 packaging = ">=23.2"
 wheel = "^0.46.3"
+faster-whisper = "^1.2.1"
+llama-index = "^0.14.22"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"

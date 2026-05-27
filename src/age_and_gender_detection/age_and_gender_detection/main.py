@@ -76,6 +76,7 @@ server.add_app_metadata(
     version="3.0.0",
     info=info,
     gpu=True,
+    make_threadsafe=True,
 )
 models_dir = Path("src/age_and_gender_detection/models")
 model = AgeGenderDetector(

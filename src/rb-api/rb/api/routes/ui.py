@@ -23,13 +23,16 @@ this_file = op.abspath(__file__)
 
 if getattr(sys, "frozen", False):
     application_path = getattr(sys, "_MEIPASS", op.dirname(sys.executable))
+    templates = Jinja2Templates(
+        directory=os.path.join(application_path, "templates"),
+    )
 else:
     application_path = op.dirname(this_file)
+    templates = Jinja2Templates(
+        directory=os.path.join(application_path, "..", "templates"),
+    )
 
-print("application_path ", application_path)
-templates = Jinja2Templates(
-    directory=os.path.join(application_path, "..", "templates"),
-)
+
 
 
 @ui_router.get("/")

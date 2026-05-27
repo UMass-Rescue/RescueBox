@@ -105,7 +105,7 @@ def mock_chatbot():
 @pytest.fixture
 def mock_ui():
     """Mock NiceGUI ui module for testing."""
-    with patch('frontend.components.shared.stepper.ui') as mock_ui:
+    with patch('frontend.components.shared.ui') as mock_ui:
         # Mock common UI elements
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
@@ -291,7 +291,7 @@ async def user():
         pass
     # Patch get_user_id and get_user_id_for_jobs to provide stable test ids when storage/IP unavailable.
     try:
-        import frontend.utils.nicegui_storage as _ngs
+        import frontend.utils as _ngs
         _orig_get_user_id = _ngs.get_user_id
         _orig_get_user_id_for_jobs = _ngs.get_user_id_for_jobs
 

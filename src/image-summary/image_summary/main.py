@@ -7,28 +7,30 @@ import os
 
 from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
-from rb.lib.plugin_io import ImageSummaryFilePair
 from rb.lib.utils import (
     extract_filter_id,
     load_saved_filter,
     collect_inline_file_filter,
 )
 from rb.api.models import (
-    BatchFileInput,
+    DirectoryInput,
+    EnumParameterDescriptor,
+    EnumVal,
     FileFilterDirectory,
     InputSchema,
     InputType,
     ParameterSchema,
-    EnumParameterDescriptor,
     ResponseBody,
     TaskSchema,
-    EnumVal,
     TextResponse,
-    DirectoryInput,
 )
 
 from image_summary.model import SUPPORTED_MODELS
-from image_summary.process import SUPPORTED_IMAGE_EXTENSIONS, process_images
+from image_summary.process import (
+    ImageSummaryFilePair,
+    SUPPORTED_IMAGE_EXTENSIONS,
+    process_images,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -84,7 +86,7 @@ server = MLService(APP_NAME)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 info_file_path = os.path.join(script_dir, "app-info.md")
-with open(info_file_path, "r") as f:
+with open(info_file_path, "r", encoding="utf-8") as f:
     info = f.read()
 
 server.add_app_metadata(
@@ -94,6 +96,7 @@ server.add_app_metadata(
     version="3.0.0",
     info=info,
     gpu=True,
+    make_threadsafe=False,
 )
 
 
@@ -178,12 +181,12 @@ def summarize_images(
         "file_pairs": file_pairs,
     }
     response = TextResponse(value=json.dumps(payload))
-    logger.info(f"ImageSummary API: response ready | files={len(result_files)}")
+    logger.info("ImageSummary API: response ready | files=%d", len(result_files))
     return ResponseBody(root=response)
 
 
-def inputs_cli_parse(input: str) -> Inputs:
-    input_dir, output_dir = input.split(",")
+def inputs_cli_parse(input_str: str) -> Inputs:
+    input_dir, output_dir = input_str.split(",")
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
     if not input_dir.exists():

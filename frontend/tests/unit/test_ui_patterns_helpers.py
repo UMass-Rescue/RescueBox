@@ -2,8 +2,8 @@
 
 import unittest
 
-from frontend.pages.chatbot.utils.chat_layout_context import resolve_chat_container
-from frontend.pages.chatbot.utils.safe_ui import is_ephemeral_ui_error, safe_ui_call
+from frontend.pages.chatbot import resolve_chat_container
+from frontend.pages.chatbot import is_ephemeral_ui_error, safe_ui_call
 
 
 class TestEphemeralUiError(unittest.TestCase):

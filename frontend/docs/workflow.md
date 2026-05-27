@@ -29,7 +29,7 @@ Tool picker: **`frontend/pages/chatbot/pickers.py`** → same schema → form �
 
 ## URL parameters
 
-Handled by **`UrlParameterManager`** in **`parameter_handlers.py`** (prefers NiceGUI page kwargs):
+Handled by **`chatbot_page`** in **`frontend/pages/chatbot/ui.py`** (NiceGUI route kwargs plus `_extract_chatbot_query_from_client` for SPA navigations):
 
 - `?load_conversation=<uuid>`
 - `?rerun=<message_id>`

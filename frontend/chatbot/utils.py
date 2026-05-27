@@ -106,47 +106,6 @@ def is_rescuebox_request(user_input: str, filter_enabled: bool = True) -> Tuple[
     This function validates user input to determine if it's a legitimate forensic
     analysis request. It uses keyword matching, pattern blocking, and path detection
     to filter out non-forensic requests like weather queries, jokes, recipes, etc.
-    
-    The validation process:
-    1. If filtering is disabled, always returns True
-    2. Allows internal commands (starting with /) from tool picker
-    3. Checks for RescueBox keywords (forensic-related terms)
-    4. Checks for file paths (indicators of file operations)
-    5. Checks against blocked patterns (non-forensic chit-chat); runs after (3–4) so
-       legitimate prompts that mention generic words (e.g. "sports" in an image search) still match keywords first
-    6. Returns False if none of the above match
-    
-    Args:
-        user_input (str): User input string to validate
-        filter_enabled (bool): Whether input filtering is enabled. Defaults to True.
-            Set to False to bypass all filtering (useful for testing)
-        
-    Returns:
-        tuple[bool, str]: A tuple containing:
-            - is_valid (bool): True if the input is a valid forensic request
-            - reason (str): One of:
-                - "filter_disabled": Filtering is disabled, request allowed
-                - "internal_command": Internal command from tool picker (starts with /)
-                - "keyword_match": Contains forensic keywords
-                - "path_detected": Contains file path indicators
-                - "non_forensic": Matches blocked patterns (weather, jokes, etc.)
-                - "no_match": Doesn't match any forensic indicators
-    
-    Examples:
-        >>> is_rescuebox_request("transcribe audio in /tmp/recordings")
-        (True, 'keyword_match')
-        
-        >>> is_rescuebox_request("what's the weather today?")
-        (False, 'non_forensic')
-        
-        >>> is_rescuebox_request("process files in /evidence")
-        (True, 'path_detected')
-    
-    Tips:
-    - Use filter_enabled=False during development for easier testing
-    - Add new keywords to ToolRegistry.RESCUEBOX_KEYWORDS to expand matching
-    - Blocked patterns use regex, so be careful with special characters
-    - Path detection uses a simple regex pattern - may need adjustment for edge cases
     """
     logger.debug("Checking if request is valid RescueBox request (filter_enabled=%s)", filter_enabled)
     
@@ -188,32 +147,6 @@ def get_rejection_message(reason: str) -> str:
     
     This function generates user-friendly markdown messages explaining why a
     request was rejected and providing guidance on how to make valid requests.
-    
-    The messages are designed to:
-    - Clearly explain what RescueBox does (forensic analysis only)
-    - Provide examples of valid requests
-    - Guide users on proper usage
-    
-    Args:
-        reason (str): The rejection reason from is_rescuebox_request().
-            Expected values: "non_forensic" or "no_match"
-        
-    Returns:
-        str: Formatted markdown message suitable for display in the UI.
-            The message includes headers, tables, and example usage.
-    
-    Examples:
-        >>> get_rejection_message("non_forensic")
-        "## 🚫 Request Not Supported\n\nI am **RescueBox Forensic Assistant**..."
-        
-        >>> get_rejection_message("no_match")
-        "#### I am a **RescueBox Forensic Assistant**..."
-    
-    Tips:
-    - Messages are in markdown format for rich display in UI
-    - Add more examples to help users understand valid request formats
-    - Consider internationalization if supporting multiple languages
-    - Messages should be concise but informative
     """
     logger.debug("Generating rejection message for reason: %s", reason)
     

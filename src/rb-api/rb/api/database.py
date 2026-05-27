@@ -8,7 +8,7 @@ import os
 # Prefer env override; default to docker-compose service hostname 'db'
 postgres_url = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg2://rbuser:rescue@127.0.0.1:5433/rescuebox",
+    "postgresql+psycopg2://rbuser:rescue@127.0.0.1:5432/rescuebox",
 )
 engine = create_engine(postgres_url, pool_pre_ping=True, future=True)
 
@@ -86,7 +86,7 @@ def create_db_and_tables():
                 conn.execute(text("DROP INDEX IF EXISTS image_embeddings_hnsw_idx"))
                 conn.execute(text("DELETE FROM image_embeddings"))
                 conn.execute(text("ALTER TABLE image_embeddings DROP COLUMN embedding"))
-                conn.execute(text("ALTER TABLE image_embeddings ADD COLUMN embedding vector(768)"))
+                conn.execute(text("ALTER TABLE image_embeddings ADD COLUMN embedding vector(512))"))
     except Exception:
         pass
     SQLModel.metadata.create_all(engine)
@@ -146,7 +146,7 @@ class ImageEmbedding(SQLModel, table=True):
     # SHA-256 hex of file bytes; reuse embeddings when path changes but content matches.
     content_sha256: str = Field(default="", index=True)
     # CLIP ViT-L/14 @336px joint embedding size (must match image_embeddings plugin default projection_dim).
-    embedding: list[float] = Field(default=[], sa_column=Column(Vector(768)))
+    embedding: list[float] = Field(default=[], sa_column=Column(Vector(512)))
 
 # TODO: There is probably a way to do this without this try kludge
 try:

@@ -4,7 +4,7 @@ JSON resolution, and error normalization for tests/mocks.
 """
 import inspect
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger.setLevel(logging.INFO)
 def rescuebox_user_headers() -> Dict[str, str]:
     """Headers so backend plugins (e.g. face-match) scope data to the logged-in RescueBox user."""
     try:
-        from frontend.utils.nicegui_storage import get_user_id_for_jobs, get_user_id
+        from frontend.utils import get_user_id_for_jobs, get_user_id
 
         uid = get_user_id_for_jobs() or get_user_id()
         if uid:

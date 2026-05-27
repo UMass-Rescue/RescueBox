@@ -7,7 +7,7 @@ from rb.api.models import InputSchema, InputType
 
 
 def test_suggested_outputs_dir_path():
-    from frontend.utils.job_form_paths import suggested_outputs_dir_path
+    from frontend.utils import suggested_outputs_dir_path
 
     s = suggested_outputs_dir_path("/home/user/project/case/images")
     assert "case" in s
@@ -15,7 +15,7 @@ def test_suggested_outputs_dir_path():
 
 
 def test_paired_output_directory_field_id():
-    from frontend.utils.job_form_paths import paired_output_directory_field_id
+    from frontend.utils import paired_output_directory_field_id
 
     inputs = [
         InputSchema(
@@ -48,7 +48,7 @@ def test_paired_output_directory_field_id():
 
 
 def test_maybe_autofill_output_dir_field_skips_when_nonempty():
-    from frontend.utils.job_form_paths import maybe_autofill_output_dir_field
+    from frontend.utils import maybe_autofill_output_dir_field
 
     out = MagicMock()
     out.value = "/already/set"
@@ -58,7 +58,7 @@ def test_maybe_autofill_output_dir_field_skips_when_nonempty():
 
 
 def test_maybe_autofill_output_dir_field_sets_when_empty():
-    from frontend.utils.job_form_paths import maybe_autofill_output_dir_field
+    from frontend.utils import maybe_autofill_output_dir_field
 
     out = MagicMock()
     out.value = ""
@@ -71,7 +71,7 @@ def test_maybe_autofill_output_dir_field_sets_when_empty():
 
 
 def test_suggested_ufdr_mount_folder_path():
-    from frontend.utils.job_form_paths import suggested_ufdr_mount_folder_path
+    from frontend.utils import suggested_ufdr_mount_folder_path
 
     s = suggested_ufdr_mount_folder_path(
         "/home/tester/Documents/demo5/ufdr-mount/inputs/test.ufdr"
@@ -82,7 +82,7 @@ def test_suggested_ufdr_mount_folder_path():
 
 
 def test_paired_ufdr_mount_name_field_id():
-    from frontend.utils.job_form_paths import paired_ufdr_mount_name_field_id
+    from frontend.utils import paired_ufdr_mount_name_field_id
 
     ufdr_schema = [
         InputSchema(

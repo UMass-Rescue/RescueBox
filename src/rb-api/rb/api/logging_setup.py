@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
+import platform
 from pathlib import Path
 
 
@@ -17,7 +18,11 @@ def backend_log_file_path() -> Path:
     env = os.environ.get("RESCUEBOX_API_LOG_FILE")
     if env:
         return Path(env).expanduser().resolve()
-    logfile =Path("rb-backend.log")
+    logfile = Path("rb-backend.log")
+    if platform.system() == 'Windows':
+        base_dir = Path(os.getenv('APPDATA'))
+        logfile = base_dir / 'RescueBox-Desktop' / 'logs' / 'backend.log'
+    
     return logfile
 
 
@@ -28,7 +33,7 @@ def backend_log_level() -> str:
 
 def configure_backend_logging() -> None:
     """Install root file + console logging for the API process."""
-    from frontend.utils.logging_context import configure_logging_with_context
+    from frontend.utils import configure_logging_with_context
 
     path = backend_log_file_path()
     path.parent.mkdir(parents=True, exist_ok=True)

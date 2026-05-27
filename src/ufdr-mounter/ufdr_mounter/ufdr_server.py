@@ -178,6 +178,7 @@ server.add_app_metadata(
     author="UMass RescueLab",
     version="3.0.0",
     info=app_info,
+    make_threadsafe=True,
 )
 
 

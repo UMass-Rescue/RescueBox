@@ -7,10 +7,9 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Union
 
 from frontend.database.file_filter_store import load_filter
-from frontend.database.job_db import get_job_db
 from frontend.database.file_filter_store import (
     resolve_filter_for_job,
     resolve_output_filter_for_job,
@@ -62,15 +61,9 @@ def get_job_filters(job_db, job_uid: str) -> dict:
             output_patterns = f.get("patterns_json", []) or []
             metadata = f.get("metadata", {}) or {}
     else:
-        # Backcompat: try to inspect request JSON for inline lists
+        # Backcompat: keep request_json parse-valid; inline file_filter/output_filter are handled at submit time.
         try:
-            req = json.loads(request_json)
-            inputs = req.get("inputs", {})
-            # look for file_filter/files list and output_filter
-            ff = inputs.get("file_filter")
-            of = inputs.get("output_filter")
-            # If file_filter provided as inline files, we can't resolve absolute paths reliably here
-            # Leave as empty; plugins should handle inline at submit time.
+            json.loads(request_json)
         except Exception:
             pass
     return {"filter_id": filter_id, "input_paths": input_paths, "output_patterns": output_patterns, "metadata": metadata}

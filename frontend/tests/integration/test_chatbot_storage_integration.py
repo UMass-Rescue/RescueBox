@@ -9,7 +9,7 @@ from nicegui.testing import User
 import uuid
 from frontend.chatbot.config import ChatbotConfig
 from frontend.database.chat_history_db import ChatHistoryDB, ConversationRecord
-from frontend.utils.nicegui_storage import (
+from frontend.utils import (
     get_current_conversation_id,
     set_current_conversation_id,
     get_user_id
@@ -107,7 +107,7 @@ class TestChatbotStorageIntegration:
         from frontend.pages.chatbot import ChatbotPage
         from frontend.chatbot.config import ChatbotConfig
         from frontend.database import get_chat_history_db
-        from frontend.utils.nicegui_storage import get_user_id
+        from frontend.utils import get_user_id
         
         route = f'/test_chatbot_{uuid.uuid4().hex}'
         @user.app.page(route)
@@ -172,7 +172,7 @@ class TestChatHistoryPersistence:
         """Test that conversation persists when navigating away and back"""
         from frontend.pages.chatbot import ChatbotPage
         from frontend.chatbot.config import ChatbotConfig
-        from frontend.utils.nicegui_storage import (
+        from frontend.utils import (
             get_current_conversation_id,
             set_current_conversation_id
         )
@@ -215,7 +215,7 @@ class TestChatHistoryPersistence:
         from frontend.pages.chatbot import ChatbotPage
         from frontend.chatbot.config import ChatbotConfig
         from frontend.database import get_chat_history_db
-        from frontend.utils.nicegui_storage import get_current_conversation_id
+        from frontend.utils import get_current_conversation_id
         
         route = f'/test_chatbot_{uuid.uuid4().hex}'
         @user.app.page(route)

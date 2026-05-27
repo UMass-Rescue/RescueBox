@@ -57,7 +57,7 @@ class TestNotifications:
         styling (positive/green), default positioning (top), standard
         duration (3 seconds), and include a close button for user control.
         """
-        from frontend.components.shared.notifications import notify_success
+        from frontend.components.shared import notify_success
 
         with patch('nicegui.ui.notify') as mock_notify:
             notify_success(TEST_SUCCESS_MESSAGE)
@@ -77,7 +77,7 @@ class TestNotifications:
         different durations, positions, and close button settings
         while maintaining the correct notification type (positive).
         """
-        from frontend.components.shared.notifications import notify_success
+        from frontend.components.shared import notify_success
 
         with patch('nicegui.ui.notify') as mock_notify:
             notify_success(
@@ -102,7 +102,7 @@ class TestNotifications:
         (negative/red), longer default duration (5 seconds) for
         important error messages, and include close button.
         """
-        from frontend.components.shared.notifications import notify_error
+        from frontend.components.shared import notify_error
 
         with patch('nicegui.ui.notify') as mock_notify:
             notify_error(TEST_ERROR_MESSAGE)
@@ -121,7 +121,7 @@ class TestNotifications:
         Ensures that critical errors can be made persistent (no auto-hide)
         by setting duration to 0, requiring user interaction to dismiss.
         """
-        from frontend.components.shared.notifications import notify_error
+        from frontend.components.shared import notify_error
 
         with patch('nicegui.ui.notify') as mock_notify:
             notify_error(TEST_CRITICAL_ERROR, duration=0)
@@ -136,7 +136,7 @@ class TestNotifications:
         Validates that informational notifications use the medium-gray skin
         without Quasar ``type`` (so teal ``info`` does not override) and standard duration.
         """
-        from frontend.components.shared.notifications import notify_info
+        from frontend.components.shared import notify_info
 
         with patch('nicegui.ui.notify') as mock_notify:
             notify_info(TEST_INFO_MESSAGE)
@@ -156,7 +156,7 @@ class TestNotifications:
         (warning/orange) and slightly longer duration (4 seconds) to ensure
         users notice important caution messages.
         """
-        from frontend.components.shared.notifications import notify_warning
+        from frontend.components.shared import notify_warning
 
         with patch('nicegui.ui.notify') as mock_notify:
             notify_warning(TEST_WARNING_MESSAGE)
@@ -175,10 +175,10 @@ class TestNotifications:
         troubleshooting and audit purposes, ensuring system administrators
         can track user interactions and system feedback.
         """
-        from frontend.components.shared.notifications import notify_success
+        from frontend.components.shared import notify_success
 
         with patch('nicegui.ui.notify') as mock_notify:
-            with patch('frontend.components.shared.notifications.logger') as mock_logger:
+            with patch('frontend.components.shared.logger') as mock_logger:
                 notify_success("Test message")
 
                 # Should log debug message for audit trail
@@ -193,7 +193,7 @@ class TestNotifications:
         locations (top, bottom, left, right) to accommodate different
         UI layouts and user preferences.
         """
-        from frontend.components.shared.notifications import notify_success
+        from frontend.components.shared import notify_success
 
         with patch('nicegui.ui.notify') as mock_notify:
             notify_success("Test", position=position)

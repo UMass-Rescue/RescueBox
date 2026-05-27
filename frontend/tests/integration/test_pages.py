@@ -110,7 +110,7 @@ class TestChatbotPage:
     async def test_chatbot_creates_conversation(self, mock_client_class, user: User):
         """Test that chatbot creates conversation on load"""
         self._setup_mock_client(mock_client_class)
-        from frontend.utils.nicegui_storage import get_current_conversation_id
+        from frontend.utils import get_current_conversation_id
         from frontend.database import get_chat_history_db
 
         await open_chatbot_and_wait_for_ready(user)
@@ -318,7 +318,7 @@ class TestJobsPage:
             patch.object(frontend.database.job_db, 'get_job_db', return_value=mock_db),
             patch.object(frontend.database, 'get_job_db', return_value=mock_db, create=True)
         ]
-        for mod_name in ['frontend.pages.jobs', 'frontend.pages.jobs.jobs']:
+        for mod_name in ['frontend.pages.jobs', 'frontend.pages.jobs']:
             if mod_name in sys.modules:
                 patches.append(patch.object(sys.modules[mod_name], 'get_job_db', return_value=mock_db, create=True))
                 
@@ -381,7 +381,7 @@ class TestJobsPage:
             patch.object(frontend.database.job_db, 'get_job_db', return_value=mock_db),
             patch.object(frontend.database, 'get_job_db', return_value=mock_db, create=True)
         ]
-        for mod_name in ['frontend.pages.jobs', 'frontend.pages.jobs.jobs']:
+        for mod_name in ['frontend.pages.jobs', 'frontend.pages.jobs']:
             if mod_name in sys.modules:
                 patches.append(patch.object(sys.modules[mod_name], 'get_job_db', return_value=mock_db, create=True))
                 

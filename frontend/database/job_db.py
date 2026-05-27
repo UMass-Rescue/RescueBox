@@ -39,7 +39,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Union
 import uuid
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 import time
 
 # Import backend models for type hints and validation
@@ -223,10 +223,10 @@ class JobRecord(BaseModel):
 
         return data
     
-    class Config:
-        """Pydantic configuration"""
-        arbitrary_types_allowed = True
-        use_enum_values = True
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        use_enum_values=True
+    )
 
 
 class JobDB(BaseDatabase):
@@ -493,7 +493,7 @@ class JobDB(BaseDatabase):
         # Use explicit user_id if passed (from request context), else resolve from storage
         if user_id is None:
             try:
-                from frontend.utils.nicegui_storage import get_user_id_for_jobs
+                from frontend.utils import get_user_id_for_jobs
                 user_id = get_user_id_for_jobs()
             except Exception:
                 user_id = None
@@ -662,7 +662,7 @@ class JobDB(BaseDatabase):
             job_dict = self._row_to_dict(row)
             # Allow access only if job matches current user ID (explicit user string)
             try:
-                from frontend.utils.nicegui_storage import get_user_id_for_jobs
+                from frontend.utils import get_user_id_for_jobs
                 current_user_id = get_user_id_for_jobs()
             except Exception:
                 current_user_id = None
@@ -707,11 +707,11 @@ class JobDB(BaseDatabase):
         
         # Use a local import to avoid circular dependency issues
         # job_utils -> database -> job_db -> job_utils
-        from frontend.pages.jobs.job_utils import extract_job_fields
+        from frontend.pages.jobs import extract_job_fields
 
         # Filter by explicit user ID only
         try:
-            from frontend.utils.nicegui_storage import get_user_id_for_jobs
+            from frontend.utils import get_user_id_for_jobs
             current_user = get_user_id_for_jobs()
         except Exception:
             current_user = None
@@ -840,13 +840,19 @@ class JobDB(BaseDatabase):
         - Accepts both ResponseBody Pydantic model and dict for backward compatibility
         """
         conn = self.connect()
-        logger.debug("Updating job %s status to %s", uid, status.value)
+        if isinstance(status, str):
+            for s in JobStatus:
+                if s.value.lower() == status.lower():
+                    status = s
+                    break
+        status_val = status.value if hasattr(status, 'value') else status
+        logger.debug("Updating job %s status to %s", uid, status_val)
         
         if end_time is None:
             end_time = datetime.now()
         
         updates = {
-            'status': status.value,
+            'status': status_val,
             'endTime': end_time.isoformat()
         }
         

@@ -1,13 +1,11 @@
-from typing import List, NotRequired, TypedDict
+from typing import Any, List, NotRequired, TypedDict, cast
 import json
 import logging
 import os
 from pathlib import Path
-import threading
 import typer
 from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
-from rb.lib.utils import apply_torch_cpu_preference
 from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
 from rb.api.models import (
     FloatRangeDescriptor,
@@ -24,6 +22,8 @@ from rb.api.models import (
     TextResponse,
     BatchFileInput,
 )
+from llama_index.core.node_parser import SentenceSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter  # type: ignore
 
 #_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 _MODEL_NAME = "BAAI/bge-m3"
@@ -33,8 +33,6 @@ _BGE_QUERY_PREFIX = "query: "  # BGE asymmetric search (queries only)
 _CHUNKER = "langchain"
 _CHUNK_SIZE = 300
 _CHUNK_OVERLAP = 60
-
-_INSTANCE_LOCK = threading.Lock()
 
 # Forensic safety: never read an entire multi-GB log into RAM at once.
 _MAX_READ_BYTES_PER_FILE = 50 * 1024 * 1024  # 50 MiB per file (truncate with warning)
@@ -123,6 +121,7 @@ server.add_app_metadata(
     version="3.0.0",
     info=info,
     gpu=True,
+    make_threadsafe=True,
 )
 
 
@@ -134,12 +133,6 @@ def _chunk_text(
     chunk_overlap: int,
 ) -> list[str]:
     if chunker == "langchain":
-        try:
-            from langchain_text_splitters import RecursiveCharacterTextSplitter  # type: ignore
-        except Exception as exc:  # pragma: no cover - import guard
-            raise ValueError(
-                "LangChain text splitters not available. Please install 'langchain-text-splitters'."
-            ) from exc
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -148,12 +141,6 @@ def _chunk_text(
         )
         return splitter.split_text(text)
     elif chunker == "llamaindex":
-        try:
-            from llama_index.core.node_parser import SentenceSplitter  # type: ignore
-        except Exception as exc:  # pragma: no cover - import guard
-            raise ValueError(
-                "LlamaIndex not available. Please install 'llama-index-core' to use this chunker."
-            ) from exc
         splitter = SentenceSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         return splitter.split_text(text)
     else:
@@ -204,7 +191,7 @@ def _paths_with_chunks_for_params(
         return set()
     rows = session.exec(
         select(TextEmbeddingChunk.path).where(
-            TextEmbeddingChunk.path.in_(paths),
+            cast(Any, TextEmbeddingChunk.__table__.c.path).in_(paths),
             TextEmbeddingChunk.model_name == model_name,
             TextEmbeddingChunk.chunk_size == chunk_size,
             TextEmbeddingChunk.chunk_overlap == chunk_overlap,
@@ -217,7 +204,7 @@ def _delete_chunks_for_paths(session, paths: list[str], model_name: str) -> None
     """Delete chunks for these paths and model so they can be re-embedded."""
     session.execute(
         delete(TextEmbeddingChunk).where(
-            TextEmbeddingChunk.path.in_(paths),
+            cast(Any, TextEmbeddingChunk.__table__.c.path).in_(paths),
             TextEmbeddingChunk.model_name == model_name,
         )
     )
@@ -293,202 +280,168 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     Semantic search over text files. Embeds the directory if embeddings don't exist
     for the requested model, then runs cosine similarity search.
     """
-    apply_torch_cpu_preference()
-    import torch
+    
     from sentence_transformers import SentenceTransformer  # type: ignore
 
-    with _INSTANCE_LOCK:
-        input_dir = str(inputs["input_dir"].path)
-        query_text = inputs["query"].text
+    input_dir = str(inputs["input_dir"].path)
+    query_text = inputs["query"].text
 
-        model_name = _MODEL_NAME
-        top_k = int(parameters.get("top_k", 5))
-        min_similarity = float(parameters.get("min_similarity", 0.45))
+    model_name = _MODEL_NAME
+    top_k = int(parameters.get("top_k", 5))
+    min_similarity = float(parameters.get("min_similarity", 0.45))
 
-        file_paths, corpus_err = resolve_text_file_corpus_paths(inputs, input_dir)
-        if not file_paths:
-            return ResponseBody(
-                root=TextResponse(
-                    value=json.dumps(
-                        {"error": corpus_err or "No text files to search", "results": []}
-                    ),
-                    title="Text Search",
-                    subtitle="No text files to search",
-                )
-            )
-
-        cuda_ok = torch.cuda.is_available()
-        mps_ok = bool(getattr(torch.backends, "mps", None)) and torch.backends.mps.is_available()
-        if cuda_ok:
-            device = torch.device("cuda")
-        elif mps_ok:
-            device = torch.device("mps")
-        else:
-            device = torch.device("cpu")
-
-        logger.info(
-            "SentenceTransformer runtime: cuda_available=%s mps_available=%s -> selected device=%s",
-            cuda_ok,
-            mps_ok,
-            device,
-        )
-        if cuda_ok and device.type == "cuda":
-            try:
-                idx = torch.cuda.current_device()
-                logger.info(
-                    "CUDA GPU in use: name=%s index=%s",
-                    torch.cuda.get_device_name(idx),
-                    idx,
-                )
-            except Exception as e:
-                logger.debug("Could not read CUDA device name: %s", e)
-        elif device.type == "mps":
-            logger.info("Apple Metal (MPS) in use for SentenceTransformer")
-
-        model = SentenceTransformer(model_name, device=str(device))
-        try:
-            param_dev = next(model.parameters()).device
-        except Exception:
-            param_dev = device
-        logger.info(
-            "SentenceTransformer loaded on device=%s (parameter device=%s) model_name=%s",
-            device,
-            param_dev,
-            model_name,
-        )
-
-        with Session(engine) as session:
-            _relocate_matching_basenames(
-                session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
-            )
-            session.flush()
-
-            existing_paths = _paths_with_chunks_for_params(
-                session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
-            )
-            paths_to_embed = [p for p in file_paths if p not in existing_paths]
-
-            # 1) Collect chunk texts only for paths that need vectors, then 2) one batched encode.
-            chunk_rows: list[tuple[str, int, str]] = []
-            for path in paths_to_embed:
-                text = _read_text_file_safe(path, _MAX_READ_BYTES_PER_FILE)
-                if not text.strip():
-                    continue
-                chunks = _chunk_text(
-                    text,
-                    chunker=_CHUNKER,
-                    chunk_size=_CHUNK_SIZE,
-                    chunk_overlap=_CHUNK_OVERLAP,
-                )
-                for idx, chunk_text in enumerate(chunks):
-                    chunk_rows.append((path, idx, chunk_text))
-
-            if chunk_rows:
-                texts = [row[2] for row in chunk_rows]
-                logger.info(
-                    "Embedding %d chunks from %d file(s) (%d already had embeddings; %d total in request), "
-                    "batch_size=%d",
-                    len(texts),
-                    len(paths_to_embed),
-                    len(existing_paths),
-                    len(file_paths),
-                    _EMBED_BATCH_SIZE,
-                )
-                vectors = model.encode(
-                    texts,
-                    batch_size=_EMBED_BATCH_SIZE,
-                    convert_to_numpy=True,
-                    normalize_embeddings=True,
-                    show_progress_bar=len(texts) > 64,
-                )
-                records: list[TextEmbeddingChunk] = []
-                for (path, idx, chunk_text), vec in zip(chunk_rows, vectors):
-                    records.append(
-                        TextEmbeddingChunk(
-                            path=path,
-                            chunk_index=idx,
-                            chunk_text=chunk_text,
-                            model_name=model_name,
-                            chunk_size=_CHUNK_SIZE,
-                            chunk_overlap=_CHUNK_OVERLAP,
-                            embedding=vec.tolist(),
-                        )
-                    )
-                session.add_all(records)
-            session.commit()
-
-            # Search: query-side instruction only (Qwen) or BGE asymmetric prefix — not applied to stored chunks.
-            search_query = _format_search_query(model_name, query_text)
-            query_embedding = model.encode(
-                search_query,
-                convert_to_numpy=True,
-                normalize_embeddings=True,
-                show_progress_bar=False,
-            )
-            embedding_str = "[" + ",".join(str(x) for x in query_embedding.tolist()) + "]"
-
-            # One row per file: best-matching chunk only (DISTINCT ON), then top_k files by similarity.
-            # Scope to this request's paths so we do not rank unrelated corpus rows.
-            query_sql = sql_text(
-                f"""
-                SELECT * FROM (
-                    SELECT DISTINCT ON (path)
-                        id,
-                        path,
-                        chunk_index,
-                        chunk_text,
-                        1 - (embedding <=> '{embedding_str}'::vector) AS similarity
-                    FROM text_embedding_chunks
-                    WHERE model_name = :model_name
-                    AND chunk_size = :chunk_size
-                    AND chunk_overlap = :chunk_overlap
-                    AND path IN :paths
-                    ORDER BY path, embedding <=> '{embedding_str}'::vector ASC
-                ) AS best_chunk_per_path
-                ORDER BY similarity DESC
-                LIMIT :top_k
-                """
-            ).bindparams(bindparam("paths", expanding=True))
-            rows = session.execute(
-                query_sql,
-                {
-                    "model_name": model_name,
-                    "chunk_size": _CHUNK_SIZE,
-                    "chunk_overlap": _CHUNK_OVERLAP,
-                    "paths": file_paths,
-                    "top_k": top_k,
-                },
-            ).fetchall()
-
-        search_results = []
-        for row in rows:
-            sim = float(row.similarity)
-            search_results.append({
-                "id": row.id,
-                "path": row.path,
-                "chunk_index": row.chunk_index,
-                "similarity": sim,
-                "is_match": sim >= min_similarity,
-                "matching_text": _truncate(row.chunk_text or "", 600),
-            })
-        response_data = {
-            "query": query_text,
-            "model": model_name,
-            "top_k": top_k,
-            "min_similarity": min_similarity,
-            "similarity_guidance": (
-                f"Results with similarity >= {min_similarity} are marked as matches."
-            ),
-            "results": search_results,
-        }
-
+    file_paths, corpus_err = resolve_text_file_corpus_paths(inputs, input_dir)
+    if not file_paths:
         return ResponseBody(
             root=TextResponse(
-                value=json.dumps(response_data, indent=2),
-                title="Text Search Results",
-                subtitle=f"Found {len(search_results)} results using {model_name}",
+                value=json.dumps(
+                    {"error": corpus_err or "No text files to search", "results": []}
+                ),
+                title="Text Search",
+                subtitle="No text files to search",
             )
         )
+
+    model = SentenceTransformer(model_name)
+   
+    logger.info(
+        "SentenceTransformer loaded on device=%s model_name=%s",
+        model.device,
+        model_name,
+    )
+
+    with Session(engine) as session:
+        _relocate_matching_basenames(
+            session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
+        )
+        session.flush()
+
+        existing_paths = _paths_with_chunks_for_params(
+            session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
+        )
+        paths_to_embed = [p for p in file_paths if p not in existing_paths]
+
+        # 1) Collect chunk texts only for paths that need vectors, then 2) one batched encode.
+        chunk_rows: list[tuple[str, int, str]] = []
+        for path in paths_to_embed:
+            text = _read_text_file_safe(path, _MAX_READ_BYTES_PER_FILE)
+            if not text.strip():
+                continue
+            chunks = _chunk_text(
+                text,
+                chunker=_CHUNKER,
+                chunk_size=_CHUNK_SIZE,
+                chunk_overlap=_CHUNK_OVERLAP,
+            )
+            for idx, chunk_text in enumerate(chunks):
+                chunk_rows.append((path, idx, chunk_text))
+
+        if chunk_rows:
+            texts = [row[2] for row in chunk_rows]
+            logger.info(
+                "Embedding %d chunks from %d file(s) (%d already had embeddings; %d total in request), "
+                "batch_size=%d",
+                len(texts),
+                len(paths_to_embed),
+                len(existing_paths),
+                len(file_paths),
+                _EMBED_BATCH_SIZE,
+            )
+            vectors = model.encode(
+                texts,
+                batch_size=_EMBED_BATCH_SIZE,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=len(texts) > 64,
+            )
+            records: list[TextEmbeddingChunk] = []
+            for (path, idx, chunk_text), vec in zip(chunk_rows, vectors):
+                records.append(
+                    TextEmbeddingChunk(
+                        path=path,
+                        chunk_index=idx,
+                        chunk_text=chunk_text,
+                        model_name=model_name,
+                        chunk_size=_CHUNK_SIZE,
+                        chunk_overlap=_CHUNK_OVERLAP,
+                        embedding=vec.tolist(),
+                    )
+                )
+            session.add_all(records)
+        session.commit()
+
+        # Search: query-side instruction only (Qwen) or BGE asymmetric prefix — not applied to stored chunks.
+        search_query = _format_search_query(model_name, query_text)
+        query_embedding = model.encode(
+            search_query,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        )
+        embedding_str = "[" + ",".join(str(x) for x in query_embedding.tolist()) + "]"
+
+        # One row per file: best-matching chunk only (DISTINCT ON), then top_k files by similarity.
+        # Scope to this request's paths so we do not rank unrelated corpus rows.
+        query_sql = sql_text(
+            f"""
+            SELECT * FROM (
+                SELECT DISTINCT ON (path)
+                    id,
+                    path,
+                    chunk_index,
+                    chunk_text,
+                    1 - (embedding <=> '{embedding_str}'::vector) AS similarity
+                FROM text_embedding_chunks
+                WHERE model_name = :model_name
+                AND chunk_size = :chunk_size
+                AND chunk_overlap = :chunk_overlap
+                AND path IN :paths
+                ORDER BY path, embedding <=> '{embedding_str}'::vector ASC
+            ) AS best_chunk_per_path
+            ORDER BY similarity DESC
+            LIMIT :top_k
+            """
+        ).bindparams(bindparam("paths", expanding=True))
+        rows = session.execute(
+            query_sql,
+            {
+                "model_name": model_name,
+                "chunk_size": _CHUNK_SIZE,
+                "chunk_overlap": _CHUNK_OVERLAP,
+                "paths": file_paths,
+                "top_k": top_k,
+            },
+        ).fetchall()
+
+    search_results = []
+    for row in rows:
+        sim = float(row.similarity)
+        search_results.append({
+            "id": row.id,
+            "path": row.path,
+            "chunk_index": row.chunk_index,
+            "similarity": sim,
+            "is_match": sim >= min_similarity,
+            "matching_text": _truncate(row.chunk_text or "", 600),
+        })
+    response_data = {
+        "query": query_text,
+        "model": model_name,
+        "top_k": top_k,
+        "min_similarity": min_similarity,
+        "similarity_guidance": (
+            f"Results with similarity >= {min_similarity} are marked as matches."
+        ),
+        "results": search_results,
+    }
+
+    return ResponseBody(
+        root=TextResponse(
+            value=json.dumps(response_data, indent=2),
+            title="Text Search Results",
+            subtitle=f"Found {len(search_results)} results using {model_name}",
+        )
+    )
 
 
 def inputs_cli_parse(value: str) -> Inputs:

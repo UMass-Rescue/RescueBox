@@ -1,28 +1,23 @@
 # frontend/chatbot/multi_tool_handler.py
 """
-Multiple Tool Call Handler
+Helpers for Granite multi-tool and pipeline flows: response coercion, chaining,
+metadata filtering, and batch path extraction used by chatbot / jobs UI.
 
-This module handles sequential execution of multiple tool calls from the Granite model.
-It supports:
-- Sequential execution of tool calls
-- Output chaining (output from first call -> input to second call)
-- Result history tracking
-- User input between calls (optional)
-- Display of all results with history view
+The ``multi_tool_calls`` message path yields sequential forms handled in
+``pages/chatbot`` (coordinator ``PipelineHandler``); this module provides the shared
+utilities. ``MultiToolCallResult`` aggregates per-step outcomes for callers/tests.
 """
 
 import logging
 import re
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional
 from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from rb.api.models import ResponseBody, TaskSchema, RequestBody, InputType
-from frontend.chatbot.core import ChatbotCore
-from frontend.chatbot.utils import normalize_arguments
-from frontend.utils.validators import validate_request_body, validate_response_body
+from rb.api.models import ResponseBody, TaskSchema, InputType
+from frontend.utils import validate_response_body
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -113,7 +108,7 @@ def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
         for fr in files:
             if isinstance(fr, FileResponse):
                 items.append({
-                    "path": str(fr.path),
+                    "path": Path(fr.path).as_posix(),
                     "metadata": dict(fr.metadata) if fr.metadata else {},
                 })
             elif isinstance(fr, dict):
@@ -122,7 +117,7 @@ def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
                     continue
                 meta = fr.get("metadata")
                 items.append({
-                    "path": str(path),
+                    "path": Path(path).as_posix(),
                     "metadata": dict(meta) if isinstance(meta, dict) else {},
                 })
             else:
@@ -350,7 +345,7 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
         root = response_body.root
 
         if isinstance(root, BatchTextResponse) and getattr(root, "transcripts_dir", None):
-            td = str(Path(root.transcripts_dir).resolve())
+            td = Path(root.transcripts_dir).as_posix()
             logger.debug("Extracted transcripts_dir from BatchTextResponse: %s", td)
             return td
 
@@ -360,7 +355,8 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
             if vm.lower().startswith("mounted at "):
                 mp = vm[len("Mounted at ") :].strip()
                 if mp:
-                    files_root = (Path(mp.rstrip("/")) / "files").resolve()
+                    # Don't use resolve() to avoid Windows drive letters/normalization
+                    files_root = Path(mp.rstrip("/")) / "files"
                     logger.debug(
                         "Extracted UFDR files root from mount message: %s", files_root.as_posix()
                     )
@@ -379,9 +375,9 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
                 if file_list and isinstance(file_list, list):
                     first_path = file_list[0]
                     if isinstance(first_path, str):
-                        output_path = Path(first_path).parent
+                        output_path = Path(first_path).parent.as_posix()
                         logger.debug("Extracted output path from TextResponse (file list): %s", output_path)
-                        return output_path.as_posix()
+                        return output_path
             except (json.JSONDecodeError, TypeError, IndexError):
                 pass
 
@@ -389,13 +385,13 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
         if isinstance(root, BatchDirectoryResponse) and root.directories:
             output_path = root.directories[0].path
             logger.debug("Extracted output path from BatchDirectoryResponse: %s", output_path)
-            return str(Path(output_path).parent) if Path(output_path).is_file() else output_path
+            return Path(output_path).parent.as_posix() if Path(output_path).is_file() else Path(output_path).as_posix()
         
         # DirectoryResponse
         if isinstance(root, DirectoryResponse):
             output_path = root.path
             logger.debug("Extracted output path from DirectoryResponse: %s", output_path)
-            return str(Path(output_path).parent) if Path(output_path).is_file() else output_path
+            return Path(output_path).parent.as_posix() if Path(output_path).is_file() else Path(output_path).as_posix()
         
         # BatchFileResponse - use parent directory of first file
         if isinstance(root, BatchFileResponse) and root.files:
@@ -523,122 +519,4 @@ def chain_output_to_input(
         logger.debug("No input directory field found in schema, skipping chaining")
 
     return current_arguments
-
-
-async def execute_tool_call_sequence(
-    tool_calls: List[Dict[str, Any]],
-    core: ChatbotCore,
-    on_form_needed: Optional[Callable] = None,
-    on_result: Optional[Callable] = None,
-    on_complete: Optional[Callable] = None,
-    chain_outputs: bool = True
-) -> MultiToolCallResult:
-    """
-    Execute multiple tool calls sequentially with optional output chaining.
-    
-    Note: designed for fully automated workflows without user interaction
-    
-    This function processes tool calls one by one:
-    1. Loads task schema for each call
-    2. Chains output from previous call if enabled
-    3. Shows form for user input if needed
-    4. Submits job and waits for result
-    5. Stores result for history
-    6. Moves to next call
-    
-    Args:
-        tool_calls: List of tool call dicts with 'endpoint' and 'arguments'
-        core: ChatbotCore instance
-        on_form_needed: Callback when form is needed (call_index, endpoint, arguments, schema)
-        on_result: Callback when result is received (call_index, endpoint, result)
-        on_complete: Callback when all calls complete (MultiToolCallResult)
-        chain_outputs: Whether to chain outputs between calls
-        
-    Returns:
-        MultiToolCallResult: Result object containing all results and errors
-    """
-    logger.info("Starting execution of %d tool call(s)", len(tool_calls))
-    
-    result = MultiToolCallResult()
-    previous_output: Optional[ResponseBody] = None
-    
-    for call_index, tool_call in enumerate(tool_calls):
-        endpoint = tool_call['endpoint']
-        arguments = tool_call['arguments']
-        
-        logger.debug("Processing tool call %d/%d: %s", call_index + 1, len(tool_calls), endpoint)
-        
-        try:
-            # Load task schema
-            task_schema = await core.get_task_schema_from_endpoint(endpoint)
-            if not task_schema:
-                error_msg = f"Failed to load schema for {endpoint}"
-                logger.error(error_msg)
-                result.add_result(tool_call, None, error_msg)
-                continue
-            
-            # Chain output from previous call if enabled
-            if chain_outputs and previous_output and call_index > 0:
-                logger.debug("Chaining output from previous call to call %d", call_index + 1)
-                arguments = chain_output_to_input(previous_output, arguments, task_schema)
-            
-            # Convert arguments to initial values
-            initial_values = core.convert_arguments_to_initial_values(
-                arguments, task_schema, endpoint
-            )
-            
-            # If form callback provided, use it (allows user input/confirmation)
-            if on_form_needed:
-                logger.debug("Requesting form for call %d", call_index + 1)
-                await on_form_needed(call_index, endpoint, initial_values, task_schema)
-                # Note: on_form_needed should handle form submission and call on_result
-                # This is handled by the caller
-                continue
-            
-            # Otherwise, auto-submit with provided arguments
-            logger.debug("Auto-submitting call %d with provided arguments", call_index + 1)
-            request_body = validate_request_body(
-                {'inputs': initial_values.get('inputs', {}), 'parameters': initial_values.get('parameters', {})},
-                task_schema,
-                endpoint=endpoint,
-            )
-            
-            if isinstance(request_body, dict) and not request_body.get('is_valid', True):
-                error_msg = f"Validation failed: {request_body.get('errors', {})}"
-                logger.error(error_msg)
-                result.add_result(tool_call, None, error_msg)
-                continue
-            
-            if not isinstance(request_body, RequestBody):
-                error_msg = "Failed to validate request body"
-                logger.error(error_msg)
-                result.add_result(tool_call, None, error_msg)
-                continue
-            
-            # Submit job
-            response_body = await core.submit_job(request_body, endpoint)
-            previous_output = response_body
-            result.add_result(tool_call, response_body, None)
-            
-            # Call result callback
-            if on_result:
-                await on_result(call_index, endpoint, response_body)
-            
-            logger.info("Tool call %d completed successfully", call_index + 1)
-            
-        except Exception as e:
-            error_msg = f"Error executing tool call {call_index + 1} ({endpoint}): {str(e)}"
-            logger.error(error_msg, exc_info=True)
-            result.add_result(tool_call, None, error_msg)
-            
-            # Continue with next call even if this one failed
-            continue
-    
-    logger.info("Completed execution of %d/%d tool call(s)", result.completed_count, len(tool_calls))
-    
-    # Call completion callback
-    if on_complete:
-        await on_complete(result)
-    
-    return result
 

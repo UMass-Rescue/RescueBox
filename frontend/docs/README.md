@@ -16,25 +16,30 @@ Keep docs **small and current**. This index plus nine topic files are what we ma
 | Topic | Doc |
 |--------|-----|
 | End-to-end workflow (chat, tools, API) | [workflow.md](./workflow.md) |
-| Look & feel (Tailwind, indigo/zinc, `Design` tokens, dark mode) | [style-theme.md](./style-theme.md) |
+| Look & feel (Maroon/Zinc/Medium-Gray, `Design` tokens, dark mode) | [style-theme.md](./style-theme.md) |
 | Conversations, messages, rerun | [chat-history.md](./chat-history.md) |
 | Job lifecycle, submission, polling | [jobs.md](./jobs.md) |
 | SQLite files, storage | [database.md](./database.md) |
 | Rendering API responses in the UI | [results.md](./results.md) |
 | Forensic filter, `/analyze` | [pipeline-filter.md](./pipeline-filter.md) |
+| Chatbot Architecture (modular package) | [chatbot-architecture.md](./chatbot-architecture.md) |
+| Forms & Utilities Architecture | [forms-utils-architecture.md](./forms-utils-architecture.md) |
+| Chat & Jobs Architecture | [chat-jobs-architecture.md](./chat-jobs-architecture.md) |
 | Tests | [testing.md](./testing.md) |
 
 ## Code map
 
 | Area | Main locations |
 |------|----------------|
-| Chat page | `frontend/pages/chatbot/chatbot.py` (`@ui.page('/chatbot')`) |
-| Message routing | `frontend/chatbot/message_handler.py` (`MessageHandler`), `frontend/pages/chatbot/chatbot_handlers.py` |
+| Chat page | `frontend/pages/chatbot/ui.py` (`@ui.page('/chatbot')`) |
+| Message routing | `frontend/chatbot/message_handler.py` (`MessageHandler`), `frontend/pages/chatbot/coordinator.py` |
 | Granite API & Core | `frontend/chatbot/core.py` (Granite `<tool_code>` parsing, HTTP requests) |
-| Form submit / orchestrator | `frontend/pages/chatbot/utils/form_processor.py`, `frontend/pages/chatbot/utils/job_submission_orchestrator.py`, `frontend/pages/chatbot/utils/result_router.py` |
+| Form submit / orchestrator | `frontend/pages/chatbot/coordinator.py`, `frontend/pages/chatbot/handlers.py` |
 | Job DB / chat DB | `frontend/database/job_db.py`, `chat_history_db.py` (same `jobs.db`) |
 | Results UI | `frontend/components/results/` |
-| URL `?load_conversation=` / `?rerun=` | `frontend/pages/chatbot/parameter_handlers.py` |
+| Forms UI | `frontend/components/forms/` (Modular package) |
+| Utilities | `frontend/utils/` (Modular package) |
+| URL `?load_conversation=` / `?rerun=` | `frontend/pages/chatbot/ui.py` (`chatbot_page`, `_extract_chatbot_query_from_client`) |
 
 ## Related
 

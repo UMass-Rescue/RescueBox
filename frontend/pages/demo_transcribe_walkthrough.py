@@ -1,6 +1,4 @@
-"""
-In-app walkthrough: Transcribe via Assistant tool picker (Markdown in frontend/demo/).
-"""
+"""In-app walkthrough: Transcribe via Assistant tool picker (Markdown in frontend/demo/)."""
 
 from __future__ import annotations
 
@@ -8,8 +6,8 @@ import logging
 
 from nicegui import ui
 
-from frontend.components.demo.demo_files_explorer import render_walkthrough_samples_panel
-from frontend.components.demo.guided_markdown import (
+from frontend.components.demo import render_walkthrough_samples_panel
+from frontend.components.demo import (
     load_markdown_file,
     render_guided_markdown_body,
     schedule_hash_fragment_scroll,
@@ -34,11 +32,11 @@ Could not read `{_MD_FILE}`. Add `frontend/demo/{_MD_FILE}` to customize this pa
 @ui.page("/demo/transcribe-walkthrough")
 async def demo_transcribe_walkthrough_page():
     """Step-by-step transcribe (tool picker) guide."""
-    from frontend.utils.theme import apply_saved_theme
+    from frontend.utils import apply_saved_theme
 
     apply_saved_theme()
     create_navbar()
-    from frontend.utils.demo_user_gate import require_demo_user_session
+    from frontend.utils import require_demo_user_session
 
     if not require_demo_user_session():
         return

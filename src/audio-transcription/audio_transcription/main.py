@@ -43,6 +43,7 @@ ml_service.add_app_metadata(
     author="UMass RescueLab",
     version="3.0.0",
     info=info,
+    make_threadsafe=False,
 )
 
 model = AudioTranscriptionModel()

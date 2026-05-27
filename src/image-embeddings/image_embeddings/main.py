@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from typing import Any, List, TypedDict
+from typing import Any, List, TypedDict, cast
 import hashlib
 import logging
 import os
 import threading
+from pathlib import Path
 
+import numpy as np
+import onnxruntime as ort
 import typer
 from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
-from rb.lib.utils import apply_torch_cpu_preference
 from rb.api.models import (
     InputSchema,
     InputType,
@@ -38,18 +40,19 @@ APP_NAME = "image_embeddings"
 logger = logging.getLogger(__name__)
 # Standard HF CLIP only: ``CLIPModel`` / ``CLIPProcessor`` from the same checkpoint.
 # LLM2CLIP and other custom checkpoints are not loadable as ``CLIPModel`` (weight layout differs).
-# Must match ``ImageEmbedding.embedding`` in ``rb.api.database`` (pgvector vector(768)).
-DEFAULT_CLIP_MODEL = "openai/clip-vit-large-patch14-336"
-_EXPECTED_IMAGE_EMBED_DIM = 768
+# Must match ``ImageEmbedding.embedding`` in ``rb.api.database`` (pgvector vector(512)).
+DEFAULT_CLIP_MODEL = "openai/clip-vit-base-patch32"
+_EXPECTED_IMAGE_EMBED_DIM = 512
 # Hugging Face hub uses filelock at DEBUG; keep noise down when root logging is DEBUG.
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
 _INSTANCE_LOCK = threading.Lock()
 
-_CLIP_MODEL_CLS: type | None = None
 _CLIP_PROCESSOR_CLS: type | None = None
 
 _CLIP_INSTANCE_CACHE: dict[tuple[str, str], tuple[Any, Any]] = {}
+_ONNX_TEXT_SESSION: ort.InferenceSession | None = None
+_ONNX_VISION_SESSION: ort.InferenceSession | None = None
 
 # Raster types accepted for CLIP embedding (top-level files under ``input_dir``).
 CLIP_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff"}
@@ -143,6 +146,7 @@ server.add_app_metadata(
     version="3.0.0",
     info=info,
     gpu=True,
+    make_threadsafe=True,
 )
 
 
@@ -150,7 +154,15 @@ def _paths_already_embedded(session: Session, paths: list[str]) -> set[str]:
     """Return paths that already have a row in ``image_embeddings`` (reuse for repeat queries)."""
     if not paths:
         return set()
-    rows = session.exec(select(ImageEmbedding.path).where(ImageEmbedding.path.in_(paths))).all()
+    rows = (
+        session.execute(
+            select(ImageEmbedding.path).where(
+                cast(Any, ImageEmbedding.__table__.c.path).in_(paths)
+            )
+        )
+        .scalars()
+        .all()
+    )
     return set(rows)
 
 
@@ -163,109 +175,107 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-def _get_clip_classes() -> tuple[type, type]:
-    """Return ``(CLIPModel, CLIPProcessor)`` (cached, thread-safe)."""
-    global _CLIP_MODEL_CLS, _CLIP_PROCESSOR_CLS
-    if _CLIP_MODEL_CLS is not None and _CLIP_PROCESSOR_CLS is not None:
-        return _CLIP_MODEL_CLS, _CLIP_PROCESSOR_CLS
+def _get_clip_processor_class() -> type:
+    """Return ``CLIPProcessor`` class (cached, thread-safe)."""
+    global _CLIP_PROCESSOR_CLS
+    if _CLIP_PROCESSOR_CLS is not None:
+        return _CLIP_PROCESSOR_CLS
     try:
-        from transformers.models.clip.modeling_clip import CLIPModel
         from transformers.models.clip.processing_clip import CLIPProcessor
     except ImportError:
-        from transformers import CLIPModel, CLIPProcessor  # type: ignore
-
-    _CLIP_MODEL_CLS = CLIPModel
+        from transformers import CLIPProcessor  # type: ignore
     _CLIP_PROCESSOR_CLS = CLIPProcessor
-    logger.debug("CLIP classes bound (thread-safe lazy init)")
-    return _CLIP_MODEL_CLS, _CLIP_PROCESSOR_CLS
+    logger.debug("CLIP processor class bound (thread-safe lazy init)")
+    return _CLIP_PROCESSOR_CLS
 
 
-def _clip_model_load_pretrained_cpu(model_cls: type, model_name: str) -> Any:
-    """
-    Instantiate CLIP from config and ``load_state_dict`` from Hub files — real CPU tensors only.
-
-    Avoids HF ``from_pretrained``'s meta-device construction path so ``model.to(cuda)`` cannot hit
-    "Cannot copy out of meta tensor".
-    """
-    import torch
-    from huggingface_hub import hf_hub_download
-    from huggingface_hub.errors import EntryNotFoundError
-
-    cfg = model_cls.config_class.from_pretrained(model_name)
-    model = model_cls(cfg)
-
-    weight_path: str | None = None
-    last_err: BaseException | None = None
-    for fn in ("model.safetensors", "pytorch_model.bin"):
-        try:
-            weight_path = hf_hub_download(repo_id=model_name, filename=fn)
-            break
-        except EntryNotFoundError as exc:
-            last_err = exc
+def _get_clip_processor(model_name: str) -> Any:
+    key = (model_name, "processor")
+    cached = _CLIP_INSTANCE_CACHE.get(key)
+    if cached:
+        return cached[0]
+    CLIPProcessor = _get_clip_processor_class()
+    processor = CLIPProcessor.from_pretrained(model_name, interpolation="bicubic")
+    _CLIP_INSTANCE_CACHE[key] = (processor, None)
+    return processor
 
 
-    if weight_path.endswith(".safetensors"):
-        from safetensors.torch import load_file
+def _get_onnx_sessions() -> tuple[ort.InferenceSession, ort.InferenceSession]:
+    """Return (text_session, vision_session) with input validation."""
+    global _ONNX_TEXT_SESSION, _ONNX_VISION_SESSION
+    if _ONNX_TEXT_SESSION is not None and _ONNX_VISION_SESSION is not None:
+        return _ONNX_TEXT_SESSION, _ONNX_VISION_SESSION
+    model_dir = Path(__file__).resolve().parent / "clip_onnx_models"
+    text_model = model_dir / "text.onnx"
+    vision_model = model_dir / "vision.onnx"
+    if not text_model.is_file() or not vision_model.is_file():
+        raise FileNotFoundError(
+            f"Missing CLIP ONNX model files in {model_dir}: text.onnx/vision.onnx"
+        )
+    providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    text_candidate = ort.InferenceSession(str(text_model), providers=providers)
+    vision_candidate = ort.InferenceSession(str(vision_model), providers=providers)
+    
+    return text_candidate, vision_candidate
 
-        sd = load_file(weight_path, device="cpu")
-    else:
-        sd = torch.load(weight_path, map_location=torch.device("cpu"), weights_only=True)
 
-    incomp = model.load_state_dict(sd, strict=False)
-    if incomp.missing_keys:
-        logger.warning(
-            "CLIP load_state_dict missing %d keys (showing first 5): %s",
-            len(incomp.missing_keys),
-            incomp.missing_keys[:5],
+def _pick_session_for_inputs(
+    sessions: tuple[ort.InferenceSession, ort.InferenceSession],
+    inputs: dict,
+    label: str,
+) -> tuple[ort.InferenceSession, set[str]]:
+    input_keys = set(inputs.keys())
+    candidates = [(session, {inp.name for inp in session.get_inputs()}) for session in sessions]
+
+    if label == "vision":
+        # Prefer a pure-vision encoder (pixel_values only).
+        for session, names in candidates:
+            if "pixel_values" in names and "input_ids" not in names:
+                return session, names
+        for session, names in candidates:
+            if "pixel_values" in names:
+                return session, names
+        raise ValueError(
+            f"Unable to match ONNX vision inputs. Provided={sorted(input_keys)}"
         )
 
-    return model
+    if label == "text":
+        # Prefer a pure-text encoder (input_ids/attention_mask only).
+        for session, names in candidates:
+            if "input_ids" in names and "pixel_values" not in names:
+                return session, names
+        for session, names in candidates:
+            if "input_ids" in names:
+                return session, names
+        raise ValueError(
+            f"Unable to match ONNX text inputs. Provided={sorted(input_keys)}"
+        )
 
-
-def _get_clip_model_and_processor(model_name: str, device: Any) -> tuple[Any, Any]:
-    """
-    Return a loaded CLIP model and processor, reusing a process-wide cache per (model, device).
-
-    Serializes the full load + ``.to(device)`` under a lock so parallel requests do not call
-    ``from_pretrained`` / ``.to(cuda)`` concurrently (avoids meta-tensor errors on some stacks).
-    """
-    import torch
-
-    if device.type == "cuda":
-        try:
-            dev_key = f"cuda:{torch.cuda.current_device()}"
-        except Exception:
-            dev_key = "cuda:0"
-    elif device.type == "mps":
-        dev_key = "mps"
-    else:
-        dev_key = "cpu"
-
-    key = (model_name, dev_key)
-    hit = _CLIP_INSTANCE_CACHE.get(key)
-    if hit is not None:
-        logger.debug("CLIP instance cache hit: %s @ %s", model_name, dev_key)
-        return hit
-
-    CLIPModel, CLIPProcessor = _get_clip_classes()
-    logger.info(
-        "Loading CLIP weights (cache key %s, %s) for shared use across requests",
-        model_name,
-        dev_key,
+    for session, names in candidates:
+        if names.issubset(input_keys):
+            return session, names
+    raise ValueError(
+        f"Unable to match ONNX {label} inputs. Provided={sorted(input_keys)}"
     )
-    model = _clip_model_load_pretrained_cpu(CLIPModel, model_name)
-    processor = CLIPProcessor.from_pretrained(
-        model_name, interpolation="bicubic"
-    )
-    for tensor in list(model.parameters()) + list(model.buffers()):
-        if getattr(tensor, "is_meta", False):
-            raise RuntimeError(
-                f"CLIP {model_name!r} still has meta tensors after eager CPU weight load."
-            )
-    model = model.to(device)
-    model.eval()
-    _CLIP_INSTANCE_CACHE[key] = (model, processor)
-    return model, processor
+
+
+def _dummy_text_inputs(processor) -> dict:
+    inputs = dict(processor(text=[""], return_tensors="np", padding=True))
+    return {
+        "input_ids": inputs.get("input_ids"),
+        "attention_mask": inputs.get("attention_mask"),
+    }
+
+
+def _dummy_pixel_values(processor) -> np.ndarray:
+    from PIL import Image
+
+    size = getattr(processor.image_processor, "size", 224)
+    if isinstance(size, dict):
+        size = max(size.values() or [224])
+    dummy = Image.new("RGB", (int(size), int(size)), color=(0, 0, 0))
+    inputs = dict(processor(images=dummy, return_tensors="np", do_rescale=True))
+    return inputs["pixel_values"]
 
 
 def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
@@ -273,8 +283,6 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     Embed images under ``input_dir`` that are not already stored, then rank
     those images (including reused embeddings) by CLIP text–image similarity to ``query``.
     """
-    apply_torch_cpu_preference()
-    import torch
     from PIL import Image
 
     with _INSTANCE_LOCK:
@@ -284,58 +292,19 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         model_name = parameters.get("model_name", DEFAULT_CLIP_MODEL)
         top_k = int(parameters.get("top_k", 15))
         min_similarity = float(parameters.get("min_similarity", 0.13))
+        expected_dim = _EXPECTED_IMAGE_EMBED_DIM
 
-        cuda_ok = torch.cuda.is_available()
-        mps_ok = bool(getattr(torch.backends, "mps", None)) and torch.backends.mps.is_available()
-        if cuda_ok:
-            device = torch.device("cuda")
-        elif mps_ok:
-            device = torch.device("mps")
-        else:
-            device = torch.device("cpu")
-
+        processor = _get_clip_processor(model_name)
+        text_session, vision_session = _get_onnx_sessions()
         logger.info(
-            "CLIP runtime: cuda_available=%s mps_available=%s -> selected device=%s",
-            cuda_ok,
-            mps_ok,
-            device,
-        )
-        if cuda_ok and device.type == "cuda":
-            try:
-                idx = torch.cuda.current_device()
-                logger.info(
-                    "CUDA GPU in use: name=%s index=%s",
-                    torch.cuda.get_device_name(idx),
-                    idx,
-                )
-            except Exception as e:
-                logger.debug("Could not read CUDA device name: %s", e)
-        elif device.type == "mps":
-            logger.info("Apple Metal (MPS) GPU in use for CLIP")
-
-        model, processor = _get_clip_model_and_processor(model_name, device)
-        param_dev = next(model.parameters()).device
-        _pdim = getattr(model.config, "projection_dim", None)
-        if _pdim != _EXPECTED_IMAGE_EMBED_DIM:
-            raise ValueError(
-                f"CLIP model {model_name!r} has projection_dim={_pdim}; PostgreSQL "
-                f"image_embeddings.embedding is vector({_EXPECTED_IMAGE_EMBED_DIM}). "
-                f"Use {DEFAULT_CLIP_MODEL!r}, or change the DB column and this check together."
-            )
-        logger.info(
-            "CLIP model loaded on device=%s (parameter device=%s) model_name=%s projection_dim=%s "
-            "do_normalize=%s resample=%s",
-            device,
-            param_dev,
+            "CLIP ONNX sessions loaded model_name=%s do_normalize=%s resample=%s",
             model_name,
-            _pdim,
             getattr(processor.image_processor, "do_normalize", None),
             getattr(processor.image_processor, "resample", None),
         )
+        dummy_text = _dummy_text_inputs(processor)
+        dummy_pixels = _dummy_pixel_values(processor)
 
-        def _inputs_to_device(batch):
-            """Move HuggingFace processor tensors to ``device`` for CLIP forward passes."""
-            return {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
 
         file_paths: list[str] = []
         for name in sorted(os.listdir(input_dir)):
@@ -371,30 +340,52 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                     reused_count += 1
                     continue
                 h = path_to_hash[path]
-                row = session.exec(
-                    select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
-                ).first()
+                row = (
+                    session.execute(
+                        select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
+                    )
+                    .scalars()
+                    .first()
+                )
                 if row is None:
                     try:
                         image = Image.open(path).convert("RGB")
-                        with torch.no_grad():
-                            inputs_processed = _inputs_to_device(
-                                processor(images=image, return_tensors="pt", do_rescale=True)
+                        inputs_processed = dict(
+                            processor(images=image, return_tensors="np", do_rescale=True)
+                        )
+                        vision_inputs = {**inputs_processed, **dummy_text}
+                        onnx_session, required = _pick_session_for_inputs(
+                            (text_session, vision_session),
+                            vision_inputs,
+                            "vision",
+                        )
+                        if "pixel_values" not in required:
+                            raise ValueError(
+                                f"Vision ONNX session missing pixel_values input: {sorted(required)}"
                             )
-                            image_features = model.get_image_features(**inputs_processed)
-                            image_features = image_features / image_features.norm(
-                                dim=-1, keepdim=True
+                        outputs = onnx_session.run(
+                            ["image_embeds"],
+                            {k: v for k, v in vision_inputs.items() if k in required},
+                        )
+                        image_features = outputs[0]
+                        if image_features.shape[-1] != expected_dim:
+                            raise ValueError(
+                                f"CLIP ONNX vision output dim={image_features.shape[-1]}; "
+                                f"image_embeddings.embedding is vector({expected_dim})."
                             )
-                            embedding = image_features.squeeze().cpu().numpy()
-                            embedding_list = embedding.tolist()
-                            storage.save_embedding(path, embedding_list, content_sha256=h)
+                        image_features = image_features / np.linalg.norm(
+                            image_features, axis=-1, keepdims=True
+                        )
+                        embedding = image_features.squeeze()
+                        embedding_list = embedding.tolist()
+                        storage.save_embedding(path, embedding_list, content_sha256=h)
                         paths_for_search.append(path)
                         newly_embedded_count += 1
                         already.add(path)
                         session.flush()
                     except Exception as e:
                         logger.warning("Could not process %s: %s", path, e)
-                    continue
+                        continue
                 if row is not None:
                     row_path_str = str(row.path)
                     if row_path_str == path or os.path.normpath(row_path_str) == os.path.normpath(path):
@@ -404,11 +395,8 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                         session.flush()
                         continue
                     if row_path_str not in file_paths_set:
-                        session.execute(
-                            update(ImageEmbedding)
-                            .where(ImageEmbedding.id == row.id)
-                            .values(path=path)
-                        )
+                        row.path = path
+                        session.add(row)
                         relocated_count += 1
                         logger.info(
                             "Reused image embedding by content hash (path updated): %s -> %s",
@@ -430,13 +418,30 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             if newly_embedded_count or relocated_count or cloned_count:
                 storage.commit()
 
-            with torch.no_grad():
-                text_inputs = _inputs_to_device(
-                    processor(text=[query_text], return_tensors="pt", padding=True, do_rescale=True)
+            
+                
+            text_inputs = dict(
+                processor(text=[query_text], return_tensors="np", padding=True)
+            )
+            text_inputs["pixel_values"] = dummy_pixels
+            onnx_session, required = _pick_session_for_inputs(
+                (text_session, vision_session),
+                text_inputs,
+                "text",
+            )
+            if "input_ids" not in required:
+                raise ValueError(
+                    f"Text ONNX session missing input_ids input: {sorted(required)}"
                 )
-                text_features = model.get_text_features(**text_inputs)
-                text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-                query_vec = text_features.squeeze().cpu().numpy()
+            text_outputs = onnx_session.run(
+                ["text_embeds"],
+                {k: v for k, v in text_inputs.items() if k in required},
+            )
+            text_features = text_outputs[0]
+            text_features = text_features / np.linalg.norm(
+                text_features, axis=-1, keepdims=True
+            )
+            query_vec = text_features.squeeze()
 
             embedded_paths = paths_for_search
             if embedded_paths:
@@ -480,7 +485,7 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                     file_type=FileType.IMG,
                     path=path,
                     title=f"#{rank} · similarity {sim}",
-                    subtitle=query_text[:120] + ("…" if len(query_text) > 120 else ""),
+                    subtitle=query_text,
                     metadata={
                         "Query": query_text,
                         "Similarity": str(sim),

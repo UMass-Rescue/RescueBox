@@ -2,7 +2,7 @@
 
 This document describes how **color, typography, and surfaces** are applied across NiceGUI screens **as implemented today**. The machine-readable contract is **`frontend/design.json`** (currently **v3.0**); the Python source of truth for shared class strings is **`frontend/design_tokens.py`** (`Design`).
 
-The UI is **not** a single “indigo-only” theme: it combines **UMass Maroon** for primary actions, **UMass Medium Gray (#505759)** for key chrome (navbar, some borders and plugin rows), **zinc** for neutrals, and **indigo** for several **legacy / secondary accents** (links, focus rings, some panels). That mix matches `design.json` `meta.notes` and `design_tokens.py`.
+The UI uses a **UMass brand-aligned** theme: it combines **UMass Maroon (#881c1c)** for primary actions and links, **UMass Medium Gray (#505759)** for key chrome (navbar, borders, and plugin rows), and **zinc** for neutral surfaces. This consistency matches `design.json` and `design_tokens.py`.
 
 ---
 
@@ -11,13 +11,13 @@ The UI is **not** a single “indigo-only” theme: it combines **UMass Maroon**
 - **Tailwind** utility classes on NiceGUI elements (`.classes('...')`) — layout, spacing, color, typography.
 - **Prefer** importing **`Design`** from `frontend.design_tokens` for nav, primary buttons, chat bubbles, inputs, tool cards, and dialogs where tokens already exist.
 - **Neutrals:** use the **zinc** scale for text, borders, and surfaces in Python UI (`text-zinc-*`, `bg-zinc-*`, `border-zinc-*`, `ring-zinc-*`). Do **not** introduce new **`gray-*`** utilities in frontend Python — use zinc for a single neutral family (`design.json` → `brand.neutrals`).
-- **Brand / primary actions (buttons):** **UMass Maroon** `#881c1c` with darker hover `#6a1616` via **`Design.BTN_PRIMARY`**, **`BTN_PRIMARY_COMPACT`**, **`BTN_PRIMARY_TIGHT`** (classes **`rb-brand-primary`**; Quasar `--q-primary` at `:root` is aligned in **`frontend/utils/ui_readability_css.py`**). Do **not** describe primary CTAs as indigo — that is outdated.
+- **Brand / primary actions (buttons & links):** **UMass Maroon** `#881c1c` with darker hover `#6a1616` via **`Design.BTN_PRIMARY`**, **`BTN_PRIMARY_COMPACT`**, **`BTN_PRIMARY_TIGHT`**, and **`Design.LINK`**. (Quasar `--q-primary` at `:root` is aligned in **`frontend/utils/ui_readability_css.py`**). **Indigo is officially deprecated** for primary actions.
 - **Navigation bar:** **Medium Gray #505759** background on **`.q-header.rb-brand-nav`** (`Design.NAV_HEADER`); white nav links (`Design.NAV_LINK`). Header scope sets **`--q-primary`** to `#505759` so Quasar controls in the bar match the bar (see `ui_readability_css.py`).
 - **Secondary solid actions (Browse, Cancel, etc.):** **`Design.BTN_MEDIUM_GRAY`** → **`.rb-btn-medium-gray`** (`#505759` fill, documented in `ui_readability_css.py`).
-- **Accent / links / focus (still indigo in tokens):** **`Design.LINK`** uses **`text-indigo-600`**; **`Design.INPUT_MODERN`** / **`INPUT_OUTLINED`** use **indigo** focus rings; **`Design.CHAT_SYSTEM_TOOL`** uses a **left border indigo** strip; **`Design.STATUS_PROCESSING`** / **`SPINNER_PROCESSING`** use **`text-indigo-600`**. Many pages also use **inline indigo** for links and panels. **`design.json`** explicitly notes that **links, pickers, and many surfaces still use indigo + zinc** until a future consolidation.
-- **Brand-aligned borders without indigo:** some surfaces use **`border-[#505759]`** (e.g. plugin menu rows `CHATBOT_PLUGIN_MENU_ROW`, image-summary style shells). That is intentional **Medium Gray** chrome, not a mistake vs zinc borders elsewhere.
-- **Elevated surfaces:** **`design.json`** still calls out **`indigo-50` / `indigo-100`** for examples such as jobs table header and tool-call context; **`Design.CARD_TOOL_CALL`** / **`CARD_TOOL_RESULT`** use **zinc-50** and **zinc-200** borders (check call sites for any extra indigo wrappers).
-- **Panel headers (gradients):** **`design.json` → `gradients.panel_headers`** — **indigo-500 → indigo-700** (or 600 → 800) for some file browser / text search style headers; Help-style flows may use **zinc** panel shell + **`prose-zinc`**.
+- **Status & Processing:** Maroon is used for status text and spinners via **`Design.STATUS_PROCESSING`** and **`SPINNER_PROCESSING`**. **`Design.CHAT_SYSTEM_TOOL`** uses a **left border Medium Gray (#505759)** strip.
+- **Brand-aligned borders without indigo:** many surfaces use **`border-[#505759]`** (e.g. plugin menu rows `CHATBOT_PLUGIN_MENU_ROW`, image-summary style shells). That is intentional **Medium Gray** chrome, not a mistake vs zinc borders elsewhere.
+- **Elevated surfaces:** Surfaces like job table headers and tool-call cards use **zinc-50** and **zinc-200** borders via **`Design.CARD_TOOL_CALL`** / **`CARD_TOOL_RESULT`**.
+- **Panel headers (gradients):** **`design.json` → `gradients.panel_headers`** — **zinc-50 → zinc-100** (subtle contrast) for file browser / text search style headers; Help-style flows use **zinc** panel shell + **`prose-zinc`**.
 - **Markdown in-app:** Tailwind **`prose-zinc`** for guides and chat-adjacent markdown where applied.
 
 ### Semantic colors (keep)
@@ -36,11 +36,6 @@ These carry meaning and are **not** replaced by brand maroon or #505759:
 **`frontend/utils/ui_readability_css.py`** injects global rules: e.g. **`:root`** `--q-primary` for **maroon**, **`.q-header.rb-brand-nav`** for navbar **#505759**, **`.rb-brand-primary`** and **`.rb-btn-medium-gray`** for button chrome, notification overrides, and other app-wide fixes. **Default `ui.button` / Quasar `color='primary'`** are affected by these layers — when debugging colors, inspect **CSS + Tailwind + `Design`**, not Tailwind alone.
 
 ---
-
-## Dark mode
-
-- **`RESCUEBOX_DARK_MODE`** → **`APP_DARK_MODE`** in `frontend/config.py`, passed to **`ui.run(dark=...)`** in `frontend/main.py`.
-- **Runtime theme helpers:** `frontend/utils/theme.py` (e.g. **`apply_saved_theme`** on some pages).
 
 ---
 
@@ -97,7 +92,7 @@ Elsewhere, many components use **inline Tailwind** strings that **mirror** parts
 
 ## TODO: migrate inline Tailwind to `Design` (and optional accent unification)
 
-Most UI still passes **long Tailwind strings** to `.classes('...')` instead of **`Design`**. The gap is **duplication** and **harder refactors**. A **separate**, larger effort would be to **reduce indigo** in favor of maroon / #505759 / zinc only — **`design.json`** already notes indigo remains in many places; treat that as **planned**, not **bug**.
+Most UI still passes **long Tailwind strings** to `.classes('...')` instead of **`Design`**. The gap is **duplication** and **harder refactors**. A systematic migration has eliminated hardcoded **indigo** in favor of brand-aligned maroon, #505759, and zinc variants across the entire frontend.
 
 **TODO (incremental):**
 
@@ -135,20 +130,10 @@ for p in sorted(paths):
 ### Appendix: `frontend/**/*.py` containing `zinc-` (**78** files, last regenerated with the script above)
 
 - `frontend/chatbot/forms.py`
-- `frontend/components/about/license_documents.py`
 - `frontend/components/base_component.py`
-- `frontend/components/chat/chat_window.py`
-- `frontend/components/chat/conversation_card.py`
-- `frontend/components/chat/help_dialog.py`
-- `frontend/components/chat/input_area.py`
-- `frontend/components/chat/message_card.py`
-- `frontend/components/chat/panels/conversation_renderer.py`
-- `frontend/components/chat/panels/history_panel.py`
-- `frontend/components/chat/tool_call_card.py`
-- `frontend/components/chat/tool_result_card.py`
+- `frontend/components/chat/rendering.py`
+- `frontend/components/chat/dialogs.py`
 - `frontend/components/component_utils.py`
-- `frontend/components/demo/demo_files_explorer.py`
-- `frontend/components/demo/guided_markdown.py`
 - `frontend/components/errors/error_boundary.py`
 - `frontend/components/errors/error_display.py`
 - `frontend/components/file_browser/header.py`
@@ -191,7 +176,6 @@ for p in sorted(paths):
 - `frontend/design_tokens.py`
 - `frontend/main.py`
 - `frontend/pages/about.py`
-- `frontend/pages/base_page.py`
 - `frontend/pages/chatbot/chatbot_forms.py`
 - `frontend/pages/chatbot/chatbot_message.py`
 - `frontend/pages/chatbot/constants.py`

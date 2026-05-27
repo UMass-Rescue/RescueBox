@@ -29,7 +29,7 @@ import sys
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
 
-from frontend.components.results.directory_renderers import (
+from frontend.components.results import (
     render_directory,
     render_batch_directory,
 )

@@ -61,7 +61,7 @@ class DatabaseValidator:
         if isinstance(data, dict):
             try:
                 return model_class(**data)
-            except ValidationError as e:
+            except ValidationError:
                 logger.error(f"Failed to validate {model_class.__name__} from data: {data}")
                 raise
         else:
@@ -88,7 +88,7 @@ class DatabaseValidator:
                 serializable_data = data
 
             return json.dumps(serializable_data, default=str, ensure_ascii=False)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError):
             logger.error(f"Failed to serialize data to JSON: {data}")
             raise
 
@@ -112,7 +112,7 @@ class DatabaseValidator:
             else:
                 return data
 
-        except (json.JSONDecodeError, ValidationError) as e:
+        except (json.JSONDecodeError, ValidationError):
             logger.error(f"Failed to deserialize JSON: {json_str}")
             raise
 

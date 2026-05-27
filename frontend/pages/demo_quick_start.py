@@ -1,6 +1,4 @@
-"""
-In-app quick start guide. Content is loaded from frontend/demo/quick_start.md (editable).
-"""
+"""In-app quick start guide. Content is loaded from frontend/demo/quick_start.md (editable)."""
 
 from __future__ import annotations
 
@@ -8,8 +6,8 @@ import logging
 
 from nicegui import ui
 
-from frontend.components.demo.demo_files_explorer import render_walkthrough_samples_panel
-from frontend.components.demo.guided_markdown import (
+from frontend.components.demo import render_walkthrough_samples_panel
+from frontend.components.demo import (
     load_markdown_file,
     render_guided_markdown_body,
     schedule_hash_fragment_scroll,
@@ -35,11 +33,11 @@ Could not read `frontend/demo/{_QUICK_START_MD}`. Add that Markdown file to cust
 @ui.page("/demo/quick-start")
 async def demo_quick_start_page():
     """Scrollable quick start from frontend/demo/quick_start.md."""
-    from frontend.utils.theme import apply_saved_theme
+    from frontend.utils import apply_saved_theme
 
     apply_saved_theme()
     create_navbar()
-    from frontend.utils.demo_user_gate import require_demo_user_session
+    from frontend.utils import require_demo_user_session
 
     if not require_demo_user_session():
         return
@@ -60,7 +58,7 @@ async def demo_quick_start_page():
             ).classes("rb-brand-primary text-white")
           
             ui.link("Demo samples", demo_samples_url("quick_start")).classes(
-                "text-indigo-600 hover:underline text-sm"
+                "text-[#881c1c] hover:underline text-sm"
             )
 
     schedule_hash_fragment_scroll()

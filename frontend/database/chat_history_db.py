@@ -5,24 +5,6 @@ This module provides SQLite database functionality for storing and managing
 chat conversation history, including user prompts, assistant responses, and
 tool calls. It enables users to recall previous conversations and re-run
 tool calls from history.
-
-Usage:
-    from frontend.database import get_chat_history_db
-    
-    chat_history = get_chat_history_db()
-    
-    # Create conversation
-    conversation = await chat_history.create_conversation()
-    
-    # Add messages
-    await chat_history.add_message(
-        conversation_id=conversation.conversation_id,
-        role='user',
-        content="Find faces in images"
-    )
-    
-    # Get conversation history
-    messages = await chat_history.get_messages(conversation.conversation_id)
 """
 
 import logging
@@ -31,7 +13,7 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 
 # Import refactored components
@@ -191,7 +173,7 @@ class ChatHistoryDB(BaseDatabase):
     def _get_current_user(self) -> Optional[str]:
         """Return current NiceGUI session/user id or None."""
         try:
-            from frontend.utils.nicegui_storage import get_user_id_for_jobs
+            from frontend.utils import get_user_id_for_jobs
             return get_user_id_for_jobs()
         except Exception:
             return None
@@ -240,7 +222,7 @@ class ChatHistoryDB(BaseDatabase):
 
             # Determine current session/user id if available
             try:
-                from frontend.utils.nicegui_storage import get_user_id_for_jobs
+                from frontend.utils import get_user_id_for_jobs
                 user_id = get_user_id_for_jobs()
             except Exception:
                 user_id = None
@@ -265,7 +247,7 @@ class ChatHistoryDB(BaseDatabase):
             )
         except sqlite3.IntegrityError as e:
             logger.error("Database integrity error creating conversation: %s", str(e))
-            raise Exception(f"Failed to create conversation: database integrity error") from e
+            raise Exception("Failed to create conversation: database integrity error") from e
         except sqlite3.Error as e:
             logger.error("Database error creating conversation: %s", str(e))
             raise Exception(f"Database error creating conversation: {str(e)}") from e
@@ -317,7 +299,7 @@ class ChatHistoryDB(BaseDatabase):
             logger.debug("Failed to ensure conversations.userId column before fetching conversations")
 
         try:
-            from frontend.utils.nicegui_storage import get_user_id_for_jobs
+            from frontend.utils import get_user_id_for_jobs
             current_user = get_user_id_for_jobs()
         except Exception:
             current_user = None
@@ -489,7 +471,7 @@ class ChatHistoryDB(BaseDatabase):
             tool_calls_json, tool_call_endpoint, tool_call_arguments_json,
             timestamp, metadata_json
         ))
-        
+        logger.debug("Adding message to chat_messages: %s", tool_call_endpoint)
         # Update conversation message count and updated_at
         conn.execute("""
             UPDATE conversations
@@ -507,7 +489,7 @@ class ChatHistoryDB(BaseDatabase):
                 await self.update_conversation(conversation_id, title=title)
         
         conn.commit()
-        logger.debug("Message %s added to conversation %s", message_id, conversation_id)
+        logger.info("Message %s added to conversation %s", message_id, conversation_id)
         
         return ChatMessageRecord(
             message_id=message_id,

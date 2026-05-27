@@ -10,7 +10,7 @@ gracefully with appropriate user feedback and error reporting.
 from unittest.mock import Mock, patch, MagicMock
 from pydantic import ValidationError
 
-from frontend.components.forms.form_handlers import (
+from frontend.components.forms import (
     handle_form_submit,
     collect_form_data,
     validate_form
@@ -61,8 +61,8 @@ class TestFormHandlersErrorHandling:
         """
         from frontend.components.forms import form_handlers
 
-        with patch.object(form_handlers, 'validate_form', return_value=(False, {"input_dir": "Invalid path"})):
-            with patch('frontend.components.forms.form_handlers.handle_validation_error') as mock_handle_error:
+        with patch('frontend.components.forms.form_generator.validate_form_data', return_value={'is_valid': False, 'errors': {"input_dir": "Invalid path"}}):
+            with patch('frontend.components.forms.form_generator.handle_validation_error') as mock_handle_error:
                 submit_called = False
                 def mock_submit(data):
                     nonlocal submit_called
@@ -86,9 +86,9 @@ class TestFormHandlersErrorHandling:
         """
         from frontend.components.forms import form_handlers
 
-        with patch.object(form_handlers, 'validate_form', return_value=(True, {})):
+        with patch('frontend.components.forms.form_generator.validate_form_data', return_value={'is_valid': True, 'errors': {}}):
             with patch.object(form_handlers, 'collect_form_data', side_effect=Exception("Collection error")):
-                with patch('frontend.components.forms.form_handlers.show_error_to_user') as mock_show_error:
+                with patch('frontend.components.forms.form_generator.show_error_to_user') as mock_show_error:
                     submit_called = False
                     def mock_submit(data):
                         nonlocal submit_called
@@ -113,9 +113,9 @@ class TestFormHandlersErrorHandling:
         """
         from frontend.components.forms import form_handlers
 
-        with patch.object(form_handlers, 'validate_form', return_value=(True, {})):
+        with patch('frontend.components.forms.form_generator.validate_form_data', return_value={'is_valid': True, 'errors': {}}):
             with patch.object(form_handlers, 'collect_form_data', return_value={"inputs": {}, "parameters": {}}):
-                with patch('frontend.components.forms.form_handlers.show_error_to_user') as mock_show_error:
+                with patch('frontend.components.forms.form_generator.show_error_to_user') as mock_show_error:
                     def mock_submit(data):
                         raise Exception("Submit error")
 
@@ -130,9 +130,9 @@ class TestFormHandlersErrorHandling:
         """Test handling of missing submit callback"""
         from frontend.components.forms import form_handlers
 
-        with patch.object(form_handlers, 'validate_form', return_value=(True, {})):
+        with patch('frontend.components.forms.form_generator.validate_form_data', return_value={'is_valid': True, 'errors': {}}):
             with patch.object(form_handlers, 'collect_form_data', return_value={"inputs": {}, "parameters": {}}):
-                with patch('frontend.components.forms.form_handlers.show_error_to_user') as mock_show_error:
+                with patch('frontend.components.forms.form_generator.show_error_to_user') as mock_show_error:
                     await handle_form_submit(sample_task_schema, mock_form_widgets, None)
 
                     # Should show error to user
@@ -144,8 +144,8 @@ class TestFormHandlersErrorHandling:
         """Test handling of unexpected error during form submission"""
         from frontend.components.forms import form_handlers
 
-        with patch.object(form_handlers, 'validate_form', side_effect=Exception("Unexpected error")):
-            with patch.object(form_handlers, 'show_error_to_user') as mock_show_error:
+        with patch('frontend.components.forms.form_generator.validate_form_data', side_effect=Exception("Unexpected error")):
+            with patch('frontend.components.forms.form_generator.show_error_to_user') as mock_show_error:
                 submit_called = False
                 def mock_submit(data):
                     nonlocal submit_called

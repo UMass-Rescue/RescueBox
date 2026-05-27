@@ -1,6 +1,4 @@
-"""
-Backward-compatible ``/licenses`` URL: redirect to ``/about`` (preserves ``?doc=``).
-"""
+"""Backward-compatible ``/licenses`` URL: redirect to ``/about`` (preserves ``?doc=``)."""
 
 from __future__ import annotations
 

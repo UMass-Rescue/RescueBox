@@ -1,11 +1,11 @@
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, TypedDict
 import logging
 import threading
 
 from rb.lib.plugin_io import ImageSummaryFilePair
 
-from .model import ensure_model_exists, describe_image
+from image_summary.model import ensure_model_exists, describe_image
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

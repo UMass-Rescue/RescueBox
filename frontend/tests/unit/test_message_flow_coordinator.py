@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from frontend.pages.chatbot.handlers.message_flow_coordinator import MessageFlowCoordinator
+from frontend.pages.chatbot import MessageFlowCoordinator
 
 @pytest.mark.asyncio
 async def test_coordinator_creates_result_processor_callback():

@@ -347,6 +347,7 @@ server.add_app_metadata(
     info=app_info,
     plugin_name=APP_NAME,
     gpu=True,
+    make_threadsafe=True,
 )
 
 

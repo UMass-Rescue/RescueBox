@@ -76,7 +76,7 @@ class TestChatbotPageIntegration:
     @pytest.mark.asyncio
     async def test_chatbot_creates_conversation(self, user: User):
         """Test that chatbot creates conversation on load"""
-        from frontend.utils.nicegui_storage import get_current_conversation_id
+        from frontend.utils import get_current_conversation_id
         from frontend.database import get_chat_history_db
 
         await open_chatbot_and_wait_for_ready(user)

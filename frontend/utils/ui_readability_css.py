@@ -248,6 +248,29 @@ def inject_global_readability_css() -> None:
         .rb-chat-input-area .q-field__label {
             font-size: 1rem !important;
         }
+        .rb-image-summary-search-field .q-field__marginal .q-icon, .rb-image-summary-search-field .q-field__append .q-icon { color: #505759 !important; }
+
+        /* Case Notes field specific overrides to ensure no blue/indigo remains */
+        .rb-case-notes-field .q-field__label,
+        .rb-case-notes-field.q-field--float .q-field__label {
+            color: #505759 !important;
+        }
+        .rb-case-notes-field.q-field--focused .q-field__label {
+            color: #881c1c !important;
+        }
+        .rb-case-notes-field.q-field--outlined .q-field__control:before {
+            border-color: #d4d4d8 !important;
+        }
+        .rb-case-notes-field.q-field--outlined:hover .q-field__control:before {
+            border-color: #505759 !important;
+        }
+        .rb-case-notes-field.q-field--focused .q-field__control:after {
+            border-color: #881c1c !important;
+            border-width: 2px !important;
+        }
+        .rb-case-notes-field .q-field__native, .rb-case-notes-field textarea {
+            color: #18181b !important;
+        }
         .rb-chat-input-area .q-textarea .q-field__native,
         .rb-chat-input-area textarea.q-field__native {
             font-size: 1rem !important;
@@ -266,9 +289,11 @@ def inject_global_readability_css() -> None:
         .rb-chat-input-area .text-zinc-600 {
             font-size: 1rem !important;
         }
-        /* Hide composer (textarea + send) while pending; forms under input_area stay visible */
+        /* Grey out composer (textarea + send) while pending; forms under input_area stay visible/interactive */
         .rb-chat-composer-core.rb-chat-input-pending-only {
-            display: none !important;
+            opacity: 0.5 !important;
+            pointer-events: none !important;
+            filter: grayscale(0.8) !important;
         }
         </style>
         """,

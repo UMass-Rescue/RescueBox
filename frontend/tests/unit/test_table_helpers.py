@@ -13,7 +13,7 @@ import sys
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
 
-from frontend.components.results.table_helpers import (
+from frontend.components.results import (
     create_sortable_table,
     create_metadata_table_columns,
     create_file_row_click_handler,

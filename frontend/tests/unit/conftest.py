@@ -39,6 +39,12 @@ SAMPLE_RESPONSE_BODY = {
 }
 
 
+@pytest.fixture(autouse=True)
+def reset_storage_registry():
+    """Automatically reset the test fallback storage between tests."""
+    from frontend.utils.storage import reset_test_storage
+    reset_test_storage()
+
 @pytest.fixture
 def temp_directory(tmp_path):
     """Create a temporary directory for testing."""
@@ -103,7 +109,7 @@ def mock_chatbot():
 @pytest.fixture
 def mock_ui():
     """Mock NiceGUI ui module for testing."""
-    with patch('frontend.components.shared.stepper.ui') as mock_ui:
+    with patch('frontend.components.shared.ui') as mock_ui:
         # Mock common UI elements
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
@@ -220,7 +226,7 @@ async def user():
     # Import the main module to ensure all pages are registered
     try:
         from frontend import main
-    except ImportError:
+    except Exception:
         pass
 
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:

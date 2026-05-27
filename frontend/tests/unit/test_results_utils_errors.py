@@ -9,8 +9,8 @@ import pytest
 import subprocess
 from unittest.mock import patch
 
-from frontend.components.results import results_utils
-from frontend.components.results.results_utils import open_file, open_folder
+from frontend.components import results as results_utils
+from frontend.components.results import open_file, open_folder
 
 EMPTY_PATH = ""
 NONEXISTENT_FOLDER_PATH = "/nonexistent/folder"

@@ -15,7 +15,7 @@ import sys
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
 
-from frontend.utils.validators import (
+from frontend.utils import (
     validate_form_data,
     validate_request_body,
     validate_response_body,

@@ -13,7 +13,7 @@
 - [ ] **Add**: Test that `load_and_show_form` accepts `on_form_cancel` and passes it to `core.create_input_form`.
 - [ ] **Add**: Test that when form creation fails (no schema, etc.), `on_form_cancel` is never called.
 
-### 1.2 `test_chatbot_common.py` / Fixtures
+### 1.2 `chatbot_test_utils.py` / Fixtures
 - [ ] **mock_chatbot** – Ensure `state_manager` mock has `set_input_enabled` and `set_input_area` if tests assert on them.
 - [ ] **create_mock_chatbot_page** – Add `state_manager.set_input_enabled` and `state_manager.set_input_area` as MagicMocks if needed.
 

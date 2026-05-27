@@ -1,76 +1,84 @@
-"""Utility functions for RescueBox Desktop"""
-
-from frontend.utils.file_browser import browse_directory, browse_file
-from frontend.utils.validators import validate_form_data, validate_input, validate_parameter
-from frontend.utils.path_setup import setup_backend_path
-from frontend.utils.error_handling import (
-    handle_api_error,
-    show_error_to_user,
-    show_success_to_user,
-    handle_validation_error
+from nicegui import app
+from .logging import (
+    set_logging_context, get_logging_context, clear_logging_context,
+    configure_logging_with_context, generate_audit_trail_for_job,
+    read_logs_filtered, format_audit_trail_markdown, parse_log_level
+)
+from .paths import (
+    setup_backend_path, is_outputs_results_directory,
+    suggested_outputs_dir_path, maybe_autofill_output_dir_field,
+    suggested_ufdr_mount_folder_path,
+    apply_ufdr_mount_autofill_after_inputs_built, maybe_autofill_ufdr_mount_name_field
+)
+from .browser import (
+    browse_directory, browse_file, browse_directory_simple, browse_file_simple,
+    resolve_demo_folder_for_browser, get_assigned_demo_folder,
+    release_demo_folder_for_client
+)
+from .validators import (
+    validate_form_data, validate_response_body, validate_request_body,
+    paired_output_directory_field_id, paired_ufdr_mount_name_field_id,
+    _create_input_model
+)
+from .storage import (
+    get_user_id, get_explicit_user_id, set_explicit_user_id,
+    clear_explicit_user_id, ensure_explicit_user_id_for_tests,
+    try_claim_explicit_user_id, release_explicit_user_id_claim,
+    get_user_id_for_jobs,
+    get_user_preferences, set_user_preference,
+    get_current_conversation_id, set_current_conversation_id,
+    get_draft_message, set_draft_message,
+    set_conversation_to_load, get_conversation_to_load
+)
+from .ui import (
+    notify_success, notify_error, notify_info, notify_warning,
+    handle_api_error, show_error_to_user, show_success_to_user,
+    handle_validation_error, ensure_user_id,
+    apply_saved_theme, select, require_demo_user_session
+)
+from .ui_readability_css import inject_global_readability_css
+from .backend import (
+    set_backend_available, is_backend_available, BACKEND_AVAILABLE,
+    prefetch_and_cache_models, setup_backend_routes
 )
 
-# NiceGUI storage utilities (conditional import to avoid dependency if not available)
-try:
-    from frontend.utils.user_preferences import (
-        get_user_preferences,
-        set_user_preference,
-        set_user_preferences,
-        get_user_preference,
-        reset_user_preferences
-    )
-    from frontend.utils.nicegui_storage import (
-        get_user_id,
-        get_user_id_for_jobs,
-        get_client_ip,
-        get_explicit_user_id,
-        set_explicit_user_id,
-        clear_explicit_user_id,
-        ensure_user_id,
-        get_current_conversation_id,
-        set_current_conversation_id,
-        get_draft_message,
-        set_draft_message,
-        get_form_draft,
-        set_form_draft
-    )
-    _NICEGUI_STORAGE_AVAILABLE = True
-except ImportError:
-    # NiceGUI storage utilities not available (e.g., during testing without NiceGUI context)
-    _NICEGUI_STORAGE_AVAILABLE = False
+from .storage import (
+    clear_conversation_to_load, get_form_draft, set_form_draft, clear_form_draft,
+    get_user_preference, set_user_preferences, reset_user_preferences
+)
+from .validators import _validate_parameter_value, _format_validation_error
 
 __all__ = [
-    'browse_directory',
-    'browse_file',
-    'validate_form_data',
-    'validate_input',
-    'validate_parameter',
-    'setup_backend_path',
-    'handle_api_error',
-    'show_error_to_user',
-    'show_success_to_user',
-    'handle_validation_error',
+    'set_logging_context', 'get_logging_context', 'clear_logging_context',
+    'configure_logging_with_context', 'generate_audit_trail_for_job',
+    'read_logs_filtered', 'format_audit_trail_markdown', 'parse_log_level',
+    'setup_backend_path', 'is_outputs_results_directory',
+    'suggested_outputs_dir_path', 'maybe_autofill_output_dir_field',
+    'suggested_ufdr_mount_folder_path', 'apply_ufdr_mount_autofill_after_inputs_built',
+    'maybe_autofill_ufdr_mount_name_field',
+    'browse_directory', 'browse_file', 'browse_directory_simple', 'browse_file_simple',
+    'resolve_demo_folder_for_browser', 'get_assigned_demo_folder',
+    'release_demo_folder_for_client',
+    'validate_form_data', 'validate_response_body', 'validate_request_body',
+    'paired_output_directory_field_id',
+    'paired_ufdr_mount_name_field_id',
+    '_create_input_model',
+    'get_user_id', 'get_explicit_user_id', 'set_explicit_user_id',
+    'clear_explicit_user_id', 'ensure_explicit_user_id_for_tests',
+    'try_claim_explicit_user_id', 'release_explicit_user_id_claim',
+    'get_user_id_for_jobs',
+    'get_user_preferences', 'set_user_preference',
+    'get_current_conversation_id', 'set_current_conversation_id',
+    'get_draft_message', 'set_draft_message',
+    'set_conversation_to_load', 'get_conversation_to_load',
+    'notify_success', 'notify_error', 'notify_info', 'notify_warning',
+    'handle_api_error', 'show_error_to_user', 'show_success_to_user',
+    'handle_validation_error', 'inject_global_readability_css', 'ensure_user_id',
+    'apply_saved_theme', 'select', 'require_demo_user_session',
+    'set_backend_available', 'is_backend_available', 'BACKEND_AVAILABLE',
+    'prefetch_and_cache_models', 'setup_backend_routes',
+    'clear_conversation_to_load', '_validate_parameter_value',
+    '_format_validation_error', 'app', 'get_form_draft', 'set_form_draft',
+    'clear_form_draft', 'get_user_preference', 'set_user_preferences',
+    'reset_user_preferences'
 ]
-
-# Conditionally export NiceGUI storage utilities
-if _NICEGUI_STORAGE_AVAILABLE:
-    __all__.extend([
-        'get_user_preferences',
-        'set_user_preference',
-        'set_user_preferences',
-        'get_user_preference',
-        'reset_user_preferences',
-        'get_user_id',
-        'get_user_id_for_jobs',
-        'get_client_ip',
-        'get_explicit_user_id',
-        'set_explicit_user_id',
-        'clear_explicit_user_id',
-        'ensure_user_id',
-        'get_current_conversation_id',
-        'set_current_conversation_id',
-        'get_draft_message',
-        'set_draft_message',
-        'get_form_draft',
-        'set_form_draft',
-    ])

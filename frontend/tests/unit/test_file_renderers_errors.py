@@ -17,7 +17,7 @@ import sys
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
 
-from frontend.components.results.file_renderers import render_file
+from frontend.components.results import render_file
 from rb.api.models import FileResponse, FileType
 
 # Test constants
@@ -69,7 +69,7 @@ class TestFileRenderersErrorHandling:
         container.__enter__ = Mock(return_value=container)
         container.__exit__ = Mock(return_value=False)
 
-        with patch('frontend.components.results.file_renderers.ui') as mock_ui:
+        with patch('frontend.components.results.ui') as mock_ui:
             mock_label = MagicMock()
             mock_ui.label = Mock(return_value=mock_label)
 
@@ -93,8 +93,8 @@ class TestFileRenderersErrorHandling:
 
         container = self._create_mock_container()
 
-        with patch('frontend.components.results.file_renderers.os.path.exists', return_value=False):
-            with patch('frontend.components.results.file_renderers.ui') as mock_ui:
+        with patch('frontend.components.results.os.path.exists', return_value=False):
+            with patch('frontend.components.results.ui') as mock_ui:
                 render_file(container, response)
 
                 # Verify error message is displayed
@@ -118,8 +118,8 @@ class TestFileRenderersErrorHandling:
 
         container = self._create_mock_container()
 
-        with patch('frontend.components.results.file_renderers.os.path.exists', return_value=True):
-            with patch('frontend.components.results.file_renderers.ui') as mock_ui:
+        with patch('frontend.components.results.os.path.exists', return_value=True):
+            with patch('frontend.components.results.ui') as mock_ui:
                 # Simulate image loading failure
                 mock_ui.image.side_effect = Exception(IMAGE_LOAD_ERROR_MSG)
 
@@ -163,7 +163,7 @@ class TestFileRenderersErrorHandling:
 
         container = ExceptionRaisingContainer()
 
-        with patch('frontend.components.results.file_renderers.ui') as mock_ui:
+        with patch('frontend.components.results.ui') as mock_ui:
             # Mock all UI components to avoid actual UI calls
             mock_label = MagicMock()
             mock_ui.label = Mock(return_value=mock_label)

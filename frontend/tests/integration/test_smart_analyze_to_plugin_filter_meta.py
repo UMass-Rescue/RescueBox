@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 
 from frontend.database.file_filter_store import create_filter
-from frontend.pages.chatbot.utils.database_service import DatabaseService
+from frontend.pages.chatbot import DatabaseService
 from frontend.database.job_db import init_database, get_job_db
 from rb.api.models import RequestBody
 

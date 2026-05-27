@@ -41,6 +41,10 @@ ffmpeg
 ffmpeg.exe
 *.gguf
 
+build/
+src-tauri-backend/
+src-tauri-frontend/
+		
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

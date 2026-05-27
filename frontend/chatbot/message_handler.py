@@ -11,7 +11,7 @@ The handler supports multiple input methods:
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from pathlib import Path
 from frontend.chatbot.config import ToolRegistry, ChatbotConfig
 from frontend.chatbot.core import ChatbotCore
@@ -63,22 +63,6 @@ class MessageHandler:
         This method determines whether the user input is a slash command (starts with '/')
         or natural language that should be processed by smart analyze.
         
-        Args:
-            user_input (str): Raw user input string
-        
-        Returns:
-            str: Either 'slash_command' or 'smart_analyze'
-        
-        Examples:
-            >>> handler.detect_input_method("/transcribe")
-            'slash_command'
-            >>> handler.detect_input_method("transcribe audio files")
-            'smart_analyze'
-        
-        Tips:
-        - Leading whitespace is stripped before checking
-        - Any input starting with '/' is treated as a command
-        - Use this to route to appropriate handler
         """
         logger.debug("Detecting input method for input (length=%d)", len(user_input))
         user_input = user_input.strip()
@@ -98,26 +82,6 @@ class MessageHandler:
         the input method and routes to the appropriate handler (slash command
         or smart analyze).
         
-        Args:
-            user_input (str): User input message to process
-            update_status_callback (Optional[Callable]): Callback to update UI status
-
-        Returns:
-            Dict[str, Any]: Result dictionary with structure:
-                - 'type': One of 'help', 'tool_picker', 'show_form', 'message', 'error'
-                - 'content' or other fields depending on type
-        
-        Examples:
-            >>> result = await handler.handle_message("/help")
-            >>> result['type']  # 'help'
-            
-            >>> result = await handler.handle_message("transcribe audio")
-            >>> result['type']  # 'show_form' or 'message'
-        
-        Tips:
-        - This is the main method to call for processing any user input
-        - Return values vary by handler - check type field first
-        - Errors are returned as dictionaries, not exceptions
         """
         if update_status_callback:
             update_status_callback("🔍 Analyzing your request...")
@@ -132,38 +96,10 @@ class MessageHandler:
     
     async def handle_slash_command(self, user_input: str, update_status_callback=None) -> Dict[str, Any]:
         """
-        Handle slash command input.
-        
-        This method processes slash commands (e.g., /transcribe, /help, /models).
-        It parses the command and arguments, then routes to the appropriate handler
-        or returns a result dictionary.
-        
-        Supported commands:
-        - /help: Returns help text
-        - /models: Returns model picker request
-        - /analyze: Routes to smart analyze with optional filtering
-        - Other commands: Looked up in SLASH_COMMANDS registry
-        
-        Args:
-            user_input (str): Full user input string starting with '/'
-        
-        Returns:
-            Dict[str, Any]: Result dictionary with structure:
-                - 'type': One of 'help', 'tool_picker', 'show_form', 'message', 'error'
-                - Additional fields depend on type
-        
-        Examples:
-            >>> await handler.handle_slash_command("/help")
-            {'type': 'help', 'content': '...'}
-            
-            >>> await handler.handle_slash_command("/transcribe")
-            {'type': 'show_form', 'endpoint': 'audio/transcribe', 'arguments': {}}
-        
-        Tips:
-        - Commands are case-insensitive (converted to lowercase)
-        - Arguments are separated by the first space
-        - Unknown commands return error type with helpful message
-        - /analyze command supports filtering if enabled
+        Handle slash commands (/help, /models, /assistant, mapped tools).
+
+        Commands are lowercase; payload after the first space is args.
+        `/assistant` with no args opens the analysis picker; with args it runs smart analyze after optional filtering.
         """
         logger.debug("Handling slash command: %s", user_input[:50])
         parts = user_input.split(' ', 1)
@@ -181,17 +117,16 @@ class MessageHandler:
         
         if command == '/assistant':
             logger.debug("Processing /assistant command")
-            # For /analyze without args, show analysis type picker
+            # No args: analysis type picker only
             if not args:
                 logger.debug("No args provided, showing analysis picker")
                 return {'type': 'analysis_picker', 'content': None}
-            # For /analyze with args, check filtering if enabled
-            if args:
-                is_valid, reason = is_rescuebox_request(args, self.config.FILTER_ENABLED)
-                if not is_valid:
-                    logger.warning("Input filtered by /analyze: %s", reason)
-                    return {'type': 'message', 'content': get_rejection_message(reason)}
-            logger.debug("Routing /analyze to smart analyze handler")
+            # With args: optional filter then smart analyze
+            is_valid, reason = is_rescuebox_request(args, self.config.FILTER_ENABLED)
+            if not is_valid:
+                logger.warning("Input filtered by /assistant: %s", reason)
+                return {'type': 'message', 'content': get_rejection_message(reason)}
+            logger.debug("Routing /assistant to smart analyze handler")
             return await self.handle_smart_analyze(args)
         
         if command in self.tool_registry.SLASH_COMMANDS:
@@ -212,32 +147,6 @@ class MessageHandler:
         This method processes natural language input by calling the Granite model
         to determine the appropriate tool and parameters. It includes optional
         input filtering to reject non-forensic requests.
-        
-        Process flow:
-        1. Apply input filtering if enabled
-        2. Call Granite model to get tool call
-        3. Parse and normalize tool call response
-        4. Return form display request with endpoint and arguments
-        
-        Args:
-            user_message (str): Natural language user input describing the task
-        
-        Returns:
-            Dict[str, Any]: Result dictionary with structure:
-                - 'type': 'show_form' on success, 'message' or 'error' on failure
-                - 'endpoint': API endpoint name (if type is 'show_form')
-                - 'arguments': Normalized arguments dict (if type is 'show_form')
-                - 'content': Error or info message (if type is 'message' or 'error')
-        
-        Examples:
-            >>> await handler.handle_smart_analyze("transcribe audio files in /tmp")
-            {'type': 'show_form', 'endpoint': 'audio/transcribe', 'arguments': {'input_dir': '/tmp'}}
-        
-        Tips:
-        - Filtering can be disabled via config.FILTER_ENABLED
-        - Granite model must be available and running
-        - If model fails, user gets helpful error message
-        - Arguments are normalized automatically to match API expectations
         """
         if update_status_callback:
             update_status_callback("🔍 Analyzing your request...")
@@ -315,7 +224,7 @@ class MessageHandler:
         try:
             from frontend.database.file_filter_utils import process_prompt_for_filters
             try:
-                from frontend.utils.nicegui_storage import get_user_id
+                from frontend.utils import get_user_id
                 owner = get_user_id()
             except Exception:
                 owner = None

@@ -48,7 +48,7 @@ class Design:
     )
 
     # --- Inline links ---
-    LINK = "text-indigo-600 hover:underline"
+    LINK = "text-[#881c1c] hover:underline"
 
     # --- Chat bubbles (cards) ---
     # User bubble: no tinted fill — white surface + zinc ring (assistant-style, right tail)
@@ -66,7 +66,7 @@ class Design:
     # Use with CHAT_ASSISTANT_BUBBLE so assistant text, markdown, and tool-call cards share one column width.
     CHAT_ASSISTANT_BUBBLE_WIDTH = "w-full max-w-3xl min-w-0"
     CHAT_SYSTEM_TOOL = (
-        "bg-zinc-50 border-l-4 border-indigo-500 p-4 italic text-zinc-600 text-sm"
+        "bg-zinc-50 border-l-4 border-[#505759] p-4 italic text-zinc-600 text-sm"
     )
     # Plugins mode tool list rows (/chatbot Menu) — UMass Medium Gray #505759 (not indigo)
     CHATBOT_PLUGIN_MENU_ROW = (
@@ -77,12 +77,12 @@ class Design:
     # --- Form fields (chat / long text) ---
     INPUT_MODERN = (
         "w-full min-w-0 !text-base bg-white border-none ring-1 ring-zinc-300 "
-        "focus:ring-2 focus:ring-indigo-500 rounded-2xl p-4 shadow-inner transition-all"
+        "focus:ring-2 focus:ring-[#881c1c] rounded-2xl p-4 shadow-inner transition-all"
     )
     # Legacy-compatible: bordered field (jobs, forms)
     INPUT_OUTLINED = (
-        "rounded-xl border-2 border-zinc-200 focus:border-indigo-500 "
-        "focus:ring-2 focus:ring-indigo-100 transition-all duration-200 resize-none shadow-sm"
+        "rounded-xl border-2 border-zinc-200 focus:border-[#881c1c] "
+        "focus:ring-2 focus:ring-[#881c1c]/10 transition-all duration-200 resize-none shadow-sm"
     )
 
     # --- Tool invocation / result (chat tool cards) ---
@@ -94,8 +94,8 @@ class Design:
     LABEL_TOOL_RESULT_CONTENT = "text-sm text-black mt-1 whitespace-pre-wrap"
 
     # --- Status text ---
-    STATUS_PROCESSING = "text-indigo-600"
-    SPINNER_PROCESSING = "text-indigo-600"
+    STATUS_PROCESSING = "text-[#881c1c]"
+    SPINNER_PROCESSING = "text-[#881c1c]"
 
     # --- Focused panel shell (dialogs, chat, plugin pickers) ---
     # Outer card: rounded container, soft zinc shadow, no padding (header/body/footer own regions).

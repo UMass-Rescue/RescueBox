@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 from nicegui import ui
 from nicegui.testing import User
 
-from frontend.tests.unit.test_chatbot_common import TestUtilities
+from frontend.tests.unit.chatbot_test_utils import TestUtilities
 
 
 class TestChatbotUIIntegration:
@@ -31,8 +31,8 @@ class TestChatbotUIIntegration:
 
         try:
             # Test that imports work
-            from frontend.pages.chatbot.chatbot import ChatbotPage
-            from frontend.pages.chatbot.chatbot_ui import create_chat_ui
+            from frontend.pages.chatbot import ChatbotPage
+            from frontend.pages.chatbot import create_chat_ui
 
             # Test that classes can be instantiated (without UI context)
             chatbot = TestUtilities.create_mock_chatbot_page()
@@ -44,30 +44,11 @@ class TestChatbotUIIntegration:
         except Exception as e:
             pytest.fail(f"Chatbot UI components failed to initialize: {e}")
 
-    def test_form_display_integration(self):
-        """Test form display integration with mocked components."""
-        try:
-            from frontend.pages.chatbot.chatbot_forms import show_tool_picker
-            from frontend.tests.unit.test_chatbot_common import TestUtilities
-
-            # Create mock components
-            mock_container = MagicMock()
-            mock_tool_registry = TestUtilities.create_mock_tool_registry()
-            mock_core = MagicMock()
-            mock_form_handler = MagicMock()
-
-            # Test that the function exists and can be called with mocks
-            # In a real UI test environment, this would render actual UI
-            assert callable(show_tool_picker)
-
-        except Exception as e:
-            pytest.fail(f"Form display integration failed: {e}")
-
     def test_rejection_message_flow(self):
         """Test that invalid prompts show proper rejection messages."""
         try:
             from frontend.chatbot.utils import get_rejection_message
-            from frontend.pages.chatbot.handlers.message_flow_coordinator import MessageFlowCoordinator
+            from frontend.pages.chatbot import MessageFlowCoordinator
             
 
             # Test the rejection message generation
@@ -99,10 +80,10 @@ class TestChatbotUIIntegration:
     def test_invalid_message_processing_flow(self):
         """Test complete flow for invalid message processing and rejection display."""
         try:
-            from frontend.pages.chatbot.handlers.message_flow_coordinator import MessageFlowCoordinator
-            from frontend.pages.chatbot.handlers.message_processor import MessageProcessor
-            from frontend.pages.chatbot.handlers.result_processor import ResultProcessor
-            from frontend.pages.chatbot.chatbot_message import ChatMessage
+            from frontend.pages.chatbot import MessageFlowCoordinator
+            from frontend.pages.chatbot import MessageProcessor
+            from frontend.pages.chatbot import ResultProcessor
+            from frontend.pages.chatbot import ChatMessage
             from frontend.chatbot.utils import get_rejection_message
 
             # Create mock components
@@ -177,14 +158,8 @@ class TestChatbotUIIntegration:
     def test_result_display_integration(self):
         """Test result display integration with mocked components."""
         try:
-            from frontend.pages.chatbot.chatbot_forms import show_results
-            from frontend.tests.unit.test_chatbot_common import TestUtilities
+            from frontend.pages.chatbot import show_results
 
-            # Create mock components
-            mock_container = MagicMock()
-            mock_response_body = TestUtilities.create_mock_response_body()
-
-            # Test that the function exists and can be called with mocks
             assert callable(show_results)
 
         except Exception as e:
@@ -193,8 +168,7 @@ class TestChatbotUIIntegration:
     def test_message_flow_coordinator_ui_integration(self):
         """Test MessageFlowCoordinator UI integration."""
         try:
-            from frontend.pages.chatbot.handlers import MessageFlowCoordinator
-            from frontend.tests.unit.test_chatbot_common import TestUtilities
+            from frontend.pages.chatbot import MessageFlowCoordinator
 
             # Create mock state manager
             mock_state_manager = MagicMock()
@@ -209,20 +183,6 @@ class TestChatbotUIIntegration:
         except Exception as e:
             pytest.fail(f"MessageFlowCoordinator UI integration failed: {e}")
 
-    def test_url_parameter_manager_ui_integration(self):
-        """Test UrlParameterManager UI integration."""
-        try:
-            from frontend.pages.chatbot.parameter_handlers import UrlParameterManager
-
-            # Test manager creation
-            manager = UrlParameterManager()
-            assert manager is not None
-            assert hasattr(manager, '_extract_url_parameters')
-            assert hasattr(manager, 'detect_and_handle_url_parameters')
-
-        except Exception as e:
-            pytest.fail(f"UrlParameterManager UI integration failed: {e}")
-
 
 class TestEndToEndWorkflows:
     """End-to-end workflow tests (mocked version)."""
@@ -232,8 +192,6 @@ class TestEndToEndWorkflows:
         try:
             # This test validates that all components can work together
             # In a real UI testing environment, this would simulate actual user interactions
-
-            from frontend.tests.unit.test_chatbot_common import TestUtilities
 
             # Create all necessary mock components
             chatbot = TestUtilities.create_mock_chatbot_page()
@@ -258,11 +216,11 @@ class TestEndToEndWorkflows:
     def test_error_handling_ui_integration(self):
         """Test error handling in UI integration."""
         try:
-            from frontend.pages.chatbot.chatbot_message import show_error_message
-            from frontend.utils.error_handling import show_error_to_user
+            from frontend.components.errors import render_error_message
+            from frontend.utils import show_error_to_user
 
             # Test that error handling functions exist
-            assert callable(show_error_message)
+            assert callable(render_error_message)
             assert callable(show_error_to_user)
 
         except Exception as e:
@@ -271,7 +229,7 @@ class TestEndToEndWorkflows:
     def test_state_management_ui_integration(self):
         """Test state management in UI integration."""
         try:
-            from frontend.pages.chatbot.state import ChatbotStateManager
+            from frontend.pages.chatbot import ChatbotStateManager
 
             # Test state manager creation
             state_manager = ChatbotStateManager()

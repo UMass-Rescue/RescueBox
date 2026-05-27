@@ -6,11 +6,34 @@ Initializes NiceGUI, optional integrated FastAPI plugin routes, and the home pag
 Usage::
     python -m frontend.main
 """
-
 from __future__ import annotations
+import sys
+import os
+import pathlib
+import asyncio
+
+# Fix for WinError 10054 Proactor Pipe Transport crashes on Windows
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+if sys.stdout is None or not hasattr(sys.stdout, 'write'):
+    # Create a log file in the same directory as the .exe
+    log_path = os.path.join(os.path.dirname(sys.executable), "frontend.log")
+    sys.stdout = open(log_path, "w", encoding="utf-8", buffering=1)
+    sys.stderr = sys.stdout
+
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    # 1. Safely get APPDATA, falling back to the standard home directory if it's missing
+    appdata_path = os.getenv('APPDATA', os.path.expanduser('~'))
+    base_dir = pathlib.Path(appdata_path)
+
+    # 2. Construct the path
+    custom_storage_dir = base_dir / 'RescueBox-Desktop' / 'nicegui'
+
+    # 3. Explicitly cast the Path object to a string for the environment variable
+    os.environ['NICEGUI_STORAGE_PATH'] = str(custom_storage_dir)
 
 import logging
-import sys
 from pathlib import Path
 
 # Repo root + src (for rb.* plugins when running as a module)
@@ -48,8 +71,8 @@ from frontend.constants import (
 )
 from frontend.database import init_db
 from frontend.components.shared import create_navbar
-from frontend.utils.logging_context import configure_logging_with_context
-from frontend.utils.logging_config import parse_log_level
+from frontend.utils import configure_logging_with_context
+from frontend.utils import parse_log_level
 
 # Import page modules so @ui.page decorators register routes
 import frontend.pages.chatbot
@@ -69,11 +92,24 @@ configure_logging_with_context(log_file_path=str(LOG_FILE), log_level=LOG_LEVEL)
 logger = logging.getLogger(__name__)
 logger.setLevel(parse_log_level(LOG_LEVEL))
 
-from frontend.utils import backend_integration as _backend_integration
+# Determine the base path for resources in a PyInstaller bundle
+if hasattr(sys, '_MEIPASS'):
+    base_path = sys._MEIPASS
+    if sys.stderr is None or sys.stdout is None:
+        _output = open("nicegui-app.log", "w")  # noqa: SIM115 # keep it open until the whole python ends.
+        if sys.stderr is None:
+            sys.stderr = _output
+        if sys.stdout is None:
+            sys.stdout = _output
+else:
+    base_path = os.path.abspath(".")
+
+# Construct the absolute path to the icon inside the bundle
+APP_FAVICON = os.path.join(base_path, 'icons', 'rb.webp')
+
+from frontend import utils as _backend_integration
 
 try:
-    import rb.api.routes  # noqa: F401 — verify backend package is importable
-
     _backend_integration.set_backend_available(True)
     logger.debug("Backend routes package available")
 except ImportError as e:
@@ -85,7 +121,7 @@ prefetch_and_cache_models = _backend_integration.prefetch_and_cache_models
 setup_backend_routes = _backend_integration.setup_backend_routes
 
 from frontend.design_tokens import Design
-from frontend.utils.nicegui_storage import (
+from frontend.utils import (
     clear_explicit_user_id,
     ensure_explicit_user_id_for_tests,
     get_explicit_user_id,
@@ -99,7 +135,7 @@ async def index():
     """Main dashboard / home page."""
     logger.debug("Rendering main dashboard page (index route)")
 
-    from frontend.utils.theme import apply_saved_theme
+    from frontend.utils import apply_saved_theme
 
     apply_saved_theme()
     logger.debug("Theme preference applied")
@@ -238,7 +274,7 @@ if __name__ in {"__main__", "__mp_main__"}:
 
     app.on_startup(_prefetch_models_startup)
 
-    from frontend.utils.ui_readability_css import inject_global_readability_css
+    from frontend.utils import inject_global_readability_css
 
     # Register brand + readability CSS before ui.run so it is not lost vs. on_startup ordering.
     inject_global_readability_css()
@@ -264,8 +300,8 @@ if __name__ in {"__main__", "__mp_main__"}:
                 .error-icon { font-size: 4em; color: #ef4444; margin-bottom: 20px; }
                 .error-title { color: #1f2937; margin-bottom: 20px; }
                 .error-message { color: #6b7280; margin-bottom: 30px; }
-                .reload-btn { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
-                .reload-btn:hover { background: #2563eb; }
+                .reload-btn { background: #881c1c; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+                .reload-btn:hover { background: #6a1616; }
             </style>
         </head>
         <body>
@@ -285,17 +321,16 @@ if __name__ in {"__main__", "__mp_main__"}:
 
     @app.on_delete
     async def _on_client_delete(client: Client):
-        from frontend.utils.nicegui_storage import release_demo_folder_for_client
+        from frontend.utils import release_demo_folder_for_client
 
         release_demo_folder_for_client(client)
 
     ui.run(
         title=f"{APP_TITLE} · {APP_VERSION}",
         port=APP_PORT,
-        dark=APP_DARK_MODE,
         favicon=APP_FAVICON,
-        show=APP_SHOW_BROWSER,
+        show=False,
         reconnect_timeout=RECONNECT_TIMEOUT,
         storage_secret="REPLACE_WITH_A_REAL_SECRET_KEY",
-        reload=False,
+        reload=False
     )

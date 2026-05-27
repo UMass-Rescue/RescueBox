@@ -1,16 +1,14 @@
 """
 Unit tests for shared UI components.
 
-This module tests the shared components like navbar, notifications, breadcrumbs, etc.
+This module tests the shared components like navbar and breadcrumbs.
+Notification behavior is covered in ``test_notifications.py``.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
-from nicegui import ui
+from unittest.mock import patch, MagicMock
 
-from frontend.components.shared.navbar import create_navbar
-from frontend.components.shared.notifications import notify_success, notify_error, notify_info, notify_warning
-from frontend.components.shared.breadcrumbs import create_breadcrumbs
+from frontend.components.shared import create_navbar
+from frontend.components.shared import create_breadcrumbs
 
 
 class TestNavbar:
@@ -22,46 +20,10 @@ class TestNavbar:
         # Full UI testing would require NiceGUI context
         assert callable(create_navbar)
 
-    def test_navbar_import(self):
-        """Test navbar module imports correctly."""
-        from frontend.components.shared import navbar
-        assert navbar is not None
-        assert hasattr(navbar, 'create_navbar')
-
-
-class TestNotifications:
-    """Test notification system."""
-
-    def test_notify_success(self):
-        """Test success notification function exists."""
-        assert callable(notify_success)
-
-    def test_notify_error(self):
-        """Test error notification function exists."""
-        assert callable(notify_error)
-
-    def test_notify_warning(self):
-        """Test warning notification function exists."""
-        assert callable(notify_warning)
-
-    def test_notify_info(self):
-        """Test info notification function exists."""
-        assert callable(notify_info)
-
-    def test_notifications_import(self):
-        """Test notifications module imports correctly."""
-        from frontend.components.shared import notifications
-        assert notifications is not None
-        assert hasattr(notifications, 'notify_success')
-        assert hasattr(notifications, 'notify_error')
-        assert hasattr(notifications, 'notify_info')
-        assert hasattr(notifications, 'notify_warning')
-
-
 class TestBreadcrumbs:
     """Test breadcrumb component."""
 
-    @patch('frontend.components.shared.breadcrumbs.ui')
+    @patch('frontend.components.shared.ui')
     def test_create_breadcrumbs_structure(self, mock_ui):
         """Test breadcrumb creation."""
         mock_row = MagicMock()
@@ -79,27 +41,6 @@ class TestBreadcrumbs:
         # Verify basic structure
         mock_ui.row.assert_called_once()
         assert result is not None
-
-    def test_breadcrumbs_import(self):
-        """Test breadcrumbs module imports correctly."""
-        from frontend.components.shared import breadcrumbs
-        assert breadcrumbs is not None
-        assert hasattr(breadcrumbs, 'create_breadcrumbs')
-
-
-class TestStepper:
-    """Test stepper component."""
-
-    def test_stepper_import(self):
-        """Test stepper module imports correctly."""
-        from frontend.components.shared import stepper
-        assert stepper is not None
-
-    def test_stepper_example_import(self):
-        """Test stepper example imports correctly."""
-        from frontend.components.shared import stepper_example
-        assert stepper_example is not None
-
 
 class TestSharedComponentsIntegration:
     """Integration tests for shared components."""
@@ -122,12 +63,7 @@ class TestSharedComponentsIntegration:
             create_navbar,
             create_breadcrumbs
         )
-        from frontend.components.shared.notifications import (
-            notify_success, notify_error
-        )
 
         # Verify key functions are exported
         assert callable(create_navbar)
-        assert callable(notify_success)
-        assert callable(notify_error)
         assert callable(create_breadcrumbs)

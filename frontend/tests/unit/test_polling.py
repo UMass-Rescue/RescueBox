@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock
-from frontend.pages.chatbot.chatbot import ChatbotPage
+from frontend.pages.chatbot import ChatbotPage
 from frontend.chatbot.config import ChatbotConfig
 import pytest
 
@@ -24,7 +24,7 @@ async def test_polling_triggers_show_results(monkeypatch):
                 class J: status = 'Completed'; response = {'root': {'output_type': 'text', 'value': 'done'}}
                 return J()
 
-    monkeypatch.setattr('frontend.pages.chatbot.chatbot.get_job_db', lambda: FakeJobDB())
+    monkeypatch.setattr('frontend.pages.chatbot.get_job_db', lambda: FakeJobDB())
 
     # patch show_results to AsyncMock
     called = {"called": False}
@@ -32,7 +32,7 @@ async def test_polling_triggers_show_results(monkeypatch):
     async def fake_show_results(container, response_body, job_id):
         called["called"] = True
 
-    monkeypatch.setattr('frontend.pages.chatbot.chatbot.show_results', fake_show_results)
+    monkeypatch.setattr('frontend.pages.chatbot.show_results', fake_show_results)
 
     # Run poll (should exit after job completes)
     await page._poll_job_status("JOB_X", "endpoint", interval=0.01)

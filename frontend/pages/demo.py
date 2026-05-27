@@ -5,11 +5,11 @@ from typing import Optional
 
 from nicegui import ui
 
-from frontend.components.demo.demo_files_explorer import (
+from frontend.components.demo import (
     normalize_demo_walkthrough_query,
     render_demo_files_explorer,
 )
-from frontend.components.demo.guided_markdown import schedule_hash_fragment_scroll
+from frontend.components.demo import schedule_hash_fragment_scroll
 from frontend.components.shared import create_navbar
 from frontend.constants import NAV_LINKS
 
@@ -40,11 +40,11 @@ _BACK_TO_GUIDE_LABEL: dict[str, str] = {
 @ui.page('/demo')
 async def demo_page(walkthrough: Optional[str] = None):
     """Plain ``/demo`` = full landing. ``?walkthrough=…`` = folders only (matches embedded walkthrough samples)."""
-    from frontend.utils.theme import apply_saved_theme
+    from frontend.utils import apply_saved_theme
 
     apply_saved_theme()
     create_navbar()
-    from frontend.utils.demo_user_gate import require_demo_user_session
+    from frontend.utils import require_demo_user_session
 
     if not require_demo_user_session():
         return

@@ -27,6 +27,7 @@ from frontend.chatbot.granite import parse_fine_tune_tool_response
 from frontend.chatbot.tool_config import create_advanced_granite_prompt
 import logging
 from typing import Optional, Dict, Any
+from nicegui import ui
 
 
 
@@ -46,9 +47,12 @@ class ThinChatbotCore:
     def __init__(self, config):
         self.config = config
         self.api_client = httpx.AsyncClient(base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
-        self.ollama_client = httpx.AsyncClient(base_url=config.OLLAMA_HOST, timeout=600.0)
+        self.ollama_url = config.OLLAMA_HOST
+        logger.info(
+            "Granite tool OLLAMA_HOST: url=%s", self.ollama_url)
+
+        self.ollama_client = httpx.AsyncClient(base_url=self.ollama_url, timeout=600.0)
         self.api = ApiClient(config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
-        self._llama_model = None  # legacy attribute for tests
 
     async def get_task_schema_from_endpoint(self, endpoint: str) -> Optional[TaskSchema]:
         schema_dict = await fetch_task_schema(self.api if hasattr(self, 'api') else None, self.api_client, self.config, endpoint)
@@ -57,8 +61,8 @@ class ThinChatbotCore:
     def convert_arguments_to_initial_values(self, arguments: Dict[str, Any], task_schema: TaskSchema, endpoint: str = "") -> Dict[str, Any]:
         return _convert(arguments, task_schema, endpoint)
 
-    async def create_input_form(self, task_schema: TaskSchema, endpoint: str, initial_values: Optional[Dict] = None, on_submit: callable = None, on_cancel: callable = None):
-        return await _create(task_schema, endpoint, initial_values=initial_values, on_submit=on_submit, on_cancel=on_cancel)
+    async def create_input_form(self, task_schema: TaskSchema, endpoint: str, initial_values: Optional[Dict] = None, on_submit: callable = None, on_cancel: callable = None, container: Optional[ui.element] = None):
+        return await _create(task_schema, endpoint, initial_values=initial_values, on_submit=on_submit, on_cancel=on_cancel, container=container)
 
     async def submit_job(self, request_body: RequestBody, endpoint: str) -> ResponseBody:
         api_endpoint = f"{'' if endpoint.startswith('/') else '/'}{endpoint}"
@@ -80,10 +84,11 @@ class ThinChatbotCore:
     async def _call_ollama(self, prompt: str, use_advanced: bool, update_status_callback=None) -> Optional[list]:
         """Call Ollama API for Granite model tool selection."""
         if update_status_callback:
-            update_status_callback("🧠 RescueBox working with AI model...")
+            update_status_callback("RescueBox working with AI model...")
         _preview = prompt if len(prompt) <= 1200 else prompt[:1200] + "…"
         logger.info(
-            "Granite tool selection request: model=%s use_advanced=%s prompt_len=%d prompt_preview=%r",
+            "Granite tool selection request: url=%s model=%s use_advanced=%s prompt_len=%d prompt_preview=%r",
+            f"{self.ollama_url}/api/chat",
             self.config.GRANITE_MODEL,
             use_advanced,
             len(prompt),
@@ -112,7 +117,7 @@ class ThinChatbotCore:
                     {"role": "user", "content": prompt},
                 ]
             resp = await self.ollama_client.post(
-                "/api/chat",
+                url=f"{self.ollama_url}/api/chat",
                 json={"model": self.config.GRANITE_MODEL, "messages": ollama_messages, "stream": False},
                 timeout=600.0,
             )
@@ -142,7 +147,7 @@ class ThinChatbotCore:
             else:
                 logger.warning("Granite /api/chat returned empty message.content")
         except Exception as e:
-            logger.debug("Ollama error: %s", e)
+            logger.error("Ollama connection or parsing error: %s", e, exc_info=True)
         return None
 
     async def close(self):
@@ -150,7 +155,9 @@ class ThinChatbotCore:
         if hasattr(self, 'api'):
             await self.api.aclose()
         await self.ollama_client.aclose()
-        self._llama_model = None
+        # Legacy attribute for test compatibility
+        if hasattr(self, '_llama_model'):
+            self._llama_model = None
 
 
 # Replace the exported symbol so external imports get the new thin coordinator.

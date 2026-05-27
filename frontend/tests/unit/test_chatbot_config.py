@@ -22,7 +22,7 @@ import pytest
 from frontend.chatbot.config import ChatbotConfig, ToolRegistry
 
 # Configuration constants
-DEFAULT_OLLAMA_HOST = "http://localhost:11434"
+DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
 DEFAULT_GRANITE_MODEL = "granite4:micro"
 DEFAULT_RESCUEBOX_HOST = "http://localhost:8000"
 DEFAULT_TIMEOUT = 604800
@@ -84,13 +84,9 @@ class TestChatbotConfig:
     - Model and service endpoint configuration
     """
     
-    def test_default_config(self):
-        """Test default configuration values.
-
-        Validates that the ChatbotConfig initializes with sensible defaults
-        suitable for development and local deployment scenarios, ensuring
-        out-of-the-box functionality without requiring manual configuration.
-        """
+    def test_default_config(self, monkeypatch):
+        """Test default configuration values."""
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
         config = ChatbotConfig()
         assert config.OLLAMA_HOST == DEFAULT_OLLAMA_HOST
         assert config.GRANITE_MODEL == DEFAULT_GRANITE_MODEL

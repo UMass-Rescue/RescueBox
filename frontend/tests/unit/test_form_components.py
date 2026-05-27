@@ -8,8 +8,8 @@ import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 from nicegui import ui
 
-from frontend.components.forms.form_generator import FormGenerator
-from frontend.components.forms.form_handlers import handle_form_submit
+from frontend.components.forms import FormGenerator
+from frontend.components.forms import handle_form_submit
 
 
 class TestFormGenerator:
@@ -57,7 +57,7 @@ class TestFormGenerator:
         assert form_generator is not None
         assert hasattr(form_generator, 'generate_form')
 
-    @patch('frontend.components.forms.form_generator.ui')
+    @patch('frontend.components.forms.ui')
     def test_generate_form_basic_structure(self, mock_ui, form_generator, mock_task_schema):
         """Test basic form generation structure."""
         mock_container = MagicMock()
@@ -91,52 +91,8 @@ class TestFormHandlers:
         # Just test that the function exists and is callable
         assert callable(handle_form_submit)
 
-    def test_form_handlers_import(self):
-        """Test that form handlers can be imported."""
-        from frontend.components.forms import form_handlers
-        assert form_handlers is not None
-
-        # Test key functions exist
-        assert hasattr(form_handlers, 'handle_form_submit')
-
-
 class TestFormBuilders:
     """Test form builder components."""
-
-    def test_input_field_builder_import(self):
-        """Test input field builder can be imported."""
-        from frontend.components.forms.builders import input_field_builder
-        assert input_field_builder is not None
-
-    def test_parameter_field_builder_import(self):
-        """Test parameter field builder can be imported."""
-        from frontend.components.forms.builders import parameter_field_builder
-        assert parameter_field_builder is not None
-
-    @patch('frontend.components.forms.builders.input_field_builder.ui')
-    def test_create_input_field_structure(self, mock_ui):
-        """Test input field creation structure."""
-        from frontend.components.forms.builders.input_field_builder import create_input_field
-
-        # Mock UI components
-        mock_input = MagicMock()
-        mock_ui.input.return_value = mock_input
-
-        # Test that function exists and has proper signature
-        assert callable(create_input_field)
-
-    @patch('frontend.components.forms.builders.parameter_field_builder.ui')
-    def test_create_parameter_field_structure(self, mock_ui):
-        """Test parameter field creation structure."""
-        from frontend.components.forms.builders.parameter_field_builder import create_parameter_field
-
-        # Mock UI components
-        mock_slider = MagicMock()
-        mock_ui.slider.return_value = mock_slider
-
-        # Test that function exists and has proper signature
-        assert callable(create_parameter_field)
-
 
 class TestFormIntegration:
     """Integration tests for form components."""
@@ -145,8 +101,8 @@ class TestFormIntegration:
         """Test that form components work together."""
         # Test imports work together
         from frontend.components.forms import FormGenerator
-        from frontend.components.forms.builders import create_input_field, create_parameter_field
-        from frontend.components.forms.form_handlers import handle_form_submit
+        from frontend.components.forms import create_input_field, create_parameter_field
+        from frontend.components.forms import handle_form_submit
 
         # Verify all components are available
         assert FormGenerator is not None

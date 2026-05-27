@@ -65,6 +65,7 @@ class JobDatabaseSchema(DatabaseSchema):
                 response TEXT,
                 taskSchema TEXT NOT NULL,
                 filterId TEXT,
+                userId TEXT,
                 caseNotes TEXT
             )
             """,
@@ -93,6 +94,7 @@ class JobDatabaseSchema(DatabaseSchema):
             "CREATE INDEX IF NOT EXISTS idx_jobs_start_time ON jobs(startTime DESC)",
             "CREATE INDEX IF NOT EXISTS idx_jobs_model_task ON jobs(modelUid, taskUid)",
             "CREATE INDEX IF NOT EXISTS idx_jobs_endpoint ON jobs(endpoint)",
+            "CREATE INDEX IF NOT EXISTS idx_jobs_userId ON jobs(userId)",
             "CREATE INDEX IF NOT EXISTS filterID ON jobs(filterId)",
             "CREATE INDEX IF NOT EXISTS idx_file_filters_input_dir ON file_filters(input_dir)",
             "CREATE INDEX IF NOT EXISTS idx_file_filters_owner_id ON file_filters(owner_id)",

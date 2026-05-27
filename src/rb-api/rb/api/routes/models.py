@@ -19,10 +19,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / 'src'))
 
-# Register UI pages
-import frontend.pages.models
-import frontend.pages.chatbot
-import frontend.pages.jobs
+
 
 logger = logging.getLogger(__name__)
 

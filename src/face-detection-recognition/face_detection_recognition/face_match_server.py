@@ -62,6 +62,7 @@ server.add_app_metadata(
     version="3.0.0",
     info=info,
     gpu=True,
+    make_threadsafe=True,
 )
 
 # Raster types accepted for directory-based face-match tasks (top-level files only).

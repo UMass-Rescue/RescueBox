@@ -7,7 +7,7 @@ import logging
 from nicegui import ui
 from starlette.requests import Request
 
-from frontend.components.about.license_documents import render_license_documents_section
+from frontend.components.about import render_license_documents_section
 from frontend.components.shared import create_navbar
 from frontend.config import (
     ABOUT_AUTHORS,
@@ -24,7 +24,7 @@ RESCUE_LAB_URL = "https://www.rescue-lab.org/"
 
 @ui.page("/about")
 async def about_page(request: Request):
-    from frontend.utils.theme import apply_saved_theme
+    from frontend.utils import apply_saved_theme
 
     apply_saved_theme()
     create_navbar()

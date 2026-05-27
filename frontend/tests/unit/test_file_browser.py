@@ -28,7 +28,7 @@ from unittest.mock import patch, Mock, MagicMock
 from pathlib import Path
 from nicegui.testing import User
 
-from frontend.utils.file_browser import (
+from frontend.utils import (
     browse_directory,
     browse_file,
     browse_directory_simple,

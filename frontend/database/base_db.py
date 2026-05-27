@@ -11,6 +11,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Dict, Any
 
+from frontend.config import DATA_DIR
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +34,7 @@ class BaseDatabase(ABC):
         """
         if db_path is None:
             # Use data directory in frontend folder
-            data_dir = Path(__file__).parent.parent / 'data'
+            data_dir = DATA_DIR
             data_dir.mkdir(exist_ok=True)
             db_path = data_dir / db_filename
 
@@ -109,7 +111,7 @@ class BaseDatabase(ABC):
         conn = self.connect()
         try:
             return conn.execute(query, params)
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             logger.error(f"Database query failed: {query} with params {params}")
             raise
 
@@ -127,7 +129,7 @@ class BaseDatabase(ABC):
         conn = self.connect()
         try:
             return conn.executemany(query, params_list)
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             logger.error(f"Database query failed: {query} with params {params_list}")
             raise
 

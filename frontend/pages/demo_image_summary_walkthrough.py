@@ -1,6 +1,4 @@
-"""
-In-app walkthrough: Image summary via Assistant prompt (Markdown in frontend/demo/).
-"""
+"""In-app walkthrough: Image summary via Assistant prompt (Markdown in frontend/demo/)."""
 
 from __future__ import annotations
 
@@ -8,8 +6,8 @@ import logging
 
 from nicegui import ui
 
-from frontend.components.demo.demo_files_explorer import render_walkthrough_samples_panel
-from frontend.components.demo.guided_markdown import (
+from frontend.components.demo import render_walkthrough_samples_panel
+from frontend.components.demo import (
     load_markdown_file,
     render_guided_markdown_body,
     schedule_hash_fragment_scroll,
@@ -34,11 +32,11 @@ Could not read `{_MD_FILE}`. Add `frontend/demo/{_MD_FILE}` to customize this pa
 @ui.page("/demo/image-search-walkthrough")
 async def demo_image_search_walkthrough_page():
     """Step-by-step image summary (Assistant + prompt) guide."""
-    from frontend.utils.theme import apply_saved_theme
+    from frontend.utils import apply_saved_theme
 
     apply_saved_theme()
     create_navbar()
-    from frontend.utils.demo_user_gate import require_demo_user_session
+    from frontend.utils import require_demo_user_session
 
     if not require_demo_user_session():
         return
@@ -58,8 +56,8 @@ async def demo_image_search_walkthrough_page():
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
             ).classes("rb-brand-primary text-white")
           
-            # ui.link("Open Assistant", NAV_LINKS["chatbot"]).classes("text-indigo-600 hover:underline")
-            # ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes("text-indigo-600 hover:underline")
+            # ui.link("Open Assistant", NAV_LINKS["chatbot"]).classes("text-[#881c1c] hover:underline")
+            # ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes("text-[#881c1c] hover:underline")
 
     schedule_hash_fragment_scroll()
     logger.debug("Image search walkthrough page rendered")

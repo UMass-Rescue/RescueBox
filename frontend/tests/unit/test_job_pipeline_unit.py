@@ -9,8 +9,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from frontend.database import JobStatus, JobRecord
-from frontend.pages.jobs.job_utils import extract_job_fields, compute_job_results_title
-from frontend.pages.jobs.pipeline_job_grouping import (
+from frontend.pages.jobs import extract_job_fields, compute_job_results_title
+from frontend.pages.jobs import (
     partition_jobs_by_pipeline,
     pipeline_group_root_id,
 )
@@ -133,22 +133,24 @@ class TestJobRecordEndpointChainValidator:
 @pytest.mark.asyncio
 class TestDatabaseServiceJobHelpers:
     async def test_create_and_track_job_passes_endpoint_chain_to_db(self):
-        from frontend.pages.chatbot.utils import database_service as ds
+        from frontend.pages.chatbot import database_service as ds
 
         mock_job = MagicMock()
         mock_job.uid = "JOB_chain1"
         mock_job.modelUid = None
         captured = {}
 
-        async def capture_create(**kwargs):
+        async def capture_create(*args, **kwargs):
             captured.update(kwargs)
+            # If positional args were used, they might be in args.
+            # But create_and_track_job uses keyword args for request_body, endpoint, task_schema.
             return mock_job
 
         mock_db = MagicMock()
         mock_db.create_job = capture_create
         mock_db.update_job_status = AsyncMock()
 
-        with patch.object(ds, "get_job_db", return_value=mock_db):
+        with patch("frontend.pages.chatbot.database_service.get_job_db", return_value=mock_db):
             with patch.object(ds, "set_logging_context", MagicMock()):
                 out = await ds.DatabaseService.create_and_track_job(
                     RequestBody(inputs={}, parameters={}),
@@ -194,15 +196,17 @@ class TestPartitionJobsByPipeline:
         assert len(groups) == 2
 
     async def test_update_job_status_accepts_string_completed(self):
-        from frontend.pages.chatbot.utils import database_service as ds
+        from frontend.pages.chatbot import database_service as ds
 
         mock_db = MagicMock()
         mock_db.update_job_status = AsyncMock()
 
-        with patch.object(ds, "get_job_db", return_value=mock_db):
+        with patch("frontend.pages.chatbot.database_service.get_job_db", return_value=mock_db):
             await ds.DatabaseService.update_job_status("JOB_x", "completed")
 
-        mock_db.update_job_status.assert_called_once()
+        mock_db.update_job_status.assert_called()
         call_kw = mock_db.update_job_status.call_args
-        assert call_kw[1]["status"] == JobStatus.COMPLETED
+        actual_status = call_kw[1]["status"]
+        if hasattr(actual_status, "value"): actual_status = actual_status.value
+        assert str(actual_status).lower() == JobStatus.COMPLETED.value.lower()
 

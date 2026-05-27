@@ -13,6 +13,9 @@ from typing import List, Dict, Any, Optional
 
 from frontend.config import DATA_DIR
 
+from .job_db import JobRecord, JobStatus, get_job_db, init_database as init_job_database
+from .chat_history_db import ConversationRecord, ChatMessageRecord, get_chat_history_db
+
 logger = logging.getLogger(__name__)
 
 # Use a separate database file for the cache to not interfere with other data.
@@ -106,10 +109,6 @@ async def get_cached_model_by_uid(uid: str) -> Optional[Dict[str, Any]]:
             return model_data
         logger.warning(f"Model {uid} not found in cache.")
         return None
-
-# Import from other database modules to expose them at the package level
-from .job_db import JobRecord, JobStatus, get_job_db, init_database as init_job_database
-from .chat_history_db import ConversationRecord, ChatMessageRecord, get_chat_history_db
 
 __all__ = [
     'init_db', 'cache_models', 'get_cached_models', 'get_cached_model_by_uid',  # Model cache

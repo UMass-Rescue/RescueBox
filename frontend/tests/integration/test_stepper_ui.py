@@ -15,7 +15,7 @@ class TestStepperUI:
     async def test_stepper_renders_steps(self, user: User):
         """Test that stepper renders all steps"""
         from nicegui import ui
-        from frontend.components.shared.stepper import create_workflow_stepper
+        from frontend.components.shared import create_workflow_stepper
         
         steps = ['Step 1', 'Step 2', 'Step 3']
         
@@ -35,7 +35,7 @@ class TestStepperUI:
     async def test_stepper_shows_current_step(self, user: User):
         """Test that stepper highlights current step"""
         from nicegui import ui
-        from frontend.components.shared.stepper import create_workflow_stepper
+        from frontend.components.shared import create_workflow_stepper
         
         steps = ['First', 'Second', 'Third']
         
@@ -58,7 +58,7 @@ class TestStepperUI:
     async def test_stepper_chatbot_workflow(self, user: User):
         """Test stepper with chatbot workflow steps"""
         from nicegui import ui
-        from frontend.components.shared.stepper import create_workflow_stepper
+        from frontend.components.shared import create_workflow_stepper
         
         chatbot_steps = [
             'Message Sent',
@@ -86,7 +86,7 @@ class TestStepperUI:
     async def test_stepper_with_single_step(self, user: User):
         """Test stepper with single step"""
         from nicegui import ui
-        from frontend.components.shared.stepper import create_workflow_stepper
+        from frontend.components.shared import create_workflow_stepper
         
         steps = ['Only Step']
         

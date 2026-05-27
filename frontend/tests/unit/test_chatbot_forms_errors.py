@@ -38,7 +38,7 @@ if not hasattr(ui, 'ref'):
         return ref
     ui.ref = mock_ref
 
-from frontend.pages.chatbot.chatbot_forms import load_and_show_form, show_results
+from frontend.pages.chatbot import load_and_show_form, show_results
 from frontend.chatbot.core import ChatbotCore
 from frontend.chatbot.config import ChatbotConfig
 from rb.api.models import TaskSchema, ResponseBody, TextResponse
@@ -107,11 +107,11 @@ class TestChatbotFormsErrorHandling:
         loading process gracefully fails and provides appropriate user feedback
         indicating that the requested tool configuration could not be loaded.
         """
-        container = Mock()
+        container = MagicMock()
 
         with patch.object(core, 'get_task_schema_from_endpoint', return_value=None):
-            with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
-                result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, Mock())
+            with patch('frontend.pages.chatbot.ui.handle_api_error', new_callable=AsyncMock) as mock_show_error:
+                result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, MagicMock())
 
                 # Should return None indicating form creation failed
                 assert result is None
@@ -122,17 +122,17 @@ class TestChatbotFormsErrorHandling:
     async def test_load_and_show_form_passes_on_cancel(self, core, sample_task_schema):
         """Test that on_form_cancel is passed down to create_input_form."""
         container = MagicMock()
-        container.__enter__ = Mock(return_value=container)
-        container.__exit__ = Mock(return_value=False)
+        container.__enter__ = MagicMock(return_value=container)
+        container.__exit__ = MagicMock(return_value=False)
         mock_cancel = MagicMock()
 
         with patch.object(core, 'get_task_schema_from_endpoint', return_value=sample_task_schema):
             with patch.object(core, 'convert_arguments_to_initial_values', return_value={}):
-                with patch('frontend.pages.chatbot.chatbot_forms.show_tool_selection'):
-                    with patch('frontend.components.results.tool_selection_card.render_tool_selection_message'):
+                with patch('frontend.pages.chatbot.ui.show_tool_selection'):
+                    with patch('frontend.components.results.render_tool_selection_message'):
                         with patch.object(core, 'create_input_form', new_callable=AsyncMock) as mock_create_form:
                             result = await load_and_show_form(
-                                container, core, TEST_ENDPOINT, {}, Mock(), on_form_cancel=mock_cancel
+                                container, core, TEST_ENDPOINT, {}, MagicMock(), on_form_cancel=mock_cancel
                             )
                             
                         try:
@@ -146,13 +146,13 @@ class TestChatbotFormsErrorHandling:
     @pytest.mark.asyncio
     async def test_load_and_show_form_does_not_call_cancel_on_error(self, core):
         """Test that on_form_cancel is not called if form creation fails early."""
-        container = Mock()
+        container = MagicMock()
         mock_cancel = MagicMock()
 
         with patch.object(core, 'get_task_schema_from_endpoint', return_value=None):
-            with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user'):
+            with patch('frontend.pages.chatbot.ui.handle_api_error', new_callable=AsyncMock):
                 result = await load_and_show_form(
-                    container, core, TEST_ENDPOINT, {}, Mock(), on_form_cancel=mock_cancel
+                    container, core, TEST_ENDPOINT, {}, MagicMock(), on_form_cancel=mock_cancel
                 )
                 assert result is None
                 mock_cancel.assert_not_called()
@@ -165,11 +165,12 @@ class TestChatbotFormsErrorHandling:
         are caught and handled appropriately, with proper error reporting
         to users about the inability to load tool configurations.
         """
-        container = Mock()
+        container = MagicMock()
 
         with patch.object(core, 'get_task_schema_from_endpoint', side_effect=OSError(SCHEMA_FETCH_ERROR_MSG)):
-            with patch('frontend.pages.chatbot.chatbot_forms.handle_api_error') as mock_handle_error:
-                result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, Mock())
+            with patch('frontend.pages.chatbot.ui.handle_api_error', new_callable=AsyncMock) as mock_handle_error:
+                with patch('frontend.pages.chatbot.ui.show_error_message'):
+                    result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, MagicMock())
 
                 # Should return None indicating form creation failed
                 assert result is None
@@ -186,20 +187,20 @@ class TestChatbotFormsErrorHandling:
         process.
         """
         container = MagicMock()
-        container.__enter__ = Mock(return_value=container)
-        container.__exit__ = Mock(return_value=False)
+        container.__enter__ = MagicMock(return_value=container)
+        container.__exit__ = MagicMock(return_value=False)
 
         with patch.object(core, 'get_task_schema_from_endpoint', return_value=sample_task_schema):
             with patch.object(core, 'convert_arguments_to_initial_values', side_effect=ValueError(CONVERSION_ERROR_MSG)):
-                with patch('frontend.pages.chatbot.chatbot_forms.show_tool_selection'):
+                with patch('frontend.pages.chatbot.ui.show_tool_selection'):
                     with patch(
-                        'frontend.components.results.tool_selection_card.render_tool_selection_message',
+                        'frontend.components.results.render_tool_selection_message',
                         return_value=None,
                     ):
-                        with patch.object(core, 'create_input_form', new_callable=AsyncMock, return_value=Mock()):
-                            with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user', return_value=None):
+                        with patch.object(core, 'create_input_form', new_callable=AsyncMock, return_value=MagicMock()):
+                            with patch('frontend.pages.chatbot.ui.show_error_to_user', return_value=None):
                                 try:
-                                    result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, Mock())
+                                    result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, MagicMock())
                                 except Exception:
                                     pass
     
@@ -219,20 +220,21 @@ class TestChatbotFormsErrorHandling:
 
         with patch.object(core, 'get_task_schema_from_endpoint', return_value=sample_task_schema):
             with patch.object(core, 'convert_arguments_to_initial_values', return_value={}):
-                with patch('frontend.pages.chatbot.chatbot_forms.show_tool_selection'):
+                with patch('frontend.pages.chatbot.ui.show_tool_selection'):
                     with patch(
-                        'frontend.components.results.tool_selection_card.render_tool_selection_message',
+                        'frontend.components.results.render_tool_selection_message',
                         return_value=None,
                     ):
-                        with patch('frontend.pages.chatbot.chatbot_forms.ui.column', return_value=col_cm):
+                        with patch('frontend.pages.chatbot.ui.column', return_value=col_cm):
                             with patch.object(
                                 core,
                                 'create_input_form',
                                 new_callable=AsyncMock,
                                 side_effect=RuntimeError(FORM_CREATION_ERROR_MSG),
                             ):
-                                with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
-                                    result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, Mock())
+                                with patch('frontend.pages.chatbot.ui.handle_api_error', new_callable=AsyncMock) as mock_show_error:
+                                    with patch('frontend.pages.chatbot.ui.show_error_message'):
+                                        result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, MagicMock())
 
                                     assert result is None
                                     mock_show_error.assert_called_once()
@@ -241,13 +243,13 @@ class TestChatbotFormsErrorHandling:
     async def test_show_results_invalid_response_body(self):
         """show_results delegates to _show_results_body; invalid response shape is not validated here."""
         container = MagicMock()
-        container.__enter__ = Mock(return_value=container)
-        container.__exit__ = Mock(return_value=False)
+        container.__enter__ = MagicMock(return_value=container)
+        container.__exit__ = MagicMock(return_value=False)
 
         invalid_response = INVALID_RESPONSE_DATA
 
-        with patch('frontend.pages.chatbot.chatbot_forms._show_results_body', new_callable=AsyncMock) as mock_body:
-            with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
+        with patch('frontend.pages.chatbot.ui._show_results_body', new_callable=AsyncMock) as mock_body:
+            with patch('frontend.pages.chatbot.ui.handle_api_error', new_callable=AsyncMock) as mock_show_error:
                 await show_results(container, invalid_response, None)
 
         mock_body.assert_called_once()
@@ -262,8 +264,8 @@ class TestChatbotFormsErrorHandling:
         and handled gracefully with appropriate user feedback.
         """
         container = MagicMock()
-        container.__enter__ = Mock(return_value=container)
-        container.__exit__ = Mock(return_value=False)
+        container.__enter__ = MagicMock(return_value=container)
+        container.__exit__ = MagicMock(return_value=False)
 
         response_body = ResponseBody(
             root=TextResponse(
@@ -274,10 +276,10 @@ class TestChatbotFormsErrorHandling:
 
         # Fail while building the simple result card so the outer handler surfaces the error
         with patch(
-            'frontend.pages.chatbot.chatbot_forms.ui.card',
+            'frontend.pages.chatbot.ui.card',
             side_effect=ValueError(RENDERING_ERROR_MSG),
         ):
-            with patch('frontend.pages.chatbot.chatbot_forms.show_error_to_user') as mock_show_error:
+            with patch('frontend.pages.chatbot.ui.handle_api_error', new_callable=AsyncMock) as mock_show_error:
                 await show_results(container, response_body, None)
 
                 mock_show_error.assert_called_once()

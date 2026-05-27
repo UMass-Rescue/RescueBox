@@ -1,6 +1,6 @@
 """Tests for License & Copyright document listing (About page)."""
 
-from frontend.components.about.license_documents import _primary_and_third_party_paths
+from frontend.components.about import _primary_and_third_party_paths
 
 
 def test_primary_and_third_party_paths_splits_top_level():

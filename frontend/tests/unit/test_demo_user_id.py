@@ -31,14 +31,18 @@ def test_is_valid_explicit_user_id(value, expected):
 @pytest.fixture
 def patched_nicegui_app(monkeypatch):
     """Isolate app.storage.general for explicit-ID registry tests."""
-    import frontend.utils.nicegui_storage as ngs
+    import frontend.utils as utils
+    from frontend.utils.storage import reset_test_storage
 
     mock_app = MagicMock()
     mock_app.storage.general = {}
     mock_app.storage.user = {}
     mock_app.storage.browser = {}
-    monkeypatch.setattr(ngs, "app", mock_app)
-    return ngs
+    monkeypatch.setattr(utils, "app", mock_app)
+    reset_test_storage()
+    return utils
+
+
 
 
 def test_try_claim_explicit_user_id_invalid(patched_nicegui_app):
@@ -63,4 +67,6 @@ def test_clear_explicit_user_id_releases_claim(patched_nicegui_app):
     ngs.set_explicit_user_id(vid)
     ngs.clear_explicit_user_id()
     assert ngs.get_explicit_user_id() is None
+    # Ensure registry is cleared (in case clear_explicit_user_id failed to release)
+    ngs.release_explicit_user_id_claim(vid)
     assert ngs.try_claim_explicit_user_id(vid) == "ok"

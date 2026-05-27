@@ -144,7 +144,6 @@ SCHEMA_MAP = {
     "age-gender/predict": AgeGenderPredict,
     "text_summarization/summarize": TextSummarize,
     "image_summary/summarize-images": ImageSummarize,
-    # List image (CLIP) search before text search so tool JSON order matches typical "search images" intent.
     "image_embeddings/search_images": ImageSearch,
     "text_embeddings/search": TextSearch,
     "ufdr_mounter/mount": UfdrMount,

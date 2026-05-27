@@ -21,7 +21,7 @@ async def on_job_completed(job_uid: str) -> None:
     _ensure_repo_root_on_path()
     try:
         from frontend.database import get_job_db
-        from frontend.pages.jobs.job_utils import extract_job_fields
+        from frontend.pages.jobs import extract_job_fields
         from case_export.persist import write_case_fragment_file
     except Exception as e:
         logger.debug("CASE export hook imports failed: %s", e)

@@ -154,10 +154,10 @@ def get_component_theme_colors(component_type: str) -> Dict[str, str]:
             'icon': 'text-yellow-600'
         },
         'info': {
-            'bg': 'bg-indigo-50',
-            'border': 'border-indigo-300',
-            'text': 'text-indigo-700',
-            'icon': 'text-indigo-600'
+            'bg': 'bg-zinc-50',
+            'border': 'border-zinc-300',
+            'text': 'text-zinc-700',
+            'icon': 'text-zinc-600'
         }
     }
 

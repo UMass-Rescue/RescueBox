@@ -1,7 +1,7 @@
 """Components package"""
 
 from frontend.components.shared import (
-    create_navbar,
+    create_navbar, navbar,
     WorkflowStepper,
     create_workflow_stepper,
     notify_success,
@@ -24,7 +24,7 @@ from frontend.components.component_utils import (
 )
 
 __all__ = [
-    'create_navbar',
+    'create_navbar', 'navbar',
     'WorkflowStepper',
     'create_workflow_stepper',
     'notify_success',

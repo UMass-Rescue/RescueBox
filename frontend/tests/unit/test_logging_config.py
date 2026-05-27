@@ -3,7 +3,7 @@
 import logging
 import unittest
 
-from frontend.utils.logging_config import parse_log_level
+from frontend.utils import parse_log_level
 
 
 class TestParseLogLevel(unittest.TestCase):

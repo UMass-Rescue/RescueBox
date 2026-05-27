@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import httpx
 import inspect
 
@@ -15,6 +15,11 @@ async def submit_job_orchestrator(api_wrapper, http_client, config, request_body
     Orchestrate job submission using api_helpers.post_job and normalize the response
     into a ResponseBody pydantic model.
     """
+    from frontend.utils import get_user_id_for_jobs
+
+    if not get_user_id_for_jobs():
+        raise Exception("Set a demo User ID (demo_???) before submitting jobs.")
+
     logger.debug("Orchestrating job submission to %s", api_endpoint)
     try:
         response_data = await post_job(api_wrapper, http_client, config, api_endpoint, request_body_dict)
