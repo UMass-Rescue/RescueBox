@@ -71,6 +71,18 @@ rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/qu
 - **License**: Apache 2.0
 - **Use case**: High-accuracy image-to-image similarity
 
+## Benchmarks
+
+Embedding-only numbers (not the full plugin pipeline) for SO400M SigLIP-2, measured on the OpenCLIP/timm port `ViT-SO400M-14-SigLIP2-378`. This is the same model family as what the plugin ships (`google/siglip2-so400m-patch14-384` is the HF Transformers port at 384², near-equivalent quality).
+
+- **Hardware**: NVIDIA RTX 5090 (32 GB VRAM), PyTorch 2.11.0, CUDA 13.0
+- **Dataset**: 503 images grouped into **series** of semantically-related images (e.g. photos from the same event, location, or theme — not necessarily the same subject or pixel-level duplicates). A retrieval counts as correct if **any other image from the query's series** appears in the top-`k` results — we're measuring how well the model clusters semantically related content in vector space. Batch size 200.
+- **Throughput**: 14.1 images/second
+- **Peak GPU memory**: 11.78 GB — the maximum VRAM used during inference, so any GPU with at least ~12 GB can run this batch size
+- **Retrieval accuracy**: top-1 = 93%, top-5 = 98%, top-10 = 99%
+
+Selected over three alternatives (LAION CLIP-H, DFN5B, SigLIP-2-gopt) as the best trade-off between accuracy, GPU memory, throughput, and Apache-2.0 licensing.
+
 ## Dependencies
 
 - `transformers`: image preprocessor (`AutoProcessor`)
