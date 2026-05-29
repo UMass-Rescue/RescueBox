@@ -4,7 +4,6 @@ import inspect
 
 import pytest
 from image_similarity.main import (
-    _DEFAULT_MODEL,
     search_similar_images,
     task_schema,
     Inputs,
@@ -29,9 +28,9 @@ def test_task_schema_inputs():
 
 def test_task_schema_parameters():
     schema = task_schema()
-    assert len(schema.parameters) == 3
+    assert len(schema.parameters) == 2
     keys = [p.key for p in schema.parameters]
-    assert keys == ["model_name", "top_k", "min_similarity"]
+    assert keys == ["top_k", "min_similarity"]
 
 
 # ---------------------------------------------------------------------------
@@ -64,13 +63,11 @@ def test_inputs_structure(tmp_path):
 
 def test_parameters_structure():
     params = Parameters(
-        model_name=_DEFAULT_MODEL,
         top_k=10,
         min_similarity=0.5,
     )
     assert params["top_k"] == 10
     assert params["min_similarity"] == 0.5
-    assert params["model_name"] == _DEFAULT_MODEL
 
 
 # ---------------------------------------------------------------------------
@@ -93,15 +90,13 @@ def test_inputs_cli_parse_missing_separator():
 
 
 def test_parameters_cli_parse_full():
-    parsed = parameters_cli_parse(f"{_DEFAULT_MODEL},7,0.55")
-    assert parsed["model_name"] == _DEFAULT_MODEL
+    parsed = parameters_cli_parse("7,0.55")
     assert parsed["top_k"] == 7
     assert parsed["min_similarity"] == 0.55
 
 
 def test_parameters_cli_parse_defaults():
     parsed = parameters_cli_parse("")
-    assert parsed["model_name"] == _DEFAULT_MODEL
     assert parsed["top_k"] == 5
     assert parsed["min_similarity"] == 0.5
 

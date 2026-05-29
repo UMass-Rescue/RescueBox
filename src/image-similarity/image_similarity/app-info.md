@@ -14,11 +14,11 @@ Embeddings are stored in the plugin's own PostgreSQL (pgvector) `image_similarit
 
 ## Parameters
 
-- **Vision model:** `google/siglip2-so400m-patch14-384` (Apache 2.0 license; 1152-dim embeddings).
-
 - **Top K:** How many highest-similarity images to return (1–20, default 5).
 
 - **Match threshold:** Similarity in 0–1; results at or above this count as a match in metadata. Image-to-image similarity scores are typically higher than text-to-image (~0.5–0.9 for related content).
+
+The embedding model is fixed to `google/siglip2-so400m-patch14-384` (Apache 2.0 license; 1152-dim embeddings) — the bundled ONNX encoder — so it is not a user-selectable parameter.
 
 ## Supported Image Types
 

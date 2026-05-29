@@ -16,8 +16,6 @@ from rb.api.models import (
     InputSchema,
     InputType,
     ParameterSchema,
-    EnumParameterDescriptor,
-    EnumVal,
     RangedIntParameterDescriptor,
     RangedFloatParameterDescriptor,
     IntRangeDescriptor,
@@ -64,7 +62,6 @@ class Inputs(TypedDict):
 
 
 class Parameters(TypedDict):
-    model_name: str
     top_k: int
     min_similarity: float
 
@@ -120,12 +117,6 @@ def _embed_image(
 # ---------------------------------------------------------------------------
 
 def task_schema() -> TaskSchema:
-    model_enum = EnumParameterDescriptor(
-        enum_vals=[
-            EnumVal(key=_DEFAULT_MODEL, label="SigLIP2-SO400M-patch14-384"),
-        ],
-        default=_DEFAULT_MODEL,
-    )
     top_k_desc = RangedIntParameterDescriptor(
         range=IntRangeDescriptor(min=1, max=20),
         default=5,
@@ -149,12 +140,6 @@ def task_schema() -> TaskSchema:
             ),
         ],
         parameters=[
-            ParameterSchema(
-                key="model_name",
-                label="Vision model",
-                subtitle="Model used to compute image embeddings for similarity comparison",
-                value=model_enum,
-            ),
             ParameterSchema(
                 key="top_k",
                 label="Top K results",
@@ -285,7 +270,9 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
 
     input_dir = str(inputs["input_dir"].path)
     query_image_path = str(inputs["query_image"].path)
-    model_name = parameters.get("model_name", _DEFAULT_MODEL)
+    # The plugin ships a single bundled ONNX encoder; model_name tags stored
+    # embeddings so future encoders can coexist in the same table.
+    model_name = _DEFAULT_MODEL
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
 
@@ -397,10 +384,9 @@ def inputs_cli_parse(value: str) -> Inputs:
 
 def parameters_cli_parse(value: str) -> Parameters:
     parts = [p.strip() for p in value.split(",")]
-    model_name = parts[0] if len(parts) > 0 and parts[0] else _DEFAULT_MODEL
-    top_k = int(parts[1]) if len(parts) > 1 and parts[1] else 5
-    min_similarity = float(parts[2]) if len(parts) > 2 and parts[2] else 0.5
-    return Parameters(model_name=model_name, top_k=top_k, min_similarity=min_similarity)
+    top_k = int(parts[0]) if len(parts) > 0 and parts[0] else 5
+    min_similarity = float(parts[1]) if len(parts) > 1 and parts[1] else 0.5
+    return Parameters(top_k=top_k, min_similarity=min_similarity)
 
 
 server.add_ml_service(
@@ -412,7 +398,7 @@ server.add_ml_service(
     ),
     parameters_cli_parser=typer.Argument(
         parser=parameters_cli_parse,
-        help="model_name,top_k,min_similarity",
+        help="top_k,min_similarity",
     ),
     short_title="Find similar images (image query)",
     order=0,

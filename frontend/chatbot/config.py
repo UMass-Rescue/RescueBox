@@ -22,7 +22,7 @@ Key Components:
 import logging
 import os
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -122,6 +122,7 @@ class ToolRegistry:
         '/summarize-text': 'text_summarization/summarize',
         '/search-text': 'text_embeddings/search',
         '/search-images': 'image_embeddings/search_images',
+        '/similar-images': 'image_similarity/search_similar_images',
         '/ufdr-mount': 'ufdr_mounter/mount',
         '/models': 'pick_tool',
         '/assistant': 'smart_analyze',
@@ -130,19 +131,36 @@ class ToolRegistry:
     
     # Tool picker menu (Method 4: Tool Picker)
     TOOL_MENU: Dict[str, Dict[str, str]] = {
-        "1": {"name": "🎤 Transcribe Audio", "endpoint": "audio/transcribe", "desc": "Convert speech to text"},
-        "2": {"name": "🖼️ Describe Images", "endpoint": "image_summary/summarize-images", "desc": "AI descriptions of photos"},
-        "3": {"name": "🔍Search Images", "endpoint": "image_embeddings/search_images", "desc": "description or caption match"},
-        "4": {"name": "👤 Age & Gender", "endpoint": "age-gender/predict", "desc": "Classify faces by age and gender"},
-        "5": {"name": "🔍 Detect Deepfakes", "endpoint": "deepfake_detection/predict", "desc": "Find manipulated media"},
-        "6": {"name": "📤 Upload Face Match", "endpoint": "face-match/bulkupload", "desc": "Build face collection"},
-        "7": {"name": "🔎 Find Face Match", "endpoint": "face-match/findfacebulk", "desc": "Search face collection"},
-        "8": {"name": "📝 Summarize Text", "endpoint": "text_summarization/summarize", "desc": "Document summaries"},
-        "9": {"name": "🔍 Search Text", "endpoint": "text_embeddings/search", "desc": "words or caption match"},
-        "10": {"name": "📂 UFDR Mount", "endpoint": "ufdr_mounter/mount", "desc": "Mount UFDR files"},
-        "11": {"name": "🖼️ Similar Images", "endpoint": "image_similarity/search_similar_images", "desc": "find images similar to a query image"},
-       
+        "1": {"name": "Transcribe Audio", "endpoint": "audio/transcribe", "desc": "Convert speech to text"},
+        "2": {"name": "Describe Images", "endpoint": "image_summary/summarize-images", "desc": "AI descriptions of photos"},
+        "3": {"name": "Search Images", "endpoint": "image_embeddings/search_images", "desc": "description or caption match"},
+        "4": {"name": "Age & Gender Predictor", "endpoint": "age-gender/predict", "desc": "Classify faces by age and gender"},
+        "5": {"name": "Detect Deepfakes", "endpoint": "deepfake_detection/predict", "desc": "Find manipulated media"},
+        "6": {"name": "Upload Face Match", "endpoint": "face-match/bulkupload", "desc": "Step 1 Build face collection"},
+        "7": {"name": "Find Face Match", "endpoint": "face-match/findfacebulk", "desc": "Step 2 Search face collection"},
+        "8": {"name": "Summarize Text", "endpoint": "text_summarization/summarize", "desc": "Document summaries"},
+        "9": {"name": "Search Text", "endpoint": "text_embeddings/search", "desc": "words or caption match"},
+        "10": {"name": "UFDR Mount", "endpoint": "ufdr_mounter/mount", "desc": "Mount UFDR files"},
+        "11": {"name": "Similar Images", "endpoint": "image_similarity/search_similar_images", "desc": "Find images similar to a query image"},
     }
+
+    @staticmethod
+    def tool_menu_name_for_endpoint(endpoint: str) -> Optional[str]:
+        """
+        Return TOOL_MENU ``name`` (e.g. \"Search Images\") for an API endpoint, or None if not in the menu.
+        """
+        for tool in ToolRegistry.TOOL_MENU.values():
+            if tool["endpoint"] == endpoint:
+                return tool["name"]
+        return None
+
+    @staticmethod
+    def display_name_for_endpoint(endpoint: Optional[str]) -> str:
+        """User-facing plugin label for an API route; falls back to the route string."""
+        ep = (endpoint or "").strip().lstrip("/")
+        if not ep:
+            return "plugin"
+        return ToolRegistry.tool_menu_name_for_endpoint(ep) or ep
 
     @staticmethod
     def ordered_plugin_uids() -> List[str]:
@@ -236,26 +254,32 @@ class ToolRegistry:
         help_text = """
 
 #### Three different ways to use RescueBox Assistant
-1. **Tool Picker** - **Type `/models`** to see all the plugins and you pick one
+1. **Menu Selctor** - **Type `/models`** to see all the plugins and you pick one
 2. **Assistant** - Enter a **prompt plugin task in natural language**
 -**Transcribe** audio files in /evidence/recordings
 or
 -**Summarize** photos in /images/case456
 
-3. **Shortcut Commands** - For Advanced users eg. `/transcribe` to transcribe audio files
-"""
-        #help_text += """#### Shortcut model commands"""
-        logger.debug("Processing %d slash commands", len(ToolRegistry.SLASH_COMMANDS))
-        
-        for cmd, endpoint in ToolRegistry.SLASH_COMMANDS.items():
-            if endpoint not in ['pick_tool', 'smart_analyze', 'help']:
-                # Get description from tool menu if available
-                desc = next(
-                    (tool["desc"] for tool in ToolRegistry.TOOL_MENU.values() if tool["endpoint"] == endpoint),
-                    endpoint
-                )
-                help_text += f"- `{cmd}` - {desc}\n"
-                logger.debug("Added help entry for %s: %s", cmd, desc)
+The typical workflow sequence is :
+  1 you pick a menul plugin or enter a chat prompt and let the assistant select the plugin
+  2 a form is displayed with inputs and you fill in the inputs
+  3 you submit the job and the assistant runs the job
+  4 the results are shown in the jobs page with details
+  5 inputs are validated to make sure the input folder path is ok and expected file types are found
 
-        logger.info("Help text generated successfully")
+Advanced workflow is:
+ you type in a prompt that runs a pipeline of plugins and you interact with each after 
+ the previous step is complete , 
+ for example 
+ 1 "transcribe and summarize the audio files and search the text summaries for a backpack"
+ the assistant will run the transcribe job first, then the summarize job, then the search job
+ and you will see the results in the jobs page
+
+2 "detect age and gender of these photos and summarize" will go thru the input folder find faces and set age/gender
+for each face in photo and then ask for a filter you would select gender / age and then apply the filter, now 
+only the photos that match the filter will be fed to the next step to summarize "
+
+
+"""
+        
         return help_text

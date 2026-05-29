@@ -38,10 +38,10 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
 
 ## Usage
 
-**CLI:** pass folder and query image as `input_dir|||query_image_path`. Parameters: `model_name,top_k,min_similarity` (omit trailing values for defaults).
+**CLI:** pass folder and query image as `input_dir|||query_image_path`. Parameters: `top_k,min_similarity` (omit trailing values for defaults).
 
 ```bash
-rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/query.jpg" "google/siglip2-so400m-patch14-384,5,0.5"
+rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/query.jpg" "5,0.5"
 ```
 
 **Inputs (HTTP/UI):**
@@ -51,9 +51,10 @@ rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/qu
 
 **Parameters:**
 
-- `model_name` (default: `google/siglip2-so400m-patch14-384`)
 - `top_k` (1–20, default: 5) — number of highest-similarity images to return
 - `min_similarity` (0–1, default: 0.5) — Match column uses this floor
+
+The encoder is fixed to `google/siglip2-so400m-patch14-384` (the bundled ONNX model), so it is not a user-facing parameter.
 
 **Output:** `BatchFileResponse` (`output_type`: `batchfile`) — one `FileResponse` per ranked hit (image path, title with rank/similarity, metadata: Query, Similarity, Match, Model, id). The RescueBox UI renders this as a **sortable table, click a row to open/preview the image**. If there are no hits, `files` is an empty list.
 

@@ -19,44 +19,61 @@ from typing import List, Any, Optional, Literal
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.INFO)
 # ==========================================
 # Tool Schemas (Strict)
 # ==========================================
 class TextSummarize(BaseModel):
+    """
+    Summarize text files in a directory. Input is a folder of text files. Output is a folder of summary text files.
+    """
     input_dir: str = Field(..., description="Path to input text")
     output_dir: str = Field(..., description="Path to save summary")
     model: Literal["gemma3:1b", "gemma3:4b"] = Field(..., description="The text summarize model version")
 
 class ImageSummarize(BaseModel):
     """
-    Write text captions/descriptions for each image (vision-language summaries saved as files).
-    This is NOT CLIP image search and NOT semantic search over text—use image_embeddings/search_images
-    for visual search, and text_embeddings/search to search already-written summary text.
+    Write text captions/descriptions for each image.
+    This is NOT CLIP image search and NOT semantic search over text.
     """
     input_dir: str = Field(..., description="Folder of images to caption/summarize")
     output_dir: str = Field(..., description="Folder where per-image text summaries are written")
-    model: Literal["gemma3:4b", "gemma3:27b"] = Field(..., description="The vision model version")
+    model: Literal["moondream:latest", "gemma3:4b", "gemma3:27b"] = Field(..., description="The vision model version")
 
 class AudioTranscribe(BaseModel):
+    """
+    Transcribe audio files to text. Input is a folder of audio files. Output is a string of the transcription per input file
+    """
     input_dir: str = Field(..., description="Path to input audio")
 
 class AgeGenderPredict(BaseModel):
+    """
+    Predict age and gender of faces in an image directory. Input is a folder of images. Output is a string of the age and gender per input file
+    """
     image_directory: str = Field(..., description="Path to image directory")
 
 class FaceFindBulk(BaseModel):
+    """
+    Find faces in the database that was uploaded earlier using FaceBulkUpload. Input is a folder of images. Upload the images to the database first.
+    """
     query_directory: str = Field(..., description="Path to query images")
     collection_name: str = Field("default", description="Database collection")
     similarity_threshold: float = Field(0.75, description="Confidence threshold")
 
 class FaceBulkUpload(BaseModel):
+    """
+    Input is a folder of images. Upload the images to the database first and then use the collection name to find faces in the database using FaceFindBulk.
+    """
     directory_path: str = Field(..., description="Path to upload")
     collection_name: str = Field(..., description="Target collection")
     dropdown_collection_name: str = Field(..., description="UI selection")
 
 class DeepfakeDetection(BaseModel):
-    input_dataset: str = Field(..., description="Input path")
-    output_file: str = Field(..., description="Output report path")
+    """
+    Detect deepfakes in an image directory. Input is a folder of images. Output is a file path of the deepfakes found per input file
+    """
+    input_dir: str = Field(..., description="Input directory of images")
+    output_dir: str = Field(..., description="Output directory for reports and crops")
     facecrop: str = Field("true", description="Face crop settings")
 
 class FileSystemScan(BaseModel):
@@ -75,7 +92,7 @@ class UfdrMount(BaseModel):
     ufdr_file: str = Field(..., description="Absolute path to the .ufdr file")
     mount_name: str = Field(
         ...,
-        description="Empty mount directory path or name (e.g. /mnt/case1 or case1 — see server rules for mnt/)",
+        description="Mount directory: must be /tmp/<folder_name> only (e.g. /tmp/case123).",
     )
 
 
@@ -204,7 +221,6 @@ def generate_tool_definitions() -> list[dict]:
                 "parameters": json_schema
             }
         })
-
     return tools_definitions
 
 
@@ -240,19 +256,35 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             "5. IMAGE SUMMARIZE (captions): image_summary/summarize-images writes text descriptions of images. "
             "Phrases: \"summarize images\", \"describe photos\", \"caption images\".\n"
             "6. TEXT SEARCH vs IMAGE SEARCH (do not confuse):\n"
+            "   - If the user asks for transcribe AND/OR summarize in the SAME request as \"search text\" or "
+            "\"search\", that is a multi-step pipeline—emit ALL steps (see rules 11–12).\n"
             "   - text_embeddings/search = search inside TEXT FILES (.txt), usually caption/summary outputs. "
             "Use only when the user asks to search summaries/captions/written text, or the chain first ran image_summary "
-            "and then searches that output folder (see examples E, H).\n"
+            "and then searches that output folder\n"
             "   - image_embeddings/search_images = CLIP search over IMAGE PIXELS. "
             "Use when the user mentions photos, images, pictures, \"in these photos\", \"find … in images\", or any "
             "visual \"find X\" query over a folder of images—even if they say \"find\" without saying \"CLIP\".\n"
             "   - If the user says \"find … in these photos\" or similar, choose image_embeddings/search_images, "
-            "NOT text_embeddings/search, unless they explicitly mean searching .txt summary files.\n"
+            "NOT text_embeddings/search, unless they explicitly mean searching text or .txt summary files.\n"
+            "   - If the user wants ONLY image/photo search, emit image_embeddings/search_images only.\n"
+            "   - If the user wants ONLY text/.txt search, emit text_embeddings/search only.\n"
+            "   - If ONE prompt asks for BOTH \"image search\" (or photos/CLIP/visual) AND \"text search\" (or summaries/.txt), "
+            "emit TWO tools: image_embeddings/search_images AND text_embeddings/search.\n"
             "7. BOTH summarize AND image-search on the same folder: emit image_summary/summarize-images AND "
             "image_embeddings/search_images with the SAME input_dir (same image folder); order mount first if UFDR applies.\n"
             "8. SUMMARIZE + TEXT SEARCH pipeline: If the user wants summaries AND to search those written descriptions, use "
             "image_summary/summarize-images then text_embeddings/search with input_dir = that output_dir.\n"
-            "9. UFDR: If the user mentions mounting UFDR/.ufdr, emit ufdr_mounter/mount first; downstream input_dir is mount_name.\n\n"
+            "9. UFDR: If the user mentions mounting UFDR/.ufdr, emit ufdr_mounter/mount first; downstream input_dir is mount_name.\n"
+            "10. AUDIO vs TEXT SUMMARIZE: audio/transcribe converts speech in audio files to text. "
+            "text_summarization/summarize condenses text/PDF files already on disk. These are different tools.\n"
+            "11. TRANSCRIBE + SUMMARIZE: If the user asks to transcribe audio/files and summarize "
+            "the text only, emit TWO tools in order: audio/transcribe first, then text_summarization/summarize.\n"
+            "12. TRANSCRIBE + SUMMARIZE + SEARCH TEXT (three steps): Phrases like \"transcribe summarize and search text\" "
+            "mean THREE tools in order—never answer with only text_embeddings/search. "
+            "Emit: audio/transcribe, then text_summarization/summarize, then text_embeddings/search. "
+            "Summarize output_dir feeds text_embeddings/search input_dir.\n"
+            "13. IMAGE SEARCH + TEXT SEARCH (two search tools): Phrases like \"image search text search\" require BOTH "
+            "image_embeddings/search_images and text_embeddings/search.\n\n"
             f"<tools>{json.dumps(tools_definitions)}</tools>"
         )
     }
@@ -265,13 +297,13 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "image_summary/summarize-images",
-                    "arguments": {"input_dir": "/cases/c10", "output_dir": "/cases/c10/summary", "model": "gemma3:4b"}
+                    "arguments": {"input_dir": "/cases/c10", "output_dir": "/cases/c10/summary", "model": "moondream:latest"}
                 }
             },
             {
                 "function": {
                     "name": "deepfake_detection/predict",
-                    "arguments": {"input_dataset": "/cases/c10", "output_file": "/cases/c10/report.json", "facecrop": "true"}
+                    "arguments": {"input_dir": "/cases/c10", "output_dir": "/cases/c10", "facecrop": "true"}
                 }
             }
         ]
@@ -287,13 +319,13 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "image_summary/summarize-images",
-                    "arguments": {"input_dir": "/evidence/batch2", "output_dir": "/evidence/batch2/summary", "model": "gemma3:4b"}
+                    "arguments": {"input_dir": "/evidence/case1", "output_dir": "/evidence/case1/summaries", "model": "moondream:latest"}
                 }
             },
             {
                 "function": {
                     "name": "deepfake_detection/predict",
-                    "arguments": {"input_dataset": "/evidence/batch2", "output_file": "/evidence/batch2/report.json", "facecrop": "true"}
+                    "arguments": {"input_dir": "/evidence/batch2", "output_dir": "/evidence/batch2", "facecrop": "true"}
                 }
             }
         ]
@@ -314,7 +346,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "deepfake_detection/predict",
-                    "arguments": {"input_dataset": "/data/evidence/batch5", "output_file": "/data/evidence/batch5/report.json", "facecrop": "true"}
+                    "arguments": {"input_dir": "/data/evidence/batch5", "output_dir": "/data/evidence/batch5", "facecrop": "true"}
                 }
             },
             {
@@ -327,7 +359,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     }
 
     # 5. Example E: Age-gender + Summarize + Search (image_summary -> text_embeddings pipeline)
-    ex_e_user = {"role": "user", "content": "detect age and gender of faces in /tmp, summarize, and search for a kid with brown clothes"}
+    ex_e_user = {"role": "user", "content": "detect age and gender of faces in /evidence/case1, summarize, and search for a kid with brown clothes"}
     ex_e_asst = {
         "role": "assistant",
         "content": "",
@@ -335,19 +367,19 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "age-gender/predict",
-                    "arguments": {"image_directory": "/tmp"}
+                    "arguments": {"image_directory": "/evidence/case1"}
                 }
             },
             {
                 "function": {
                     "name": "image_summary/summarize-images",
-                    "arguments": {"input_dir": "/tmp", "output_dir": "/tmp/summaries", "model": "gemma3:4b"}
+                    "arguments": {"input_dir": "/evidence/case1", "output_dir": "/evidence/case1/summaries", "model": "gemma3:4b"}
                 }
             },
             {
                 "function": {
                     "name": "image_embeddings/search_images",
-                    "arguments": {"input_dir": "/tmp/summaries", "query": "kid with brown clothes"}
+                    "arguments": {"input_dir": "/evidence/case1", "query": "kid with brown clothes"}
                 }
             }
         ]
@@ -393,7 +425,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "image_summary/summarize-images",
-                    "arguments": {"input_dir": "/evidence/batch2", "output_dir": "/evidence/batch2/summary", "model": "gemma3:4b"}
+                    "arguments": {"input_dir": "/evidence/batch2", "output_dir": "/evidence/batch2/summary", "model": "moondream:latest"}
                 }
             },
         ]
@@ -408,13 +440,13 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "age-gender/predict",
-                    "arguments": {"image_directory": "/tmp"},
+                    "arguments": {"image_directory": "/evidence/case1"},
                 }
             },
             {
                 "function": {
                     "name": "image_embeddings/search_images",
-                    "arguments": {"input_dir": "/tmp", "query": "kid"},
+                    "arguments": {"input_dir": "/evidence/case1", "query": "kid"},
                 }
             },
         ],
@@ -423,7 +455,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     # UFDR mount + CLIP image search + image summarize (same mounted tree)
     ex_g_user = {
         "role": "user",
-        "content": "mount /data/evidence/case.ufdr at /mnt/case1, search images for young kid and summarize",
+        "content": "mount /data/evidence/case.ufdr at /tmp/case1, search images for young kid and summarize",
     }
     ex_g_asst = {
         "role": "assistant",
@@ -432,21 +464,21 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             {
                 "function": {
                     "name": "ufdr_mounter/mount",
-                    "arguments": {"ufdr_file": "/data/evidence/case.ufdr", "mount_name": "/mnt/case1"},
+                    "arguments": {"ufdr_file": "/data/evidence/case.ufdr", "mount_name": "/tmp/case1"},
                 }
             },
             {
                 "function": {
                     "name": "image_embeddings/search_images",
-                    "arguments": {"input_dir": "/mnt/case1", "query": "young kid"},
+                    "arguments": {"input_dir": "/evidence/case1", "query": "young kid"},
                 }
             },
             {
                 "function": {
                     "name": "image_summary/summarize-images",
                     "arguments": {
-                        "input_dir": "/mnt/case1",
-                        "output_dir": "/mnt/case1/summary",
+                        "input_dir": "/evidence/case1",
+                        "output_dir": "/evidence/case1/summary",
                         "model": "gemma3:4b",
                     },
                 }
@@ -477,6 +509,95 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
                 "function": {
                     "name": "text_embeddings/search",
                     "arguments": {"input_dir": "/evidence/pics/summary", "query": "backpack"},
+                }
+            },
+        ],
+    }
+
+    # Audio transcription + text summarization (distinct from image_summary/summarize-images)
+    ex_ts_user = {
+        "role": "user",
+        "content": "transcribe the audio files and summarize",
+    }
+    ex_ts_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "audio/transcribe",
+                    "arguments": {"input_dir": "/evidence/case1/audio_in"},
+                }
+            },
+            {
+                "function": {
+                    "name": "text_summarization/summarize",
+                    "arguments": {
+                        "input_dir": "/evidence/case1/transcripts",
+                        "output_dir": "/evidence/case1/summary",
+                        "model": "gemma3:1b",
+                    },
+                }
+            },
+        ],
+    }
+
+    # Transcribe + summarize + semantic text search (matches "transcribe summarize and search text")
+    ex_ts3_user = {
+        "role": "user",
+        "content": "transcribe summarize and search text",
+    }
+    ex_ts3_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "audio/transcribe",
+                    "arguments": {"input_dir": "/evidence/meeting/audio_in"},
+                }
+            },
+            {
+                "function": {
+                    "name": "text_summarization/summarize",
+                    "arguments": {
+                        "input_dir": "/evidence/meeting/transcripts",
+                        "output_dir": "/evidence/meeting/summary_text",
+                        "model": "gemma3:1b",
+                    },
+                }
+            },
+            {
+                "function": {
+                    "name": "text_embeddings/search",
+                    "arguments": {
+                        "input_dir": "/evidence/meeting/summary_text",
+                        "query": "main topics",
+                    },
+                }
+            },
+        ],
+    }
+
+    # Both CLIP image search and semantic text search in one prompt (do not return only text_embeddings/search)
+    ex_imgtxt_user = {
+        "role": "user",
+        "content": "image search text search",
+    }
+    ex_imgtxt_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "image_embeddings/search_images",
+                    "arguments": {"input_dir": "/evidence/case/photos", "query": "visual match"},
+                }
+            },
+            {
+                "function": {
+                    "name": "text_embeddings/search",
+                    "arguments": {"input_dir": "/evidence/case/text_summaries", "query": "text match"},
                 }
             },
         ],
@@ -529,9 +650,13 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ex_f_user, ex_f_asst,  # age-gender + image_embeddings (CLIP)
         ex_g_user, ex_g_asst,  # UFDR + CLIP + summarize
         ex_h_user, ex_h_asst,  # summarize + text search (disambiguation)
+        ex_ts_user, ex_ts_asst,  # transcribe audio + text_summarization (two tools)
         ex_i_user, ex_i_asst,  # find in photos → image_embeddings only
         ex_j_user, ex_j_asst,  # search these images for → image_embeddings only
         ex_d_user, ex_d_asst,
+        # Last: recency — multi-search prompts that models often collapse to one tool.
+        ex_ts3_user, ex_ts3_asst,  # transcribe + summarize + text_embeddings/search (three tools)
+        ex_imgtxt_user, ex_imgtxt_asst,  # image_embeddings + text_embeddings (two tools)
         {"role": "user", "content": user_query}  # Real Query
     ]
 
@@ -557,9 +682,9 @@ def parse_tool_calls_response(response_text: str) -> Optional[list[dict[str, Any
         tool_list = ToolCallList(**data)
 
         for i, tool_call in enumerate(tool_list.calls, 1):
-            logger.info("--- [Task %d] ---", i)
-            logger.info("Function: %s", tool_call.name)
-            logger.info("Arguments: %s", tool_call.arguments)
+            logger.debug("--- [Task %d] ---", i)
+            logger.debug("Function: %s", tool_call.name)
+            logger.debug("Arguments: %s", tool_call.arguments)
 
             tool_calls.append({
                 'name': tool_call.name,
