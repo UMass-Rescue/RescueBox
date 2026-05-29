@@ -72,14 +72,14 @@ async def test_chain_output_to_input_integration():
             schema = await core.get_task_schema_from_endpoint('deepfake_detection/predict')
             
             if schema:
-                current_arguments = {'input_dataset': '/tmp'}
+                current_arguments = {'input_dir': '/tmp'}
                 
                 # Chain output
                 result = chain_output_to_input(previous_output, current_arguments, schema)
                 
-                # deepfake_detection/predict uses input_dataset (directory); chain_output_to_input
-                # matches keys containing "dataset" as well as "dir" (see multi_tool_handler).
-                assert result.get("input_dataset") == "/output/summaries"
+                # deepfake_detection/predict uses input_dir (directory); chain_output_to_input
+                # matches keys containing "dir" (see multi_tool_handler).
+                assert result.get("input_dir") == "/output/summaries"
         except Exception as e:
             pytest.skip(f"Could not load schema: {str(e)}")
             
@@ -126,4 +126,3 @@ async def test_multiple_tool_calls_workflow():
         
     finally:
         await core.close()
-

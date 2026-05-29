@@ -50,11 +50,11 @@ class MessageHandler:
             core (ChatbotCore): Core instance for API and model operations
             config (ChatbotConfig): Configuration including filter settings
         """
-        logger.info("Initializing MessageHandler")
+        logger.debug("Initializing MessageHandler")
         self.core = core
         self.config = config
         self.tool_registry = ToolRegistry()
-        logger.info("MessageHandler initialized successfully")
+        logger.debug("MessageHandler initialized successfully")
     
     def detect_input_method(self, user_input: str) -> str:
         """
@@ -121,7 +121,7 @@ class MessageHandler:
         """
         if update_status_callback:
             update_status_callback("🔍 Analyzing your request...")
-        logger.info("Handling user message (length=%d)", len(user_input))
+        logger.debug("Handling user message (length=%d)", len(user_input))
         method = self.detect_input_method(user_input)
         logger.debug("Routing to handler: %s", method)
 
@@ -165,25 +165,25 @@ class MessageHandler:
         - Unknown commands return error type with helpful message
         - /analyze command supports filtering if enabled
         """
-        logger.info("Handling slash command: %s", user_input[:50])
+        logger.debug("Handling slash command: %s", user_input[:50])
         parts = user_input.split(' ', 1)
         command = parts[0].lower()
         args = parts[1] if len(parts) > 1 else ""
         logger.debug("Parsed command: '%s', args length: %d", command, len(args))
         
         if command == '/help':
-            logger.info("Returning help text")
+            logger.debug("Returning help text")
             return {'type': 'help', 'content': self.tool_registry.get_help_text()}
         
         if command == '/models':
-            logger.info("Returning model picker request")
+            logger.debug("Returning model picker request")
             return {'type': 'tool_picker', 'content': None}
         
         if command == '/assistant':
-            logger.info("Processing /assistant command")
+            logger.debug("Processing /assistant command")
             # For /analyze without args, show analysis type picker
             if not args:
-                logger.info("No args provided, showing analysis picker")
+                logger.debug("No args provided, showing analysis picker")
                 return {'type': 'analysis_picker', 'content': None}
             # For /analyze with args, check filtering if enabled
             if args:
@@ -196,7 +196,7 @@ class MessageHandler:
         
         if command in self.tool_registry.SLASH_COMMANDS:
             endpoint = self.tool_registry.SLASH_COMMANDS[command]
-            logger.info("Slash command '%s' maps to endpoint: %s", command, endpoint)
+            logger.debug("Slash command '%s' maps to endpoint: %s", command, endpoint)
             return {'type': 'show_form', 'endpoint': endpoint, 'arguments': {}}
         else:
             logger.warning("Unknown slash command: %s", command)
@@ -241,7 +241,7 @@ class MessageHandler:
         """
         if update_status_callback:
             update_status_callback("🔍 Analyzing your request...")
-        logger.info("Handling smart analyze for message (length=%d)", len(user_message))
+        logger.debug("Handling smart analyze for message (length=%d)", len(user_message))
         logger.debug("Message preview: %s...", user_message[:100])
 
         # TODO: trim file/output filter from  user_message 
@@ -263,7 +263,7 @@ class MessageHandler:
         if update_status_callback:
             update_status_callback("🤖 AI analyzing request...")
         _p = user_message if len(user_message) <= 2000 else user_message[:2000] + "…"
-        logger.info(
+        logger.debug(
             "Smart analyze: calling Granite for tool selection (prompt_len=%d prompt=%r)",
             len(user_message),
             _p,
@@ -304,7 +304,7 @@ class MessageHandler:
             logger.error("No valid tool calls found")
             return {'type': 'error', 'content': 'No valid tool calls found in model response'}
 
-        logger.info(
+        logger.debug(
             "Smart analyze: validated endpoints after Granite: %s",
             [c["endpoint"] for c in validated_calls],
         )
@@ -344,11 +344,11 @@ class MessageHandler:
         # If single tool call, return show_form (backward compatible)
         if len(validated_calls) == 1:
             call = validated_calls[0]
-            logger.info("Single tool call: endpoint=%s", call['endpoint'])
+            logger.debug("Single tool call: endpoint=%s", call['endpoint'])
             return {'type': 'show_form', 'endpoint': call['endpoint'], 'arguments': call['arguments']}
         
         # Multiple tool calls - return multi_tool_calls type
-        logger.info("Multiple tool calls detected: %d calls", len(validated_calls))
+        logger.debug("Multiple tool calls detected: %d calls", len(validated_calls))
         return {
             'type': 'multi_tool_calls',
             'tool_calls': validated_calls

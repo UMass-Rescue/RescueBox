@@ -30,9 +30,11 @@ Some tests need Ollama, Granite model, or a live API — see per-file docstrings
 
 | Path | Role |
 |------|------|
-| `frontend/tests/conftest.py` | Shared fixtures |
-| `frontend/tests/unit/` | Unit tests |
-| `frontend/tests/integration/` | Integration (gated) |
+| `frontend/tests/conftest.py` | Shared fixtures and NiceGUI testing helpers |
+| `frontend/tests/unit/` | Unit tests (components, database, chatbot core, forms, utilities) |
+| `frontend/tests/integration/` | Integration (gated via `RUN_INTEGRATION=1`) |
+
+We have extensive UI component coverage under `frontend/tests/unit/` (e.g. `test_base_component.py`, `test_form_components.py`, `test_shared_components.py`, `test_chat_components.py`, `test_components.py`) leveraging NiceGUI's User test framework.
 
 ## Backend / plugin tests
 

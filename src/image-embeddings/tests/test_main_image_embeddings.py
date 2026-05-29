@@ -1,8 +1,15 @@
 """Tests for image embeddings plugin"""
 
 import pytest
-from image_embeddings.main import search_images, task_schema, Inputs, Parameters
-from rb.api.models import DirectoryInput, TextInput, ResponseBody
+from image_embeddings.main import (
+    DEFAULT_CLIP_MODEL,
+    ClipImageDirectory,
+    search_images,
+    task_schema,
+    Inputs,
+    Parameters,
+)
+from rb.api.models import TextInput, ResponseBody
 
 
 def test_task_schema():
@@ -30,8 +37,9 @@ def test_search_images_types():
 def test_inputs_structure(tmp_path):
     d = tmp_path / "img"
     d.mkdir()
+    (d / "a.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     inputs = Inputs(
-        input_dir=DirectoryInput(path=d),
+        input_dir=ClipImageDirectory(path=d),
         query=TextInput(text="a person"),
     )
     assert inputs["query"].text == "a person"
@@ -39,7 +47,7 @@ def test_inputs_structure(tmp_path):
 
 def test_parameters_structure():
     params = Parameters(
-        model_name="openai/clip-vit-base-patch32",
+        model_name=DEFAULT_CLIP_MODEL,
         top_k=5,
         min_similarity=0.25,
     )

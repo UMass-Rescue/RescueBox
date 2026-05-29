@@ -1,25 +1,39 @@
 import os
-from rb.lib.ml_service import MLService
-from rb.api.models import (
-    BatchFileResponse,
-    DirectoryInput,
-    FileResponse,
-    InputSchema,
-    InputType,
-    TaskSchema,
-    ResponseBody,
-    TextResponse,
-)
-from typing import TypedDict
-from age_and_gender_detection.model import AgeGenderDetector
-from pathlib import Path
 import logging
 import json
 import typer
+import threading
 import onnxruntime
+from pathlib import Path
+from typing import List, TypedDict
+
+from pydantic import DirectoryPath
+
+from rb.lib.ml_service import MLService
+from rb.api.models import (
+    BatchFileResponse,
+    FileFilterDirectory,
+    FileResponse,
+    InputSchema,
+    InputType,
+    ResponseBody,
+    TaskSchema,
+    TextResponse,
+)
+from age_and_gender_detection.model import AgeGenderDetector
 
 
 APP_NAME = "age-gender"
+
+# Raster image types expected under ``image_directory`` (validated via ``FileFilterDirectory``).
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif", ".gif"}
+
+
+class AgeGenderImageDirectory(FileFilterDirectory):
+    """Directory must exist, be non-empty, and contain at least one allowed image extension."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(IMAGE_EXTENSIONS)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,7 +55,7 @@ def task_schema() -> TaskSchema:
 
 # Specify the input and output types for the task
 class Inputs(TypedDict):
-    image_directory: DirectoryInput
+    image_directory: AgeGenderImageDirectory
 
 
 class Parameters(TypedDict):
@@ -70,11 +84,15 @@ model = AgeGenderDetector(
     gender_classifier_path=models_dir / "gender_googlenet.onnx",
 )
 
+_PREDICT_LOCK = threading.Lock()
+
 
 def predict(inputs: Inputs) -> ResponseBody:
     input_path = inputs["image_directory"].path
     logger.info(f"Input path: {input_path}")
-    predictions_by_image = model.predict_age_and_gender_on_dir(input_path)
+
+    with _PREDICT_LOCK:
+        predictions_by_image = model.predict_age_and_gender_on_dir(input_path)
     logger.info(f"Response: {predictions_by_image}")
 
     file_responses: list[FileResponse] = []
@@ -111,19 +129,17 @@ def predict(inputs: Inputs) -> ResponseBody:
 
 
 def cli_parser(path: str):
-    image_directory = path
     try:
-        logger.debug(f"Parsing CLI input path: {image_directory}")
-        image_directory = Path(image_directory)
-        if not image_directory.exists():
-            raise ValueError(f"Directory {image_directory} does not exist.")
-        if not image_directory.is_dir():
-            raise ValueError(f"Path {image_directory} is not a directory.")
-        inputs = Inputs(image_directory=DirectoryInput(path=image_directory))
-        return inputs
+        logger.debug("Parsing CLI input path: %s", path)
+        p = Path(path)
+        if not p.exists():
+            raise ValueError(f"Directory {p} does not exist.")
+        if not p.is_dir():
+            raise ValueError(f"Path {p} is not a directory.")
+        return Inputs(image_directory=AgeGenderImageDirectory(path=p))
     except Exception as e:
-        logger.error(f"Error parsing CLI input: {e}")
-        return typer.Abort()
+        logger.error("Error parsing CLI input: %s", e)
+        raise typer.Abort() from e
 
 
 server.add_ml_service(

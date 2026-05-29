@@ -133,8 +133,8 @@ class TestNotifications:
     def test_notify_info(self):
         """Test info notification with default parameters.
 
-        Validates that informational notifications use neutral styling
-        (info/blue) and standard duration for non-critical updates.
+        Validates that informational notifications use the medium-gray skin
+        without Quasar ``type`` (so teal ``info`` does not override) and standard duration.
         """
         from frontend.components.shared.notifications import notify_info
 
@@ -143,10 +143,11 @@ class TestNotifications:
 
             mock_notify.assert_called_once()
             call_args = mock_notify.call_args
-            assert call_args[0][0] == TEST_INFO_MESSAGE
-            assert call_args[1]['type'] == 'info'
-            assert call_args[1]['position'] == DEFAULT_POSITION
-            assert call_args[1]['timeout'] == DEFAULT_INFO_TIMEOUT
+            assert call_args.kwargs['message'] == TEST_INFO_MESSAGE
+            assert 'type' not in call_args.kwargs
+            assert call_args.kwargs['position'] == DEFAULT_POSITION
+            assert call_args.kwargs['timeout'] == DEFAULT_INFO_TIMEOUT
+            assert 'color' not in call_args.kwargs
 
     def test_notify_warning(self):
         """Test warning notification with default parameters.

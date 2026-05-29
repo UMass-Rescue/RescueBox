@@ -17,7 +17,7 @@ Short single-word queries are often fuzzy; richer phrases usually work better.
 
 ## Parameters
 
-- **CLIP model:** `apple/DFN5B-CLIP-ViT-H-14-378` current favorite.
+- **CLIP model:** `openai/clip-vit-large-patch14-336` (standard Hugging Face ``CLIPModel``; 768-dim, matches PostgreSQL ``image_embeddings.embedding``).
 
 - **Top K:** How many highest-similarity images to return (1–20, default 5).
 
@@ -25,7 +25,7 @@ Short single-word queries are often fuzzy; richer phrases usually work better.
 
 ## Supported Image Types
 
-- `.jpg`, `.jpeg`, `.png`, `.bmp`, `.gif`, `.tiff`, `.webp`
+- `.jpg`, `.jpeg`, `.png`, `.bmp`, `.gif`, `.tiff`
 
 ## Outputs
 

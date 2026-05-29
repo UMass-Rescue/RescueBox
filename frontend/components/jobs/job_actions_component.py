@@ -19,6 +19,6 @@ def render_job_actions(container: ui.element, job_fields: Dict[str, Any]) -> Non
         logger.exception("Failed to render job actions via component: %s", e)
         # Fallback minimal actions
         with container:
-            ui.button('Inspect', on_click=lambda: None).classes('bg-blue-600 text-white')
-            ui.button('Run', on_click=lambda: None).classes('bg-green-600 text-white')
+            ui.button('Inspect', on_click=lambda: None).classes('rb-brand-primary text-white')
+            ui.button('Run', on_click=lambda: None).classes('rb-brand-primary text-white rounded-xl')
 

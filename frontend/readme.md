@@ -125,7 +125,7 @@ state = {
 
 # Navigation bar component
 def create_navbar():
-    with ui.header().classes('bg-blue-600 text-white shadow-lg'):
+    with ui.header().classes('bg-indigo-600 text-white shadow-lg'):
         ui.label('🚑 RescueBox Desktop').classes('text-2xl font-bold')
         
         with ui.row().classes('gap-4 ml-auto'):
@@ -141,14 +141,14 @@ async def index():
     
     with ui.column().classes('container mx-auto p-8'):
         ui.label('Welcome to RescueBox Desktop').classes('text-4xl font-bold mb-4')
-        ui.label('Select a model or use the Assistant to get started').classes('text-xl text-gray-600')
+        ui.label('Select a model or use the Assistant to get started').classes('text-xl text-zinc-600')
         
         with ui.row().classes('gap-4 mt-8'):
-            ui.button('Browse Models', on_click=lambda: ui.open('/models')).classes('bg-blue-600 text-white px-6 py-3')
-            ui.button('Open Assistant', on_click=lambda: ui.open('/chatbot')).classes('bg-green-600 text-white px-6 py-3')
+            ui.button('Browse Models', on_click=lambda: ui.open('/models')).classes('bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl')
+            ui.button('Open Assistant', on_click=lambda: ui.open('/chatbot')).classes('bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl')
 
 if __name__ in {"__main__", "__mp_main__"}:
-    ui.run()---
+    ui.run()
 
 ### 2. Chatbot Interface Page
 
@@ -607,12 +607,10 @@ frontend/
 │   ├── jobs/                    # Jobs page components
 │   ├── chatbot/                 # Chatbot page (HEAVILY REFACTORED)
 │   │   ├── __init__.py
-│   │   ├── chatbot.py           # Main chatbot orchestrator
-│   │   ├── handlers/            # Specialized handlers
-│   │   ├── utils/               # Utility modules (20+ files)
-│   │   ├── state/               # State management
-│   │   ├── pickers.py           # Tool/model pickers
-│   │   ├── results.py           # Results display
+│   │   ├── chatbot.py           # Main ChatbotPage class
+│   │   ├── chatbot_handlers.py  # Message sending and form handlers
+│   │   ├── utils/               # Utility modules (job orchestrator, layout context, result router, etc.)
+│   │   ├── state/               # State management (ChatbotStateManager)
 │   │   ├── constants.py         # Configuration constants
 │   │   └── parameter_handlers.py # URL parameter processing
 │   └── logs/                    # Logs page
@@ -714,13 +712,11 @@ The frontend has been comprehensively refactored into a modern, modular architec
 
 ##### **Chatbot Page** (Heavily Refactored - 20+ modules)
 - **`chatbot.py`**: Main orchestrator class
-- **`handlers/`**: Specialized handlers (5 modules)
-- **`utils/`**: Utility classes (20+ modules) - message processing, form handling, UI building, etc.
-- **`state/`**: State management classes
+- **`chatbot_handlers.py`**: Message routing, form submission wrapper, etc.
+- **`utils/`**: Utility classes - `JobSubmissionOrchestrator`, `ResultRouter`, `FormProcessor`, etc.
+- **`state/`**: State management classes (`ChatbotStateManager`)
 - **`parameter_handlers.py`**: URL parameter processing
 - **`constants.py`**: Configuration constants
-- **`pickers.py`**: Tool and analysis pickers
-- **`results.py`**: Result rendering coordination
 
 ##### **Database Architecture** (Refactored 2024)
 - **`base_db.py`**: Abstract base class with common database operations

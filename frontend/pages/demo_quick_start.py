@@ -9,9 +9,13 @@ import logging
 from nicegui import ui
 
 from frontend.components.demo.demo_files_explorer import render_walkthrough_samples_panel
-from frontend.components.demo.guided_markdown import load_markdown_file, render_guided_markdown_body
+from frontend.components.demo.guided_markdown import (
+    load_markdown_file,
+    render_guided_markdown_body,
+    schedule_hash_fragment_scroll,
+)
 from frontend.components.shared import create_navbar
-from frontend.constants import DEMO_SAMPLE_INPUTS_URL, NAV_LINKS, UI_TITLES
+from frontend.constants import NAV_LINKS, UI_TITLES, demo_samples_url
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +28,7 @@ def _fallback_markdown() -> str:
 
 Could not read `frontend/demo/{_QUICK_START_MD}`. Add that Markdown file to customize this page.
 
-**Shortcuts:** [Browse Plugins]({NAV_LINKS["models"]}) · [Assistant]({NAV_LINKS["chatbot"]}) · [Jobs]({NAV_LINKS["jobs"]}) · [Demo]({NAV_LINKS["demo"]}) · [Sample inputs & outputs]({DEMO_SAMPLE_INPUTS_URL})
+**Shortcuts:** [Browse Plugins]({NAV_LINKS["models"]}) · [Assistant]({NAV_LINKS["chatbot"]}) · [Jobs]({NAV_LINKS["jobs"]}) · [Demo home]({NAV_LINKS["demo"]}) · [Demo samples (quick start)]({demo_samples_url("quick_start")})
 """
 
 
@@ -35,6 +39,10 @@ async def demo_quick_start_page():
 
     apply_saved_theme()
     create_navbar()
+    from frontend.utils.demo_user_gate import require_demo_user_session
+
+    if not require_demo_user_session():
+        return
 
     text = load_markdown_file(_QUICK_START_MD, _fallback_markdown)
 
@@ -49,12 +57,11 @@ async def demo_quick_start_page():
             ui.button(
                 "Back to Demo",
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
-            ).classes("bg-blue-600 text-white")
+            ).classes("rb-brand-primary text-white")
           
-            ui.link("Browse Plugins", NAV_LINKS["models"]).classes("text-blue-600 hover:underline")
-            ui.link(UI_TITLES["chatbot"], NAV_LINKS["chatbot"]).classes(
-                "text-blue-600 hover:underline"
+            ui.link("Demo samples", demo_samples_url("quick_start")).classes(
+                "text-indigo-600 hover:underline text-sm"
             )
-            ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes("text-blue-600 hover:underline")
 
+    schedule_hash_fragment_scroll()
     logger.debug("Quick start page rendered")

@@ -37,13 +37,13 @@ async def create_audit_trail_button(job_id: str):
         """Handle audit trail export"""
         try:
             logger.info("Exporting audit trail for job: %s", job_id)
-            ui.notify('Generating audit trail...', type='info')
+            ui.notify('Generating audit trail...', type='info', classes="rb-notify-505759")
             
             # Generate audit trail
             audit_trail = await generate_audit_trail_for_job(job_id)
             
             if 'error' in audit_trail:
-                ui.notify(f"Error: {audit_trail['error']}", type='negative')
+                ui.notify(f"Error: {audit_trail['error']}", type='negative', classes="rb-notify-505759")
                 return
             
             # Export as markdown
@@ -56,15 +56,15 @@ async def create_audit_trail_button(job_id: str):
             # Download file using NiceGUI
             ui.download(markdown_content.encode('utf-8'), filename=filename)
             
-            ui.notify(f'Audit trail exported: {filename}', type='positive')
+            ui.notify(f'Audit trail exported: {filename}', type='positive', classes="rb-notify-505759")
             logger.info("Audit trail exported successfully: %s", filename)
         except Exception as e:
             logger.error("Error exporting audit trail: %s", e, exc_info=True)
-            ui.notify(f'Error exporting audit trail: {str(e)}', type='negative')
+            ui.notify(f'Error exporting audit trail: {str(e)}', type='negative', classes="rb-notify-505759")
     
     button = ui.button(
         '📋 Export Audit Trail',
         on_click=export_audit
-    ).classes('bg-purple-600 text-white')
+    ).classes('rb-brand-primary text-white rounded-xl')
     
     return button

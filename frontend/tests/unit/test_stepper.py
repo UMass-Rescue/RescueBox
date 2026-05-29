@@ -44,10 +44,10 @@ INVALID_HIGH_INDEX = 3
 
 # CSS class constants for visual styling
 COMPLETED_STEP_BG_CLASS = 'bg-green-500'
-CURRENT_STEP_BG_CLASS = 'bg-blue-600'
-PENDING_STEP_BG_CLASS = 'bg-gray-300'
+CURRENT_STEP_BG_CLASS = 'rb-brand-step-current'
+PENDING_STEP_BG_CLASS = 'bg-zinc-300'
 COMPLETED_CURRENT_LABEL_CLASS = 'font-semibold'
-PENDING_LABEL_CLASS = 'text-gray-400'
+PENDING_LABEL_CLASS = 'text-zinc-400'
 
 # Warning messages
 ALREADY_AT_LAST_STEP_WARNING = "Already at last step"
@@ -318,10 +318,10 @@ class TestWorkflowStepper:
         assert 'bg-green-500' in stepper._get_circle_classes(0)
         
         # Current step (index 1)
-        assert 'bg-blue-600' in stepper._get_circle_classes(1)
+        assert 'rb-brand-step-current' in stepper._get_circle_classes(1)
         
         # Pending step (index 2)
-        assert 'bg-gray-300' in stepper._get_circle_classes(2)
+        assert 'bg-zinc-300' in stepper._get_circle_classes(2)
     
     def test_stepper_label_classes(self, mock_ui):
         """Test label class generation"""
@@ -339,7 +339,7 @@ class TestWorkflowStepper:
         assert 'font-semibold' in stepper._get_label_classes(1)
         
         # Pending step label
-        assert 'text-gray-400' in stepper._get_label_classes(2)
+        assert 'text-zinc-400' in stepper._get_label_classes(2)
     
     def test_stepper_line_classes(self, mock_ui):
         """Test connector line class generation"""
@@ -356,5 +356,5 @@ class TestWorkflowStepper:
         assert 'bg-green-500' in stepper._get_line_classes(0)
         
         # Pending path
-        assert 'bg-gray-300' in stepper._get_line_classes(1)
+        assert 'bg-zinc-300' in stepper._get_line_classes(1)
 

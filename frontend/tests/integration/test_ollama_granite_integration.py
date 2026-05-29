@@ -19,6 +19,7 @@ Note: call_granite_model_direct returns a list of tool calls, not a single dict.
 
 import pytest
 import pytest_asyncio
+import asyncio
 import httpx
 import logging
 import os
@@ -428,5 +429,76 @@ class TestOllamaGraniteIntegration:
         except Exception as e:
             # Timeout exceptions are expected
             logger.info(f"Timeout exception caught (expected): {type(e).__name__}")
+        finally:
+            await core.close()
+
+    @pytest.mark.asyncio
+    @pytest.mark.integration
+    @pytest.mark.ollama
+    async def test_granite_model_concurrent_calls(
+        self,
+        granite_model_available: bool
+    ):
+        """
+        Test that ChatbotCore can handle multiple concurrent requests to Ollama.
+        Simulates 10 concurrent users sending prompts at the exact same time.
+        Works best when Ollama is configured with OLLAMA_NUM_PARALLEL > 1.
+        """
+        if not granite_model_available:
+            pytest.skip("Granite model not available in Ollama")
+            
+        logger.info("Testing 10 concurrent Granite model tool calls")
+        
+        from frontend.chatbot.core import ChatbotCore
+        from frontend.chatbot.config import ChatbotConfig
+        
+        config = ChatbotConfig(
+            OLLAMA_HOST=OLLAMA_HOST,
+            GRANITE_MODEL=GRANITE_MODEL,
+            TIMEOUT=600  # Ensure timeout is long enough for queued requests
+        )
+        
+        core = ChatbotCore(config)
+        
+        try:
+            import random
+            
+            # Define different prompt types and their expected tool calls
+            prompt_choices = [
+                ("transcribe audio files in /evidence/batch", "audio/transcribe"),
+                ("describe photos in /tmp/foo", "image_summary/summarize-images"),
+                ("search these images for food", "image_embeddings/search_images"),
+                ("mount this ufdr file in /tmp/ufdr", "ufdr_mounter/mount"),
+                ("detect age and gender of these faces", "age-gender/predict"),
+            ]
+            
+            # Pick 10 random combinations
+            test_cases = [random.choice(prompt_choices) for _ in range(10)]
+            prompts = [tc[0] for tc in test_cases]
+            expected_endpoints = [tc[1] for tc in test_cases]
+            
+            # Fire them all off concurrently
+            tasks = [core.call_granite_model_direct(prompt) for prompt in prompts]
+            
+            logger.info("Awaiting asyncio.gather for 10 concurrent requests...")
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            assert len(results) == 10
+            for i, result in enumerate(results):
+                assert not isinstance(result, Exception), f"Request {i} raised exception: {result}"
+                assert result is not None and len(result) > 0, f"Request {i} failed to return tool calls"
+                
+                first_tool = result[0]
+                assert "name" in first_tool, f"Request {i} missing 'name' in parsed tool call"
+                
+                # Confirm the correct tool was selected
+                actual_endpoint = first_tool["name"]
+                expected_endpoint = expected_endpoints[i]
+                assert actual_endpoint == expected_endpoint, (
+                    f"Prompt '{prompts[i]}' expected '{expected_endpoint}', got '{actual_endpoint}'"
+                )
+                
+            logger.info("Successfully processed 10/10 concurrent requests with correct routing")
+            
         finally:
             await core.close()

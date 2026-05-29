@@ -1,6 +1,9 @@
 import logging
-from nicegui import ui
 from typing import List, Any
+
+from nicegui import ui
+
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -22,14 +25,14 @@ def show_conversation_view_dialog(conversation: Any, messages: List[Any], title:
                     render_message_in_dialog(msg)
 
             with ui.row().classes('mt-4'):
-                ui.button('Close', on_click=dialog.close).classes('bg-gray-600 text-white')
-                # ui.button('Load in Chat', on_click=lambda cid=getattr(conversation, 'conversation_id', None): [ui.run_javascript("console.log('load')"), dialog.close()]).classes('bg-blue-600 text-white')
+                ui.button('Close', on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
+                # ui.button('Load in Chat', on_click=lambda cid=getattr(conversation, 'conversation_id', None): [ui.run_javascript("console.log('load')"), dialog.close()]).classes('rb-brand-primary text-white')
 
         dialog.open()
         return dialog
     except Exception as e:
         logger.exception("Failed to show conversation view dialog: %s", e)
         # Fallback: show simple notification
-        ui.notify('Unable to show conversation dialog', type='negative')
+        ui.notify('Unable to show conversation dialog', type='negative', classes='rb-notify-505759')
         return None
 

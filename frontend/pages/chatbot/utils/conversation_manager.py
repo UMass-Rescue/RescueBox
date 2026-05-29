@@ -66,7 +66,7 @@ class ConversationManager:
             arguments = {}
             if hasattr(request_body, 'inputs') and request_body.inputs:
                 arguments = MessageService.serialize_arguments(request_body.inputs)
-                self.logger.info("Extracted and serialized arguments: %s", arguments)
+                self.logger.debug("Extracted and serialized arguments: %s", arguments)
 
             # Save tool call using DatabaseService
             await DatabaseService.save_tool_call_to_history(conversation_id, endpoint, arguments)

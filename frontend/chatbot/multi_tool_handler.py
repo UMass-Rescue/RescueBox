@@ -194,7 +194,7 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
     """
     if not criteria_str or not criteria_str.strip():
         paths = [it["path"] for it in items]
-        logger.info(
+        logger.debug(
             "apply_metadata_filter: empty criteria — passing all %d file(s): %s",
             len(paths),
             paths,
@@ -203,7 +203,7 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
     criteria = [c.strip() for c in criteria_str.split(",") if c.strip()]
     if not criteria:
         paths = [it["path"] for it in items]
-        logger.info(
+        logger.debug(
             "apply_metadata_filter: no parseable criteria tokens — passing all %d file(s): %s",
             len(paths),
             paths,
@@ -305,7 +305,7 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
                 break
         if match:
             result.append(it["path"])
-        logger.info(
+        logger.debug(
             "apply_metadata_filter row: path=%s matched=%s metadata=%s",
             it.get("path"),
             match,
@@ -337,10 +337,34 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
     Returns:
         Optional[str]: Output path if found, None otherwise
     """
-    from rb.api.models import BatchDirectoryResponse, DirectoryResponse, BatchFileResponse, FileResponse, TextResponse
+    from rb.api.models import (
+        BatchDirectoryResponse,
+        DirectoryResponse,
+        BatchFileResponse,
+        BatchTextResponse,
+        FileResponse,
+        TextResponse,
+    )
 
     try:
         root = response_body.root
+
+        if isinstance(root, BatchTextResponse) and getattr(root, "transcripts_dir", None):
+            td = str(Path(root.transcripts_dir).resolve())
+            logger.debug("Extracted transcripts_dir from BatchTextResponse: %s", td)
+            return td
+
+        # UFDR mount: TextResponse value "Mounted at /tmp/case1" — downstream tools use .../files/
+        if isinstance(root, TextResponse) and root.value:
+            vm = (root.value or "").strip()
+            if vm.lower().startswith("mounted at "):
+                mp = vm[len("Mounted at ") :].strip()
+                if mp:
+                    files_root = (Path(mp.rstrip("/")) / "files").resolve()
+                    logger.debug(
+                        "Extracted UFDR files root from mount message: %s", files_root.as_posix()
+                    )
+                    return files_root.as_posix()
 
         # TextResponse - e.g. image_summary returns JSON array of output file paths
         if isinstance(root, TextResponse) and root.value:
@@ -414,23 +438,26 @@ def chain_output_to_input(
     Returns:
         Dict[str, Any]: Updated arguments with chained output if applicable
     """
-    logger.info("Attempting to chain output from previous call to current call")
+    logger.debug("Attempting to chain output from previous call to current call")
     
     # Extract output path from previous call
     output_path = extract_output_path(previous_output)
     if not output_path:
-        logger.debug("No output path found in previous result, skipping chaining")
+        logger.info("No output path found in previous result, skipping chaining")
         return current_arguments
     
     # Find input directory field in current schema
     input_dir_key = None
+    output_dir_key = None
     for input_schema in current_schema.inputs:
         if input_schema.input_type == InputType.DIRECTORY:
             # Try common names for input directory
             key_lower = input_schema.key.lower()
             if 'input' in key_lower and 'dir' in key_lower:
                 input_dir_key = input_schema.key
-                break
+            if 'output' in key_lower and 'dir' in key_lower:
+                output_dir_key = input_schema.key
+
     
     # Also check arguments for common patterns
     if not input_dir_key:
@@ -442,9 +469,28 @@ def chain_output_to_input(
     
     # Update arguments if input directory found
     if input_dir_key:
-        logger.info("Chaining output path '%s' to input '%s'", output_path, input_dir_key)
+        logger.info("Chaining path '%s' to input '%s'", output_path, input_dir_key)
         current_arguments = current_arguments.copy()
         current_arguments[input_dir_key] = output_path
+        # at least the path is valid in case user forgets to pay attention to this
+        current_arguments[output_dir_key] = output_path
+        logger.info("Chaining path '%s' to output '%s'", output_path, output_dir_key)
+        # text_summarization/summarize: default output_dir next to transcripts (sibling folder)
+        for inp in current_schema.inputs:
+            if inp.input_type != InputType.DIRECTORY:
+                continue
+            k = inp.key
+            if k == input_dir_key:
+                continue
+            kl = k.lower()
+            if "output" in kl and "dir" in kl:
+                if not current_arguments.get(k):
+                    suggested = Path(output_path).parent / "text_summary"
+                    current_arguments[k] = suggested.as_posix()
+                    logger.debug(
+                        "Chained default %s for summarize pipeline: %s", k, current_arguments[k]
+                    )
+                break
 
         # If previous response is TextResponse with file list, also inject file_filter for pipelines
         # (e.g. image_summary -> text_embeddings)
@@ -461,16 +507,16 @@ def chain_output_to_input(
                 else:
                     raw_paths = []
                 if raw_paths:
-                    has_file_filter = any(
-                        inp.key == "file_filter" for inp in current_schema.inputs
-                    )
-                    if has_file_filter:
-                        file_paths = [p for p in raw_paths if isinstance(p, str)]
-                        if file_paths:
-                            current_arguments["file_filter"] = {
-                                "files": [{"path": p} for p in file_paths]
-                            }
-                            logger.info("Chained %d files to file_filter", len(file_paths))
+                    file_paths = [p for p in raw_paths if isinstance(p, str)]
+                    if file_paths:
+                        # GET .../task_schema often omits file_filter (for_public_api); POST still accepts it.
+                        current_arguments["file_filter"] = {
+                            "files": [{"path": p} for p in file_paths]
+                        }
+                        logger.info(
+                            "Chained %d file(s) to file_filter from prior TextResponse",
+                            len(file_paths),
+                        )
             except (json.JSONDecodeError, TypeError, AttributeError):
                 pass
     else:
@@ -520,7 +566,7 @@ async def execute_tool_call_sequence(
         endpoint = tool_call['endpoint']
         arguments = tool_call['arguments']
         
-        logger.info("Processing tool call %d/%d: %s", call_index + 1, len(tool_calls), endpoint)
+        logger.debug("Processing tool call %d/%d: %s", call_index + 1, len(tool_calls), endpoint)
         
         try:
             # Load task schema
@@ -533,7 +579,7 @@ async def execute_tool_call_sequence(
             
             # Chain output from previous call if enabled
             if chain_outputs and previous_output and call_index > 0:
-                logger.info("Chaining output from previous call to call %d", call_index + 1)
+                logger.debug("Chaining output from previous call to call %d", call_index + 1)
                 arguments = chain_output_to_input(previous_output, arguments, task_schema)
             
             # Convert arguments to initial values
@@ -553,7 +599,8 @@ async def execute_tool_call_sequence(
             logger.debug("Auto-submitting call %d with provided arguments", call_index + 1)
             request_body = validate_request_body(
                 {'inputs': initial_values.get('inputs', {}), 'parameters': initial_values.get('parameters', {})},
-                task_schema
+                task_schema,
+                endpoint=endpoint,
             )
             
             if isinstance(request_body, dict) and not request_body.get('is_valid', True):

@@ -47,31 +47,31 @@ class UrlParameterManager:
             load_conversation: Optional conversation ID from ?load_conversation=...
             rerun: Optional message ID from ?rerun=...
         """
-        self.logger.info("Detecting and handling URL parameters (page_params: load_conversation=%s, rerun=%s)",
+        self.logger.debug("Detecting and handling URL parameters (page_params: load_conversation=%s, rerun=%s)",
                         load_conversation, rerun)
 
         # Prefer page params (NiceGUI injects these from URL)
         if rerun:
-            self.logger.info("Using rerun from page params: %s", rerun)
+            self.logger.debug("Using rerun from page params: %s", rerun)
             await self._handle_rerun_parameter(rerun, chatbot)
             return
         if load_conversation:
-            self.logger.info("Using load_conversation from page params: %s", load_conversation)
+            self.logger.debug("Using load_conversation from page params: %s", load_conversation)
             await self._handle_load_conversation_parameter(load_conversation, chatbot)
             return
 
         # Fallback: extract from request
-        self.logger.info("No page params; falling back to URL extraction")
+        self.logger.debug("No page params; falling back to URL extraction")
         url_params = self._extract_url_parameters()
         if not url_params:
-            self.logger.info("No URL parameters detected from request")
+            self.logger.debug("No URL parameters detected from request")
             return
 
         if 'rerun' in url_params:
-            self.logger.info("Using rerun from extracted URL: %s", url_params['rerun'])
+            self.logger.debug("Using rerun from extracted URL: %s", url_params['rerun'])
             await self._handle_rerun_parameter(url_params['rerun'], chatbot)
         elif 'load_conversation' in url_params:
-            self.logger.info("Using load_conversation from extracted URL: %s", url_params['load_conversation'])
+            self.logger.debug("Using load_conversation from extracted URL: %s", url_params['load_conversation'])
             await self._handle_load_conversation_parameter(url_params['load_conversation'], chatbot)
 
     def _extract_url_parameters(self) -> Dict[str, str]:
@@ -113,7 +113,7 @@ class UrlParameterManager:
                 if values:
                     result[key] = values[0]
 
-            self.logger.info("Extracted URL parameters: %s", result)
+            self.logger.debug("Extracted URL parameters: %s", result)
             return result
 
         except Exception as e:
@@ -150,21 +150,21 @@ class UrlParameterManager:
         Args:
             chatbot: The ChatbotPage instance
         """
-        self.logger.info("Checking for stored conversation to load (fallback when no URL param)...")
+        self.logger.debug("Checking for stored conversation to load (fallback when no URL param)...")
         conversation_data = get_conversation_to_load()
         conv_id = conversation_data.get('conversation_id') if conversation_data else None
-        self.logger.info("get_conversation_to_load() returned conversation_id=%s", conv_id)
+        self.logger.debug("get_conversation_to_load() returned conversation_id=%s", conv_id)
 
         if conversation_data:
-            self.logger.info("Found stored conversation to load: %s",
+            self.logger.debug("Found stored conversation to load: %s",
                            conversation_data.get('conversation_id', 'unknown'))
-            self.logger.info("Conversation data keys: %s",
+            self.logger.debug("Conversation data keys: %s",
                            list(conversation_data.keys()) if isinstance(conversation_data, dict) else 'not dict')
-            self.logger.info("Number of messages: %d",
+            self.logger.debug("Number of messages: %d",
                            len(conversation_data.get('messages', [])))
 
             # Load the conversation using a timer to ensure UI is ready
-            self.logger.info("Scheduling conversation loading with timer...")
+            self.logger.debug("Scheduling conversation loading with timer...")
             
             async def load_and_scroll():
                 await chatbot.load_conversation_from_data(conversation_data)
@@ -174,9 +174,9 @@ class UrlParameterManager:
             # directly to ui.timer. Avoid wrapping in asyncio.create_task which runs outside
             # the UI slot stack and prevents ui.run_javascript/context access.
             ui.timer(0.5, load_and_scroll, once=True)
-            self.logger.info("Conversation loading scheduled")
+            self.logger.debug("Conversation loading scheduled")
         else:
-            self.logger.info("No conversation stored for loading")
+            self.logger.debug("No conversation stored for loading")
 
 
 # Global instance for easy access
@@ -191,22 +191,22 @@ async def handle_rerun_parameter(message_id: str, chatbot: Optional[ChatbotPage]
         message_id: Message ID of the tool call to rerun
         chatbot: Optional ChatbotPage instance
     """
-    logger.info("Handling rerun parameter for message: %s", message_id)
+    logger.debug("Handling rerun parameter for message: %s", message_id)
 
     try:
         chat_history = get_chat_history_db()
         message = await chat_history.get_tool_call_by_id(message_id)
 
         if not message:
-            ui.notify('Tool call not found for rerun', type='negative')
+            ui.notify('Tool call not found for rerun', type='negative', classes='rb-notify-505759')
             return
 
         if not message.tool_call_endpoint or not message.tool_call_arguments:
-            ui.notify('Invalid tool call data for rerun', type='negative')
+            ui.notify('Invalid tool call data for rerun', type='negative', classes='rb-notify-505759')
             return
 
         # Show what we're rerunning
-        ui.notify(f'Re-running: {message.tool_call_endpoint}', type='info')
+        ui.notify(f'Re-running: {message.tool_call_endpoint}', type='info', classes='rb-notify-505759')
 
         # Create a temporary chatbot instance to handle the rerun
         # We'll simulate sending the tool call through the normal flow
@@ -224,7 +224,7 @@ async def handle_rerun_parameter(message_id: str, chatbot: Optional[ChatbotPage]
             pass
         except Exception as e:
             logger.error("Error during load_and_show_form: %s", e)
-            ui.notify(f"Failed to rerun tool call: {e}", type='negative')
+            ui.notify(f"Failed to rerun tool call: {e}", type='negative', classes='rb-notify-505759')
             return
 
         try:
@@ -235,7 +235,7 @@ async def handle_rerun_parameter(message_id: str, chatbot: Optional[ChatbotPage]
 
     except Exception as e:
         logger.error("Error handling rerun parameter: %s", str(e))
-        ui.notify(f'Failed to rerun tool call: {str(e)}', type='negative')
+        ui.notify(f'Failed to rerun tool call: {str(e)}', type='negative', classes='rb-notify-505759')
 
 
 async def handle_load_conversation_parameter(conversation_id: str, chatbot: Optional[ChatbotPage] = None):
@@ -248,23 +248,23 @@ async def handle_load_conversation_parameter(conversation_id: str, chatbot: Opti
         conversation_id: Conversation ID to load
         chatbot: Optional ChatbotPage instance
     """
-    logger.info("handle_load_conversation_parameter: starting for conversation %s", conversation_id)
+    logger.debug("handle_load_conversation_parameter: starting for conversation %s", conversation_id)
 
     try:
         chat_history = get_chat_history_db()
         conversation = await chat_history.get_conversation(conversation_id)
         messages = await chat_history.get_messages(conversation_id)
 
-        logger.info("handle_load_conversation_parameter: fetched conversation=%s, messages=%d",
+        logger.debug("handle_load_conversation_parameter: fetched conversation=%s, messages=%d",
                     'yes' if conversation else 'no', len(messages) if messages else 0)
 
         if not conversation or not messages:
             logger.warning("handle_load_conversation_parameter: conversation not found or empty")
-            ui.notify('Conversation not found or empty', type='negative')
+            ui.notify('Conversation not found or empty', type='negative', classes='rb-notify-505759')
             return
 
         active_chatbot = chatbot or ChatbotPage()
-        logger.info("handle_load_conversation_parameter: loading %s (%d messages), resetting state",
+        logger.debug("handle_load_conversation_parameter: loading %s (%d messages), resetting state",
                     conversation_id, len(messages))
 
         # Clear default new-conversation state before loading
@@ -284,9 +284,9 @@ async def handle_load_conversation_parameter(conversation_id: str, chatbot: Opti
 
         await active_chatbot.load_conversation_from_data(conversation_data)
         await active_chatbot.scroll_to_bottom()
-        logger.info("handle_load_conversation_parameter: loaded successfully, title=%s", conversation.title)
-        ui.notify(f'Loaded conversation: {conversation.title}', type='positive')
+        logger.debug("handle_load_conversation_parameter: loaded successfully, title=%s", conversation.title)
+        UIOperations.safe_notify(f"Loaded conversation: {conversation.title}")
 
     except Exception as e:
         logger.error("handle_load_conversation_parameter failed: %s", str(e), exc_info=True)
-        ui.notify(f'Failed to load conversation: {str(e)}', type='negative')
+        UIOperations.safe_notify(f"Failed to load conversation: {str(e)}", type="negative")

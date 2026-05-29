@@ -80,7 +80,7 @@ class ModelsPage:
         Returns:
             None: UI is added directly to the current context
         """
-        logger.info("Rendering models page")
+        logger.debug("Rendering models page")
         try:
             with ui.column().classes('container mx-auto p-8'):
                 # Header
@@ -91,8 +91,8 @@ class ModelsPage:
                         ui.button(
                             UI_BUTTONS['open_assistant'],
                             on_click=lambda: ui.navigate.to(NAV_LINKS['chatbot'])
-                        ).classes('bg-green-600 text-white')
-                        ui.button(UI_BUTTONS['refresh'], on_click=self.load_models).classes('bg-blue-600 text-white')
+                        ).classes('rb-brand-primary text-white rounded-xl')
+                       
 
                     render_page_header(UI_TITLES['models'], actions_callable=_header_actions)
                 except Exception:
@@ -102,8 +102,8 @@ class ModelsPage:
                             ui.button(
                                 UI_BUTTONS['open_assistant'],
                                 on_click=lambda: ui.navigate.to(NAV_LINKS['chatbot'])
-                            ).classes('bg-green-600 text-white')
-                            ui.button(UI_BUTTONS['refresh'], on_click=self.load_models).classes('bg-blue-600 text-white')
+                            ).classes('rb-brand-primary text-white rounded-xl')
+                            ui.button(UI_BUTTONS['refresh'], on_click=self.load_models).classes('rb-brand-primary text-white')
 
                 # Loading indicator
                 logger.debug("Creating models container")
@@ -249,6 +249,10 @@ async def models_page():
         from frontend.utils.theme import apply_saved_theme
         apply_saved_theme()
         create_navbar()
+        from frontend.utils.demo_user_gate import require_demo_user_session
+
+        if not require_demo_user_session():
+            return
         models_page_instance = ModelsPage()
         logger.info("Models models_page_instance created")
         await models_page_instance.render()

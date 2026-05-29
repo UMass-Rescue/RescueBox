@@ -74,7 +74,7 @@ async def cache_models(models_data: List[Dict[str, Any]]):
         ]
         cursor.executemany("INSERT INTO models (uid, model_data, cached_at) VALUES (?, ?, ?)", models_to_insert)
         conn.commit()
-    logger.info("Models cached successfully.")
+    logger.debug("Models cached successfully.")
 
 async def get_cached_models() -> List[Dict[str, Any]]:
     """Retrieves all cached models from the database."""
@@ -87,10 +87,10 @@ async def get_cached_models() -> List[Dict[str, Any]]:
             model = json.loads(row['model_data'])
             model['cached_at'] = row['cached_at']
             all_models.append(model)
-        logger.info(f"Found {len(all_models)} raw models in database before filtering.")
+        logger.debug(f"Found {len(all_models)} raw models in database before filtering.")
         # Filter out system models like 'fs', 'docs', 'manage'
         models = [model for model in all_models if model.get('uid') not in ['fs', 'docs', 'manage']]
-        logger.info(f"Retrieved {len(models)} models from cache.")
+        logger.debug(f"Retrieved {len(models)} models from cache.")
         return models
 
 async def get_cached_model_by_uid(uid: str) -> Optional[Dict[str, Any]]:
@@ -102,7 +102,7 @@ async def get_cached_model_by_uid(uid: str) -> Optional[Dict[str, Any]]:
         if row:
             model_data = json.loads(row['model_data'])
             model_data['cached_at'] = row['cached_at']
-            logger.info(f"Retrieved model {uid} from cache.")
+            logger.debug(f"Retrieved model {uid} from cache.")
             return model_data
         logger.warning(f"Model {uid} not found in cache.")
         return None

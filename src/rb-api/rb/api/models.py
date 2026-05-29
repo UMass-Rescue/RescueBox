@@ -93,7 +93,7 @@ class FileFilterDirectory(DirectoryInput):
         ]
         if len(number_of_matched_files) < 1:
             raise ValueError(
-                f"validate directory: No file extensions matching {self.file_extensions} found in directory: {path_obj}"
+                f"input directory validate failed: No file extensions matching {self.file_extensions} found in directory: {path_obj}"
             )
         return self
 
@@ -300,6 +300,8 @@ class BatchTextResponse(BaseModel):
     )
     output_type: Optional[Literal["batchtext"]] = "batchtext"
     texts: List[TextResponse]
+    #: When transcripts are written to disk (e.g. audio/transcribe), downstream tools use this path.
+    transcripts_dir: Optional[str] = None
 
 
 class BatchDirectoryResponse(BaseModel):

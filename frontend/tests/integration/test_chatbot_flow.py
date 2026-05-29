@@ -132,7 +132,7 @@ class TestChatbotFlow:
         result = await handler.handle_message("tell me a joke")
         
         assert result["type"] == "message"
-        assert "Request Not Supported" in result["content"]
+        assert "RescueBox chat Assistant" in result["content"]
         # Should not call Granite model
         mock_core.ollama_client.post.assert_not_called()
     
@@ -194,7 +194,7 @@ class TestChatbotFlow:
         
         assert result["type"] == "help"
         assert "RescueBox Assistant" in result["content"]
-        assert "Shortcut Commands" in result["content"]
+        assert "Three different ways" in result["content"]
     
     @pytest.mark.asyncio
     async def test_tool_picker_flow(self, mock_core, config):

@@ -83,7 +83,7 @@ class FormSubmitHandler:
         """Report an error (placeholder for future implementation)."""
         logger.info("Error reported by user: %s - %s", title, details or "No details")
         # TODO: Implement error reporting functionality
-        ui.notify("Error report submitted. Thank you for helping improve RescueBox!", type="positive")
+        ui.notify("Error report submitted. Thank you for helping improve RescueBox!", type="positive", classes="rb-notify-505759")
 
     def get_submission_status(self) -> dict:
         """

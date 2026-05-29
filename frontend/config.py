@@ -16,9 +16,9 @@ from pathlib import Path
 # API Configuration
 # When backend is integrated into NiceGUI, API is on the same port as frontend
 # Default to same port as frontend (unified server)
-_DEFAULT_API_URL = f'http://localhost:{int(os.getenv("RESCUEBOX_PORT", "8080"))}'
+_DEFAULT_API_URL = f'http://0.0.0.0:{int(os.getenv("RESCUEBOX_PORT", "8080"))}'
 _DEFAULT_BACKEND_PORT = 8080
-BACKEND_URL = f'http://localhost:{_DEFAULT_BACKEND_PORT}'
+BACKEND_URL = f'http://0.0.0.0:{_DEFAULT_BACKEND_PORT}'
 # Add /api prefix to the base URL to avoid collisions with UI routes
 API_BASE_URL = os.getenv('RESCUEBOX_API_URL', f"{_DEFAULT_API_URL}/api")
 API_TIMEOUT = float(os.getenv('RESCUEBOX_API_TIMEOUT', '30.0'))
@@ -31,6 +31,14 @@ APP_VERSION = os.getenv('RESCUEBOX_VERSION', '3.0.0')
 APP_FAVICON = Path(__file__).resolve().parent / 'icons' / 'rb.webp'
 APP_DARK_MODE = os.getenv('RESCUEBOX_DARK_MODE', 'false').lower() == 'true'
 APP_SHOW_BROWSER = os.getenv('RESCUEBOX_SHOW_BROWSER', 'false').lower() == 'true'
+
+# About page (override for packaging / forks)
+ABOUT_AUTHORS = os.getenv('RESCUEBOX_ABOUT_AUTHORS', 'RescueBox Team')
+ABOUT_REPO_URL = os.getenv('RESCUEBOX_REPO_URL', 'https://github.com/UMass-Rescue/RescueBox')
+ABOUT_REPO_DESKTOP_URL = os.getenv(
+    'RESCUEBOX_REPO_DESKTOP_URL',
+    'https://github.com/UMass-Rescue/RescueBox-Desktop',
+)
 
 # Database Configuration
 DATA_DIR = Path(__file__).parent / 'data'
@@ -47,7 +55,7 @@ DEMO_FOLDER_NAMES = ['demo1', 'demo2', 'demo3', 'demo4', 'demo5', 'demo6', 'demo
 
 # Browsable tree on /demo (inputs/outputs samples). Override with RESCUEBOX_DEMO_FILES_DIR.
 DEMO_FILES_BROWSE_ROOT = Path(
-    os.getenv('RESCUEBOX_DEMO_FILES_DIR', str(DEMO_FOLDERS_BASE / 'demo10'))
+    os.getenv('RESCUEBOX_DEMO_FILES_DIR', str(DEMO_FOLDERS_BASE / 'demo20'))
 ).expanduser()
 
 # Reconnect timeout (seconds) before client is deleted; 1 hour keeps demo folder for entire demo

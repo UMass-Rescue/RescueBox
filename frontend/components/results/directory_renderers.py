@@ -64,12 +64,12 @@ def render_directory(container, response):
         logger.exception("Falling back to inline directory renderer: %s", e)
         # fallback to original inline behavior if needed
         with container:
-            with ui.card().classes('bg-blue-50 border border-blue-300 p-4'):
+            with ui.card().classes('bg-indigo-50 border border-indigo-300 p-4'):
                 with ui.column().classes('gap-2'):
                     ui.label('📁 Directory Result').classes('font-bold')
                     ui.label(title).classes('text-sm')
-                    ui.label(dir_path).classes('text-xs text-gray-600 font-mono')
-                    ui.button('Open Folder', on_click=lambda: open_folder(dir_path)).classes('bg-blue-600 text-white mt-2')
+                    ui.label(dir_path).classes('text-xs text-zinc-600 font-mono')
+                    ui.button('Open Folder', on_click=lambda: open_folder(dir_path)).classes('rb-brand-primary text-white mt-2')
 
 
 def render_batch_directory(container, response):
@@ -104,7 +104,7 @@ def render_batch_directory(container, response):
     except Exception as e:
         logger.exception("Falling back to inline batch directory renderer: %s", e)
         with container:
-            with ui.card().classes('bg-blue-50 border border-blue-300 p-4'):
+            with ui.card().classes('bg-indigo-50 border border-indigo-300 p-4'):
                 with ui.column().classes('gap-2'):
                     ui.label(f'📁 Batch Directory Result ({len(directories)})').classes('font-bold')
                     # fallback inline table

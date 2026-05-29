@@ -15,9 +15,17 @@ def render_batch_text_item(container: ui.element, text_info: Any, index: int) ->
         title = getattr(text_info, 'title', None) or f'Item {index}'
 
         with container:
-            with ui.card().classes('bg-white p-4 rounded-lg border'):
-                ui.label(f"📁 INPUT FILE: {title}").classes('text-sm bg-blue-200 p-3 rounded border-2 border-blue-800 font-mono mb-2')
-                ui.label(f"📖 TRANSCRIBED TEXT:\n{full_text}").classes('text-sm bg-red-200 p-4 rounded border-2 border-red-800 whitespace-pre-wrap font-mono max-w-full')
+            with ui.column().classes(
+                'w-full min-w-0 gap-2 pb-4 border-b border-zinc-100 last:border-b-0 last:pb-0'
+            ):
+                ui.label('Source').classes(
+                    'text-xs font-medium text-zinc-500 uppercase tracking-wide'
+                )
+                ui.label(title).classes('text-sm font-semibold text-zinc-900 break-all')
+                with ui.scroll_area().classes('w-full max-h-80 rounded-lg bg-zinc-50 ring-1 ring-zinc-200'):
+                    ui.label(full_text).classes(
+                        'text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed p-3 block'
+                    )
     except Exception as e:
         logger.exception("Error rendering batch text item: %s", e)
         with container:

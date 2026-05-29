@@ -7,7 +7,10 @@ Returns the notes text when user clicks Submit, or None if cancelled.
 
 import logging
 from typing import Optional
+
 from nicegui import ui
+
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -21,22 +24,24 @@ async def show_case_notes_dialog() -> Optional[str]:
         str: Notes text (may be empty) if user clicks Submit Job
         None: If user clicks Cancel or closes the dialog (backdrop/ESC)
     """
-    with ui.dialog() as dialog, ui.card().classes('max-w-md'):
-        ui.label('Case Notes').classes('text-lg font-bold mb-4')
-        ui.label('Add notes for this job (optional)').classes('text-gray-600 text-sm mb-2')
-        textarea = ui.textarea(
-            placeholder='e.g. case ID, examiner name, purpose...'
-        ).classes('w-full min-h-24')
+    with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_MD):
+        with ui.row().classes(Design.PANEL_SHELL_HEADER):
+            ui.label("Case Notes").classes(Design.PANEL_SHELL_HEADER_TITLE)
 
-        with ui.row().classes('mt-4 gap-2'):
+        with ui.column().classes("px-6 pt-4 pb-2 gap-2"):
+            ui.label("Add notes for this job (optional)").classes("text-zinc-600 text-sm")
+            textarea = ui.textarea(
+                placeholder="e.g. case ID, examiner name, purpose...",
+            ).classes(f"w-full min-h-24 {Design.INPUT_OUTLINED}")
+
+        with ui.row().classes(f"{Design.PANEL_SHELL_FOOTER} justify-end flex-wrap"):
+            ui.button("Cancel", on_click=lambda: dialog.submit(None)).classes(
+                Design.BTN_MEDIUM_GRAY
+            )
             ui.button(
-                'Cancel',
-                on_click=lambda: dialog.submit(None)
-            ).classes('bg-gray-300')
-            ui.button(
-                'Submit Job',
-                on_click=lambda: dialog.submit((textarea.value or '').strip())
-            ).classes('bg-green-600 text-white')
+                "Submit Job",
+                on_click=lambda: dialog.submit((textarea.value or "").strip()),
+            ).classes("rb-brand-primary text-white rounded-xl px-4 py-2")
 
     dialog.open()
     logger.debug("Case notes dialog opened")

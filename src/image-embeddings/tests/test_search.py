@@ -1,8 +1,14 @@
 """Tests for image embeddings embed+search (single endpoint)."""
 
 import pytest
-from image_embeddings.main import task_schema, Inputs, Parameters
-from rb.api.models import TextInput, DirectoryInput
+from image_embeddings.main import (
+    DEFAULT_CLIP_MODEL,
+    ClipImageDirectory,
+    task_schema,
+    Inputs,
+    Parameters,
+)
+from rb.api.models import TextInput
 
 
 def test_task_schema():
@@ -16,8 +22,9 @@ def test_task_schema():
 def test_inputs_structure(tmp_path):
     d = tmp_path / "photos"
     d.mkdir()
+    (d / "a.jpg").write_bytes(b"\xff\xd8\xff")
     inputs = Inputs(
-        input_dir=DirectoryInput(path=d),
+        input_dir=ClipImageDirectory(path=d),
         query=TextInput(text="sunset over ocean"),
     )
     assert isinstance(inputs["query"], TextInput)
@@ -26,7 +33,7 @@ def test_inputs_structure(tmp_path):
 
 def test_parameters_structure():
     params = Parameters(
-        model_name="openai/clip-vit-base-patch32",
+        model_name=DEFAULT_CLIP_MODEL,
         top_k=10,
         min_similarity=0.2,
     )

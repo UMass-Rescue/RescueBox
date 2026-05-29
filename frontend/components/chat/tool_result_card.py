@@ -16,8 +16,8 @@ def render_tool_result_card(
     """Render a standalone tool result card."""
     try:
         with container:
-            with ui.card().classes(getattr(ui_styling, 'CARD_TOOL_RESULT', 'p-4 bg-green-50')):
-                ui.label("✅ Result").classes(getattr(ui_styling, 'LABEL_TOOL_RESULT_TITLE', 'font-semibold'))
+            with ui.card().classes(getattr(ui_styling, 'CARD_TOOL_RESULT', 'p-4 bg-zinc-50 border border-zinc-200')):
+                ui.label('Result').classes(getattr(ui_styling, 'LABEL_TOOL_RESULT_TITLE', 'font-semibold'))
                 ui.label(content).classes(getattr(ui_styling, 'LABEL_TOOL_RESULT_CONTENT', 'text-sm'))
                 # Inline View Job — go straight to job detail page (no intermediate modal)
                 if job_id and show_view_job:
@@ -27,7 +27,7 @@ def render_tool_result_card(
                         ui.navigate.to(f"/jobs/{jid}")
 
                     ui.button(label, on_click=_go_to_job).classes(
-                        getattr(ui_styling, 'BUTTON_VIEW_JOB', 'ml-2 bg-blue-500 text-white')
+                        getattr(ui_styling, 'BUTTON_VIEW_JOB', 'ml-2 rb-brand-primary text-white')
                     )
     except Exception as e:
         logger.exception("Error rendering tool result card: %s", e)

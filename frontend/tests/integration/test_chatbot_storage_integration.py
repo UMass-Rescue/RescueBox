@@ -6,6 +6,7 @@ All dependencies are real - no mocks used.
 
 import pytest
 from nicegui.testing import User
+import uuid
 from frontend.chatbot.config import ChatbotConfig
 from frontend.database.chat_history_db import ChatHistoryDB, ConversationRecord
 from frontend.utils.nicegui_storage import (
@@ -15,6 +16,8 @@ from frontend.utils.nicegui_storage import (
 )
 
 
+@pytest.mark.api
+@pytest.mark.integration
 class TestChatbotStorageIntegration:
     """Tests for chatbot integration with NiceGUI storage"""
     
@@ -24,8 +27,7 @@ class TestChatbotStorageIntegration:
         from frontend.pages.chatbot import ChatbotPage
         from frontend.chatbot.config import ChatbotConfig
         
-        config = ChatbotConfig(FILTER_ENABLED=False)
-        page = ChatbotPage(config)
+        page = ChatbotPage()
         return page
     
     @pytest.mark.asyncio
@@ -34,10 +36,10 @@ class TestChatbotStorageIntegration:
         from frontend.pages.chatbot import ChatbotPage
         from frontend.chatbot.config import ChatbotConfig
         
-        @user.app.page('/chatbot')
+        route = f'/test_chatbot_{uuid.uuid4().hex}'
+        @user.app.page(route)
         async def chatbot_page():
-            config = ChatbotConfig(FILTER_ENABLED=False)
-            page = ChatbotPage(config)
+            page = ChatbotPage()
             
             # Initialize conversation (should create and store in NiceGUI storage)
             await page.new_conversation()
@@ -47,7 +49,7 @@ class TestChatbotStorageIntegration:
             assert stored_conv_id is not None
             assert stored_conv_id == page.conversation_id
         
-        await user.open('/chatbot')
+        await user.open(route)
     
     @pytest.mark.asyncio
     async def test_conversation_id_loaded_from_storage(self, user: User):
@@ -57,20 +59,20 @@ class TestChatbotStorageIntegration:
         
         test_conv_id = "test-conversation-123"
         
-        @user.app.page('/chatbot')
+        route = f'/test_chatbot_{uuid.uuid4().hex}'
+        @user.app.page(route)
         async def chatbot_page():
             # Set conversation ID in storage before creating page
             set_current_conversation_id(test_conv_id)
             
-            config = ChatbotConfig(FILTER_ENABLED=False)
-            page = ChatbotPage(config)
+            page = ChatbotPage()
             
             # Render should load conversation from storage if URL params don't override
             # (This depends on implementation - may need to mock URL params)
             stored_conv_id = get_current_conversation_id()
             assert stored_conv_id == test_conv_id
         
-        await user.open('/chatbot')
+        await user.open(route)
     
     @pytest.mark.asyncio
     async def test_new_conversation_updates_storage(self, user: User):
@@ -80,10 +82,10 @@ class TestChatbotStorageIntegration:
         
         initial_conv_id = "initial-conversation"
         
-        @user.app.page('/chatbot')
+        route = f'/test_chatbot_{uuid.uuid4().hex}'
+        @user.app.page(route)
         async def chatbot_page():
-            config = ChatbotConfig(FILTER_ENABLED=False)
-            page = ChatbotPage(config)
+            page = ChatbotPage()
             
             # Set initial conversation ID in storage (page should read it on load)
             set_current_conversation_id(initial_conv_id)
@@ -97,7 +99,7 @@ class TestChatbotStorageIntegration:
             assert stored_conv_id != initial_conv_id
             assert stored_conv_id == page.conversation_id
         
-        await user.open('/chatbot')
+        await user.open(route)
     
     @pytest.mark.asyncio
     async def test_user_message_saved_to_history(self, user: User):
@@ -107,10 +109,10 @@ class TestChatbotStorageIntegration:
         from frontend.database import get_chat_history_db
         from frontend.utils.nicegui_storage import get_user_id
         
-        @user.app.page('/chatbot')
+        route = f'/test_chatbot_{uuid.uuid4().hex}'
+        @user.app.page(route)
         async def chatbot_page():
-            config = ChatbotConfig(FILTER_ENABLED=False)
-            page = ChatbotPage(config)
+            page = ChatbotPage()
             
             # Initialize conversation
             await page.new_conversation()
@@ -128,7 +130,7 @@ class TestChatbotStorageIntegration:
             # If user_id support is implemented, check it matches
             # assert conversation.user_id == user_id
         
-        await user.open('/chatbot')
+        await user.open(route)
     
     @pytest.mark.asyncio
     async def test_tool_call_saved_to_history(self, user: User):
@@ -137,10 +139,10 @@ class TestChatbotStorageIntegration:
         from frontend.chatbot.config import ChatbotConfig
         from frontend.database import get_chat_history_db
         
-        @user.app.page('/chatbot')
+        route = f'/test_chatbot_{uuid.uuid4().hex}'
+        @user.app.page(route)
         async def chatbot_page():
-            config = ChatbotConfig(FILTER_ENABLED=False)
-            page = ChatbotPage(config)
+            page = ChatbotPage()
             
             # Initialize conversation
             await page.new_conversation()
@@ -157,9 +159,11 @@ class TestChatbotStorageIntegration:
             assert conversation is not None
             assert conversation.conversation_id == conv_id
         
-        await user.open('/chatbot')
+        await user.open(route)
 
 
+@pytest.mark.api
+@pytest.mark.integration
 class TestChatHistoryPersistence:
     """Tests for chat history persistence across page reloads"""
     
@@ -176,19 +180,27 @@ class TestChatHistoryPersistence:
         
         test_conv_id = None
         
-        @user.app.page('/chatbot')
+        route = f'/test_chatbot_{uuid.uuid4().hex}'
+        @user.app.page(route)
         async def chatbot_page():
             nonlocal test_conv_id
-            config = ChatbotConfig(FILTER_ENABLED=False)
-            page = ChatbotPage(config)
+            page = ChatbotPage()
             await page.new_conversation()
             test_conv_id = page.conversation_id
         
         # First visit - create conversation
-        await user.open('/chatbot')
+        await user.open(route)
         
+        stored_conv_id = None
+        
+        dummy_route1 = f'/dummy_{uuid.uuid4().hex}'
+        @user.app.page(dummy_route1)
+        async def dummy_page():
+            nonlocal stored_conv_id
+            stored_conv_id = get_current_conversation_id()
+            
         # Simulate navigation away (storage should persist)
-        stored_conv_id = get_current_conversation_id()
+        await user.open(dummy_route1)
         assert stored_conv_id == test_conv_id
         
         # Verify conversation exists in database
@@ -205,10 +217,10 @@ class TestChatHistoryPersistence:
         from frontend.database import get_chat_history_db
         from frontend.utils.nicegui_storage import get_current_conversation_id
         
-        @user.app.page('/chatbot')
+        route = f'/test_chatbot_{uuid.uuid4().hex}'
+        @user.app.page(route)
         async def chatbot_page():
-            config = ChatbotConfig(FILTER_ENABLED=False)
-            page = ChatbotPage(config)
+            page = ChatbotPage()
             await page.new_conversation()
             
             # Add a test message (would normally be done via send_message)
@@ -219,10 +231,19 @@ class TestChatHistoryPersistence:
                 content="Test message for persistence"
             )
         
-        await user.open('/chatbot')
+        await user.open(route)
+        
+        conv_id = None
+        
+        dummy_route2 = f'/dummy_{uuid.uuid4().hex}'
+        @user.app.page(dummy_route2)
+        async def dummy_page2():
+            nonlocal conv_id
+            conv_id = get_current_conversation_id()
+            
+        await user.open(dummy_route2)
         
         # Retrieve conversation from database
-        conv_id = get_current_conversation_id()
         assert conv_id is not None
         
         chat_history_db = get_chat_history_db()
@@ -230,4 +251,3 @@ class TestChatHistoryPersistence:
         
         assert len(messages) >= 1
         assert any(msg.content == "Test message for persistence" for msg in messages)
-

@@ -87,7 +87,7 @@ class WorkflowStepper:
                         else:
                             # Show step number
                             ui.label(str(i + 1)).classes(
-                                'text-white' if i == self.current_step else 'text-gray-500'
+                                'text-white' if i == self.current_step else 'text-zinc-500'
                             )
                     
                     # Step label
@@ -108,23 +108,23 @@ class WorkflowStepper:
         if index < self.current_step:
             return 'bg-green-500'  # Completed
         elif index == self.current_step:
-            return 'bg-blue-600'  # Current
+            return 'rb-brand-step-current'  # UMass Maroon #881c1c — see ui_readability_css
         else:
-            return 'bg-gray-300'  # Pending
+            return 'bg-zinc-300'  # Pending
     
     def _get_label_classes(self, index: int) -> str:
         """Get CSS classes for step label."""
         if index <= self.current_step:
-            return 'font-semibold text-gray-800'
+            return 'font-semibold text-zinc-800'
         else:
-            return 'text-gray-400'
+            return 'text-zinc-400'
     
     def _get_line_classes(self, index: int) -> str:
         """Get CSS classes for connector line."""
         if index < self.current_step:
             return 'bg-green-500'  # Completed path
         else:
-            return 'bg-gray-300'  # Pending path
+            return 'bg-zinc-300'  # Pending path
     
     def set_step(self, step_index: int):
         """

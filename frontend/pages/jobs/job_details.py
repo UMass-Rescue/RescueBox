@@ -19,7 +19,7 @@ from rb.api.models import TaskSchema, RequestBody, ResponseBody
 
 from frontend.components.results import ResultsPreview
 from frontend.components.shared import create_navbar
-from frontend.components.shared.breadcrumbs import create_breadcrumbs, create_job_breadcrumbs
+from frontend.components.shared.breadcrumbs import create_breadcrumbs
 from frontend.database import get_job_db
 from frontend.pages.jobs.job_audit import create_audit_trail_button
 from frontend.pages.jobs.components import (
@@ -31,11 +31,46 @@ from frontend.pages.jobs.components import (
     render_compact_inputs_summary
 )
 from frontend.pages.jobs.job_utils import extract_job_fields
+from frontend.pages.chatbot.utils.ui_operations import UIOperations
 from frontend.utils.theme import apply_saved_theme
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+async def _maybe_render_pipeline_stepper(job_fields: dict) -> None:
+    """Show pipeline stepper when this job is one of at least two steps in the same run."""
+    uid = job_fields.get("uid")
+    if not uid:
+        return
+    # Prefer stored root; fall back to this job's uid so the SQL ``OR uid = ?`` can still find siblings
+    # when older rows only linked the second step to the first job id.
+    root = job_fields.get("pipelineRootJobId") or uid
+    try:
+        from frontend.utils.nicegui_storage import get_user_id_for_jobs
+
+        user_id = get_user_id_for_jobs()
+    except Exception:
+        user_id = None
+    if not user_id:
+        return
+    try:
+        job_db = get_job_db()
+        siblings = await job_db.list_jobs_for_pipeline_root(user_id, root)
+    except Exception as e:
+        logger.debug("Pipeline sibling load failed: %s", e)
+        return
+    if len(siblings) < 2:
+        return
+    from frontend.components.jobs.pipeline_run_banner import render_pipeline_run_banner
+
+    steps = [{"job_id": s.uid, "endpoint": s.endpoint or ""} for s in siblings]
+    canonical_root = siblings[0].uid if siblings else root
+    render_pipeline_run_banner(
+        root_job_id=canonical_root, current_job_id=uid, steps=steps
+    )
+
 
 @ui.page('/jobs/{job_id}')
 async def job_details_page(job_id: str):
@@ -54,7 +89,11 @@ async def job_details_page(job_id: str):
     #logger.info("Job details page accessed for job: %s", job_id)
     apply_saved_theme()
     create_navbar()
-    
+    from frontend.utils.demo_user_gate import require_demo_user_session
+
+    if not require_demo_user_session():
+        return
+
     # Load job data from local database
     try:
         #logger.debug("Fetching job data for job_id: %s", job_id)
@@ -77,29 +116,44 @@ async def job_details_page(job_id: str):
         endpoint = job_fields.get('endpoint')
         model_uid = job_fields.get('modelUid')
         
-        # Breadcrumb navigation
-        create_job_breadcrumbs(job_id, 'Details')
-        
+        # Breadcrumb navigation (single row; tabs distinguish Outputs vs Details)
+        create_breadcrumbs(
+            [
+                {'label': 'Jobs', 'link': '/jobs'},
+                {'label': f'Job {job_id}'},
+            ]
+        )
+
+        await _maybe_render_pipeline_stepper(job_fields)
+
         # Header (use shared page header component)
         try:
             from frontend.components.shared.page_header import render_page_header
 
             def _header_actions():
-                ui.link('Back to Jobs', '/jobs').classes('text-blue-600 hover:underline')
-
-            render_page_header(f'Job {job_id}', actions_callable=_header_actions)
+                ui.link('Back to Jobs', '/jobs').classes('text-indigo-600 hover:underline')
+            # actions_callable=_header_actions
+            render_page_header(f'Job Results')
         except Exception:
             with ui.row().classes('items-center justify-between mb-6'):
                 ui.label(f'Job {job_id}').classes('text-3xl font-bold')
                 with ui.row().classes('gap-2'):
-                    ui.link('Back to Jobs', '/jobs').classes('text-blue-600 hover:underline')
+                    ui.link('Back to Jobs', '/jobs').classes('text-indigo-600 hover:underline')
         
         # Tabs
         with ui.tabs().classes('w-full mb-4') as tabs:
             ui.tab('Outputs')
             ui.tab('Details')
         
-        tab_panels = ui.tab_panels(tabs, value='Outputs').classes('w-full max-w-full min-w-0')
+        # Failed jobs with no stored response: error text lives under Details with metadata;
+        # open that tab first and avoid duplicating a large "Outputs" error card.
+        _open_details = (
+            str(job_fields.get("status") or "") == "Failed"
+            and not job_fields.get("response")
+        )
+        tab_panels = ui.tab_panels(
+            tabs, value="Details" if _open_details else "Outputs"
+        ).classes("w-full max-w-full min-w-0")
         
         # Create API client
         api_client = httpx.AsyncClient()
@@ -114,12 +168,21 @@ async def job_details_page(job_id: str):
             with ui.tab_panel('Details').classes('w-full max-w-full min-w-0 !items-stretch'):
                 await render_job_details(api_client, job)
 
+        # Long outputs: show the end of the page after render (async previews may settle later).
+        try:
+            UIOperations.scroll_document_to_bottom()
+            for _delay in (0.12, 0.35, 0.75):
+                ui.timer(_delay, UIOperations.scroll_document_to_bottom, once=True)
+        except Exception:
+            pass
+
 async def render_job_outputs(api_client, job):
     """
     Render job outputs.
     
-    Displays job results using ResultsPreview component, or shows error status
-    if job failed or has no response.
+    Displays job results using ResultsPreview when a response exists. Failed jobs
+    with no stored response show a short pointer to the Details tab (failure text
+    is shown there with metadata).
     
     Args:
         api_client: API client instance for additional requests
@@ -154,7 +217,7 @@ async def render_job_outputs(api_client, job):
         # Re-call original inline for reliability (keeps old behavior)
         # Note: simplest fallback is to re-run original logic; for brevity reuse existing function
         # (This fallback code is intentionally minimal — full fallback handled above in previous iteration.)
-        with ui.card().classes('bg-white border border-gray-300 p-6'):
+        with ui.card().classes('bg-white border border-zinc-300 p-6'):
             ui.label('Results').classes('text-2xl font-bold')
 
 async def render_job_details(api_client, job):
@@ -192,7 +255,7 @@ async def render_job_details(api_client, job):
         logger.exception("Failed to render job details via component: %s", e)
         # Fallback inline rendering for compatibility
         try:
-            with ui.card().classes('bg-white border border-gray-300 p-6'):
+            with ui.card().classes('bg-white border border-zinc-300 p-6'):
                 with ui.column().classes('gap-4'):
                     ui.label('Job Information').classes('text-2xl font-bold')
                     render_job_metadata(job_fields)

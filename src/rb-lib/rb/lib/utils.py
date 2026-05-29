@@ -75,13 +75,13 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
         input_type = input_schema_input_key_to_input_type[key]
         match input_type:
             case InputType.FILE:
-                assert (
-                    input_type_hint is FileInput
-                ), f"For key {key}, the input type is InputType.FILE, but the TypeDict hint is {input_type_hint}. Change to FileInput."
+                assert issubclass(
+                    input_type_hint, FileInput
+                ), f"For key {key}, the input type is InputType.FILE, but the TypeDict hint is {input_type_hint}. Change to FileInput (or a subclass)."
             case NewFileInputType():
-                assert (
-                    input_type_hint is FileInput
-                ), f"For key {key}, the input type is NewFileInputType, but the TypeDict hint is {input_type_hint}. Change to FileInput."
+                assert issubclass(
+                    input_type_hint, FileInput
+                ), f"For key {key}, the input type is NewFileInputType, but the TypeDict hint is {input_type_hint}. Change to FileInput (or a subclass)."
             case InputType.DIRECTORY:
                 assert issubclass(
                     input_type_hint, DirectoryInput
@@ -141,7 +141,7 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
                 assert_never(parameter_type)
 
 
-# --- Filter helper utilities for plugins ----------------------------------
+# ---Pipeline Filter helper utilities for plugins ----------------------------------
 from typing import List, Optional, Tuple
 from pathlib import Path
 

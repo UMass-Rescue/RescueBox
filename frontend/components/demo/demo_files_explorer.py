@@ -56,6 +56,20 @@ _WALKTHROUGH_PRESETS: dict[str, _WalkthroughPreset] = {
 }
 
 
+def normalize_demo_walkthrough_query(value: Optional[str]) -> str:
+    """
+    Map a URL query value (e.g. ``?walkthrough=transcribe``) to a preset key for
+    :func:`render_demo_files_explorer` / :func:`render_walkthrough_samples_panel`.
+    Unknown or empty values become ``'all'`` (full demo tree).
+    """
+    if value is None or not str(value).strip():
+        return 'all'
+    k = str(value).strip().lower().replace('-', '_')
+    if k in _WALKTHROUGH_PRESETS:
+        return k
+    return 'all'
+
+
 def _resolved_root() -> Path:
     return DEMO_FILES_BROWSE_ROOT.expanduser().resolve()
 
@@ -140,11 +154,11 @@ def render_demo_files_explorer(
     with container:
         if not root.exists() or not root.is_dir():
             ui.label(f'Demo files folder is not available: {root}').classes(
-                'text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-4'
+                'text-zinc-900 bg-[#a2aaad]/15 border border-[#a2aaad] rounded-lg p-4'
             )
             ui.label(
                 'Create it or set RESCUEBOX_DEMO_FILES_DIR to an existing directory.'
-            ).classes('text-sm text-gray-600 mt-2')
+            ).classes('text-sm text-zinc-600 mt-2')
             return
 
         state = {'current': str(initial)}
@@ -154,10 +168,10 @@ def render_demo_files_explorer(
         def go_to(new_path: str) -> None:
             target = Path(new_path).resolve()
             if not _is_under_root(target, root):
-                ui.notify('Invalid path', type='negative')
+                ui.notify('Invalid path', type='negative', classes='rb-notify-505759')
                 return
             if not target.is_dir():
-                ui.notify('Not a folder', type='negative')
+                ui.notify('Not a folder', type='negative', classes='rb-notify-505759')
                 return
             state['current'] = str(target)
             refresh()
@@ -169,7 +183,7 @@ def render_demo_files_explorer(
                 state['current'] = str(initial)
                 cur = initial
             if not cur.is_dir():
-                ui.notify('Invalid folder', type='negative')
+                ui.notify('Invalid folder', type='negative', classes='rb-notify-505759')
                 state['current'] = str(initial)
                 cur = initial
 
@@ -200,19 +214,19 @@ def render_demo_files_explorer(
 
                     row = ui.row().classes(
                         'w-full min-w-0 items-center gap-2 py-2 px-2 rounded '
-                        'hover:bg-gray-100 cursor-pointer border border-gray-100'
+                        'hover:bg-zinc-100 cursor-pointer border border-zinc-100'
                     )
                     if is_dir:
                         row.on('click', lambda *a, d=str(path): go_to(d))
                         with row:
-                            ui.icon('folder', size='sm').classes('text-amber-600 shrink-0')
-                            ui.label(name).classes('text-sm font-medium text-gray-900 truncate flex-1 min-w-0')
-                            ui.icon('arrow_forward', size='sm').classes('text-gray-400 shrink-0')
+                            ui.icon('folder', size='sm').classes('text-yellow-500 shrink-0')
+                            ui.label(name).classes('text-sm font-medium text-zinc-900 truncate flex-1 min-w-0')
+                            ui.icon('arrow_forward', size='sm').classes('text-zinc-400 shrink-0')
                     else:
                         row.on('click', lambda *a, f=str(path): open_file(f))
                         with row:
-                            ui.icon('insert_drive_file', size='sm').classes('text-blue-600 shrink-0')
-                            ui.label(name).classes('text-sm text-gray-800 truncate flex-1 min-w-0')
+                            ui.icon('insert_drive_file', size='sm').classes('text-[#a2aaad] shrink-0')
+                            ui.label(name).classes('text-sm text-zinc-800 truncate flex-1 min-w-0')
 
         refresh()
 
@@ -221,11 +235,11 @@ def render_walkthrough_samples_panel(container: ui.element, walkthrough: str) ->
     """Section with title + filtered explorer for a walkthrough page."""
     with container:
         with ui.column().props('id=walkthrough-samples').classes('w-full scroll-mt-24 mt-6'):
-            # ui.label('Sample inputs & outputs').classes('text-xl font-bold mb-1')
+            ui.label('Sample inputs & outputs').classes('text-xl font-bold mb-1')
             ui.label(
                 'Browse folders and files for this demo. '
-            ).classes('text-sm text-gray-600 mb-3')
-            with ui.card().classes('w-full p-4 bg-gray-50 border border-gray-200 rounded-lg'):
+            ).classes('text-sm text-zinc-600 mb-3')
+            with ui.card().classes('w-full p-4 bg-zinc-50 border border-zinc-200 rounded-lg'):
                 render_demo_files_explorer(
                     ui.column().classes('w-full min-w-0'),
                     walkthrough=walkthrough,

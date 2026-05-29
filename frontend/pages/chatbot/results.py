@@ -41,55 +41,31 @@ class ResultRenderer:
             return 1
 
     @staticmethod
-    def create_success_header(
-        job_id: Optional[str] = None,
-        *,
-        pipeline_intermediate: bool = False,
-        pipeline_completed_step: Optional[int] = None,
-        pipeline_total_steps: Optional[int] = None,
-    ):
-        """Create the success header with icon and job info."""
-        try:
-            from frontend.components.results.success_header import render_success_header
-            render_success_header(
-                ui.column(),
-                job_id,
-                pipeline_intermediate=pipeline_intermediate,
-                pipeline_completed_step=pipeline_completed_step,
-                pipeline_total_steps=pipeline_total_steps,
-            )
-        except Exception:
-            with ui.row().classes('items-center gap-3 mb-6'):
-                ui.icon('celebration', size='2rem').classes('text-green-600')
-                with ui.column():
-                    if pipeline_intermediate and pipeline_completed_step and pipeline_total_steps:
-                        ui.label('Job complete').classes('text-2xl font-bold text-green-800')
-                        ui.label(
-                            f'Step {pipeline_completed_step} of {pipeline_total_steps} finished'
-                        ).classes('text-sm text-green-700')
-                    else:
-                        ui.label('Job Completed Successfully!').classes('text-2xl font-bold text-green-800')
-                    if job_id:
-                        ui.label(f'Job ID: {job_id}').classes('text-sm text-green-600 font-mono')
-
-    @staticmethod
     def create_result_card(result_type: str, result_title: str, result_count: int, on_expand, job_id: Optional[str] = None, **kwargs):
         """Create the main result card with expand functionality."""
         try:
             from frontend.components.results.result_card import render_result_card
-            render_result_card(ui.column(), result_type, result_title, result_count, on_expand, job_id=job_id)
+            result_wrap = ui.column().classes('w-full')
+            render_result_card(
+                result_wrap,
+                result_type,
+                result_title,
+                result_count,
+                on_expand,
+                job_id=job_id,
+            )
         except Exception:
             # Fallback to inline behavior if component fails to load
-            with ui.card().classes('bg-white border border-green-200 rounded-xl hover:shadow-lg transition-all duration-300 cursor-pointer group'):
+            with ui.card().classes('bg-white border border-indigo-200 rounded-xl hover:shadow-lg transition-all duration-300 cursor-pointer group'):
                 with ui.row().classes('p-4 items-center justify-between'):
                     with ui.column().classes('flex-1'):
                         with ui.row().classes('items-center gap-3'):
                             result_icon = ResultRenderer.get_result_icon(result_type)
-                            ui.icon(result_icon, size='1.5rem').classes('text-green-600')
+                            ui.icon(result_icon, size='1.5rem').classes('text-indigo-600')
                             with ui.column():
-                                ui.label(result_title).classes('font-semibold text-gray-800')
-                                ui.label(f'{result_count} item{"s" if result_count != 1 else ""}').classes('text-sm text-gray-500')
-                    expand_btn = ui.button('View Details', icon='expand_more').classes('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors')
+                                ui.label(result_title).classes('font-semibold text-zinc-800')
+                                ui.label(f'{result_count} item{"s" if result_count != 1 else ""}').classes('text-sm text-zinc-500')
+                    expand_btn = ui.button('View Details', icon='expand_more').classes('rb-brand-primary text-white px-4 py-2 rounded-lg transition-colors')
                     expand_btn.on_click(on_expand)
                     # Inline per-result View Job button (if job_id available)
                     if job_id:
@@ -100,7 +76,7 @@ class ResultRenderer:
     def render_view_job_button(job_id: str):
         """Render an inline 'View Job' button for a given job id."""
         try:
-            ui.button('View Job', on_click=lambda jid=job_id: ui.navigate.to(f"/jobs/{jid}")).classes('ml-2 bg-blue-500 text-white')
+            ui.button('View Job', on_click=lambda jid=job_id: ui.navigate.to(f"/jobs/{jid}")).classes('ml-2 rb-brand-primary text-white')
         except Exception as e:
             logger.debug("Failed to render View Job button: %s", e)
 
@@ -109,13 +85,13 @@ class ResultRenderer:
         """Show an error message with optional debug information."""
         try:
             from frontend.components.errors.error_display import render_error_message
-            # render into a small inline column so callers can place it
-            render_error_message(ui.column(), message, details=details, debug_data=debug_data)
+            err_wrap = ui.column().classes('w-full')
+            render_error_message(err_wrap, message, details=details, debug_data=debug_data)
         except Exception:
             # fallback inline
             ui.label(f'❌ {message}').classes('text-red-600 font-semibold')
             if details:
-                ui.label(details).classes('text-gray-600 text-sm mt-2')
+                ui.label(details).classes('text-zinc-600 text-sm mt-2')
             if debug_data is not None:
                 with ui.expansion('Details').classes('mt-4'):
                     ui.label('Debug Information:').classes('font-semibold mb-2')
@@ -129,12 +105,12 @@ class ResultRenderer:
         # Validation
         if not root or not isinstance(root, dict):
             logger.error("Cannot show result popup: root is empty or invalid")
-            ui.notify('Cannot display result details: invalid data format', type='negative')
+            ui.notify('Cannot display result details: invalid data format', type='negative', classes='rb-notify-505759')
             return
 
         if not root.get('output_type'):
             logger.error("Cannot show result popup: missing output_type in root")
-            ui.notify('Cannot display result details: missing result type', type='negative')
+            ui.notify('Cannot display result details: missing result type', type='negative', classes='rb-notify-505759' )
             return
 
         try:
@@ -147,7 +123,9 @@ class ResultRenderer:
             with ui.dialog() as result_dialog:
                 with ui.card().classes(FormConfig.RESULT_DETAIL_CLASSES):
                     # Header
-                    with ui.row().classes('bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 items-center'):
+                    with ui.row().classes(
+                        "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white p-4 items-center"
+                    ):
                         ui.icon(ResultRenderer.get_result_icon(result_type), size='2rem').classes('mr-3')
                         ui.label(title).classes('text-xl font-bold flex-1')
                         ui.button(icon='close', on_click=result_dialog.close).classes('text-white hover:bg-white/20 rounded-full p-1')
@@ -277,8 +255,8 @@ class TextResultStrategy(ResultRenderingStrategy):
                 ResultsPreview.render(ui.column(), response_data)
             else:
                 # Simple text rendering
-                ui.label('📄 Text Result').classes('text-lg font-semibold mb-2')
-                ui.label(root.get('value', 'No content')).classes('text-gray-700 whitespace-pre-wrap')
+                ui.label('Text Result').classes('text-lg font-semibold mb-2')
+                ui.label(root.get('value', 'No content')).classes('text-zinc-700 whitespace-pre-wrap')
 
 
 class FileResultStrategy(ResultRenderingStrategy):
@@ -297,7 +275,7 @@ class FileResultStrategy(ResultRenderingStrategy):
             else:
                 # Simple file rendering
                 ui.label('📁 File Result').classes('text-lg font-semibold mb-2')
-                ui.label(f"Path: {root.get('path', 'Unknown')}").classes('text-gray-700')
+                ui.label(f"Path: {root.get('path', 'Unknown')}").classes('text-zinc-700')
 
 
 class ImageResultStrategy(ResultRenderingStrategy):
@@ -310,7 +288,7 @@ class ImageResultStrategy(ResultRenderingStrategy):
         """Render image results."""
         with container:
             ui.label('🖼️ Image Result').classes('text-lg font-semibold mb-2')
-            ui.label(f"Image: {root.get('filename', 'Unknown')}").classes('text-gray-700')
+            ui.label(f"Image: {root.get('filename', 'Unknown')}").classes('text-zinc-700')
 
 
 class DefaultResultStrategy(ResultRenderingStrategy):
@@ -323,7 +301,7 @@ class DefaultResultStrategy(ResultRenderingStrategy):
         """Render unknown result types with a generic display."""
         with container:
             ui.label('❓ Unknown Result Type').classes('text-lg font-semibold mb-2')
-            ui.label(f"Type: {root.get('output_type', 'unknown')}").classes('text-gray-700')
+            ui.label(f"Type: {root.get('output_type', 'unknown')}").classes('text-zinc-700')
             ui.code(str(root), language='json').classes('text-xs mt-2')
 
 

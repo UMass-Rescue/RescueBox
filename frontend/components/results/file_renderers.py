@@ -30,6 +30,71 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# Set on Face Match find responses so we can show query vs gallery side-by-side.
+_FACEMATCH_QUERY_PATH_KEY = "query_image_path"
+
+
+def _is_facematch_find_batch(files) -> bool:
+    if not files:
+        return False
+    for f in files:
+        md = getattr(f, "metadata", None) or {}
+        if not md.get(_FACEMATCH_QUERY_PATH_KEY):
+            return False
+    return True
+
+
+def _render_facematch_find_batch(container, files) -> None:
+    """Show each gallery hit next to the query photo (backend sets ``query_image_path`` metadata)."""
+    with container:
+        with ui.card().classes(
+            "w-full min-w-0 max-w-full p-4 bg-transparent border-0 shadow-none"
+        ).props("flat"):
+            with ui.column().classes("gap-3 w-full min-w-0"):
+                ui.label(
+                    f"Finc face ({len(files)}) — left: find photo; right: match from your database"
+                ).classes("font-bold text-sm")
+                for file_info in files:
+                    md = getattr(file_info, "metadata", None) or {}
+                    qpath = md.get(_FACEMATCH_QUERY_PATH_KEY)
+                    mpath = file_info.path
+                    title = file_info.title or ""
+                    with ui.card().classes("bg-white p-3 w-full border border-zinc-200"):
+                        if title:
+                            ui.label(title).classes("text-sm font-medium text-zinc-800 mb-2")
+                        with ui.row().classes("w-full gap-4 items-start flex-wrap"):
+                            with ui.column().classes("gap-1 min-w-[140px] flex-1"):
+                                ui.label("Face Matched").classes(
+                                    "text-xs font-semibold text-zinc-600"
+                                )
+                                if qpath:
+                                    try:
+                                        ui.image(qpath).classes(
+                                            "w-full max-w-md max-h-64 object-contain rounded border border-zinc-100 cursor-pointer"
+                                        ).on("click", lambda p=qpath: open_file(p))
+                                    except Exception:
+                                        ui.label(str(qpath)).classes("text-xs font-mono break-all")
+                                    ui.button(
+                                        "open matched image",
+                                        on_click=lambda p=qpath: open_file(p),
+                                    ).classes("text-xs").props("flat dense color=primary")
+                                else:
+                                    ui.label("—").classes("text-xs text-zinc-400")
+                            with ui.column().classes("gap-1 min-w-[140px] flex-1"):
+                                ui.label("Match from collection").classes(
+                                    "text-xs font-semibold text-zinc-600"
+                                )
+                                try:
+                                    ui.image(mpath).classes(
+                                        "w-full max-w-md max-h-64 object-contain rounded border border-zinc-100 cursor-pointer"
+                                    ).on("click", lambda p=mpath: open_file(p))
+                                except Exception:
+                                    ui.label(str(mpath)).classes("text-xs font-mono break-all")
+                                ui.button(
+                                    "Open uploaded image",
+                                    on_click=lambda p=mpath: open_file(p),
+                                ).classes("text-xs").props("flat dense color=primary")
+
 
 def render_file(container, response):
     """
@@ -93,20 +158,30 @@ def render_batch_file(container, response):
 
     logger.debug("Rendering batch file result with %d files", len(response.files))
     files = response.files
-    
+
+    if _is_facematch_find_batch(files):
+        _render_facematch_find_batch(container, files)
+        logger.debug("Batch file result rendered (face match find layout)")
+        return
+
     # Check if any files have metadata
     has_metadata = any(f.metadata for f in files)
-    
+
     with container:
-        with ui.card().classes('bg-blue-50 border border-blue-300 p-4'):
-            with ui.column().classes('gap-2'):
-                ui.label(f'📦 Batch File Result ({len(files)} files)').classes('font-bold')
-                
-                if has_metadata:
-                    _render_batch_file_with_metadata(container, files)
-                else:
-                    _render_batch_file_grid(container, files)
-    
+        with ui.card().classes(
+            'w-full min-w-0 max-w-full p-4 bg-transparent border-0 shadow-none'
+        ).props('flat'):
+            body_col = ui.column().classes('gap-2 w-full min-w-0')
+            with body_col:
+                ui.label(f'Batch File Result ({len(files)} files)').classes('font-bold').classes(
+                    'text-[#505759]'
+                )
+
+            if has_metadata:
+                _render_batch_file_with_metadata(body_col, files)
+            else:
+                _render_batch_file_grid(body_col, files)
+
     logger.debug("Batch file result rendered successfully")
 
 
@@ -163,11 +238,11 @@ def _render_batch_file_with_metadata(container, files):
     except Exception:
         # Fallback to inline creation if component fails
         with container:
-            table_card = ui.card().classes('bg-white p-4')
+            table_card = ui.card().classes('bg-white p-4 w-full min-w-0 max-w-full')
             with table_card:
-                table_column = ui.column()
+                table_wrap = ui.column().classes('w-full min-w-0 overflow-x-auto')
                 create_sortable_table(
-                    table_column,
+                    table_wrap,
                     columns,
                     rows,
                     row_key='path',
@@ -210,5 +285,5 @@ def _render_batch_file_grid(container, files):
                                 ui.button(
                                     os.path.basename(file_path),
                                     on_click=lambda path=file_path: open_file(path)
-                                ).classes('text-xs truncate text-blue-600 hover:underline').props('flat')
+                                ).classes('text-xs truncate text-indigo-600 hover:underline').props('flat')
 

@@ -76,8 +76,11 @@ def render_file_card(container: ui.element, response: Any) -> None:
                     ui.label(display_title).classes('text-lg font-semibold')
                     with ui.row().classes('gap-2'):
                         if path:
-                            ui.button('Open File', on_click=lambda p=path: _open_file(p)).classes('bg-blue-600 text-white px-3 py-1')
-                            ui.button('Open Folder', on_click=lambda p=path: _open_folder(p)).classes('bg-gray-200 px-3 py-1')
+                            ui.button('Open File', on_click=lambda p=path: _open_file(p)).classes('rb-brand-primary text-white px-3 py-1')
+                            ui.button('Open Folder', on_click=lambda p=path: _open_folder(p)).classes(
+                                'border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 '
+                                'text-zinc-800 px-3 py-1 rounded-lg text-sm font-medium'
+                            )
 
                 if file_type and getattr(file_type, 'value', str(file_type)) in ('img', 'image', 'png', 'jpg', 'jpeg'):
                     try:
@@ -86,7 +89,7 @@ def render_file_card(container: ui.element, response: Any) -> None:
                         logger.debug("Could not preview image at path: %s", path)
                 else:
                     if path:
-                        ui.label(path).classes('text-sm font-mono mt-2 text-gray-600')
+                        ui.label(path).classes('text-sm font-mono mt-2 text-zinc-600')
     except Exception as e:
         logger.exception("render_file_card error: %s", e)
         with container:

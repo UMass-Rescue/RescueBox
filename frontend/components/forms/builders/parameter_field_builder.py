@@ -122,7 +122,7 @@ async def create_parameter_field(
     with ui.column().classes('gap-2'):
         if subtitle:
             ui.label(label).classes('font-semibold')
-            ui.label(subtitle).classes('text-sm text-gray-500')
+            ui.label(subtitle).classes('text-sm text-zinc-500')
         else:
             ui.label(label).classes('font-semibold')
 

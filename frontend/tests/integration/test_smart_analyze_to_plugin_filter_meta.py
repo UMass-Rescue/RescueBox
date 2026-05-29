@@ -4,6 +4,7 @@ from pathlib import Path
 from frontend.database.file_filter_store import create_filter
 from frontend.pages.chatbot.utils.database_service import DatabaseService
 from frontend.database.job_db import init_database, get_job_db
+from rb.api.models import RequestBody
 
 
 @pytest.mark.asyncio
@@ -20,10 +21,10 @@ async def test_filter_meta_flow(tmp_path):
     fid = create_filter(name="t", input_dir=str(input_dir), paths=[str(f)], filter_type="input", owner_id="u1")
 
     # Simulate a request body coming from form submission with _meta.filterId
-    request_body = {
-        "inputs": {},
-        "parameters": {"_meta": {"filterId": fid}}
-    }
+    request_body = RequestBody(
+        inputs={},
+        parameters={"_meta": {"filterId": fid}}
+    )
 
     # Call create_and_track_job which should create job with filterId stored
     res = await DatabaseService.create_and_track_job(request_body, endpoint="image_summary/summarize-images", task_schema={})

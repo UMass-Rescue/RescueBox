@@ -73,7 +73,3 @@ def download_all_wiki_pages():
             wiki_data[page_name] = markdown_text
 
     return wiki_data
-
-
-# Example Usage
-all_wiki_content = download_all_wiki_pages()

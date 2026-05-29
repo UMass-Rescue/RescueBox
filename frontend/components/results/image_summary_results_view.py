@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from nicegui import ui
 
 from frontend.components.results.results_utils import open_file
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -53,6 +54,24 @@ def _ensure_image_summary_modal_css() -> None:
             font-size: 1rem !important;
             line-height: 1.5 !important;
         }
+        /* Job results — image summarize search box (Medium Gray #505759, not primary maroon) */
+        .rb-image-summary-search-field.q-field--outlined .q-field__control:before {
+            border-color: #505759 !important;
+        }
+        .rb-image-summary-search-field.q-field--outlined:hover .q-field__control:before {
+            border-color: #505759 !important;
+        }
+        .rb-image-summary-search-field.q-field--focused .q-field__control:before {
+            border-color: #505759 !important;
+        }
+        .rb-image-summary-search-field .q-field__label,
+        .rb-image-summary-search-field.q-field--float .q-field__label {
+            color: #505759 !important;
+        }
+        .rb-image-summary-search-field .q-field__marginal .q-icon,
+        .rb-image-summary-search-field .q-field__append .q-icon {
+            color: #505759 !important;
+        }
         </style>
         ''',
         shared=True,
@@ -61,16 +80,16 @@ def _ensure_image_summary_modal_css() -> None:
 # Markdown body sizing: do not rely on `prose` alone (typography plugin may be absent; Quasar can keep small inner text).
 # Use !text-* so Quasar / dialog defaults cannot override paragraph size.
 _MD_MODAL = (
-    'max-w-none text-gray-900 '
+    'max-w-none text-zinc-900 '
     '[&_p]:!text-xl [&_p]:!leading-relaxed [&_p]:my-3 '
     '[&_li]:!text-xl [&_li]:!leading-relaxed [&_ul]:my-3 [&_ol]:my-3 '
     '[&_blockquote]:!text-lg [&_blockquote]:border-l-4 [&_blockquote]:pl-4 '
-    '[&_pre]:!text-base [&_pre]:leading-relaxed [&_pre]:whitespace-pre-wrap [&_pre]:p-3 [&_pre]:bg-gray-100 [&_pre]:rounded '
+    '[&_pre]:!text-base [&_pre]:leading-relaxed [&_pre]:whitespace-pre-wrap [&_pre]:p-3 [&_pre]:bg-zinc-100 [&_pre]:rounded '
     '[&_code]:!text-base [&_h1]:!text-3xl [&_h2]:!text-2xl [&_h3]:!text-xl '
     '[&_strong]:font-semibold [&_div]:!text-xl'
 )
 _MD_INLINE = (
-    'max-w-none text-gray-800 '
+    'max-w-none text-zinc-800 '
     '[&_p]:text-base [&_p]:leading-relaxed [&_p]:my-2 '
     '[&_li]:text-base [&_li]:leading-relaxed '
     '[&_pre]:text-sm [&_pre]:whitespace-pre-wrap [&_code]:text-sm'
@@ -134,6 +153,14 @@ def augment_response_model_dump_for_image_summary(
     return out
 
 
+def _open_source_image(image_path: str) -> None:
+    """Open the source image via the shared viewer (served URL / system handler)."""
+    if not image_path or not os.path.isfile(image_path):
+        ui.notify('Image file is not available on disk.', type='warning', classes='rb-notify-505759')
+        return
+    open_file(image_path)
+
+
 def _open_image_summary_markdown_modal(file_info: Dict[str, Any]) -> None:
     """Full summary in a right-docked panel so thumbnails on the left stay visible beside it."""
     _ensure_image_summary_modal_css()
@@ -146,7 +173,7 @@ def _open_image_summary_markdown_modal(file_info: Dict[str, Any]) -> None:
         dialog.style('width: min(520px, 48vw); max-width: 100vw;')
         with ui.card().classes(
             'w-full h-full min-h-0 flex flex-col p-6 rounded-none shadow-2xl '
-            'border-l border-gray-200 bg-white'
+            'border-l border-zinc-200 bg-white'
         ):
             ui.label(name).classes('text-2xl font-semibold shrink-0 mb-4')
             with ui.column().classes(
@@ -156,7 +183,7 @@ def _open_image_summary_markdown_modal(file_info: Dict[str, Any]) -> None:
             with ui.row().classes('gap-2 mt-4 shrink-0 justify-end flex-wrap'):
                 if path_full:
                     ui.button('Open raw file', on_click=lambda p=path_full: open_file(p)).props('flat outline')
-                ui.button('Close', on_click=dialog.close)
+                ui.button('Close', on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
     dialog.open()
 
 
@@ -179,16 +206,31 @@ def source_image_path_from_summary(summary_txt_path: str, input_dir: str) -> Opt
 def render_image_summary_file_list(container: ui.element, payload: Dict[str, Any], title: str) -> None:
     """
     Searchable table-like layout with a thumbnail column for each summary row.
+
+    Prefer ``file_pairs`` (``input_path`` / ``output_path``) from the plugin when present;
+    otherwise fall back to ``input_dir`` + filename heuristic.
     """
     input_dir = str(payload.get('input_dir') or '')
     file_paths: List[str] = [p for p in (payload.get('files') or []) if isinstance(p, str)]
+    out_to_in: Dict[str, str] = {}
+    raw_pairs = payload.get('file_pairs')
+    if isinstance(raw_pairs, list):
+        for pr in raw_pairs:
+            if not isinstance(pr, dict):
+                continue
+            op = pr.get('output_path')
+            ip = pr.get('input_path')
+            if isinstance(op, str) and isinstance(ip, str) and op.strip():
+                out_to_in[op] = ip
 
     file_data: List[Dict[str, Any]] = []
     for file_path in file_paths:
         try:
             if os.path.exists(file_path):
                 content = Path(file_path).read_text(encoding='utf-8')
-                img = source_image_path_from_summary(file_path, input_dir) if input_dir else None
+                img = out_to_in.get(file_path)
+                if not img and input_dir:
+                    img = source_image_path_from_summary(file_path, input_dir)
                 file_data.append({
                     'path': file_path,
                     'filename': os.path.basename(file_path),
@@ -203,31 +245,38 @@ def render_image_summary_file_list(container: ui.element, payload: Dict[str, Any
 
     if not file_data:
         with container:
-            ui.label('No files found or all files are empty').classes('text-red-600')
+            ui.label('No valid files found').classes('text-red-600')
         return
 
+    _ensure_image_summary_modal_css()
+
     with container:
-        with ui.card().classes('bg-green-50 border border-green-300 p-4'):
+        summary_shell = ui.card().classes('w-full p-4')
+        with summary_shell:
             with ui.column().classes('gap-2 w-full min-w-0'):
-                ui.label(f'📝 {title} ({len(file_data)} files)').classes('text-lg font-bold')
+                ui.label(f'{title} ({len(file_data)} files)').classes(
+                    'text-lg font-bold text-zinc-900'
+                )
 
                 with ui.element('div').classes(
-                    'w-full rounded-lg border-2 border-blue-400 bg-white p-3 shadow-sm'
+                    'w-full rounded-lg border-2 border-[#505759] bg-white p-3 shadow-sm'
                 ):
                     with ui.row().classes('items-center gap-2 mb-2'):
-                        ui.icon('search', size='1.5rem').classes('text-blue-600 shrink-0')
+                        ui.icon('search', size='1.5rem').classes('text-[#505759] shrink-0')
                         ui.label('Search').classes(
-                            'text-lg font-bold text-blue-900 tracking-tight'
+                            'text-lg font-bold text-[#505759] tracking-tight'
                         )
                     search_input = ui.input(
                         placeholder='Type to filter rows by description (e.g. blue car)',
                         value='',
-                    ).classes('w-full').props('clearable outlined dense color=primary')
+                    ).classes('w-full rb-image-summary-search-field').props(
+                        'clearable outlined dense'
+                    )
 
                 list_container = ui.column().classes('w-full min-w-0 gap-0')
                 result_count_label = ui.label(
                     f'Showing {len(file_data)} of {len(file_data)} files'
-                ).classes('text-sm text-gray-600')
+                ).classes('text-sm text-zinc-600')
 
                 def render_rows(filtered: List[Dict[str, Any]]) -> None:
                     list_container.clear()
@@ -235,41 +284,55 @@ def render_image_summary_file_list(container: ui.element, payload: Dict[str, Any
                         # Same 3-column grid as data rows so headers align; narrow viewports scroll horizontally.
                         with ui.element('div').classes('w-full min-w-0 overflow-x-auto'):
                             with ui.element('div').classes(
-                                'grid min-w-[720px] w-full grid-cols-[12rem_12rem_minmax(0,1fr)] '
-                                'gap-3 items-center pb-1 mb-1 border-b border-gray-200 text-xs font-semibold text-gray-600'
+                                'grid min-w-[720px] w-full grid-cols-[12rem_minmax(0,1fr)] '
+                                'gap-3 items-center pb-1 mb-1 border-b border-zinc-200 text-xs font-semibold text-zinc-600'
                             ):
                                 ui.label('Image').classes('text-center')
-                                ui.label('Summary file').classes('min-w-0')
-                                ui.label('Description').classes('min-w-0')
+                                with ui.element('div').classes(
+                                    'min-w-0 grid grid-cols-[12rem_minmax(0,1fr)] gap-3 items-center'
+                                ):
+                                    ui.label('Summary file').classes('min-w-0')
+                                    ui.label('Description').classes('min-w-0')
                         for file_info in filtered:
                             full_text = file_info['content']
                             fi_snapshot = dict(file_info)
+                            img_path = file_info.get('image_path') or ''
 
                             with ui.element('div').classes('w-full min-w-0 overflow-x-auto'):
                                 with ui.element('div').classes(
-                                    'grid min-w-[720px] w-full grid-cols-[12rem_12rem_minmax(0,1fr)] '
-                                    'gap-3 items-start py-2 border-b border-gray-100 '
-                                    'cursor-pointer hover:bg-white/80 rounded'
-                                ).on(
-                                    'click',
-                                    lambda fi=fi_snapshot: _open_image_summary_markdown_modal(fi),
+                                    'grid min-w-[720px] w-full grid-cols-[12rem_minmax(0,1fr)] '
+                                    'gap-3 items-start py-2 border-b border-zinc-100 rounded'
                                 ):
-                                    with ui.column().classes('w-48 shrink-0 items-center'):
-                                        if file_info.get('image_path'):
-                                            ui.image(file_info['image_path']).classes(
-                                                'w-48 h-48 object-cover rounded border border-gray-200 shadow-sm'
+                                    with ui.column().classes(
+                                        'w-48 shrink-0 items-center justify-start gap-1'
+                                    ):
+                                        if img_path:
+                                            ui.image(img_path).classes(
+                                                'w-48 h-48 object-cover rounded border border-zinc-200 '
+                                                'shadow-sm cursor-pointer hover:ring-2 hover:ring-[#505759] '
+                                                'transition-shadow'
+                                            ).on('click', lambda p=img_path: _open_source_image(p))
+                                            ui.label('Click image to open').classes(
+                                                'text-[10px] uppercase tracking-wide text-zinc-500'
                                             )
                                         else:
                                             ui.icon('image_not_supported', size='3rem').classes(
-                                                'text-gray-400 mt-10'
+                                                'text-zinc-400 mt-10'
                                             )
-                                    ui.label(file_info['filename']).classes(
-                                        'min-w-0 text-sm font-mono break-all self-start pt-1'
-                                    )
-                                    with ui.column().classes(
-                                        'min-w-0 border-l border-gray-200 pl-2 max-h-56 overflow-y-auto'
+                                    with ui.element('div').classes(
+                                        'min-w-0 grid grid-cols-[12rem_minmax(0,1fr)] gap-3 items-start '
+                                        'cursor-pointer hover:bg-white/80 rounded p-1 -m-1'
+                                    ).on(
+                                        'click',
+                                        lambda fi=fi_snapshot: _open_image_summary_markdown_modal(fi),
                                     ):
-                                        ui.markdown(full_text or '_(empty)_').classes(_MD_INLINE)
+                                        ui.label(file_info['filename']).classes(
+                                            'min-w-0 text-sm font-mono break-all self-start pt-1'
+                                        )
+                                        with ui.column().classes(
+                                            'min-w-0 border-l border-zinc-200 pl-2 max-h-56 overflow-y-auto'
+                                        ):
+                                            ui.markdown(full_text or '_(empty)_').classes(_MD_INLINE)
 
                 def update_view(search_term: str = '') -> None:
                     search_lower = search_term.lower().strip()
@@ -290,5 +353,6 @@ def render_image_summary_file_list(container: ui.element, payload: Dict[str, Any
                 search_input.on('blur', lambda: update_view(search_input.value))
 
                 ui.label(
-                    'Tip: Search the description text or Click a row for the full summary in a markdown dialog.'
-                ).classes('text-sm text-gray-500 mt-1')
+                    'Tip: Search the description text. Click the image to open it in the viewer; '
+                    'click the summary file or description for the full text summary.'
+                ).classes('text-sm text-zinc-500 mt-1')

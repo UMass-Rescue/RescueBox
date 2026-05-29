@@ -1,13 +1,19 @@
-from nicegui import ui
-import logging
+import asyncio
 from typing import Callable
-from frontend.components.chat import create_history_panel
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from nicegui import ui
+
+from frontend.components.chat.panels.history_panel import (
+    create_history_panel,
+    refresh_conversations,
+)
+from frontend.design_tokens import Design
 
 
-def show_history_dialog(on_conversation_select: Callable[[str], None], on_rerun_tool: Callable[[str], None]) -> ui.dialog:
+def show_history_dialog(
+    on_conversation_select: Callable[[str], None],
+    on_rerun_tool: Callable[[str], None],
+) -> ui.dialog:
     """
     Show a modal dialog containing the conversation history panel.
 
@@ -18,12 +24,33 @@ def show_history_dialog(on_conversation_select: Callable[[str], None], on_rerun_
     Returns:
         dialog: the NiceGUI dialog element (opened)
     """
-    with ui.dialog() as dialog, ui.card().classes('w-full max-w-2xl max-h-[80vh]'):
-        ui.label('Chat History').classes('text-2xl font-bold mb-4')
-        create_history_panel(
-            on_conversation_select=lambda conv_id: [on_conversation_select(conv_id), dialog.close()],
-            on_rerun_tool=lambda msg_id: [on_rerun_tool(msg_id), dialog.close()]
-        )
+    panel_ref: list = [None]
+
+    def _refresh() -> None:
+        p = panel_ref[0]
+        if p is not None:
+            asyncio.create_task(refresh_conversations(p))
+
+    with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_NARROW):
+        with ui.row().classes(Design.PANEL_SHELL_HEADER):
+            ui.label('Chat History').classes(Design.PANEL_SHELL_HEADER_TITLE)
+            with ui.row().classes('gap-2 items-center'):
+                ui.button(icon='close', on_click=dialog.close, color=None).props(
+                    'flat round dense'
+                ).classes(Design.PANEL_SHELL_HEADER_ICON)
+
+        with ui.column().classes(f'{Design.PANEL_SHELL_BODY} flex flex-col min-h-0 max-h-[60vh]'):
+            panel_ref[0] = create_history_panel(
+                on_conversation_select=lambda conv_id: [
+                    on_conversation_select(conv_id),
+                    dialog.close(),
+                ],
+                on_rerun_tool=lambda msg_id: [
+                    on_rerun_tool(msg_id),
+                    dialog.close(),
+                ],
+                show_title=False,
+            )
+
     dialog.open()
     return dialog
-

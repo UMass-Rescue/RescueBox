@@ -70,7 +70,7 @@ class ResultRouter:
         if content:
             # Add the assistant message first
             with chat_container:
-                ui.chat_message(content, name='Assistant', avatar='🤖')
+                ui.chat_message(content, name='Assistant')
 
         # Show tool picker
         async def on_tool_selected(endpoint: str, arguments: dict):

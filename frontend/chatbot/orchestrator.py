@@ -15,7 +15,7 @@ async def submit_job_orchestrator(api_wrapper, http_client, config, request_body
     Orchestrate job submission using api_helpers.post_job and normalize the response
     into a ResponseBody pydantic model.
     """
-    logger.info("Orchestrating job submission to %s", api_endpoint)
+    logger.debug("Orchestrating job submission to %s", api_endpoint)
     try:
         response_data = await post_job(api_wrapper, http_client, config, api_endpoint, request_body_dict)
     except httpx.HTTPStatusError as e:

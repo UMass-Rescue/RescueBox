@@ -45,7 +45,6 @@ Example Log Format:
 
 import logging
 import contextvars
-import os
 from typing import Optional, Dict, Any
 from datetime import datetime
 
@@ -207,75 +206,20 @@ def configure_logging_with_context(log_file_path: Optional[str] = None, log_leve
         file_handler.addFilter(ContextFilter())
         root_logger.addHandler(file_handler)
     
-    # Ensure handler levels respect DEBUG when requested either via parameter or environment
-    try:
-        env_level = os.getenv('LOG_LEVEL', '').upper()
-    except Exception:
-        env_level = ''
+    # When DEBUG is requested (config or LOG_LEVEL=DEBUG), keep root verbose but quiet known-noisy loggers.
+    from frontend.utils.logging_config import (
+        apply_per_logger_levels_for_verbose_root,
+        effective_debug_requested,
+    )
 
-    if log_level.upper() == 'DEBUG' or env_level == 'DEBUG':
+    if effective_debug_requested(log_level):
         root_logger.setLevel(logging.DEBUG)
         for h in root_logger.handlers:
             try:
                 h.setLevel(logging.DEBUG)
             except Exception:
                 pass
-
-        # Also ensure existing module loggers do not block DEBUG by resetting their level to NOTSET.
-        try:
-            mgr = getattr(logging, 'manager', None) or getattr(logging.getLogger(), 'manager', None)
-            if mgr is not None and hasattr(mgr, 'loggerDict'):
-                for name, logger_obj in list(mgr.loggerDict.items()):
-                    # loggerObj can be a PlaceHolder in some setups; ensure it's Logger
-                    if isinstance(logger_obj, logging.Logger):
-                        try:
-                            logger_obj.setLevel(logging.NOTSET)
-                        except Exception:
-                            pass
-            for noisy in (
-                'socketio.server',
-                'socketio',
-                'engineio.server',
-                'engineio',
-                # FUSE / python-fuse: getattr/getxattr DEBUG noise on UFDR mounts
-                'fuse',
-                'fuse.log-mixin',
-                'ufdr_mounter.utils.ufdr_mount_unix',
-                # Chatbot page load / conversation init (verbose INFO+DEBUG)
-                'frontend.pages.chatbot',
-                'frontend.database.chat_history_db',
-                'frontend.utils.nicegui_storage',
-                # HTTP client stack (httpx/httpcore DEBUG)
-                'httpcore',
-                'httpcore.http11',
-                'httpx',
-                # Chatbot package (schema_utils, utils) — not under pages.chatbot
-                'frontend.chatbot',
-                # Forms / validators / file browser (normal-path INFO+DEBUG)
-                'frontend.components.forms',
-                'frontend.components.results.tool_selection_card',
-                'frontend.utils.validators',
-                'frontend.utils.file_browser',
-                'nicegui',
-                # Per-module logger.setLevel(DEBUG) overrides parents — force quiet explicitly
-                'frontend.pages.chatbot.chatbot_forms',
-                'frontend.pages.chatbot.chatbot',
-                'frontend.pages.chatbot.state.state_manager',
-                'frontend.pages.chatbot.utils.form_validator',
-                'frontend.components.forms.form_generator',
-                'frontend.components.forms.form_handlers',
-                'frontend.components.forms.builders.input_field_builder',
-                'frontend.components.forms.case_notes_dialog',
-            ):
-                logging.getLogger(noisy).setLevel(logging.WARNING)
-            # Allow pipeline / metadata-filter diagnostics (otherwise hidden by parent WARNING)
-            logging.getLogger(
-                'frontend.pages.chatbot.utils.job_submission_orchestrator'
-            ).setLevel(logging.INFO)
-            logging.getLogger('frontend.chatbot.multi_tool_handler').setLevel(logging.INFO)
-        except Exception:
-            # best-effort; don't fail logging setup if introspection fails
-            pass
+        apply_per_logger_levels_for_verbose_root(log_level)
 
     return file_handler
 

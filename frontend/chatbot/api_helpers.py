@@ -11,6 +11,19 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def rescuebox_user_headers() -> Dict[str, str]:
+    """Headers so backend plugins (e.g. face-match) scope data to the logged-in RescueBox user."""
+    try:
+        from frontend.utils.nicegui_storage import get_user_id_for_jobs, get_user_id
+
+        uid = get_user_id_for_jobs() or get_user_id()
+        if uid:
+            return {"X-RescueBox-User-Id": uid}
+    except Exception:
+        pass
+    return {}
+
+
 async def resolve_json_response(api_wrapper, response) -> Dict[str, Any]:
     """
     Robustly resolve a response's JSON payload handling awaitables, callables,
@@ -84,12 +97,15 @@ async def fetch_task_schema(api_client, http_client, config, endpoint: str):
     logger.debug("fetch_task_schema: schema_endpoint=%s", schema_endpoint)
     # raw path (no /api prefix) used by tests that patch httpx.Client
     raw_path = f"{'' if endpoint.startswith('/') else '/'}{endpoint}/task_schema"
+    _uh = rescuebox_user_headers()
 
     response = None
     # Prefer api_client wrapper if it behaves like our ApiClient
     try:
         if api_client is not None:
-            response = await api_client.get(f"{endpoint}/task_schema", use_api_prefix=False)
+            response = await api_client.get(
+                f"{endpoint}/task_schema", use_api_prefix=False, headers=_uh or None
+            )
     except Exception:
         response = None
 
@@ -102,13 +118,13 @@ async def fetch_task_schema(api_client, http_client, config, endpoint: str):
             if response is None:
                 try:
                     with httpx.Client(base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT) as c:
-                        response = c.get(raw_path)
+                        response = c.get(raw_path, headers=_uh or None)
                 except httpx.RequestError:
                     raise
         else:
             try:
                 with httpx.Client(base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT) as c:
-                    response = c.get(raw_path)
+                    response = c.get(raw_path, headers=_uh or None)
             except httpx.RequestError:
                 # propagate so caller maps to 'Network error'
                 raise
@@ -130,7 +146,7 @@ async def fetch_task_schema(api_client, http_client, config, endpoint: str):
     if response is None:
         # try async client
         try:
-            response = await http_client.get(schema_endpoint)
+            response = await http_client.get(schema_endpoint, headers=_uh or None)
         except httpx.RequestError:
             # normalize message for callers/tests
             raise httpx.RequestError("Error due to Backend not running? ")
@@ -138,7 +154,7 @@ async def fetch_task_schema(api_client, http_client, config, endpoint: str):
             # try sync fallback and handle network errors explicitly
             try:
                 with httpx.Client(base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT) as c:
-                    response = c.get(schema_endpoint)
+                    response = c.get(schema_endpoint, headers=_uh or None)
             except httpx.RequestError:
                 raise httpx.RequestError("Network error")
     # status checks
@@ -172,12 +188,15 @@ async def post_job(api_client, http_client, config, api_endpoint: str, request_d
 
     last_exc = None
     response = None
+    _ph = rescuebox_user_headers()
     for candidate in uniq_candidates:
         try:
             # try api_client wrapper first
             if api_client is not None:
                 try:
-                    response = await api_client.post(candidate, json=request_dict, use_api_prefix=False)
+                    response = await api_client.post(
+                        candidate, json=request_dict, use_api_prefix=False, headers=_ph or None
+                    )
                 except httpx.TimeoutException:
                     # Do not fall through to http_client/sync: each attempt uses full TIMEOUT (e.g. 300s).
                     # Three chained attempts => 900s wall time for one logical POST (ReadTimeout on long jobs).
@@ -186,14 +205,14 @@ async def post_job(api_client, http_client, config, api_endpoint: str, request_d
                     response = None
             if response is None:
                 try:
-                    response = await http_client.post(candidate, json=request_dict)
+                    response = await http_client.post(candidate, json=request_dict, headers=_ph or None)
                 except httpx.TimeoutException:
                     raise
                 except Exception:
                     # sync fallback (e.g. tests patch httpx.Client)
                     try:
                         with httpx.Client(base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT) as c:
-                            response = c.post(candidate, json=request_dict)
+                            response = c.post(candidate, json=request_dict, headers=_ph or None)
                     except httpx.TimeoutException:
                         raise
                     except Exception as exc:

@@ -4,8 +4,14 @@ from pathlib import Path
 from typing import Any, List, Dict
 from nicegui import ui
 
-from frontend.components.results.table_helpers import create_sortable_table, create_file_row_click_handler
-from frontend.components.results.results_utils import open_file
+from frontend.components.results.table_helpers import (
+    create_sortable_table,
+    resolve_table_row_index,
+)
+from frontend.components.results.image_summary_results_view import (
+    _ensure_image_summary_modal_css,
+)
+from frontend.components.results.results_utils import open_text_markdown_modal
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -39,24 +45,38 @@ def render_searchable_file_list(container: ui.element, file_paths: List[str], ti
 
     if not file_data:
         with container:
-            ui.label('No files found or all files are empty').classes('text-red-600')
+            ui.label('No valid files found').classes('text-red-600')
         return
 
-    with container:
-        with ui.card().classes('bg-green-50 border border-green-300 p-4'):
-            with ui.column().classes('gap-2'):
-                ui.label(f'📝 {title} ({len(file_data)} files)').classes('font-bold')
+    _ensure_image_summary_modal_css()
 
-                # Search input
-                search_input = ui.input(
-                    label='Search',
-                    placeholder='Enter search term (e.g., "blue car")',
-                    value=''
-                ).classes('w-full').props('clearable')
+    with container:
+        with ui.card().classes('w-full bg-white border border-zinc-300 rounded-xl p-4 shadow-sm'):
+            with ui.column().classes('gap-3 w-full'):
+                ui.label(f'{title} ({len(file_data)} files)').classes(
+                    'text-lg font-bold text-zinc-900'
+                )
+
+                with ui.element('div').classes(
+                    'w-full rounded-lg border-2 border-[#505759] bg-white p-3 shadow-sm'
+                ):
+                    with ui.row().classes('items-center gap-2 mb-2'):
+                        ui.icon('search', size='1.5rem').classes('text-[#505759] shrink-0')
+                        ui.label('Search').classes(
+                            'text-lg font-bold text-[#505759] tracking-tight'
+                        )
+                    search_input = ui.input(
+                        placeholder='Type to filter rows by content (e.g. blue car)',
+                        value='',
+                    ).classes('w-full rb-image-summary-search-field').props(
+                        'clearable outlined dense'
+                    )
 
                 # Container for table that will be refreshed
                 table_container = ui.column().classes('w-full')
-                result_count_label = ui.label(f'Showing {len(file_data)} of {len(file_data)} files').classes('text-xs text-gray-600')
+                result_count_label = ui.label(
+                    f'Showing {len(file_data)} of {len(file_data)} files'
+                ).classes('text-sm text-zinc-600')
 
                 def update_table(search_term: str = ''):
                     """Update the table based on search term"""
@@ -83,23 +103,67 @@ def render_searchable_file_list(container: ui.element, file_paths: List[str], ti
                             {'name': 'content', 'label': 'Content Preview', 'field': 'content', 'align': 'left', 'sortable': True},
                         ]
 
-                        # Create rows from filtered data
+                        # Only column fields on each row — Quasar sync strips extra keys; keep full text + paths in side maps.
+                        content_by_filename: Dict[str, str] = {
+                            fi['filename']: fi['content'] for fi in filtered
+                        }
+                        path_by_filename: Dict[str, str] = {
+                            fi['filename']: fi['path'] for fi in filtered
+                        }
+
                         rows = []
                         for file_info in filtered:
-                            content_preview = file_info['content'][:400] + '...' if len(file_info['content']) > 400 else file_info['content']
+                            content_preview = (
+                                file_info['content'][:400] + '...'
+                                if len(file_info['content']) > 400
+                                else file_info['content']
+                            )
                             rows.append({
                                 'filename': file_info['filename'],
-                                # table cell gets a preview, but we also provide full content under 'content_full'
                                 'content': content_preview,
-                                'content_full': file_info['content'],
-                                'path': file_info['path'],
                             })
 
-                        # Store rows for click handler
                         rows_for_click = rows
 
-                        # Create robust row click handler (handles varying event arg shapes)
-                        on_row_click_handler = create_file_row_click_handler(rows_for_click, open_file)
+                        def on_row_click_handler(e):
+                            """Open full file text in a modal (no ``/_serve`` navigation)."""
+                            try:
+                                fn: str | None = None
+                                if len(getattr(e, 'args', ())) > 1 and isinstance(e.args[1], dict):
+                                    cand = e.args[1]
+                                    fn = (cand.get('filename') or cand.get('name') or '').strip() or None
+                                if not fn:
+                                    row_index = resolve_table_row_index(e, rows_for_click)
+                                    if row_index is None:
+                                        return
+                                    row = rows_for_click[row_index]
+                                    fn = (row.get('filename') or 'Document').strip() or 'Document'
+
+                                body = content_by_filename.get(fn, '')
+                                if not body.strip():
+                                    pth = path_by_filename.get(fn)
+                                    if pth and os.path.isfile(pth):
+                                        try:
+                                            body = Path(pth).read_text(encoding='utf-8', errors='replace')
+                                        except OSError as oe:
+                                            logger.warning("Re-read summary file failed %s: %s", pth, oe)
+                                if not body.strip():
+                                    logger.warning(
+                                        "No full text for filename=%r (paths=%r)",
+                                        fn,
+                                        list(path_by_filename.keys()),
+                                    )
+                                    ui.notify(
+                                        'Full text for this row could not be resolved.',
+                                        type='warning',
+                                        classes='rb-notify-505759',
+                                    )
+                                    return
+                                open_text_markdown_modal(fn, body)
+                            except Exception as ex:
+                                logger.warning(
+                                    "Error opening summary from table row click: %s", ex
+                                )
 
                         # Create sortable table
                         create_sortable_table(
@@ -108,7 +172,10 @@ def render_searchable_file_list(container: ui.element, file_paths: List[str], ti
                             rows,
                             row_key='filename',
                             on_row_click=on_row_click_handler,
-                            tip_message='Tip: Enter a search term to filter files by content. Click any row to open the file.'
+                            tip_message=(
+                                'Tip: Enter a search term to filter files by content. '
+                                'Click any row to read the full summary in a window.'
+                            ),
                         )
 
                     # Update result count

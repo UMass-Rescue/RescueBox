@@ -311,11 +311,11 @@ async def user():
                     return val
             except Exception:
                 pass
-            return 'test-user-1'
+            return 'user-rb_demo_0408_00'
 
         def _test_ensure_user_id():
-            _ngs.set_explicit_user_id('test-user-1')
-            return 'test-user-1'
+            _ngs.set_explicit_user_id('rb_demo_0408_00')
+            return 'rb_demo_0408_00'
 
         _ngs.get_user_id = _test_get_user_id
         _ngs.get_user_id_for_jobs = _test_get_user_id_for_jobs
@@ -392,6 +392,8 @@ def _patch_nicegui_background_tasks():
                 def _handle_done(t: asyncio.Task):
                     try:
                         _ = t.result()
+                    except asyncio.CancelledError:
+                        pass
                     except Exception as exc:
                         try:
                             import logging

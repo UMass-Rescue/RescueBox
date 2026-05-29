@@ -15,8 +15,8 @@ def render_batch_directory_table(container: ui.element, directories: List[Any], 
     """
     try:
         with container:
-            with ui.card().classes('bg-white p-4'):
-                with ui.column().classes('gap-2'):
+            with ui.card().classes('bg-white p-4 w-full min-w-0 max-w-full'):
+                with ui.column().classes('gap-2 w-full min-w-0'):
                     ui.label(f'📁 Batch Directory Result ({len(directories)})').classes('font-bold')
 
                     columns = [
@@ -50,14 +50,14 @@ def render_batch_directory_table(container: ui.element, directories: List[Any], 
                                 pass
                         on_row_click = _on_row_click
 
-                    table_column = ui.column()
+                    table_wrap = ui.column().classes('w-full min-w-0 overflow-x-auto')
                     create_sortable_table(
-                        table_column,
+                        table_wrap,
                         columns,
                         rows,
                         row_key='path',
                         on_row_click=on_row_click,
-                        tip_message='Tip: Click on any row to open the directory'
+                        tip_message='Tip: Click on any row to open the directory',
                     )
 
                     # Also render directory titles for test visibility

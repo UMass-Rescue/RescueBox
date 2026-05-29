@@ -46,6 +46,12 @@ def test_resolve_batch_chunk_size_env(monkeypatch):
     monkeypatch.delenv("IMAGE_SUMMARY_MAX_IMAGES_PER_BATCH", raising=False)
 
 
+def test_resolve_batch_chunk_size_default_is_one(monkeypatch):
+    """Default is 1 image per Ollama call to avoid cross-image description bleed in batches."""
+    monkeypatch.delenv("IMAGE_SUMMARY_MAX_IMAGES_PER_BATCH", raising=False)
+    assert resolve_batch_chunk_size(None) == 1
+
+
 def test_resolve_batch_parallel_workers_explicit():
     assert resolve_batch_parallel_workers(5) == 5
     assert resolve_batch_parallel_workers(99) == 32  # cap

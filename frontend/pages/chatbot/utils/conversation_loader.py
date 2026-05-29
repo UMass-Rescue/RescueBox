@@ -31,7 +31,7 @@ class ConversationLoader:
         Args:
             conversation_data: Dictionary containing conversation_id, conversation_data, and messages
         """
-        self.logger.info("Appending historical conversation to current chat: %s", conversation_data)
+        self.logger.debug("Appending historical conversation to current chat: %s", conversation_data)
 
         try:
             # Extract conversation components
@@ -53,7 +53,7 @@ class ConversationLoader:
             except Exception as e:
                 self.logger.debug("Could not disable input after load: %s", e)
 
-            self.logger.info("Historical conversation appended successfully: %s", conversation_id)
+            self.logger.debug("Historical conversation appended successfully: %s", conversation_id)
 
         except KeyError as e:
             # Handle missing required data gracefully
@@ -80,8 +80,8 @@ class ConversationLoader:
         else:
             conversation_title = getattr(conversation, 'title', 'unknown')
 
-        self.logger.info("Extracted conversation: %s (%d messages)", conversation_id, len(messages))
-        self.logger.info("Conversation title: %s", conversation_title)
+        self.logger.debug("Extracted conversation: %s (%d messages)", conversation_id, len(messages))
+        self.logger.debug("Conversation title: %s", conversation_title)
 
         return conversation_id, conversation, messages
 
@@ -93,7 +93,7 @@ class ConversationLoader:
             conversation_id: The conversation ID to load
             conversation: Conversation data (dict or object)
         """
-        self.logger.info("Preparing chat interface for appending conversation: %s", conversation_id)
+        self.logger.debug("Preparing chat interface for appending conversation: %s", conversation_id)
 
         # Set the conversation ID in the state manager
         self.chatbot_page.state_manager.set_conversation_id(conversation_id)
@@ -109,13 +109,15 @@ class ConversationLoader:
         Args:
             messages: List of message dictionaries or objects
         """
-        self.logger.info("Appending %d historical messages to current chat", len(messages))
+        self.logger.debug("Appending %d historical messages to current chat", len(messages))
 
         # Add a visual separator for historical content
         if hasattr(self.chatbot_page, 'chat_container') and messages:
             with self.chatbot_page.chat_container:
                 ui.separator()
-                ui.label("📚 Historical Conversation").classes('text-sm text-gray-500 font-medium')
+                ui.label('Conversation history').classes(
+                    'text-xs font-medium text-zinc-500 uppercase tracking-wide'
+                )
 
         i = 0
         while i < len(messages):

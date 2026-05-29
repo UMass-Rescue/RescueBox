@@ -1,6 +1,10 @@
+import threading
 from pathlib import Path
 
 import whisper
+
+# Whisper's PyTorch model is not safe for concurrent transcribe() from multiple threads.
+_transcribe_lock = threading.Lock()
 
 
 class AudioTranscriptionModel:
@@ -27,7 +31,8 @@ class AudioTranscriptionModel:
 
     def transcribe(self, audio_path: str, out_dir: str = None) -> str:
         self._validate_audio_path(audio_path)
-        res = self.model.transcribe(str(audio_path), fp16=False)["text"]
+        with _transcribe_lock:
+            res = self.model.transcribe(str(audio_path), fp16=False)["text"]
         if out_dir:
             self._write_res_to_dir(
                 [{"file_path": str(audio_path), "result": res}], out_dir

@@ -11,7 +11,7 @@ from frontend.pages.chatbot.utils.message_service import MessageService
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-_TOOL_SELECTION_CONTENT = re.compile(r"I'll use (.+?) to help you\.", re.DOTALL)
+_TOOL_SELECTION_CONTENT = re.compile(r"Running (.+?) operation\.", re.DOTALL)
 
 
 class MessageRenderer:

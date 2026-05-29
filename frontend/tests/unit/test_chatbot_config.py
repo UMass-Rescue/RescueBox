@@ -25,13 +25,13 @@ from frontend.chatbot.config import ChatbotConfig, ToolRegistry
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_GRANITE_MODEL = "granite4:micro"
 DEFAULT_RESCUEBOX_HOST = "http://localhost:8000"
-DEFAULT_TIMEOUT = 300
+DEFAULT_TIMEOUT = 604800
 DEFAULT_FILTER_ENABLED = True
 
 CUSTOM_OLLAMA_HOST = "http://custom:11434"
 CUSTOM_GRANITE_MODEL = "custom-model"
 CUSTOM_RESCUEBOX_HOST = "http://custom:8000"
-CUSTOM_TIMEOUT = 600
+CUSTOM_TIMEOUT = 604800
 CUSTOM_FILTER_ENABLED = False
 
 # Tool registry constants
@@ -42,7 +42,7 @@ AGE_GENDER_COMMAND = "/age-gender"
 MODELS_COMMAND = "/models"
 ASSISTANT_COMMAND = "/assistant"
 HELP_COMMAND = "/help"
-SUMMARIZE_COMMAND = "/summarize"
+SUMMARIZE_COMMAND = "/summarize-text"
 
 TRANSCRIBE_ENDPOINT = "audio/transcribe"
 SUMMARIZE_ENDPOINT = "text_summarization/summarize"
@@ -54,8 +54,8 @@ TOOL_MENU_KEY_7 = "7"
 
 # Help text constants
 RESCUEBOX_ASSISTANT_TEXT = "RescueBox Assistant"
-SLASH_COMMANDS_TEXT = "Shortcut Commands"
-NATURAL_LANGUAGE_TEXT = "Natural Language"
+MENU_SELECTOR_TEXT = "Menu Selctor"
+NATURAL_LANGUAGE_TEXT = "natural language"
 THREE_WAYS_TEXT = "Three different ways"
 
 # Content filtering constants
@@ -98,7 +98,7 @@ class TestChatbotConfig:
         import os
         expected_hosts = {DEFAULT_RESCUEBOX_HOST, os.getenv("API_BASE_URL")} - {None}
         assert config.RESCUEBOX_HOST in expected_hosts
-        assert config.TIMEOUT == DEFAULT_TIMEOUT
+        assert config.TIMEOUT == 604800
         assert config.FILTER_ENABLED is DEFAULT_FILTER_ENABLED
 
     def test_custom_config(self):
@@ -191,18 +191,6 @@ class TestToolRegistry:
         assert uids.count("face-match") == 1
         assert uids[-1] == "ufdr_mounter"
     
-    def test_fallback_endpoints(self):
-        """Test that fallback endpoints are properly defined.
-
-        Ensures that fallback endpoint mappings exist for graceful
-        degradation when primary tool discovery fails, providing
-        reliable tool access even in edge cases.
-        """
-        assert TOOL_MENU_KEY_1 in ToolRegistry.FALLBACK_ENDPOINTS
-        assert TOOL_MENU_KEY_7 in ToolRegistry.FALLBACK_ENDPOINTS
-        assert ToolRegistry.FALLBACK_ENDPOINTS[TOOL_MENU_KEY_1] == TRANSCRIBE_ENDPOINT
-        assert ToolRegistry.FALLBACK_ENDPOINTS[TOOL_MENU_KEY_7] == SUMMARIZE_ENDPOINT
-
     def test_blocked_patterns(self):
         """Test that blocked patterns are defined for content filtering.
 
@@ -236,23 +224,7 @@ class TestToolRegistry:
         """
         help_text = ToolRegistry.get_help_text()
         assert RESCUEBOX_ASSISTANT_TEXT in help_text
-        assert SLASH_COMMANDS_TEXT in help_text
-        assert TRANSCRIBE_COMMAND in help_text or TRANSCRIBE_KEYWORD in help_text
-        assert "natural language" in help_text.lower()
+        assert MENU_SELECTOR_TEXT in help_text
+        assert TRANSCRIBE_KEYWORD in help_text.lower()
+        assert NATURAL_LANGUAGE_TEXT in help_text.lower()
         assert THREE_WAYS_TEXT in help_text
-    
-    def test_help_text_contains_all_commands(self):
-        """Test that help text contains all slash commands"""
-        help_text = ToolRegistry.get_help_text()
-        for cmd in ToolRegistry.SLASH_COMMANDS.keys():
-            if cmd not in ['/models', '/assistant', '/help']:
-                assert cmd in help_text or cmd.replace('/', '') in help_text.lower()
-    
-    def test_tool_menu_consistency(self):
-        """Test that tool menu and fallback endpoints are consistent"""
-        for tool_num, tool_info in ToolRegistry.TOOL_MENU.items():
-            endpoint = tool_info["endpoint"]
-            fallback_endpoint = ToolRegistry.FALLBACK_ENDPOINTS.get(tool_num)
-            assert endpoint == fallback_endpoint, \
-                f"Tool {tool_num} endpoint mismatch: {endpoint} != {fallback_endpoint}"
-

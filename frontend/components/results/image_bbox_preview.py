@@ -13,6 +13,7 @@ from nicegui import ui
 from PIL import Image, ImageDraw
 
 from frontend.components.results.results_utils import open_file, open_folder
+from frontend.design_tokens import Design
 from frontend.components.results.table_helpers import resolve_table_row_index
 
 logger = logging.getLogger(__name__)
@@ -117,13 +118,13 @@ def open_image_bbox_preview_dialog(abs_path: str, bbox: Tuple[int, int, int, int
     with ui.dialog() as dialog, ui.card().classes('max-w-5xl w-full'):
         ui.label(heading[:200]).classes('text-lg font-semibold')
         ui.image(preview).classes('max-w-full h-auto')
-        ui.label(abs_path).classes('text-xs font-mono break-all text-gray-600')
+        ui.label(abs_path).classes('text-xs font-mono break-all text-zinc-600')
         with ui.row().classes('gap-2 mt-2 flex-wrap'):
             if parent_dir:
                 ui.button('Open folder', icon='folder_open', on_click=lambda d=parent_dir: open_folder(d)).props(
                     'outline'
                 )
-            ui.button('Close', on_click=dialog.close)
+            ui.button('Close', on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
     dialog.open()
 
 

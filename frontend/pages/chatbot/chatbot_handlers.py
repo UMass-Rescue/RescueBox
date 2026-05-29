@@ -11,6 +11,7 @@ from nicegui import ui
 from frontend.chatbot.config import ToolRegistry
 from frontend.chatbot.core import ChatbotCore
 from frontend.database import JobStatus
+from frontend.pages.chatbot.types import MessageSendParams
 from frontend.pages.chatbot.utils import MessageSender, ResultRouter, FormProcessor
 
 # Configure logging for this module
@@ -54,16 +55,18 @@ async def handle_send_message(
     Returns:
         None
     """
-    await _message_sender.send_message(
-        message_text=message_text,
-        input_field=input_field,
-        is_processing_ref=is_processing_ref,
-        message_handler=message_handler,
-        process_handler_result_func=process_handler_result_func,
-        add_message_func=add_message_func,
-        show_error_func=show_error_func,
-        update_status_func=update_status_func,
-        conversation_id_ref=conversation_id_ref
+    await _message_sender.send_message_params(
+        MessageSendParams(
+            message_text=message_text,
+            input_field=input_field,
+            is_processing_ref=is_processing_ref,
+            message_handler=message_handler,
+            process_handler_result_func=process_handler_result_func,
+            add_message_func=add_message_func,
+            show_error_func=show_error_func,
+            update_status_func=update_status_func,
+            conversation_id_ref=conversation_id_ref,
+        )
     )
 
 

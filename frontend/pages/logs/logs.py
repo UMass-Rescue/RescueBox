@@ -17,6 +17,7 @@ from frontend.components.shared import create_navbar
 from frontend.pages.logs.logs_utils import read_log_file, format_log_content, get_log_file_info
 from frontend.config import LOG_FILE
 from frontend.constants import UI_TITLES, ERROR_MESSAGES
+from frontend.design_tokens import Design
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -71,9 +72,11 @@ class LogsPage:
                 # Fallback to inline rendering if component fails
                 logger.exception("Failed to use log_viewer component: %s", e)
                 with ui.row().classes('gap-4 items-center mb-4'):
-                    ui.button('Refresh', on_click=self._refresh_logs).props('icon=refresh').classes('px-4 py-2')
+                    ui.button('Refresh', on_click=self._refresh_logs).props('icon=refresh').classes(
+                        Design.BTN_PRIMARY_COMPACT
+                    )
                     log_path = str(LOG_FILE)
-                    ui.label(f'Log file: {log_path}').classes('text-sm text-gray-600')
+                    ui.label(f'Log file: {log_path}').classes('text-sm text-zinc-600')
 
                 with ui.card().classes('w-full max-w-full'):
                     with ui.scroll_area().classes('min-h-[calc(100vh-12rem)] w-full'):
@@ -109,7 +112,7 @@ class LogsPage:
         """Refresh the log display by reloading content."""
         logger.info("Refreshing logs")
         await self._load_logs()
-        ui.notify('Logs refreshed', type='positive')
+        ui.notify('Logs refreshed', type='positive', classes="rb-notify-505759")
 
 
 @ui.page('/logs')
@@ -126,5 +129,9 @@ async def logs_page():
     from frontend.utils.theme import apply_saved_theme
     apply_saved_theme()
     create_navbar()
+    from frontend.utils.demo_user_gate import require_demo_user_session
+
+    if not require_demo_user_session():
+        return
     logs_page_instance = LogsPage()
     await logs_page_instance.render()

@@ -13,6 +13,7 @@ from frontend.database import JobStatus, get_chat_history_db
 from frontend.database.job_db import get_job_db
 from frontend.utils.logging_context import set_logging_context
 
+from frontend.chatbot.config import ToolRegistry
 from frontend.pages.chatbot.utils.message_service import MessageService
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,50 @@ class DatabaseService:
                 break
 
     @staticmethod
+    def _user_content_from_form_submission(endpoint: str) -> str:
+        """Build a readable YOU: line for chat history when the user only submitted a form (no chat prompt saved)."""
+        try:
+            from frontend.chatbot.config import ToolRegistry
+
+            menu_name = ToolRegistry.tool_menu_name_for_endpoint(endpoint)
+        except Exception:
+            menu_name = None
+        # Prefer TOOL_MENU display name; keep endpoint when unknown or for disambiguation.
+        title = menu_name if menu_name else endpoint
+        
+        return f"Menu selected: {title}"
+
+    @staticmethod
+    async def save_user_prompt_if_missing_from_form_submission(
+        conversation_id: Optional[str], request_body, endpoint: str
+    ) -> Optional[str]:
+        """
+        If the conversation has no persisted user message yet, save a user row summarizing
+        the form submission so View / Load conversation can render a YOU: bubble.
+
+        Chat-only flows already persist the real prompt via MessageProcessor; this covers
+        tool-first and form-submit paths that only stored assistant/tool rows.
+        """
+        if not conversation_id or not request_body:
+            return None
+        try:
+            chat_history = get_chat_history_db()
+            messages = await chat_history.get_messages(conversation_id)
+            if any(getattr(m, 'role', None) == 'user' for m in messages):
+                return None
+            content = DatabaseService._user_content_from_form_submission(endpoint)
+            await DatabaseService.save_message_to_history(
+                conversation_id=conversation_id,
+                role='user',
+                content=content,
+                message_type='text',
+            )
+            return content
+        except Exception as e:
+            logger.debug("save_user_prompt_if_missing_from_form_submission skipped: %s", e)
+            return None
+
+    @staticmethod
     async def save_tool_call_to_history(conversation_id: str, endpoint: str, arguments: dict):
         """Save tool call with consistent formatting."""
         try:
@@ -55,7 +100,7 @@ class DatabaseService:
             await chat_history.add_message(
                 conversation_id=conversation_id,
                 role='assistant',
-                content=f"Selected tool: {endpoint}",
+                content=f"Selected tool: {ToolRegistry.display_name_for_endpoint(endpoint)}",
                 message_type='tool_call',
                 tool_calls=[{
                     'name': endpoint,
@@ -74,7 +119,7 @@ class DatabaseService:
             await chat_history.add_message(
                 conversation_id=conversation_id,
                 role='assistant',
-                content=f"Job {job_id} started for {endpoint}",
+                content=f"Job {job_id} started for {ToolRegistry.display_name_for_endpoint(endpoint)}",
                 message_type='tool_result',
                 tool_call_endpoint=endpoint,
                 metadata={'job_id': job_id, 'status': 'RUNNING'}
@@ -133,7 +178,9 @@ class DatabaseService:
     @staticmethod
     async def create_and_track_job(request_body, endpoint: str, task_schema=None, response_body=None,
                                    case_notes: str = None, user_id: Optional[str] = None,
-                                   endpoint_chain: Optional[list] = None) -> Optional[Dict[str, Any]]:
+                                   endpoint_chain: Optional[list] = None,
+                                   pipeline_root_job_id: Optional[str] = None,
+                                   pipeline_total_steps: Optional[int] = None) -> Optional[Dict[str, Any]]:
         """Create job and return tracking info."""
         for attempt in range(3):
             try:
@@ -158,6 +205,8 @@ class DatabaseService:
                     case_notes=case_notes,
                     user_id=user_id,
                     endpoint_chain=endpoint_chain,
+                    pipeline_root_job_id=pipeline_root_job_id,
+                    pipeline_total_steps=pipeline_total_steps,
                 )
 
                 # Set logging context for this job

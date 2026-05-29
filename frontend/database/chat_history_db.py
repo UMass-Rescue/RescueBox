@@ -166,7 +166,7 @@ class ChatHistoryDB(BaseDatabase):
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)")
         
         self.conn.commit()
-        logger.info("Chat history schema created/verified")
+        logger.debug("Chat history schema created/verified")
 
     def _ensure_conversations_userid_column(self, conn: sqlite3.Connection) -> None:
         """
@@ -176,12 +176,12 @@ class ChatHistoryDB(BaseDatabase):
             conn.execute("SELECT userId FROM conversations LIMIT 1")
         except sqlite3.OperationalError as e:
             if 'no such column' in str(e).lower():
-                logger.info("userId column missing in conversations table; adding column")
+                logger.debug("userId column missing in conversations table; adding column")
                 try:
                     conn.execute("ALTER TABLE conversations ADD COLUMN userId TEXT")
                     conn.execute("CREATE INDEX IF NOT EXISTS idx_conversations_userId ON conversations(userId)")
                     conn.commit()
-                    logger.info("Added userId column and index to conversations table")
+                    logger.debug("Added userId column and index to conversations table")
                 except Exception as e_add:
                     logger.exception("Failed to add userId column to conversations table: %s", e_add)
                     raise
@@ -245,7 +245,7 @@ class ChatHistoryDB(BaseDatabase):
             except Exception:
                 user_id = None
 
-            logger.info("Creating conversation: %s (user=%s)", conversation_id, user_id)
+            logger.debug("Creating conversation: %s (user=%s)", conversation_id, user_id)
             
             conn.execute("""
                 INSERT INTO conversations (conversation_id, userId, title, created_at, updated_at, message_count)
@@ -253,7 +253,7 @@ class ChatHistoryDB(BaseDatabase):
             """, (conversation_id, user_id, title, now, now))
             
             conn.commit()
-            logger.info("Conversation %s created", conversation_id)
+            logger.debug("Conversation %s created", conversation_id)
             
             return ConversationRecord(
                 conversation_id=conversation_id,
@@ -308,7 +308,7 @@ class ChatHistoryDB(BaseDatabase):
             List[ConversationRecord]: List of conversation records
         """
         conn = self.connect()
-        logger.info("Fetching all conversations from database")
+        logger.debug("Fetching all conversations from database")
 
         # Ensure column exists and filter by current NiceGUI session/user if available
         try:
@@ -335,7 +335,7 @@ class ChatHistoryDB(BaseDatabase):
             """)
 
         rows = cursor.fetchall()
-        logger.info("SQL query returned %d rows", len(rows))
+        logger.debug("SQL query returned %d rows", len(rows))
 
         conversations = []
         for row in rows:
@@ -346,7 +346,7 @@ class ChatHistoryDB(BaseDatabase):
             conversations.append(conv_record)
             logger.debug("Created ConversationRecord: %s", conv_record.conversation_id)
 
-        logger.info("Fetched %d conversations total", len(conversations))
+        logger.debug("Fetched %d conversations total", len(conversations))
         return conversations
 
     async def get_message(self, message_id: str) -> Optional[ChatMessageRecord]:
@@ -462,7 +462,7 @@ class ChatHistoryDB(BaseDatabase):
         timestamp = datetime.now().isoformat()
         
         conn = self.connect()
-        logger.info("Adding message to conversation: %s", conversation_id)
+        logger.debug("Adding message to conversation: %s", conversation_id)
 
         # Ownership check: ensure current user owns the conversation when session present
         current_user = self._get_current_user()
@@ -507,7 +507,7 @@ class ChatHistoryDB(BaseDatabase):
                 await self.update_conversation(conversation_id, title=title)
         
         conn.commit()
-        logger.info("Message %s added to conversation %s", message_id, conversation_id)
+        logger.debug("Message %s added to conversation %s", message_id, conversation_id)
         
         return ChatMessageRecord(
             message_id=message_id,
@@ -553,7 +553,7 @@ class ChatHistoryDB(BaseDatabase):
         for row in cursor.fetchall():
             messages.append(self._message_row_to_record(row))
         
-        logger.info("Fetched %d messages for conversation %s", len(messages), conversation_id)
+        logger.debug("Fetched %d messages for conversation %s", len(messages), conversation_id)
         return messages
     
     # get_message is implemented above with ownership checks

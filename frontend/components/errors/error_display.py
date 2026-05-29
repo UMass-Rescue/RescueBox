@@ -15,7 +15,7 @@ def render_error_message(container: ui.element, message: str, details: Optional[
             with ui.card().classes('bg-red-50 border border-red-300 p-4'):
                 ui.label(f'❌ {message}').classes('text-red-600 font-semibold')
                 if details:
-                    ui.label(details).classes('text-gray-600 text-sm mt-2')
+                    ui.label(details).classes('text-zinc-600 text-sm mt-2')
                 if debug_data is not None:
                     with ui.expansion('Details').classes('mt-4'):
                         ui.label('Debug Information:').classes('font-semibold mb-2')

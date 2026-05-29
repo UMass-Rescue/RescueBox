@@ -8,12 +8,22 @@ This module contains configuration constants used across the chatbot components.
 class FormConfig:
     """Configuration constants for form styling and behavior."""
 
+    # After building the tool-selection card + form subtree, wait briefly so layout can
+    # settle before fading in (reduces visible flicker when Granite returns show_form).
+    FORM_REVEAL_YIELD_S = 0.09
+    FORM_REVEAL_OUTER_CLASSES = (
+        'w-full gap-3 opacity-0 transition-opacity duration-500 ease-out'
+    )
+    # Wait before scrolling the form into view; then the browser runs one smooth
+    # ``scrollIntoView`` (see ``UIOperations.scroll_form_into_view_smooth``)—not instant snaps.
+    FORM_SCROLL_AFTER_REVEAL_DELAY_S = 1.1
+
     # Card styling
     TOOL_PICKER_CLASSES = (
-        'w-full max-w-md min-w-0 mx-auto bg-gradient-to-br from-purple-50 to-violet-100 '
-        'border-2 border-purple-500 shadow-md rounded-xl text-base'
+        'w-full max-w-md min-w-0 mx-auto bg-gradient-to-br from-indigo-50 via-white to-zinc-100 '
+        'border-2 border-indigo-500 shadow-md rounded-xl text-base'
     )
-    ANALYSIS_PICKER_CLASSES = 'w-full max-w-md bg-green-50 border-2 border-green-500 text-sm'
+    ANALYSIS_PICKER_CLASSES = 'w-full max-w-md bg-indigo-50 border-2 border-indigo-500 text-sm'
     SUCCESS_CARD_CLASSES = 'w-full max-w-md bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-400 shadow-lg rounded-xl overflow-hidden text-sm'
     RESULT_DETAIL_CLASSES = 'w-full max-w-2xl max-h-[70vh] bg-white rounded-xl shadow-xl overflow-hidden text-sm'
 

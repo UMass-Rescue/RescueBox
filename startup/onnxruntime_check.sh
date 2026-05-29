@@ -9,7 +9,6 @@ cd "$ROOT"
 
 if ! command -v poetry >/dev/null 2>&1; then
     echo "Error: poetry is required." >&2
-    exit 1
 fi
 
 OUT=$(poetry run python -c "import onnxruntime as ort; print(ort.get_available_providers())")

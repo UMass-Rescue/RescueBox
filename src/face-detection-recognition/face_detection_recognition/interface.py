@@ -1,7 +1,9 @@
 import json
 import os
 
-from face_detection_recognition.database_functions import Vector_Database
+from face_detection_recognition.database_functions import (
+    vector_db_for_current_request,
+)
 from face_detection_recognition.face_representation import (
     detect_faces_and_get_embeddings,
 )
@@ -11,7 +13,12 @@ from face_detection_recognition.utils.resource_path import get_config_path
 
 class FaceMatchModel:
     def __init__(self):
-        self.DB = Vector_Database()
+        pass
+
+    @staticmethod
+    def _db_for_path(path_hint: str):
+        """Same store selection as face_match_server (per-user X-RescueBox-User-Id or path demo scope)."""
+        return vector_db_for_current_request(path_hint)
 
     # Function that takes in path to directory of images to upload to database and returns a success or failure message.
     def bulk_upload(self, image_directory_path, collection_name=None):
@@ -37,13 +44,15 @@ class FaceMatchModel:
 
             img_paths = []
 
+            db = self._db_for_path(image_directory_path)
+
             for root, dirs, files in os.walk(image_directory_path):
                 files.sort()
                 for filename in files:
                     if filename.lower().endswith(
                         (".png", ".jpg", ".jpeg", ".gif", ".bmp")
                     ):
-                        img_paths.append(os.path.join(image_directory_path, filename))
+                        img_paths.append(os.path.join(root, filename))
 
             end_idx = 0
 
@@ -63,7 +72,7 @@ class FaceMatchModel:
 
                 total_files_uploaded += upload_batch_size
 
-                self.DB.upload_embedding_to_database(
+                db.upload_embedding_to_database(
                     embedding_outputs,
                     collection_name,
                 )
@@ -84,7 +93,7 @@ class FaceMatchModel:
                     face_confidence_threshold,
                     separate_detections=False,
                 )
-                self.DB.upload_embedding_to_database(
+                db.upload_embedding_to_database(
                     embedding_outputs,
                     collection_name,
                 )
@@ -113,6 +122,7 @@ class FaceMatchModel:
     # Function that takes in path to image and returns all images that have the same person.
     def find_face(self, image_file_path, threshold=None, collection_name=None):
         try:
+            db = self._db_for_path(image_file_path)
             # Get models from config file.
             config_path = get_config_path("model_config.json")
             with open(config_path, "r") as config_file:
@@ -135,7 +145,7 @@ class FaceMatchModel:
                 matching_image_paths = []
                 # If image has a valid face, perform similarity check
                 if status:
-                    output = self.DB.query(
+                    output = db.query(
                         collection_name,
                         embedding_outputs,
                         n_results=10,
@@ -159,6 +169,7 @@ class FaceMatchModel:
         similarity_filter=True,
     ):
         try:
+            db = self._db_for_path(str(query_directory))
             query_batch_size = 100
 
             # Get models from config file.
@@ -193,7 +204,7 @@ class FaceMatchModel:
                     separate_detections=True,
                 )
 
-                matching_image_paths = self.DB.query_bulk(
+                matching_image_paths = db.query_bulk(
                     collection_name,
                     embedding_outputs,
                     10,
@@ -211,7 +222,7 @@ class FaceMatchModel:
                     separate_detections=True,
                 )
 
-                matching_image_paths = self.DB.query_bulk(
+                matching_image_paths = db.query_bulk(
                     collection_name,
                     embedding_outputs,
                     10,

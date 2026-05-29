@@ -31,8 +31,11 @@ Usage:
 
 import logging
 import threading
-from typing import Optional
+from pathlib import Path
+from typing import Literal, Optional
 from nicegui import app, ui
+
+from frontend.constants import is_valid_explicit_user_id
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -40,8 +43,33 @@ logger.setLevel(logging.INFO)
 # Lock for demo folder assignment (avoids race when multiple sessions request at once)
 _demo_folder_lock = threading.Lock()
 
+# Serialize explicit User ID registration across all clients (one claim at a time)
+_explicit_user_id_registry_lock = threading.Lock()
+# Process-wide set of claimed demo-format IDs (shared across NiceGUI sessions)
+_CLAIMED_EXPLICIT_USER_IDS_KEY = "claimed_explicit_user_ids"
+
 # Fallback storage used by tests when NiceGUI's app.storage isn't available
 _test_fallback_storage: dict = {}
+
+
+def _runs_under_pytest() -> bool:
+    try:
+        import os
+
+        return "PYTEST_CURRENT_TEST" in os.environ or "PYTEST_XDIST_WORKER" in os.environ
+    except Exception:
+        return False
+
+
+def _defer_browser_mutation(fn) -> None:
+    """Run ``fn`` after the current response cycle so ``app.storage.browser`` can be updated."""
+    if _runs_under_pytest():
+        fn()
+        return
+    try:
+        ui.timer(0, fn, once=True)
+    except Exception:
+        fn()
 
 def get_client_ip() -> Optional[str]:
     """
@@ -72,80 +100,175 @@ def get_client_ip() -> Optional[str]:
 _EXPLICIT_USER_ID_KEY = "explicit_job_user_id"
 
 
-def get_explicit_user_id() -> Optional[str]:
+def _read_raw_explicit_user_id() -> Optional[str]:
+    """Return stored ID without validation (used before clear; avoids get→clear recursion).
+
+    Prefer ``app.storage.user`` (session) — it is updated synchronously on save and is always
+    readable in the same request. Fall back to ``app.storage.browser`` (cookie) and copy into
+    ``user`` when only the cookie is set (e.g. returning visitor).
     """
-    Get the user-entered ID for job/history association (from startup dialog).
-    Returns None when not yet set (new session).
-    Checks app.storage.user first, then app.storage.browser (cookie) for cross-session persistence.
-    """
-    # Try app.storage.user (session-bound, persists across reloads)
     try:
         val = app.storage.user.get(_EXPLICIT_USER_ID_KEY)
         if val and isinstance(val, str) and val.strip():
             return val.strip()
     except Exception:
         pass
-    # Fallback: app.storage.browser (cookie) - persists across reloads and sometimes survives session
     try:
         val = app.storage.browser.get(_EXPLICIT_USER_ID_KEY)
         if val and isinstance(val, str) and val.strip():
-            return val.strip()
+            s = val.strip()
+            try:
+                app.storage.user[_EXPLICIT_USER_ID_KEY] = s
+            except Exception:
+                pass
+            return s
     except Exception:
         pass
-    return _test_fallback_storage.get(_EXPLICIT_USER_ID_KEY)
+    fb = _test_fallback_storage.get(_EXPLICIT_USER_ID_KEY)
+    if fb and isinstance(fb, str) and fb.strip():
+        return fb.strip()
+    return None
+
+
+def _get_claimed_explicit_user_ids() -> dict[str, bool]:
+    """Registry is dict[str, True] in app.storage.general (JSON-friendly set)."""
+    try:
+        raw = app.storage.general.get(_CLAIMED_EXPLICIT_USER_IDS_KEY)
+        if isinstance(raw, dict):
+            return {k: True for k in raw if isinstance(k, str)}
+        if isinstance(raw, list):
+            return {str(x): True for x in raw if isinstance(x, str)}
+    except Exception:
+        pass
+    return {}
+
+
+def _set_claimed_explicit_user_ids(claimed: dict[str, bool]) -> None:
+    try:
+        app.storage.general[_CLAIMED_EXPLICIT_USER_IDS_KEY] = claimed
+    except Exception as e:
+        logger.warning("Could not persist claimed explicit user IDs: %s", e)
+
+
+def try_claim_explicit_user_id(value: str) -> Literal["ok", "taken", "invalid"]:
+    """
+    Register an explicit User ID globally for this process if it is not already claimed.
+
+    Call before set_explicit_user_id. Serialized with _explicit_user_id_registry_lock.
+    Returns ``invalid`` if the string does not pass is_valid_explicit_user_id.
+    """
+    if not value or not isinstance(value, str):
+        return "invalid"
+    v = value.strip()
+    if not is_valid_explicit_user_id(v):
+        return "invalid"
+    with _explicit_user_id_registry_lock:
+        claimed = _get_claimed_explicit_user_ids()
+        if v in claimed:
+            return "taken"
+        claimed[v] = True
+        _set_claimed_explicit_user_ids(claimed)
+    return "ok"
+
+
+def release_explicit_user_id_claim(value: Optional[str]) -> None:
+    """Remove an explicit User ID from the global registry (e.g. when the user clears / changes ID)."""
+    if not value or not isinstance(value, str):
+        return
+    v = value.strip()
+    if not is_valid_explicit_user_id(v):
+        return
+    with _explicit_user_id_registry_lock:
+        claimed = _get_claimed_explicit_user_ids()
+        if v in claimed:
+            del claimed[v]
+            _set_claimed_explicit_user_ids(claimed)
+
+
+def get_explicit_user_id() -> Optional[str]:
+    """
+    Get the user-entered ID for job/history association (from startup dialog).
+    Returns None when not yet set or when stored value is not a valid demo ID.
+
+    Stored in ``app.storage.user`` and mirrored to ``app.storage.browser`` (see :func:`_read_raw_explicit_user_id`).
+    """
+    raw = _read_raw_explicit_user_id()
+    if not raw:
+        return None
+    if is_valid_explicit_user_id(raw):
+        return raw
+    clear_explicit_user_id()
+    return None
 
 
 def set_explicit_user_id(value: str) -> None:
     """
     Store the user-entered ID for job/history association.
-    Persists in app.storage.user and app.storage.browser for cross-session persistence.
+
+    Writes ``app.storage.user`` synchronously (always allowed in handlers). Mirrors to
+    ``app.storage.browser`` on the next tick — browser mutation can intermittently fail with
+    “response … already been built”; session storage still holds the ID.
     """
     if not value or not isinstance(value, str):
         return
     v = value.strip()
-    if not v:
+    if not is_valid_explicit_user_id(v):
         return
+
     try:
         app.storage.user[_EXPLICIT_USER_ID_KEY] = v
         logger.info("Stored explicit user ID in app.storage.user")
     except Exception as e:
         logger.warning("Failed to store explicit user ID in user storage: %s", e)
+
     try:
-        app.storage.browser[_EXPLICIT_USER_ID_KEY] = v
-        logger.info("Stored explicit user ID in app.storage.browser")
-    except Exception as e:
-        logger.debug("Could not store in browser storage (optional): %s", e)
-    try:
-        import os
-        if "PYTEST_CURRENT_TEST" in os.environ or "PYTEST_XDIST_WORKER" in os.environ:
+        if _runs_under_pytest():
             _test_fallback_storage[_EXPLICIT_USER_ID_KEY] = v
     except Exception:
         pass
 
+    def _mirror_to_browser() -> None:
+        try:
+            app.storage.browser[_EXPLICIT_USER_ID_KEY] = v
+            logger.debug("Mirrored explicit user ID to browser storage")
+        except Exception as e:
+            logger.debug(
+                "Could not mirror explicit user ID to browser storage (session copy still set): %s",
+                e,
+            )
+
+    _defer_browser_mutation(_mirror_to_browser)
+
 
 def clear_explicit_user_id() -> None:
+    """Forget this browser's User ID and free its global claim.
+
+    Why both steps:
+    - **Clear storage** — Jobs and chat use ``get_explicit_user_id()`` / ``get_user_id_for_jobs()``;
+      wiping browser storage (and any legacy user key) shows the home prompt again.
+    - **Release claim** — Registration reserves each demo ID process-wide; without releasing, that ID
+      would stay "taken" forever even after this user leaves, blocking everyone else from reusing it.
     """
-    Clear the stored user ID so the dialog will show again on next page load.
-    Use when the user wants to switch to a different ID (e.g. entered wrong one).
-    """
+    raw = _read_raw_explicit_user_id()
+
     try:
-        if _EXPLICIT_USER_ID_KEY in app.storage.user:
-            del app.storage.user[_EXPLICIT_USER_ID_KEY]
-            logger.info("Cleared explicit user ID from app.storage.user")
-    except Exception as e:
-        logger.debug("Could not clear from user storage: %s", e)
-    try:
-        if _EXPLICIT_USER_ID_KEY in app.storage.browser:
-            del app.storage.browser[_EXPLICIT_USER_ID_KEY]
-            logger.info("Cleared explicit user ID from app.storage.browser")
+        app.storage.browser.pop(_EXPLICIT_USER_ID_KEY, None)
+        logger.debug("Cleared explicit user ID from app.storage.browser")
     except Exception as e:
         logger.debug("Could not clear from browser storage: %s", e)
+    try:
+        app.storage.user.pop(_EXPLICIT_USER_ID_KEY, None)
+    except Exception as e:
+        logger.debug("Could not clear legacy user storage key: %s", e)
     try:
         import os
         if "PYTEST_CURRENT_TEST" in os.environ or "PYTEST_XDIST_WORKER" in os.environ:
             _test_fallback_storage.pop(_EXPLICIT_USER_ID_KEY, None)
     except Exception:
         pass
+
+    if raw and is_valid_explicit_user_id(raw):
+        release_explicit_user_id_claim(raw)
 
 
 def ensure_explicit_user_id_for_tests() -> None:
@@ -159,7 +282,11 @@ def ensure_explicit_user_id_for_tests() -> None:
             return
         if get_explicit_user_id():
             return
-        set_explicit_user_id("test-user-1")
+        for i in range(32):
+            vid = f"demo_t{i:02d}"
+            if try_claim_explicit_user_id(vid) == "ok":
+                set_explicit_user_id(vid)
+                return
     except Exception:
         pass
 
@@ -181,11 +308,24 @@ def ensure_user_id() -> Optional[str]:
 
     def on_submit():
         val = (input_field.value or "").strip()
-        if val:
-            set_explicit_user_id(val)
-            dialog.close()
-            # Delay reload so storage writes can persist before new request
-            ui.timer(0.3, lambda: ui.navigate.reload(), once=True)
+        if not val:
+            return
+        if not is_valid_explicit_user_id(val):
+            from frontend.constants import HOME_USER_ID
+
+            ui.notify(HOME_USER_ID["invalid_format"], type="warning", classes="rb-notify-505759")
+            return
+        claim = try_claim_explicit_user_id(val)
+        if claim == "taken":
+            from frontend.constants import HOME_USER_ID
+
+            ui.notify(HOME_USER_ID["id_taken"], type="warning", classes="rb-notify-a2aaad")
+            return
+        if claim != "ok":
+            return
+        set_explicit_user_id(val)
+        dialog.close()
+        ui.timer(0.08, lambda: ui.navigate.reload(), once=True)
 
     def on_keydown(e):
         if getattr(e, "args", None) and e.args.get("key") == "Enter":
@@ -194,15 +334,15 @@ def ensure_user_id() -> Optional[str]:
     with ui.dialog() as dialog, ui.card().classes("p-6 min-w-[320px]"):
         ui.label("Enter your User ID").classes("text-lg font-semibold")
         ui.label(
-            "Use this to access your jobs and chat history. Enter the same ID each time you open RescueBox."
-        ).classes("text-gray-600 mb-4")
+            "Use this to access yourprevious jobs and chat history."
+        ).classes("text-zinc-600 mb-4")
         input_field = ui.input(
             "User ID",
-            placeholder="e.g. your name or case number",
+            placeholder="???",
         ).classes("w-full")
         input_field.on("keydown", on_keydown)
         with ui.row().classes("mt-4 justify-end gap-2"):
-            ui.button("Continue", on_click=on_submit).classes("bg-blue-600 text-white")
+            ui.button("Continue", on_click=on_submit).classes("rb-brand-primary text-white")
 
     dialog.open()
     return None
@@ -263,7 +403,7 @@ def get_user_id() -> Optional[str]:
                 except Exception as e_attr:
                     logger.warning("Failed to persist generated session id via setattr: %s", e_attr)
 
-            logger.info("Generated and persisted new session id: %s", generated_id)
+            logger.debug("Generated and persisted new session id: %s", generated_id)
             return generated_id
         except Exception as e:
             logger.warning("Failed to persist generated session id: %s", e)
@@ -325,6 +465,34 @@ def get_assigned_demo_folder() -> Optional[str]:
         return None
 
 
+def resolve_demo_folder_for_browser() -> Optional[str]:
+    """
+    Default directory when opening the file/directory browser from plugin forms.
+
+    Uses the session-assigned ``demo1``..``demo10`` folder when available; otherwise
+    the first existing folder under :data:`frontend.config.DEMO_FOLDERS_BASE` from
+    that name list. Returns ``None`` if nothing matches (caller falls back to cwd).
+    """
+    try:
+        assigned = get_assigned_demo_folder()
+        if assigned:
+            p = Path(assigned)
+            if p.is_dir():
+                return str(p.resolve())
+        from frontend.config import DEMO_FOLDERS_BASE, DEMO_FOLDER_NAMES
+
+        base = Path(DEMO_FOLDERS_BASE).expanduser()
+        for name in DEMO_FOLDER_NAMES:
+            cand = base / name
+            if cand.is_dir():
+                return str(cand.resolve())
+        if base.is_dir():
+            return str(base.resolve())
+    except Exception as e:
+        logger.debug("resolve_demo_folder_for_browser: %s", e)
+    return None
+
+
 def release_demo_folder_for_client(client) -> None:
     """
     Release the demo folder assigned to this client when it is deleted.
@@ -341,7 +509,7 @@ def release_demo_folder_for_client(client) -> None:
                 if user_id in assignments:
                     released = assignments.pop(user_id)
                     app.storage.general['demo_folder_assignments'] = assignments
-                    logger.info("Released demo folder %s for deleted session %s", released, user_id[:12])
+                    logger.debug("Released demo folder %s for deleted session %s", released, user_id[:12])
     except Exception as e:
         logger.warning("Error releasing demo folder for client: %s", e)
 
@@ -390,21 +558,21 @@ def set_current_conversation_id(conversation_id: Optional[str]):
     try:
         if conversation_id:
             app.storage.user['current_conversation_id'] = conversation_id
-            logger.info("Stored current conversation ID: %s", conversation_id)
+            logger.debug("Stored current conversation ID: %s", conversation_id)
         else:
             # Clear current conversation
             if 'current_conversation_id' in app.storage.user:
                 del app.storage.user['current_conversation_id']
-            logger.info("Cleared current conversation ID")
+            logger.debug("Cleared current conversation ID")
     except Exception as e:
         logger.error("Error setting current conversation ID: %s", e)
         # Fallback for test environment: store in module-level dict
         if conversation_id:
             _test_fallback_storage['current_conversation_id'] = conversation_id
-            logger.info("Fallback stored current conversation ID in test storage: %s", conversation_id)
+            logger.debug("Fallback stored current conversation ID in test storage: %s", conversation_id)
         else:
             _test_fallback_storage.pop('current_conversation_id', None)
-            logger.info("Fallback cleared current conversation ID in test storage")
+            logger.debug("Fallback cleared current conversation ID in test storage")
         return
     # Also write to fallback storage during test runs so values persist across
     # request-like boundaries used by the NiceGUI test client.
@@ -531,7 +699,7 @@ def set_conversation_to_load(conversation_id: str, conversation_data: dict, mess
     Returns:
         None
     """
-    logger.info("Storing conversation for loading: %s", conversation_id)
+    logger.debug("Storing conversation for loading: %s", conversation_id)
     app.storage.user['conversation_to_load'] = {
         'conversation_id': conversation_id,
         'conversation_data': conversation_data,
@@ -560,7 +728,7 @@ def get_conversation_to_load():
                 del app.storage.user['conversation_to_load']
             except Exception:
                 pass
-            logger.info("Retrieved conversation for loading: %s", conversation_data.get('conversation_id'))
+            logger.debug("Retrieved conversation for loading: %s", conversation_data.get('conversation_id'))
             return conversation_data
     except Exception as e:
         logger.warning("app.storage.user not available, falling back to test storage: %s", e)
@@ -569,7 +737,7 @@ def get_conversation_to_load():
         if conv:
             # remove after returning
             _test_fallback_storage.pop('conversation_to_load', None)
-            logger.info("Retrieved conversation for loading from fallback: %s", conv.get('conversation_id'))
+            logger.debug("Retrieved conversation for loading from fallback: %s", conv.get('conversation_id'))
             return conv
     return None
 

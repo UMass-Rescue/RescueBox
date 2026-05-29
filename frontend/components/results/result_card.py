@@ -11,22 +11,22 @@ def render_result_card(container: ui.element, result_type: str, result_title: st
     """
     try:
         with container:
-            with ui.card().classes('bg-white border border-green-200 rounded-xl hover:shadow-lg transition-all duration-300 cursor-pointer group'):
+            with ui.card().classes('bg-white border border-indigo-200 rounded-xl hover:shadow-lg transition-all duration-300 cursor-pointer group'):
                 with ui.row().classes('p-4 items-center justify-between'):
                     # Result type info
                     with ui.column().classes('flex-1'):
                         with ui.row().classes('items-center gap-3'):
                             # icon selection is handled by caller via result_title or styling
-                            ui.icon('celebration', size='1.5rem').classes('text-green-600')
+                            ui.icon('celebration', size='1.5rem').classes('text-indigo-600')
                             with ui.column():
-                                ui.label(result_title).classes('font-semibold text-gray-800')
-                                ui.label(f'{result_count} item{"s" if result_count != 1 else ""}').classes('text-sm text-gray-500')
+                                ui.label(result_title).classes('font-semibold text-zinc-800')
+                                ui.label(f'{result_count} item{"s" if result_count != 1 else ""}').classes('text-sm text-zinc-500')
 
                     # Expand button
                     expand_btn = ui.button(
                         'View Details',
                         icon='expand_more'
-                    ).classes('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors z-10')
+                    ).classes('rb-brand-primary text-white px-4 py-2 rounded-lg transition-colors z-10')
 
                     expand_btn.on_click(on_expand)
                     # Make the entire card clickable via an invisible overlay button (placed behind buttons)

@@ -1,6 +1,7 @@
 from typing import Optional, Dict
 import logging
 from nicegui import ui
+
 from frontend.components.forms.form_generator import FormGenerator
 from frontend.utils.validators import validate_request_body
 from rb.api.models import TaskSchema, RequestBody
@@ -13,13 +14,17 @@ async def create_input_form(task_schema: TaskSchema, endpoint: str, initial_valu
     """
     Create input form card using FormGenerator. Returns the created card element.
     """
-    # Full-width card so directory/file path fields use available horizontal space
-    form_card = ui.card().classes('w-full max-w-full min-w-0 bg-white border-2 border-blue-500 text-sm')
+    # Match assistant message chrome (subtle zinc ring, not heavy indigo border)
+    form_card = ui.card().classes(
+        'w-full max-w-full min-w-0 text-sm '
+        'bg-white ring-1 ring-zinc-200 rounded-2xl rounded-tl-none shadow-sm '
+        'border-0'
+    )
     with form_card:
         form_generator = FormGenerator()
 
         async def handle_submit(form_data: dict):
-            validated = validate_request_body(form_data, task_schema)
+            validated = validate_request_body(form_data, task_schema, endpoint=endpoint)
             if not isinstance(validated, RequestBody):
                 error_info = validated.get('errors') if isinstance(validated, dict) else "Unknown error"
                 raise Exception(f"Validation failed: {error_info}")
@@ -32,7 +37,8 @@ async def create_input_form(task_schema: TaskSchema, endpoint: str, initial_valu
             initial_values=initial_values,
             onSubmit=handle_submit,
             onCancel=on_cancel,
-            compact=True
+            compact=True,
+            endpoint=endpoint,
         )
     return form_card
 
