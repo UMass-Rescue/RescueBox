@@ -1,30 +1,30 @@
 <!--
   RescueBox quick start — edit this Markdown for the in-app guide at /demo/quick-start.
-
-  Screenshots: add a line exactly like (file must exist in frontend/demo/):
-  {{SCREENSHOT:rescuebox_home.png}}
-
-  Markdown: blank line before "---" (else Setext heading). Blank line before a bullet list
-  after a paragraph (else list runs together with the paragraph as one line).
 -->
 
-## Overview
+## **Overview**
 
-RescueBox Desktop connects your browser to **plugins** (AI/ML tools for images, audio, text) to help with forensics  analysis.
+RescueBox Desktop  runs in your browser to execute **plugins** (AI/ML tools for images, audio, text) to help with forensics  analysis.
 You choose a plugin, fill in paths and options, run a **job**, then inspect **results** in **Jobs**
 
 
-## Navbar 
+## **Navbar** 
 
-This navigation bar is useful to navigate for daily use.
 {{SCREENSHOT:navbar.png}}
 
 
-## Home screen
+## **Home screen**
 
-- When you **start RescueBox for the first time**, enter a **unique user id**. It ties jobs to your browser session. 
+- When you **start RescueBox for the first time**, enter a **unique user id**. 
+
+- **User ID** must start with `demo_` followed by any 3 characters (use your initials) ,
+
+ eg: `demo_ejk` or `demo_shl` 
 
 {{SCREENSHOT:user_id.png}}
+
+ **[Home Page](/)**.
+
 
 The welcome page lists the main actions. 
 
@@ -37,32 +37,23 @@ The welcome page lists the main actions.
 
 ---
 
-## Available Plugins description.
+## **Running plugins**
 
-1. Open **[Browse Plugins](/models)**.
-2. Each plugin card shows **Online** / **Offline**, version, and author.
-3. Click **README** for **Plugin Details** — plugin documentation (inputs, outputs, notes).
+**RescueBox Assistant** — Open **[Assistant](/chatbot)**, 
 
----
+- Either, click the **Menu** button  or **type in a prompt**, to get an input form 
 
-## Running plugins
+- Complete **Inputs** / **Parameters** (use **Browse** for input paths on disk)
 
-**RescueBox Assistant** — Open **[Assistant](/chatbot)**, click the **Menu** button or **type in a prompt**, to get a input form 
+- then **submit Job** and view results under **Jobs**.
 
- Complete **Inputs** / **Parameters** (use **Browse** for input paths where shown), then **submit Job** and view results under **Jobs**.
-
-The three walkthoughs in this demo familiarize you with these operations.
+The **three walkthoughs in this demo** familiarize you with these operations.
 
 ---
 
-## Jobs
+## Available Plugins description and details.  
 
-Open **[Jobs](/jobs)** for results and status.
-
-- When a job is submitted, **case notes** can be added; they appear in the job output.
-
-- Deleting a job removes its results permanently.
+**[Browse Plugins](/models)**.
 
 ---
-
 

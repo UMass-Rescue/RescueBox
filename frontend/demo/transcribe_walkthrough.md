@@ -7,7 +7,7 @@
 
 
 
-This walkthrough is for a **demo user** running **Transcribe Audio** through the **Menu Assistant**: pick the plugin, fill up the form, submit a job, and view results.
+This walkthrough is to run a **Transcribe Audio** rescuebox plugin using the **Menu Assistant**: pick the plugin, fill up the form, submit a job, and view results.
 
 ---
 
@@ -23,9 +23,9 @@ This walkthrough is for a **demo user** running **Transcribe Audio** through the
 Click **[Assistant](/chatbot)** in the top nav (or use **Assistant** from the home page).
 
 
-1. In the Assistant toolbar, clic the  **📋 Menu** button.
+1. In the Assistant toolbar, clic the  **Menu** button.
 
-2. The **tool picker menu** appears in the chat area with numbered options.
+2. The **plugin selector menu** appears in the chat area with numbered options.
 
 3. Click **🎤 Transcribe Audio** — it is option **1** in the picker (`audio/transcribe`).
 
@@ -41,18 +41,20 @@ An input form opens with typical inputs , a folder of files saved on rescuebox s
 
 1.  Use **Browse** to select the **"transcribe-audio" folder , then select "inputs"** subfolder.
 
+[Browse demo folders](/demo?walkthrough=transcribe#sample-inputs)
+
 - this subfolder has a mp3 file that will be transcribed and output shown in the job result.
-{{SCREENSHOT:browse.png}}
+
 
 
 2. Click **Submit Job**
 
 3. Add Case notes , like case number and any reminders you would like to associate with the results.
 
-3. You should see status messages in the chat and/or a **job running** indicator.
+3. You should see status messages in the chat a **job running** indicator.
 
 
-4. Wait till "Job Completed Successfully" box provides result with  **view  job button to click**
+4. Wait till "Job Completed Successfully" box provides result with  **view  job button** to click
 {{SCREENSHOT:job-completed.png}}
 
 5. Review the **outputs and input details** of this job. In the main jobs page notice the "case notes" in the model column.
@@ -73,5 +75,5 @@ An input form opens with typical inputs , a folder of files saved on rescuebox s
 
 ### See Next
 
-- [Image search walkthrough](/demo/image-search-walkthrough) — Assistant + prompt  
+- [Image search walkthrough](/demo/image-search-walkthrough) — run with chat prompt Assistant 
 

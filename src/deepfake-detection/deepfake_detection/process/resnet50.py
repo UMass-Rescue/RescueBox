@@ -76,7 +76,7 @@ class Resnet50ModelONNX:
         if confidence < 0.2:
             label = "likely fake"
         elif confidence < 0.4:
-            label = "weakly fake"
+            label = "likely fake"
         elif confidence < 0.6:
             label = "uncertain"
         elif confidence < 0.8:

@@ -2,6 +2,8 @@ import logging
 from nicegui import ui
 from typing import Callable
 
+from frontend.design_tokens import Design
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -75,22 +77,45 @@ def render_form_actions(container: ui.element, on_cancel: Callable, on_submit: C
                 ui.button(
                     'Cancel',
                     on_click=_cancel_wrapper
-                ).classes('bg-gray-300')
+                ).classes(Design.BTN_MEDIUM_GRAY)
 
                 btn_ref = [None]  # Use list to allow closure to capture mutable ref
 
                 async def _submit_wrapper():
-                    """Disable submit button on first click to prevent duplicate submissions."""
-                    if btn_ref[0]:
-                        btn_ref[0].disable()
-                    submitted = await on_submit()
-                    if btn_ref[0] and submitted is not True:
-                        btn_ref[0].enable()
+                    """
+                    Use Quasar ``loading`` while the submit coroutine runs (validation, case
+                    notes dialog, job kickoff). Do not call ``disable()`` until a job is
+                    actually accepted: an early ``disable()`` made the button look broken
+                    when interacting elsewhere (e.g. case notes backdrop) and was easy to
+                    confuse with random clicks disabling the control.
+
+                    After the handler returns: clear loading. If submission succeeded (True),
+                    ``disable()`` so the same form cannot be submitted again; otherwise the
+                    button stays usable.
+                    """
+                    btn = btn_ref[0]
+                    if not btn:
+                        return
+                    btn.props['loading'] = True
+                    submitted = False
+                    try:
+                        submitted = await on_submit()
+                    except Exception:
+                        logger.exception('Form submit handler failed')
+                        raise
+                    finally:
+                        btn.props['loading'] = False
+                        try:
+                            btn.update()
+                        except Exception:
+                            pass
+                    if submitted is True:
+                        btn.disable()
 
                 submit_btn = ui.button(
                     '▶ Submit Job',
                     on_click=_submit_wrapper
-                ).classes('bg-green-600 text-white')
+                ).classes('rb-brand-primary text-white rounded-xl')
                 btn_ref[0] = submit_btn
 
             return submit_btn

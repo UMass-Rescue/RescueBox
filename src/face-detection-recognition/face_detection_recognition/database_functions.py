@@ -1,3 +1,4 @@
+import hashlib
 import pandas as pd
 import numpy as np
 import chromadb
@@ -6,9 +7,83 @@ import json
 from dotenv import load_dotenv
 import os
 import platform
+import re
 from pathlib import Path
+from typing import Dict, Optional
+from contextvars import ContextVar
 
 from face_detection_recognition.utils.resource_path import get_config_path
+
+# Segment after .../Documents/ — e.g. demo1, demo2, demo3 under /home/user/Documents/demo3/...
+_DOCUMENTS_SCOPE = re.compile(r"[/\\]Documents[/\\]([^/\\]+)", re.IGNORECASE)
+_VALID_DEMO_SCOPE = re.compile(r"^demo[0-9]+$", re.IGNORECASE)
+# Per–RescueBox-user Chroma subfolder (stable hash of explicit user id from X-RescueBox-User-Id)
+_VALID_USER_SCOPE = re.compile(r"^u_[a-f0-9]{16}$")
+
+_vector_db_cache: Dict[tuple, "Vector_Database"] = {}
+
+# Set by FastAPI (cli_to_api) from header X-RescueBox-User-Id for each request; isolates collections per user.
+facematch_rescuebox_user_id: ContextVar[Optional[str]] = ContextVar(
+    "facematch_rescuebox_user_id", default=None
+)
+
+
+def user_scope_from_rescuebox_user_id(user_id: str) -> str:
+    """Deterministic folder name under ~/.rescueBox-desktop/facematch/<scope>/ for this app user."""
+    h = hashlib.sha256(user_id.encode("utf-8")).hexdigest()[:16]
+    return f"u_{h}"
+
+
+def facematch_demo_scope_from_path(path: Optional[str]) -> Optional[str]:
+    """
+    When the path is under .../Documents/<folder>/..., return <folder> if it matches
+    ``demo`` + digits (e.g. demo3). Used to isolate Chroma persistence per demo user folder.
+
+    Paths that do not contain a demo scope use the legacy default store (no subfolder).
+    """
+    if not path:
+        return None
+    norm = os.path.normpath(str(path)).replace("\\", "/")
+    m = _DOCUMENTS_SCOPE.search(norm)
+    if not m:
+        return None
+    segment = m.group(1)
+    return segment if _VALID_DEMO_SCOPE.fullmatch(segment) else None
+
+
+def get_vector_database(demo_scope: Optional[str] = None) -> "Vector_Database":
+    """
+    Return a cached Vector_Database for the given demo scope (or legacy default when None).
+
+    ``demo_scope`` must match ``demo[0-9]+``, a per-user scope ``u_<16 hex>``, or be None.
+    """
+    if demo_scope is not None:
+        if not (
+            _VALID_DEMO_SCOPE.fullmatch(demo_scope)
+            or _VALID_USER_SCOPE.fullmatch(demo_scope)
+        ):
+            raise ValueError(f"Invalid facematch scope: {demo_scope!r}")
+    cache_key = (os.environ.get("IS_TESTING"), demo_scope)
+    if cache_key not in _vector_db_cache:
+        _vector_db_cache[cache_key] = Vector_Database(demo_scope=demo_scope)
+    return _vector_db_cache[cache_key]
+
+
+def vector_db_for_current_request(path_hint: Optional[str] = None) -> "Vector_Database":
+    """
+    Select Chroma store for the current HTTP request.
+
+    When ``facematch_rescuebox_user_id`` is set (from ``X-RescueBox-User-Id``), use that user's
+    isolated store so collection lists and uploads match across find/bulk/delete flows.
+
+    Otherwise use path-based ``.../Documents/demoN/...`` scope or the legacy default store.
+    """
+    uid = facematch_rescuebox_user_id.get()
+    if uid:
+        return get_vector_database(user_scope_from_rescuebox_user_id(uid))
+    scope = facematch_demo_scope_from_path(path_hint) if path_hint else None
+    return get_vector_database(scope)
+
 
 # Get models from config file.
 db_config_path = get_config_path("db_config.json")
@@ -30,7 +105,19 @@ load_dotenv()
 
 
 class Vector_Database:
-    def __init__(self):
+    def __init__(self, demo_scope: Optional[str] = None):
+        """
+        Persistent Chroma storage lives under ``~/.rescueBox-desktop/facematch`` (or Windows
+        equivalent). When ``demo_scope`` is set (e.g. ``demo3``), data is stored in a
+        subdirectory so different demo users do not share embeddings even for the same
+        logical collection name.
+        """
+        if demo_scope is not None and not (
+            _VALID_DEMO_SCOPE.fullmatch(demo_scope)
+            or _VALID_USER_SCOPE.fullmatch(demo_scope)
+        ):
+            raise ValueError(f"Invalid facematch scope: {demo_scope!r}")
+        self.demo_scope = demo_scope
         testing = os.environ.get("IS_TESTING")
         self.single_indicator = "S"
         self.ensemble_indicator = "E"
@@ -44,6 +131,8 @@ class Vector_Database:
             if platform.system() == "Windows":
                 appdata = os.environ.get("APPDATA")
                 db_path = Path(appdata) / "RescueBox-Desktop" / "facematch"
+            if demo_scope:
+                db_path = db_path / demo_scope
             if not db_path.exists():
                 db_path.mkdir(parents=True, exist_ok=True)
             self.client = chromadb.PersistentClient(

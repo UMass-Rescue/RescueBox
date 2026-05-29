@@ -75,7 +75,7 @@ class ChatbotPage:
             config (Optional[ChatbotConfig]): Configuration for the chatbot.
                 If None, creates a default configuration.
         """
-        logger.info("Initializing ChatbotPage")
+        logger.debug("Initializing ChatbotPage")
 
         # Configuration and core components
         self.config = config or ChatbotConfig()
@@ -119,7 +119,7 @@ class ChatbotPage:
         Returns:
             None: UI is added directly to the current context
         """
-        logger.info("Rendering chatbot UI")
+        logger.debug("Rendering chatbot UI")
 
         # Set up event handler callbacks
         self.event_handler.set_callbacks(
@@ -162,7 +162,7 @@ class ChatbotPage:
         # Set input area in state manager (enables set_input_enabled for both field and send button)
         self.state_manager.set_input_area(self.input_area)
 
-        logger.info("Chatbot UI rendered successfully")
+        logger.debug("Chatbot UI rendered successfully")
         # Ensure a conversation exists for this session (create if missing)
         try:
             if not self.state_manager.conversation_id:
@@ -172,7 +172,7 @@ class ChatbotPage:
                 self.state_manager.set_conversation_id(conv_id)
                 # Persist to NiceGUI storage (or fallback test storage)
                 set_current_conversation_id(conv_id)
-                logger.info("Initialized new conversation on page load: %s", conv_id)
+                logger.debug("Initialized new conversation on page load: %s", conv_id)
         except Exception as e:
             logger.warning("Failed to auto-create conversation on load: %s", e)
 
@@ -199,7 +199,7 @@ class ChatbotPage:
             endpoint: Tool endpoint name
             arguments: Tool arguments dictionary
         """
-        logger.info("Re-running tool: %s with args: %s", endpoint, arguments)
+        logger.debug("Re-running tool: %s with args: %s", endpoint, arguments)
 
         try:
             # Attempt to find the input area container to render the form there
@@ -231,11 +231,14 @@ class ChatbotPage:
             # Loaded history leaves the viewport mid-chat; the form renders in the input area (bottom).
             # Scroll so the new `.rb-form-wrapper` is visible without manual scrolling.
             try:
-                UIOperations.scroll_form_into_view()
-                ui.timer(0.35, UIOperations.scroll_form_into_view, once=True)
+                _c = getattr(input_area_container, 'client', None) if input_area_container else None
+                if _c is None:
+                    _c = getattr(self.chat_container, 'client', None)
+                UIOperations.scroll_form_into_view_with_retries(client=_c)
+                ui.timer(0.35, lambda c=_c: UIOperations.scroll_form_into_view_with_retries(client=c), once=True)
             except Exception:
                 pass
-            logger.info("Tool re-run initiated successfully: %s", endpoint)
+            logger.debug("Tool re-run initiated successfully: %s", endpoint)
         except Exception as e:
             logger.error("Error re-running tool %s: %s", endpoint, str(e))
             # Note: ui.notify removed because this runs in background task without UI context
@@ -268,14 +271,24 @@ class ChatbotPage:
             core=self.core
         )
 
-        # Scroll to bottom after message processing completes to keep input area visible
-        await self.scroll_to_bottom()
+        # Do not scroll_to_bottom here: for show_form / multi_tool_calls, ResultProcessor and
+        # _update_status(scroll_to_form=True) scroll the form into view. A follow-up
+        # scroll_to_bottom was fighting that and caused visible flicker.
 
     async def scroll_to_bottom(self):
         """
         Scroll the page to the bottom to keep the input area visible.
         """
-        UIOperations.scroll_to_bottom()
+        client = None
+        try:
+            client = self.chat_container.client
+        except Exception:
+            pass
+        UIOperations.scroll_to_bottom(client=client)
+
+    async def _scroll_to_bottom(self):
+        """CallbackManager alias for ``scroll_to_bottom``."""
+        await self.scroll_to_bottom()
 
     async def new_conversation(self):
         """
@@ -299,7 +312,7 @@ class ChatbotPage:
                 # Ignore storage errors in test environments
                 pass
 
-            logger.info("New conversation created: %s", conv_id)
+            logger.debug("New conversation created: %s", conv_id)
             return conv_id
         except Exception as e:
             logger.error("Failed to create new conversation: %s", e)
@@ -389,7 +402,7 @@ class ChatbotPage:
             if getattr(job, 'status', None) == 'Running' or getattr(job, 'status', None) == JobStatus.RUNNING:
                 # Show a status message in chat (non-blocking) and start polling
                 from frontend.pages.chatbot.chatbot_message import ChatMessage
-                self._add_message(ChatMessage('assistant', f"🔄 Job {job_id} is still running..."))
+                self._add_message(ChatMessage('assistant', f'Job {job_id} is still running…'))
                 try:
                     import asyncio as _asyncio
                     _asyncio.create_task(self._poll_job_status(job_id, endpoint))
@@ -426,11 +439,15 @@ class ChatbotPage:
                         await show_results(self.chat_container, job.response, job_id)
                     except Exception as e:
                         logger.warning("Failed to render job results on poll for %s: %s", job_id, e)
+                    try:
+                        await UIOperations.scroll_to_bottom_after_dom_update(self.chat_container)
+                    except Exception:
+                        pass
                     self.state_manager.set_input_enabled(True)
                     return
                 if status == 'Failed' or status == JobStatus.FAILED:
                     from frontend.pages.chatbot.chatbot_message import ChatMessage
-                    self._add_message(ChatMessage('assistant', f"❌ Job {job_id} failed."))
+                    self._add_message(ChatMessage('assistant', f'Job {job_id} failed.'))
                     self.state_manager.set_input_enabled(True)
                     return
         except Exception as e:
@@ -458,7 +475,7 @@ class ChatbotPage:
         - Form submission triggers handle_form_submit callback
         - If remaining_calls is provided, form submission will continue with next call
         """
-        logger.info("Loading form for endpoint: %s", endpoint)
+        logger.debug("Loading form for endpoint: %s", endpoint)
         logger.debug("Form arguments: %s", arguments)
         if remaining_calls:
             logger.info("Multi-call sequence: %d remaining call(s) after this one", len(remaining_calls))
@@ -468,7 +485,7 @@ class ChatbotPage:
                 results_target = (
                     getattr(self, '_results_container_for_next_submit', None) or self.chat_container
                 )
-                await self.form_handler.submit_form(
+                return await self.form_handler.submit_form(
                     request_body, ep, ts, results_target, self.core, remaining_calls
                 )
 
@@ -493,7 +510,7 @@ class ChatbotPage:
                 on_form_submit=form_submit_handler,
                 on_form_cancel=form_cancel_handler
             )
-            logger.info("Form loaded and displayed for endpoint: %s", endpoint)
+            logger.debug("Form loaded and displayed for endpoint: %s", endpoint)
         except Exception as e:
             logger.error("Failed to load form for endpoint %s: %s", endpoint, str(e))
             await self._show_error(f'Failed to load form: {str(e)}')
@@ -530,10 +547,21 @@ class ChatbotPage:
             scroll_after: If True, scroll after status update; if False, no scroll
             scroll_to_form: If True (and scroll_after), scroll form into view instead of page bottom
         """
+        from frontend.pages.chatbot.constants import FormConfig
+
         self.state_manager.set_status(status)
         if scroll_after:
-            scroll_fn = (UIOperations.scroll_form_into_view if scroll_to_form else self.scroll_to_bottom)
-            ui.timer(0.15, scroll_fn, once=True)
+            if scroll_to_form:
+                def _scroll_form_smooth():
+                    try:
+                        c = getattr(self.chat_container, 'client', None)
+                        UIOperations.scroll_form_into_view_smooth(client=c)
+                    except Exception:
+                        UIOperations.scroll_form_into_view_smooth()
+
+                ui.timer(FormConfig.FORM_SCROLL_AFTER_REVEAL_DELAY_S, _scroll_form_smooth, once=True)
+            else:
+                ui.timer(0.15, self.scroll_to_bottom, once=True)
 
 
     async def _handle_new_conversation(self):
@@ -565,7 +593,12 @@ async def chatbot_page(
     Returns:
         None: Page is rendered directly
     """
-    logger.info("Chatbot page route accessed (load_conversation=%s, rerun=%s)", load_conversation, rerun)
+    logger.debug("Chatbot page route accessed (load_conversation=%s, rerun=%s)", load_conversation, rerun)
+
+    from frontend.utils.nicegui_storage import ensure_user_id
+
+    if ensure_user_id() is None:
+        return
 
     # Import URL parameter manager
     from frontend.pages.chatbot.parameter_handlers import url_parameter_manager
@@ -612,4 +645,4 @@ async def chatbot_page(
     # that might happen shortly after the page is loaded.
     #ui.timer(1.0, chatbot.scroll_to_bottom, once=True)
 
-    logger.debug("Chatbot page route completed")
+    logger.info("receuebox frontend ready")

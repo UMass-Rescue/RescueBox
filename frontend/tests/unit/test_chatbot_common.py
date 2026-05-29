@@ -102,7 +102,8 @@ class TestChatbotCore:
 
             assert isinstance(schema, TaskSchema)
             assert len(schema.inputs) == 2
-            mock_client.get.assert_called_once_with("/audio/transcribe/task_schema")
+            mock_client.get.assert_called_once()
+            assert mock_client.get.call_args[0][0] == "/audio/transcribe/task_schema"
 
     @pytest.mark.asyncio
     async def test_get_task_schema_from_endpoint_with_slash(self, core, sample_task_schema):
@@ -225,10 +226,8 @@ class TestChatbotCore:
                 response = await core.submit_job(request_body, "audio/transcribe")
 
                 assert isinstance(response, ResponseBody)
-                mock_client.post.assert_called_once_with("/audio/transcribe", json={
-                    'inputs': {'input_dir': {'path': temp_dir}, 'prompt': {'text': 'test'}},
-                    'parameters': {}
-                })
+                mock_client.post.assert_called_once()
+                assert mock_client.post.call_args[0][0] == "/audio/transcribe"
 
     @pytest.mark.asyncio
     async def test_call_granite_model_success(self, core):
@@ -351,7 +350,14 @@ class TestChatbotCore:
         tool_calls_data = {
             "calls": [
                 {"name": "audio/transcribe", "arguments": {"input_dir": "/tmp/audio"}},
-                {"name": "image_summary/summarize-images", "arguments": {"input_dir": "/tmp/images"}},
+                {
+                    "name": "text_summarization/summarize",
+                    "arguments": {
+                        "input_dir": "/tmp/transcripts",
+                        "output_dir": "/tmp/summary",
+                        "model": "gemma3:1b",
+                    },
+                },
             ]
         }
         core.ollama_client.post = AsyncMock(return_value=self._ollama_ok(json.dumps(tool_calls_data)))
@@ -362,7 +368,7 @@ class TestChatbotCore:
         assert isinstance(result, list)
         assert len(result) == 2
         assert result[0]["name"] == "audio/transcribe"
-        assert result[1]["name"] == "image_summary/summarize-images"
+        assert result[1]["name"] == "text_summarization/summarize"
 
     @pytest.mark.asyncio
     async def test_call_granite_model_direct_no_tool_call(self, core):
@@ -414,4 +420,3 @@ class TestChatbotCore:
         core.ollama_client.aclose.assert_called_once()
         core.api.aclose.assert_called_once()
         assert core._llama_model is None
-

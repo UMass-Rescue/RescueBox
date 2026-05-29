@@ -7,7 +7,6 @@ Handles UI mode switching and related operations for different chat modes.
 import logging
 
 from frontend.pages.chatbot.utils.ui_operations import UIOperations
-from frontend.pages.chatbot.utils.ui_styling import UIStyling
 
 
 logger = logging.getLogger(__name__)
@@ -64,7 +63,6 @@ class UIModeManager:
 
         if mode == 'assistant':
             self.mode_indicator.text = 'Chat mode'
-            self.mode_indicator.props('color=green')
 
             # Show welcome message (same as New Conversation & initial load)
             if self.show_welcome_callback:
@@ -72,10 +70,6 @@ class UIModeManager:
                     self.show_welcome_callback(self.chat_container)
                 except Exception as e:
                     self.logger.debug("Failed to show welcome message on Assistant switch: %s", e)
-
-            # Update button styles
-            self.analyze_btn.classes(UIStyling.BUTTON_ENABLED, remove=UIStyling.BUTTON_DISABLED)
-            self.models_btn.classes(UIStyling.BUTTON_DISABLED, remove=UIStyling.BUTTON_ENABLED)
 
             # Show both chat and input if input_area provided
             if input_area is not None:
@@ -86,11 +80,6 @@ class UIModeManager:
 
         elif mode == 'models':
             self.mode_indicator.text = 'Plugins mode'
-            self.mode_indicator.props('color=purple')
-
-            # Update button styles
-            self.models_btn.classes(UIStyling.BUTTON_ENABLED, remove=UIStyling.BUTTON_DISABLED)
-            self.analyze_btn.classes(UIStyling.BUTTON_DISABLED, remove=UIStyling.BUTTON_ENABLED)
 
             # Show chat, hide input if input_area provided
             if input_area is not None:
@@ -99,5 +88,10 @@ class UIModeManager:
 
         self.logger.info("Switched to %s mode", mode)
         mode_label = 'Plugins' if mode == 'models' else 'Assistant'
-        UIOperations.safe_notify(f'Switched to {mode_label} mode', type='info', timeout=1000)
+        UIOperations.safe_notify(
+            f"Switched to {mode_label} mode",
+            type="info",
+            timeout=1000,
+            classes="rb-notify-a2aaad",
+        )
 

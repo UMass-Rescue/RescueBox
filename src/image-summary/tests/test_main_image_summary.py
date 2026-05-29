@@ -110,6 +110,13 @@ class TestImageSummary(RBAppTest):
         assert set(expected_files) == set(results)
         for file in results:
             assert file.endswith(".txt")
+        pairs = parsed.get("file_pairs")
+        assert isinstance(pairs, list)
+        assert len(pairs) == len(expected_files)
+        by_out = {p["output_path"]: p["input_path"] for p in pairs if isinstance(p, dict)}
+        for ef in expected_files:
+            assert ef in by_out
+            assert by_out[ef].lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"))
 
     @patch("image_summary.process.ensure_model_exists")
     def test_invalid_path(self, ensure_model_exists_mock):

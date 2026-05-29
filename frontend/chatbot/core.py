@@ -46,7 +46,7 @@ class ThinChatbotCore:
     def __init__(self, config):
         self.config = config
         self.api_client = httpx.AsyncClient(base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
-        self.ollama_client = httpx.AsyncClient(base_url=config.OLLAMA_HOST, timeout=60.0)
+        self.ollama_client = httpx.AsyncClient(base_url=config.OLLAMA_HOST, timeout=600.0)
         self.api = ApiClient(config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
         self._llama_model = None  # legacy attribute for tests
 
@@ -114,7 +114,7 @@ class ThinChatbotCore:
             resp = await self.ollama_client.post(
                 "/api/chat",
                 json={"model": self.config.GRANITE_MODEL, "messages": ollama_messages, "stream": False},
-                timeout=120.0,
+                timeout=600.0,
             )
             if resp.status_code != 200:
                 logger.warning("Ollama failed: %s %s", resp.status_code, resp.text[:200])

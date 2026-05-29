@@ -43,10 +43,10 @@ def render_job_action_buttons(job_fields: Dict[str, Any]):
             ui.button(
                 'Model Doc',
                 on_click=lambda: ui.navigate.to(f'/models/{model_uid}/details')
-            ).classes('bg-blue-600 text-white')
+            ).classes('rb-brand-primary text-white')
 
             ui.button(
                 'Run Model',
                 on_click=lambda: ui.navigate.to(f'/models/{model_uid}/run')
-            ).classes('bg-green-600 text-white')
+            ).classes('rb-brand-primary text-white rounded-xl')
 

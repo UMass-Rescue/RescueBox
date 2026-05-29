@@ -32,8 +32,8 @@ def render_model_card(
     The card includes README (plugin details) and, when offline, Connect.
     
     Design Features:
-    - Color-coded borders: Green for online, red for offline
-    - Status indicator: Visual dot (●) showing online/offline status
+    - Card shell: Zinc-tint surface + Medium Gray #505759 border (see ``.rb-models-plugin-card`` in ``ui_readability_css``)
+    - Status indicator: Visual dot (●) showing online/offline status (green/red text)
     - Dynamic icon: Icon changes based on model category (image/audio/text)
     - Hover effects: Shadow appears on hover for better UX
     - Responsive layout: Flex layout adapts to container width
@@ -66,22 +66,23 @@ def render_model_card(
     
     Tips:
     - Use different callback functions for different actions
-    - The card automatically adapts styling based on online status
+    - Online/offline is shown in the status row; card chrome is fixed brand grays
     - GPU requirement badge is only shown if model['gpu'] is True
     - Icons are selected based on model name keywords
     - Card uses Tailwind CSS classes for styling
     """
-    logger.info("Rendering model card for model: %s (UID: %s)", model.get('name', 'Unknown'), model.get('uid', 'N/A'))
-    logger.info("Model online status: %s", is_online)
+    logger.debug("Rendering model card for model: %s (UID: %s)", model.get('name', 'Unknown'), model.get('uid', 'N/A'))
+    logger.debug("Model online status: %s", is_online)
     
-    status_color = 'bg-green-50 border-green-500' if is_online else 'bg-red-50 border-red-500'
     status_indicator = '●' if is_online else '○'
     status_text = 'Online' if is_online else 'Offline'
-    logger.info("Status indicator: %s, status text: %s", status_indicator, status_text)
-    
+    logger.debug("Status indicator: %s, status text: %s", status_indicator, status_text)
+
     with container:
         logger.debug("Creating model card container")
-        with ui.card().classes(f'w-full border-2 {status_color} p-6 hover:shadow-lg transition-shadow'):
+        with ui.card().classes(
+            'rb-models-plugin-card w-full p-6 hover:shadow-lg transition-shadow'
+        ):
             with ui.row().classes('items-center justify-between w-full'):
                 # Left section - Model info
                 with ui.column().classes('flex-1'):
@@ -92,32 +93,22 @@ def render_model_card(
                                'audiotrack' if 'audio' in model.get('name', '').lower() else \
                                'description' if 'text' in model.get('name', '').lower() else 'category'
                         logger.debug("Selected icon: %s for model category", icon)
-                        ui.icon(icon, size='lg').classes('text-blue-600')
+                        #ui.icon(icon, size='lg').classes('text-indigo-600')
                         ui.label(model['name']).classes('text-2xl font-bold')
                         logger.debug("Model name label added: %s", model['name'])
                     
                     # Version, author, GPU info
-                    with ui.row().classes('gap-4 mt-2 text-sm text-gray-600 items-center'):
+                    with ui.row().classes('gap-4 mt-2 text-sm text-zinc-600 items-center'):
                         ui.label(f"v{model['version']}")
                         ui.label('•')
                         ui.label(model.get('author', 'Unknown'))
                         if model.get('gpu'):
-                            ui.badge('GPU Required', color='red').classes('text-xs')
-                    
-                    # Metadata line
-                    category = model.get('category', 'General')
-                    metadata_text = f"{category} • {model.get('author', 'Unknown')}"
-                    if model.get('gpu'):
-                        metadata_text += ' • ⚠️ GPU Required'
-                    ui.label(metadata_text).classes('text-sm text-gray-500 mt-1')
+                            ui.badge('GPU Required', color="black").classes('text-xs')
                 
                 # Right section - Status and actions
                 with ui.column().classes('items-end gap-2'):
                     # Status badge
-                    with ui.row().classes('items-center gap-2'):
-                        status_color_class = 'text-green-600' if is_online else 'text-red-600'
-                        ui.label(status_indicator).classes(f'text-2xl {status_color_class}')
-                        ui.label(status_text).classes('font-semibold')
+                 
                     
                     # Action buttons
                     with ui.row().classes('gap-2'):
@@ -126,14 +117,14 @@ def render_model_card(
                             ui.button(
                                 UI_BUTTONS['plugin_readme'],
                                 on_click=lambda m=model: on_inspect(m['uid']) if on_inspect else None
-                            ).classes('bg-blue-600 text-white')
+                            ).classes('rb-brand-primary text-white')
                             logger.debug("README button added")
                         
                         if not is_online and on_connect:
                             ui.button(
                                 '🔌 Connect',
                                 on_click=lambda m=model: on_connect(m['uid']) if on_connect else None
-                            ).classes('bg-gray-600 text-white')
+                            ).classes('bg-zinc-600 text-white')
                             logger.debug("Connect button added (model is offline)")
     
-    logger.info("Model card rendered successfully")
+    logger.debug("Model card rendered successfully")

@@ -11,6 +11,7 @@ from frontend.pages.chatbot.utils.ui_operations import UIOperations
 from frontend.pages.chatbot.utils.ui_styling import UIStyling
 from frontend.pages.chatbot.utils.ui_mode_manager import UIModeManager
 from frontend.components.chat import create_history_panel
+from frontend.design_tokens import Design
 from frontend.pages.chatbot.chatbot_forms import show_tool_picker, load_and_show_form
 from frontend.components.chat.input_area import create_input_area
 
@@ -30,7 +31,7 @@ def register_chat_history_button(btn) -> None:
 
 
 def refresh_chat_history_button_visibility() -> None:
-    """Show 📜 History only when the current user has at least one job."""
+    """Show the History button only when the current user has at least one job."""
     global _chat_history_button_ref
     btn = _chat_history_button_ref
     if btn is None:
@@ -83,24 +84,46 @@ class ChatUIBuilder:
         Returns:
             tuple: (chat_container, input_field, status_label, input_area, below_input_area)
         """
-        self.logger.info("Building chat UI with proper separation")
+        self.logger.debug("Building chat UI with proper separation")
 
         # Create UI state management
         ui_state = self._create_ui_state()
 
         # Build main container
-        with ui.column().classes('min-h-screen w-full flex flex-col -mt-16 bg-gray-50'):
-            # Build header
-            # Pass history dialog handler so the header can open it when available
+        with ui.column().classes('min-h-screen w-full flex flex-col -mt-16 bg-zinc-50'):
+            # Sticky toolbar (Menu / Chat / History only; title is on the card below).
             self._build_header(ui_state)
 
-            # Build main content areas inside a centered container so children align
-            with ui.column().classes('container mx-auto w-full px-4'):
-                chat_container = self._build_chat_area()
-                input_area = self._build_input_area()
-                # Job results from forms in the input strip (e.g. re-run) append here so they sit below the form.
+            # Centered chat card: header strip + scrollable messages + input (matches product shell).
+            with ui.column().classes(
+                'container mx-auto w-full px-4 flex-1 flex flex-col min-h-0 pb-4'
+            ):
+                with ui.card().classes(Design.PANEL_SHELL_CHAT_CARD):
+                    with ui.row().classes(Design.PANEL_SHELL_HEADER):
+                        ui.label('RescueBox Assistant').classes(Design.PANEL_SHELL_HEADER_TITLE)
+                        self.mode_indicator = ui.badge('Chat mode', color=None).classes(
+                            'text-xs font-medium rb-chat-mode-badge'
+                        )
+
+                    chat_container = self._build_chat_area()
+
+                    # Below the message list, above the composer (still only while is_processing).
+                    if self.state_manager is not None:
+                        with ui.row().classes(
+                            'rb-chat-processing-hint w-full items-center gap-2 px-6 py-2 '
+                            'border-t border-zinc-100 bg-zinc-50 flex-none'
+                        ) as processing_hint:
+                            ui.spinner(size='1rem').classes(
+                                f'{Design.SPINNER_PROCESSING} shrink-0'
+                            )
+                            ui.label('Processing…').classes('!text-sm text-zinc-600')
+                        self.state_manager.attach_processing_strip(processing_hint)
+
+                    input_area = self._build_input_area()
+
+                # Outside the card: wide job results / re-run output below the composer strip.
                 below_input_area = ui.column().classes(
-                    'w-full max-w-none space-y-4 mt-2 mb-4'
+                    'rb-chat-below-input-area w-full max-w-none space-y-4 mt-2 mb-4'
                 )
 
             # Initialize mode manager now that chat_container exists
@@ -134,11 +157,10 @@ class ChatUIBuilder:
         """Build the toolbar header."""
         try:
             from frontend.components.chat.chat_header import create_chat_header
-            mode_indicator, models_btn, analyze_btn, history_btn = create_chat_header(
+            models_btn, analyze_btn, history_btn = create_chat_header(
                 self.on_new_conversation, ui_state, UIStyling, on_show_history=self._show_history_dialog
             )
-            # Store references for mode switching
-            self.mode_indicator = mode_indicator
+            # mode_indicator is created on the chat card in build_ui()
             self.models_btn = models_btn
             self.analyze_btn = analyze_btn
             self.history_btn = history_btn
@@ -175,7 +197,7 @@ class ChatUIBuilder:
             await switch_mode('models')
             # Diagnostic log: record which containers will be used to render the picker/form
             try:
-                logger.info("handle_models_click invoked: chat_container=%r input_area=%r global_chat=%r",
+                logger.debug("handle_models_click invoked: chat_container=%r input_area=%r global_chat=%r",
                             chat_container, input_area, getattr(self, 'chat_container', None))
             except Exception:
                 pass
@@ -187,14 +209,14 @@ class ChatUIBuilder:
                 async def handle_form_submit(request_body, form_endpoint, task_schema):
                     # Get current conversation_id from state manager
                     conversation_id = getattr(self.status_text_ref, 'conversation_id', None) if self.status_text_ref else None
-                    await self.form_submit_handler.submit_form(
+                    return await self.form_submit_handler.submit_form(
                         request_body, form_endpoint, task_schema,
                         chat_container, self.core, conversation_id=conversation_id
                     )
                 # Render forms into the chat container so the selection message and form
                 # appear inline in the conversation (after assistant/tool-selection).
                 try:
-                    logger.info("ChatUIBuilder loading form: target_chat_container=%r endpoint=%s args=%s", chat_container, endpoint, args)
+                    logger.debug("ChatUIBuilder loading form: target_chat_container=%r endpoint=%s args=%s", chat_container, endpoint, args)
                 except Exception:
                     pass
                 def _on_cancel():
@@ -231,13 +253,22 @@ class ChatUIBuilder:
             show_history_dialog(on_conversation_select=_on_conv_select, on_rerun_tool=_on_rerun)
         except Exception as e:
             logger.exception("Failed to open history dialog component: %s", e)
-            # Fallback to inline dialog
-            with ui.dialog() as dialog, ui.card().classes('w-full max-w-2xl max-h-[80vh]'):
-                ui.label('Chat History').classes('text-2xl font-bold mb-4')
-                history_panel = create_history_panel(
-                    on_conversation_select=lambda conv_id: [self._load_conversation(conv_id), dialog.close()],
-                    on_rerun_tool=lambda msg_id: [ui.navigate.to(f'/chatbot?rerun={msg_id}'), dialog.close()]
-                )
+            # Fallback to inline dialog (same shell as history_dialog module)
+            with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_NARROW):
+                with ui.row().classes(Design.PANEL_SHELL_HEADER):
+                    ui.label('Chat History').classes(Design.PANEL_SHELL_HEADER_TITLE)
+                with ui.column().classes(f'{Design.PANEL_SHELL_BODY} flex flex-col min-h-0 max-h-[60vh]'):
+                    create_history_panel(
+                        on_conversation_select=lambda conv_id: [
+                            self._load_conversation(conv_id),
+                            dialog.close(),
+                        ],
+                        on_rerun_tool=lambda msg_id: [
+                            ui.navigate.to(f'/chatbot?rerun={msg_id}'),
+                            dialog.close(),
+                        ],
+                        show_title=False,
+                    )
             dialog.open()
 
     def _load_conversation(self, conversation_id: str):

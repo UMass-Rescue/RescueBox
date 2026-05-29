@@ -14,7 +14,6 @@ from frontend.pages.chatbot.chatbot_forms import (
     load_and_show_form
 )
 from frontend.chatbot.config import ToolRegistry
-
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -62,9 +61,9 @@ class ResultProcessor:
             update_status_callback: Function to update status
             load_form_callback: Function to load forms
         """
-        logger.info("ResultProcessor.process_result called with result type: %s", result.get('type', 'unknown'))
+        logger.debug("ResultProcessor.process_result called with result type: %s", result.get('type', 'unknown'))
         result_type = result.get('type', 'unknown')
-        logger.info("Processing result type: %s", result_type)
+        logger.debug("Processing result type: %s", result_type)
 
         def _set_input(enabled: bool):
             if set_input_enabled_callback:
@@ -77,7 +76,9 @@ class ResultProcessor:
             if result_type == 'show_form':
                 _set_input(False)
                 await self._handle_show_form(result, container, core, load_form_callback)
-                update_status_callback("Ready", scroll_to_form=True)
+                # Scroll + "Fill the form…" status come from MessageProcessor once (avoids duplicate
+                # scroll_form_into_view_with_retries fighting each other).
+                update_status_callback("Ready", scroll_after=False)
                 return
 
             elif result_type == 'multi_tool_calls':
@@ -87,9 +88,9 @@ class ResultProcessor:
 
             elif result_type == 'message':
                 _set_input(True)
-                logger.info("About to call _handle_message for result: %s", result)
+                logger.debug("About to call _handle_message for result: %s", result)
                 await self._handle_message(result, add_message_callback)
-                logger.info("_handle_message completed")
+                logger.debug("_handle_message completed")
 
             elif result_type == 'error':
                 _set_input(True)
@@ -152,15 +153,18 @@ class ResultProcessor:
         from frontend.components.shared.notifications import notify_info
 
         tool_calls = result.get('tool_calls', [])
-        notify_info(f"Processing {len(tool_calls)} tool call(s) sequentially...")
+        notify_info(
+            f"Processing {len(tool_calls)} tool call(s) sequentially...",
+        )
 
         # Create a proper ChatMessage object
-        from frontend.pages.chatbot.chatbot_message import ChatMessage
-        message = ChatMessage('assistant',
-            f"🔄 I'll process {len(tool_calls)} task(s) sequentially:\n" +
-            "\n".join([f"{i+1}. {call['endpoint']}" for i, call in enumerate(tool_calls)])
-        )
-        add_message_callback(message)
+        #from frontend.pages.chatbot.chatbot_message import ChatMessage
+        #message = ChatMessage('assistant',
+        #    f"Processing {len(tool_calls)} task(s) sequentially:\n" +
+        #    "\n".join([f"{i+1}. {call['endpoint']}" for i, call in enumerate(tool_calls)])
+        #)
+        # Do not scroll to bottom here: scroll_to_bottom retries (~700ms) override form scrollIntoView.
+        #add_message_callback(message, False)
 
         # Start with first tool call
         if tool_calls and load_form_callback:
@@ -170,17 +174,18 @@ class ResultProcessor:
                 first_call['arguments'],
                 remaining_calls=tool_calls[1:] if len(tool_calls) > 1 else None
             )
+            # Form scroll is scheduled once from MessageProcessor (update_status … scroll_to_form=True).
 
     async def _handle_message(self, result: Dict[str, Any], add_message_callback):
         """Handle message result type."""
         content = result.get('content', '')
-        logger.info("Handling message result with content: %s", content[:50])
+        logger.debug("Handling message result with content: %s", content[:50])
         # Create a proper ChatMessage object
         from frontend.pages.chatbot.chatbot_message import ChatMessage
         message = ChatMessage('assistant', content)
-        logger.info("Created ChatMessage: role=%s, content_length=%d", message.role, len(message.content))
+        logger.debug("Created ChatMessage: role=%s, content_length=%d", message.role, len(message.content))
         add_message_callback(message)
-        logger.info("Called add_message_callback for rejection message")
+        logger.debug("Called add_message_callback for rejection message")
 
     async def _handle_error(self, result: Dict[str, Any], show_error_callback):
         """Handle error result type."""
@@ -225,7 +230,7 @@ class ResultProcessor:
             # Import here to avoid circular imports
             from frontend.pages.chatbot.handlers.form_submit_handler import FormSubmitHandler
             handler = FormSubmitHandler(self.state_manager)
-            await handler.submit_form(request_body, endpoint, task_schema, container, core)
+            return await handler.submit_form(request_body, endpoint, task_schema, container, core)
         return form_submit_handler
 
     def _create_tool_selected_handler(self, container, add_message_callback):

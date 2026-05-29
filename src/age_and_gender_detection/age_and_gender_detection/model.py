@@ -1,15 +1,54 @@
 # SPDX-License-Identifier: Apache-2.0
 
+import argparse
+import logging
+import os
 import cv2
 import onnxruntime as ort
 
 # Suppress "Initializer appears in graph inputs" warnings (harmless, model still works)
 ort.set_default_logger_severity(3)
-import argparse
 import numpy as np
 from pathlib import Path
 from age_and_gender_detection.box_utils import predict
 from pprint import pprint
+
+logger = logging.getLogger(__name__)
+
+def _env_force_cpu() -> bool:
+    return os.environ.get("RESCUEBOX_ORT_CPU", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
+def _is_gpu_inference_failure(exc: BaseException) -> bool:
+    """True when ORT failed on GPU path (e.g. cuDNN FE); safe to retry on CPU."""
+    text = f"{type(exc).__name__}: {exc}".lower()
+    if "cudnn" in text:
+        return True
+    if "cuda" in text and ("conv node" in text or "execution" in text):
+        return True
+    return False
+
+
+def _select_runtime_providers() -> list:
+    if _env_force_cpu():
+        return ["CPUExecutionProvider"]
+    available = ort.get_available_providers()
+    providers = ["CPUExecutionProvider"]
+    if "CUDAExecutionProvider" in available:
+        providers.insert(
+            0,
+            (
+                "CUDAExecutionProvider",
+                {"device_id": 0, "cudnn_conv_algo_search": "DEFAULT"},
+            ),
+        )
+    if "CoreMLExecutionProvider" in available:
+        providers.insert(0, "CoreMLExecutionProvider")
+    return providers
 
 
 # scale current rectangle to box
@@ -63,16 +102,10 @@ class AgeGenderDetector:
             "(48-53)",
             "(60-100)",
         ]
-        session_options = ort.SessionOptions()
-        session_options.inter_op_num_threads = 4
-        session_options.intra_op_num_threads = 4
+        self._session_options = ort.SessionOptions()
+        self._session_options.inter_op_num_threads = 4
+        self._session_options.intra_op_num_threads = 4
 
-        available = ort.get_available_providers()
-        self.runtime_providers = ["CPUExecutionProvider"]
-        if "CUDAExecutionProvider" in available:
-            self.runtime_providers.insert(0, "CUDAExecutionProvider")
-        if "CoreMLExecutionProvider" in available:
-            self.runtime_providers.insert(0, "CoreMLExecutionProvider")
         self.genderList = ["Male", "Female"]
         self.image_file_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]
 
@@ -80,21 +113,63 @@ class AgeGenderDetector:
         self.age_classifier_path = age_classifier_path
         self.gender_classifier_path = gender_classifier_path
 
+        self._cpu_only = False
+        self.runtime_providers = _select_runtime_providers()
+        self._load_sessions()
+
+    def _load_sessions(self) -> None:
         self.face_detector = ort.InferenceSession(
             self.face_detector_path,
-            sess_options=session_options,
+            sess_options=self._session_options,
             providers=self.runtime_providers,
         )
         self.age_classifier = ort.InferenceSession(
             self.age_classifier_path,
-            sess_options=session_options,
+            sess_options=self._session_options,
             providers=self.runtime_providers,
         )
         self.gender_classifier = ort.InferenceSession(
             self.gender_classifier_path,
-            sess_options=session_options,
+            sess_options=self._session_options,
             providers=self.runtime_providers,
         )
+
+    def _try_reload_cpu_after_gpu_failure(self, exc: BaseException) -> bool:
+        if self._cpu_only or not _is_gpu_inference_failure(exc):
+            return False
+        logger.warning(
+            "ONNX Runtime GPU inference failed (%s); switching to CPU. "
+            "Set RESCUEBOX_ORT_CPU=1 to skip GPU from the start.",
+            exc,
+        )
+        self._cpu_only = True
+        self.runtime_providers = ["CPUExecutionProvider"]
+        self._load_sessions()
+        return True
+
+    def _run_face_detector(self, feeds: dict):
+        try:
+            return self.face_detector.run(None, feeds)
+        except Exception as e:
+            if not self._try_reload_cpu_after_gpu_failure(e):
+                raise
+            return self.face_detector.run(None, feeds)
+
+    def _run_age(self, feeds: dict):
+        try:
+            return self.age_classifier.run(None, feeds)
+        except Exception as e:
+            if not self._try_reload_cpu_after_gpu_failure(e):
+                raise
+            return self.age_classifier.run(None, feeds)
+
+    def _run_gender(self, feeds: dict):
+        try:
+            return self.gender_classifier.run(None, feeds)
+        except Exception as e:
+            if not self._try_reload_cpu_after_gpu_failure(e):
+                raise
+            return self.gender_classifier.run(None, feeds)
 
     def faceDetector(self, orig_image, threshold=0.7):
         image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
@@ -106,7 +181,7 @@ class AgeGenderDetector:
         image = image.astype(np.float32)
 
         input_name = self.face_detector.get_inputs()[0].name
-        confidences, boxes = self.face_detector.run(None, {input_name: image})
+        confidences, boxes = self._run_face_detector({input_name: image})
         boxes, labels, probs = predict(
             orig_image.shape[1], orig_image.shape[0], confidences, boxes, threshold
         )
@@ -122,7 +197,7 @@ class AgeGenderDetector:
         image = image.astype(np.float32)
 
         input_name = self.gender_classifier.get_inputs()[0].name
-        genders = self.gender_classifier.run(None, {input_name: image})
+        genders = self._run_gender({input_name: image})
         gender = self.genderList[genders[0].argmax()]
         return gender
 
@@ -136,7 +211,7 @@ class AgeGenderDetector:
         image = image.astype(np.float32)
 
         input_name = self.age_classifier.get_inputs()[0].name
-        ages = self.age_classifier.run(None, {input_name: image})
+        ages = self._run_age({input_name: image})
         age = self.ageList[ages[0].argmax()]
         return age
 

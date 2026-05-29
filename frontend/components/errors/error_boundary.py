@@ -39,7 +39,7 @@ def render_error_boundary(
                                 ui.button(label, on_click=callback).classes(classes)
                             except Exception:
                                 # best-effort: render a disabled button
-                                ui.button('Action', disabled=True).classes('bg-gray-300')
+                                ui.button('Action', disabled=True).classes('bg-zinc-300')
     except Exception as e:
         logger.exception("Error rendering error boundary: %s", e)
         # Fallback minimal display

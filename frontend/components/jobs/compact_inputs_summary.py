@@ -12,8 +12,8 @@ def render_compact_inputs_summary(container: ui.element, task_schema: Any, reque
     """
     logger.debug("Rendering compact inputs summary (component)")
     with container:
-        with ui.expansion('📋 View Inputs & Parameters', icon='description').classes('w-full mb-4'):
-            with ui.column().classes('gap-3 p-4 bg-gray-50 rounded'):
+        with ui.expansion('View inputs & parameters', icon='description').classes('w-full mb-4'):
+            with ui.column().classes('gap-3 p-4 bg-zinc-50 rounded'):
                 # Inputs
                 if getattr(task_schema, 'inputs', None):
                     ui.label('Inputs').classes('font-semibold text-lg')
@@ -30,16 +30,16 @@ def render_compact_inputs_summary(container: ui.element, task_schema: Any, reque
                                 if hasattr(input_root, 'path'):
                                     path_str = str(input_root.path)
                                     display_path = path_str if len(path_str) < 80 else path_str[:77] + '...'
-                                    ui.label(display_path).classes('flex-1 text-sm font-mono text-gray-700')
+                                    ui.label(display_path).classes('flex-1 text-sm font-mono text-zinc-700')
                                 elif hasattr(input_root, 'text'):
                                     text = input_root.text
                                     first_line = text.split('\n')[0] if '\n' in text else text
                                     display_text = first_line if len(first_line) < 100 else first_line[:97] + '...'
-                                    ui.label(display_text).classes('flex-1 text-sm text-gray-700')
+                                    ui.label(display_text).classes('flex-1 text-sm text-zinc-700')
                                 else:
-                                    ui.label(str(input_root)).classes('flex-1 text-sm text-gray-700')
+                                    ui.label(str(input_root)).classes('flex-1 text-sm text-zinc-700')
                             else:
-                                ui.label('(not provided)').classes('flex-1 text-sm text-gray-400 italic')
+                                ui.label('(not provided)').classes('flex-1 text-sm text-zinc-400 italic')
 
                 # Parameters
                 if getattr(task_schema, 'parameters', None):
@@ -50,7 +50,7 @@ def render_compact_inputs_summary(container: ui.element, task_schema: Any, reque
 
                         with ui.row().classes('items-center gap-2'):
                             ui.label(param_schema.label).classes('w-32 font-semibold text-sm')
-                            ui.label(str(param_value) if param_value is not None else '(not provided)').classes('flex-1 text-sm text-gray-700')
+                            ui.label(str(param_value) if param_value is not None else '(not provided)').classes('flex-1 text-sm text-zinc-700')
 
     logger.debug("Compact inputs summary (component) rendered")
 

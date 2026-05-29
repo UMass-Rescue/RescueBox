@@ -14,17 +14,17 @@ def render_batch_file_table(container: ui.element, columns: List[Dict[str, Any]]
     """
     try:
         with container:
-            table_card = ui.card().classes('bg-white p-4')
+            table_card = ui.card().classes('bg-white p-4 w-full min-w-0 max-w-full')
             with table_card:
-                table_column = ui.column()
+                table_wrap = ui.column().classes('w-full min-w-0 overflow-x-auto')
                 create_sortable_table(
-                    table_column,
+                    table_wrap,
                     columns,
                     rows,
                     row_key='path',
                     on_row_click=on_row_click,
                     show_row_labels=False,
-                    tip_message=tip_message
+                    tip_message=tip_message,
                 )
     except Exception as e:
         logger.exception("Error rendering batch file table: %s", e)

@@ -14,6 +14,9 @@ from frontend.components.results.table_helpers import (
     create_sortable_table,
     resolve_table_row_index,
 )
+from frontend.database.pipeline_job_index_db import lookup_source_image
+from frontend.design_tokens import Design
+from frontend.utils.pipeline_index_context import get_pipeline_index_ids
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +50,7 @@ def _read_file_preview(path: str) -> str:
 def _open_text_search_row_preview(path: str) -> None:
     """Large markdown preview for text-like files; otherwise use existing file opener."""
     if not path or not os.path.isfile(path):
-        ui.notify("File not found or not a file.", type="warning")
+        ui.notify("File not found or not a file.", type="warning", classes="rb-notify-505759")
         return
     if not _is_text_like_path(path):
         from frontend.components.results.results_utils import open_file
@@ -57,19 +60,30 @@ def _open_text_search_row_preview(path: str) -> None:
     body = _read_file_preview(path)
     name = os.path.basename(path)
     with ui.dialog() as dialog, ui.card().classes(
-        "w-full max-w-4xl p-0 gap-0 overflow-hidden"
+        f"{Design.PANEL_SHELL_CARD} max-h-[90vh]"
     ):
-        with ui.row().classes(
-            "w-full px-4 py-3 items-center justify-between bg-slate-100 border-b border-slate-200"
+        with ui.row().classes(Design.PANEL_SHELL_HEADER):
+            ui.label(name).classes(
+                f"{Design.PANEL_SHELL_HEADER_TITLE} truncate min-w-0 grow"
+            )
+            ui.button(icon="close", on_click=dialog.close, color=None).props(
+                "flat round dense"
+            ).classes(Design.PANEL_SHELL_HEADER_ICON)
+        ui.label(path).classes(
+            "w-full text-sm font-mono text-zinc-500 px-4 py-2 break-all "
+            "bg-white border-b border-zinc-100"
+        )
+        with ui.column().classes(
+            f"{Design.PANEL_SHELL_BODY} max-h-[calc(90vh-10rem)] w-full min-h-0"
         ):
-            ui.label(name).classes("text-xl font-semibold text-slate-800 truncate")
-            ui.button(icon="close", on_click=dialog.close).props("flat dense round")
-        ui.label(path).classes("text-sm font-mono text-slate-500 px-4 pb-2 break-all")
-        with ui.scroll_area().classes("w-full max-h-[80vh] px-4 pb-4"):
-            ui.markdown(body).classes("text-lg leading-relaxed w-full max-w-none")
-        with ui.row().classes("w-full justify-end px-4 py-3 border-t border-slate-200 bg-slate-50"):
-            ui.button("Close", on_click=dialog.close).props("outline")
-    dialog.open()
+            ui.markdown(body).classes(
+                "prose prose-zinc max-w-none text-zinc-900 text-lg leading-relaxed w-full"
+            )
+        with ui.row().classes(Design.PANEL_SHELL_FOOTER):
+            ui.button("Close", on_click=dialog.close).classes(
+                Design.BTN_SECONDARY_NEUTRAL
+            )
+        dialog.open()
 
 
 def _pick(d: dict, *keys: str, default: Any = "") -> Any:
@@ -105,6 +119,7 @@ def _results_have_matching_text(results: list) -> bool:
 
 def render_text_search_json(container: ui.element, data: dict, title: str = "Text Search Results") -> None:
     """Show query summary, optional guidance, and a sortable results table."""
+    puid, prid = get_pipeline_index_ids()
     query = _pick(data, "query")
     model = _pick(data, "model")
     top_k = _pick(data, "top_k", "topk")
@@ -114,38 +129,42 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
 
     if data.get("error"):
         with container:
-            ui.label(str(data["error"])).classes("text-red-600")
+            ui.label(str(data["error"])).classes("text-red-700")
         return
 
     with container:
         with ui.card().classes(
-            "w-full min-w-0 max-w-full self-stretch bg-gradient-to-br from-blue-50 to-indigo-50 "
-            "border-2 border-blue-300 rounded-xl shadow-lg overflow-hidden"
+            "w-full min-w-0 max-w-full self-stretch flex flex-col min-h-0 "
+            "rounded-3xl shadow-xl shadow-zinc-200/50 border border-zinc-100 "
+            "p-0 overflow-hidden bg-white"
         ):
-            with ui.row().classes(
-                "w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 items-center"
-            ):
-                ui.icon("search", size="1.5rem").classes("mr-3")
-                ui.label(title).classes("text-lg font-bold")
+            with ui.row().classes(Design.PANEL_SHELL_HEADER):
+                with ui.row().classes("items-center gap-3 min-w-0 grow"):
+                    ui.label(title).classes(
+                        f"{Design.PANEL_SHELL_HEADER_TITLE} truncate"
+                    )
 
-            with ui.column().classes("w-full p-4 gap-3"):
-                with ui.column().classes("gap-1 text-sm text-gray-800"):
-                    ui.label(f"Query: {query}").classes("font-medium")
+            with ui.column().classes("w-full p-4 gap-3 bg-white"):
+                with ui.column().classes("gap-1 text-sm text-zinc-800"):
+                    ui.label(f"Query string: {query}").classes("font-medium text-zinc-900")
                     if model:
-                        ui.label(f"Model: {model}").classes("text-gray-600")
+                        ui.label(f"Plugin: {model}").classes("text-zinc-600")
                     meta_bits = []
                     if top_k != "":
                         meta_bits.append(f"Top {top_k}")
                     if min_sim != "":
                         meta_bits.append(f"Match threshold ≥ {min_sim}")
                     if meta_bits:
-                        ui.label(" · ".join(meta_bits)).classes("text-gray-600")
+                        ui.label(" · ".join(meta_bits)).classes("text-zinc-600")
 
                 if guidance:
-                    ui.label(str(guidance)).classes("text-xs text-gray-600 bg-white/60 rounded p-2 border border-blue-100")
+                    ui.label(str(guidance)).classes(
+                        "text-xs text-zinc-600 bg-zinc-50 rounded-lg p-2 "
+                        "border border-zinc-200"
+                    )
 
                 if not results:
-                    ui.label("No results.").classes("text-gray-500 italic")
+                    ui.label("No results.").classes("text-zinc-500 italic")
                     return
 
                 show_text_snippet = _results_have_matching_text(results)
@@ -175,7 +194,13 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                         if len(preview) > 280:
                             preview = preview[:277] + "…"
                         row_dict["preview"] = preview
+                    if puid and prid and path:
+                        simg = lookup_source_image(puid, prid, path)
+                        if simg:
+                            row_dict["_source_image"] = simg
                     rows.append(row_dict)
+
+                show_source_image = any(bool(r.get("_source_image")) for r in rows)
 
                 columns: list[dict] = [
                     {
@@ -192,14 +217,26 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                         "align": "right",
                         "sortable": True,
                     },
+                ]
+                if show_source_image:
+                    columns.append(
+                        {
+                            "name": "source_thumb",
+                            "label": "Source image",
+                            "field": "source_thumb",
+                            "align": "center",
+                            "sortable": False,
+                        }
+                    )
+                columns.append(
                     {
                         "name": "path",
                         "label": "File",
                         "field": "path",
                         "align": "left",
                         "sortable": True,
-                    },
-                ]
+                    }
+                )
                 if show_text_snippet:
                     columns.append(
                         {
@@ -210,22 +247,40 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                             "sortable": False,
                         }
                     )
+                display_rows: list[dict] = []
+                for r in rows:
+                    dr = {k: v for k, v in r.items() if k != "_source_image"}
+                    if show_source_image:
+                        simg = r.get("_source_image")
+                        dr["source_thumb"] = os.path.basename(simg) if simg else "—"
+                    display_rows.append(dr)
+
+                extra_src = ""
+                if show_source_image:
+                    extra_src = (
+                        " Source image column: original picture for each summary .txt (pipeline index)."
+                    )
 
                 tip = (
-                    "Sort columns by clicking headers. Match = similarity ≥ threshold. "
-                    "Click a row to open the full file (large markdown preview for text)."
+                    (
+                        "Sort columns by clicking headers. Click a row to open the full file."
+                    )
+                    + extra_src
                     if show_text_snippet
                     else (
-                        "Sort columns by clicking headers. Match = similarity ≥ threshold. "
-                        "Click a row to open the file."
+                        (
+                            "Sort columns by clicking headers. Match = similarity ≥ threshold. "
+                            "Click a row to open the file."
+                        )
+                        + extra_src
                     )
                 )
 
                 def _on_row_click(e):
-                    idx = resolve_table_row_index(e, rows)
+                    idx = resolve_table_row_index(e, display_rows)
                     if idx is None:
                         return
-                    p = str(rows[idx].get("path") or "").strip()
+                    p = str(display_rows[idx].get("path") or "").strip()
                     if p:
                         _open_text_search_row_preview(p)
 
@@ -234,11 +289,11 @@ def render_text_search_json(container: ui.element, data: dict, title: str = "Tex
                     create_sortable_table(
                         table_holder,
                         columns,
-                        rows,
+                        display_rows,
                         row_key="id",
                         show_row_labels=False,
                         tip_message=tip,
                         on_row_click=_on_row_click,
                         table_extra_classes="text-base",
-                        tip_message_classes="text-sm text-gray-600 mt-3",
+                        tip_message_classes="text-sm text-zinc-600 mt-3",
                     )

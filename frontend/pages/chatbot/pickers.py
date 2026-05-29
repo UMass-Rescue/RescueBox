@@ -10,6 +10,7 @@ from typing import Callable
 from frontend.pages.chatbot.utils.ui_operations import UIOperations
 from frontend.chatbot.config import ToolRegistry
 from frontend.pages.chatbot.constants import FormConfig
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,12 @@ class BasePicker:
         self.picker_card = ui.card().classes(self.card_classes)
         return self.picker_card
 
-    def create_header(self, icon: str, color: str):
-        """Create the picker header with title and icon."""
+    def create_header(self, color: str = 'indigo'):
+        """Create the picker header with title (no emoji)."""
         with ui.column().classes('p-3 space-y-2'):
-            ui.label(f'{icon} {self.title}').classes(f'text-lg font-bold text-{color}-700')
+            ui.label(self.title).classes(
+                f'text-lg font-bold text-{color}-900 tracking-tight'
+            )
 
     def create_submit_button(self, text: str, color: str, on_click):
         """Create the submit button."""
@@ -68,43 +71,37 @@ class ToolPicker(BasePicker):
         """Show the tool picker dialog."""
         logger.info("Showing tool picker menu")
         try:
-            # Delegate to component-rendered dialog
             from frontend.components.pickers.tool_picker_dialog import show_tool_picker_dialog
+
             with self.container:
-                with self.create_picker_card():
-                    self.create_header('🛠️', 'purple')
-                    with ui.row().classes('w-full'):
-                        show_tool_picker_dialog(ui.column(), self.tool_registry, self.on_tool_selected)
+                show_tool_picker_dialog(
+                    ui.column(), self.tool_registry, self.on_tool_selected
+                )
             logger.debug("Tool picker menu displayed (via component)")
         except Exception:
             logger.exception("Failed to render tool picker via component, falling back to inline")
+            from frontend.components.pickers.tool_picker_dialog import show_tool_picker_dialog
+
             with self.container:
-                with self.create_picker_card():
-                    self.create_header('🛠️', 'purple')
-                    with ui.row().classes('w-full'):
-                        with ui.card().classes(
-                            'w-full max-w-md min-w-0 mx-auto p-4 rounded-xl border-2 border-violet-200 '
-                            'bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100 shadow-sm'
-                        ):
-                            self._create_tool_buttons()
+                show_tool_picker_dialog(
+                    ui.column(), self.tool_registry, self.on_tool_selected
+                )
 
             logger.debug("Tool picker menu displayed")
 
     def _create_tool_buttons(self):
         """Create clickable tool buttons."""
-        ui.label('Available Tools').classes('text-xl font-bold text-slate-800 tracking-tight')
-        ui.label('Click a tool to use').classes('text-base text-slate-600 mb-4')
+        ui.label('Available Tools').classes('text-xl font-bold text-zinc-800 tracking-tight')
+        ui.label('Click a tool to use').classes('text-base text-zinc-600 mb-4')
         with ui.column().classes('gap-2 w-full'):
             for num, tool in self.tool_registry.TOOL_MENU.items():
                 row = ui.row().classes(
-                    'w-full min-w-0 py-5 px-5 rounded-xl border-2 border-violet-200/90 '
-                    'bg-white shadow-sm hover:bg-violet-50 hover:border-violet-400 '
-                    'cursor-pointer transition-colors duration-150 items-start'
+                    f"w-full min-w-0 py-5 px-5 rounded-xl {Design.CHATBOT_PLUGIN_MENU_ROW}"
                 )
                 row.on('click', lambda *a, n=num: self._handle_tool_click(n))
                 with row:
                     ui.label(f'{num}. {tool["name"]} — {tool["desc"]}').classes(
-                        'w-full text-left text-sm leading-snug font-medium text-slate-900 '
+                        'w-full text-left text-sm leading-snug font-medium text-zinc-900 '
                         'whitespace-normal break-words'
                     )
 
@@ -116,7 +113,7 @@ class ToolPicker(BasePicker):
         import asyncio
 
         async def load():
-            loading = self.show_loading_indicator('Loading form...', 'purple')
+            loading = self.show_loading_indicator('Loading form...', 'indigo')
             try:
                 await self.on_tool_selected(tool['endpoint'], {})
             finally:
@@ -139,7 +136,7 @@ class AnalysisPicker(BasePicker):
             from frontend.components.pickers.analysis_picker_dialog import show_analysis_picker_dialog
             with self.container:
                 with self.create_picker_card():
-                    self.create_header('🧠', 'green')
+                    self.create_header('indigo')
                     with ui.row().classes('gap-4 w-full'):
                         show_analysis_picker_dialog(ui.column(), FormConfig.ANALYSIS_OPTIONS, lambda name: self.on_analysis_selected(name))
                         with ui.card().classes('bg-white p-4 flex-1'):
@@ -149,7 +146,7 @@ class AnalysisPicker(BasePicker):
             logger.exception("Failed to render analysis picker via component, falling back to inline")
             with self.container:
                 with self.create_picker_card():
-                    self.create_header('🧠', 'green')
+                    self.create_header('indigo')
                     
                     with ui.row().classes('gap-4 w-full'):
                         with ui.card().classes('bg-white p-4 flex-1'):
@@ -167,12 +164,12 @@ class AnalysisPicker(BasePicker):
                 ui.button(
                     f'{num}. {option["name"]} - {option["desc"]}',
                     on_click=lambda n=num: self._handle_selection(n)
-                ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200')
+                ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm bg-zinc-100 text-zinc-800 border border-zinc-200 hover:bg-zinc-200')
 
     def _handle_selection(self, num: int):
         """Handle the visual selection of an analysis option."""
         self.input_field.set_value(str(num))
-        ui.notify(f'Selected option {num}', type='info')
+        ui.notify(f'Selected option {num}', type='info', classes='rb-notify-505759')
 
     def _create_input_form(self):
         """Create the input form on the right side."""
@@ -185,15 +182,15 @@ class AnalysisPicker(BasePicker):
                 if choice_num in FormConfig.ANALYSIS_OPTIONS:
                     analysis_type = FormConfig.ANALYSIS_OPTIONS[choice_num]['name']
 
-                    loading_indicator = self.show_loading_indicator('Starting analysis...', 'green')
+                    loading_indicator = self.show_loading_indicator('Starting analysis...', 'indigo')
                     try:
                         await self.on_analysis_selected(analysis_type)
                     finally:
                         loading_indicator.delete()
                 else:
                     max_val = len(FormConfig.ANALYSIS_OPTIONS)
-                    ui.notify(f'Invalid choice. Please enter 1-{max_val}.', type='negative')
+                    ui.notify(f'Invalid choice. Please enter 1-{max_val}.', type='negative', classes='rb-notify-505759')
             except ValueError:
-                ui.notify('Please enter a valid number.', type='negative')
+                ui.notify('Please enter a valid number.', type='negative', classes='rb-notify-505759')
 
         self.create_submit_button('Start Analysis', 'green', on_submit)

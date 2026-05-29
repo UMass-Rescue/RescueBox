@@ -10,6 +10,8 @@ from nicegui import ui
 from typing import Dict, Optional, Callable
 from datetime import datetime
 
+from frontend.design_tokens import Design
+
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -71,16 +73,16 @@ def render_job_row(
     - Buttons are conditionally rendered based on callbacks and job status
     - Row uses hover effects for better user experience
     """
-    #logger.info("Rendering job row for job: %s (Status: %s)", job.get('uid', 'Unknown'), job.get('status', 'Unknown'))
+    logger.debug("Rendering job row for job: %s (Status: %s)", job.get('uid', 'Unknown'), job.get('status', 'Unknown'))
     
     status = job.get('status', 'Unknown')
     status_colors = {
-        'Running': 'text-blue-600',
+        'Running': 'text-indigo-600',
         'Completed': 'text-green-600',
         'Failed': 'text-red-600',
-        'Canceled': 'text-gray-600'
+        'Canceled': 'text-zinc-600'
     }
-    status_color = status_colors.get(status, 'text-gray-600')
+    status_color = status_colors.get(status, 'text-zinc-600')
     #logger.debug("Job status: %s, color class: %s", status, status_color)
     
     # Format timestamps
@@ -106,7 +108,7 @@ def render_job_row(
     
     job_uid = job.get('uid', 'N/A')
     with container:
-        with ui.row().classes('p-4 border-b hover:bg-gray-50 items-center w-full flex-nowrap gap-2'):
+        with ui.row().classes('p-4 border-b hover:bg-zinc-50 items-center w-full flex-nowrap gap-2'):
             # Job ID - truncated with ellipsis, full ID on hover
             with ui.element('div').classes('w-40 min-w-0 shrink-0'):
                 id_label = ui.label(job_uid).classes('font-mono text-sm truncate block')
@@ -119,12 +121,12 @@ def render_job_row(
                     notes_preview = (job['caseNotes'] or '')[:50]
                     if len(job.get('caseNotes', '') or '') > 50:
                         notes_preview += '…'
-                    ui.icon('description', size='sm').classes('text-gray-500 shrink-0').tooltip(notes_preview)
+                    ui.icon('description', size='sm').classes('text-zinc-500 shrink-0').tooltip(notes_preview)
             
             # Times (start / end)
             with ui.column().classes('w-64 shrink-0'):
                 ui.label(start_time_str).classes('text-sm')
-                ui.label(end_time_str).classes('text-xs text-gray-600')
+                ui.label(end_time_str).classes('text-xs text-zinc-600')
             
             # Status
             ui.label(status).classes(f'w-32 shrink-0 {status_color} font-semibold')
@@ -135,7 +137,7 @@ def render_job_row(
                     ui.button(
                         'View',
                         on_click=lambda j=job: on_view(j['uid']) if on_view else None
-                    ).classes('bg-blue-600 text-white text-sm')
+                    ).classes(Design.BTN_PRIMARY_TIGHT)
                 
                 if status == 'Running' and on_cancel:
                     ui.button(
@@ -146,7 +148,7 @@ def render_job_row(
                     ui.button(
                         'Delete',
                         on_click=lambda j=job: on_delete(j['uid']) if on_delete else None
-                    ).classes('bg-gray-600 text-white text-sm')
+                    ).classes(Design.BTN_PRIMARY_TIGHT)
                     #logger.debug("Delete button added")
     
   

@@ -1,13 +1,17 @@
-from typing import TypedDict, NotRequired
+from typing import List, NotRequired, TypedDict
 import json
 import logging
 import os
-
+from pathlib import Path
+import threading
 import typer
+from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
 from rb.lib.utils import apply_torch_cpu_preference
+from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
 from rb.api.models import (
     FloatRangeDescriptor,
+    FileFilterDirectory,
     InputSchema,
     InputType,
     IntRangeDescriptor,
@@ -16,7 +20,6 @@ from rb.api.models import (
     RangedIntParameterDescriptor,
     ResponseBody,
     TaskSchema,
-    DirectoryInput,
     TextInput,
     TextResponse,
     BatchFileInput,
@@ -31,6 +34,8 @@ _CHUNKER = "langchain"
 _CHUNK_SIZE = 300
 _CHUNK_OVERLAP = 60
 
+_INSTANCE_LOCK = threading.Lock()
+
 # Forensic safety: never read an entire multi-GB log into RAM at once.
 _MAX_READ_BYTES_PER_FILE = 50 * 1024 * 1024  # 50 MiB per file (truncate with warning)
 # GPU batching: one encode() over all chunks; raise on high-end GPUs (e.g. Spark / Blackwell).
@@ -43,9 +48,19 @@ from sqlmodel import delete, select
 APP_NAME = "text_embeddings"
 logger = logging.getLogger(__name__)
 
+# Text file suffixes scanned by ``resolve_text_file_corpus_paths`` (non-recursive, top-level).
+TEXT_EXTENSIONS = {".txt", ".text", ".md", ".log"}
+
+
+class TextCorpusDirectory(FileFilterDirectory):
+    """Directory must exist, be non-empty, and contain at least one allowed text extension."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(TEXT_EXTENSIONS)
+
 
 class Inputs(TypedDict):
-    input_dir: DirectoryInput
+    input_dir: TextCorpusDirectory
     query: TextInput
 
 
@@ -62,7 +77,7 @@ def task_schema() -> TaskSchema:
     )
     query_schema = InputSchema(
         key="query",
-        label="Search query",
+        label="Search query text",
         input_type=InputType.TEXT,
     )
 
@@ -72,7 +87,7 @@ def task_schema() -> TaskSchema:
     )
     min_similarity_desc = RangedFloatParameterDescriptor(
         range=FloatRangeDescriptor(min=0.0, max=1.0),
-        default=0.5,
+        default=0.45,
     )
 
     return TaskSchema(
@@ -87,7 +102,7 @@ def task_schema() -> TaskSchema:
             ParameterSchema(
                 key="min_similarity",
                 label="Match threshold",
-                subtitle="Similarity >= this value counts as a match (0.5 typical, 0.12/0.19 = weak)",
+                subtitle="Minimum value that counts as a match (> 0.45 typical)",
                 value=min_similarity_desc,
             ),
         ],
@@ -273,17 +288,6 @@ def _relocate_matching_basenames(
         by_bn[bn] = fp
 
 
-def _collect_text_files(input_dir: str) -> list[str]:
-    """Return sorted list of text file paths in the directory."""
-    allowed_exts = {".txt", ".text", ".md", ".log"}
-    paths = []
-    for name in sorted(os.listdir(input_dir)):
-        path = os.path.join(input_dir, name)
-        if os.path.isfile(path) and os.path.splitext(path)[1].lower() in allowed_exts:
-            paths.append(path)
-    return paths
-
-
 def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """
     Semantic search over text files. Embeds the directory if embeddings don't exist
@@ -293,223 +297,219 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     import torch
     from sentence_transformers import SentenceTransformer  # type: ignore
 
-    input_dir = str(inputs["input_dir"].path)
-    query_text = inputs["query"].text
-    model_name = _MODEL_NAME
-    top_k = int(parameters.get("top_k", 5))
-    min_similarity = float(parameters.get("min_similarity", 0.5))
+    with _INSTANCE_LOCK:
+        input_dir = str(inputs["input_dir"].path)
+        query_text = inputs["query"].text
 
-    # Use file_filter when provided (e.g. from image_summary pipeline); else scan input_dir
-    file_paths: list[str] = []
-    if "file_filter" in inputs and inputs.get("file_filter"):
-        ff = inputs["file_filter"]
-        files = getattr(ff, "files", None) or (ff if isinstance(ff, dict) else {}).get("files", [])
-        if files:
-            for f in files:
-                p = f.get("path") if isinstance(f, dict) else getattr(f, "path", None)
-                if p and isinstance(p, str) and os.path.isfile(p):
-                    file_paths.append(p)
-    if not file_paths:
-        file_paths = _collect_text_files(input_dir)
-    if not file_paths:
-        return ResponseBody(
-            root=TextResponse(
-                value=json.dumps({"error": "No text files found in directory", "results": []}),
-                title="Text Search",
-                subtitle="No text files to search",
+        model_name = _MODEL_NAME
+        top_k = int(parameters.get("top_k", 5))
+        min_similarity = float(parameters.get("min_similarity", 0.45))
+
+        file_paths, corpus_err = resolve_text_file_corpus_paths(inputs, input_dir)
+        if not file_paths:
+            return ResponseBody(
+                root=TextResponse(
+                    value=json.dumps(
+                        {"error": corpus_err or "No text files to search", "results": []}
+                    ),
+                    title="Text Search",
+                    subtitle="No text files to search",
+                )
             )
+
+        cuda_ok = torch.cuda.is_available()
+        mps_ok = bool(getattr(torch.backends, "mps", None)) and torch.backends.mps.is_available()
+        if cuda_ok:
+            device = torch.device("cuda")
+        elif mps_ok:
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
+
+        logger.info(
+            "SentenceTransformer runtime: cuda_available=%s mps_available=%s -> selected device=%s",
+            cuda_ok,
+            mps_ok,
+            device,
         )
+        if cuda_ok and device.type == "cuda":
+            try:
+                idx = torch.cuda.current_device()
+                logger.info(
+                    "CUDA GPU in use: name=%s index=%s",
+                    torch.cuda.get_device_name(idx),
+                    idx,
+                )
+            except Exception as e:
+                logger.debug("Could not read CUDA device name: %s", e)
+        elif device.type == "mps":
+            logger.info("Apple Metal (MPS) in use for SentenceTransformer")
 
-    cuda_ok = torch.cuda.is_available()
-    mps_ok = bool(getattr(torch.backends, "mps", None)) and torch.backends.mps.is_available()
-    if cuda_ok:
-        device = torch.device("cuda")
-    elif mps_ok:
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
-
-    logger.info(
-        "SentenceTransformer runtime: cuda_available=%s mps_available=%s -> selected device=%s",
-        cuda_ok,
-        mps_ok,
-        device,
-    )
-    if cuda_ok and device.type == "cuda":
+        model = SentenceTransformer(model_name, device=str(device))
         try:
-            idx = torch.cuda.current_device()
-            logger.info(
-                "CUDA GPU in use: name=%s index=%s",
-                torch.cuda.get_device_name(idx),
-                idx,
-            )
-        except Exception as e:
-            logger.debug("Could not read CUDA device name: %s", e)
-    elif device.type == "mps":
-        logger.info("Apple Metal (MPS) in use for SentenceTransformer")
-
-    model = SentenceTransformer(model_name, device=str(device))
-    try:
-        param_dev = next(model.parameters()).device
-    except Exception:
-        param_dev = device
-    logger.info(
-        "SentenceTransformer loaded on device=%s (parameter device=%s) model_name=%s",
-        device,
-        param_dev,
-        model_name,
-    )
-
-    with Session(engine) as session:
-        _relocate_matching_basenames(
-            session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
+            param_dev = next(model.parameters()).device
+        except Exception:
+            param_dev = device
+        logger.info(
+            "SentenceTransformer loaded on device=%s (parameter device=%s) model_name=%s",
+            device,
+            param_dev,
+            model_name,
         )
-        session.flush()
 
-        existing_paths = _paths_with_chunks_for_params(
-            session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
-        )
-        paths_to_embed = [p for p in file_paths if p not in existing_paths]
-
-        # 1) Collect chunk texts only for paths that need vectors, then 2) one batched encode.
-        chunk_rows: list[tuple[str, int, str]] = []
-        for path in paths_to_embed:
-            text = _read_text_file_safe(path, _MAX_READ_BYTES_PER_FILE)
-            if not text.strip():
-                continue
-            chunks = _chunk_text(
-                text,
-                chunker=_CHUNKER,
-                chunk_size=_CHUNK_SIZE,
-                chunk_overlap=_CHUNK_OVERLAP,
+        with Session(engine) as session:
+            _relocate_matching_basenames(
+                session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
             )
-            for idx, chunk_text in enumerate(chunks):
-                chunk_rows.append((path, idx, chunk_text))
+            session.flush()
 
-        if chunk_rows:
-            texts = [row[2] for row in chunk_rows]
-            logger.info(
-                "Embedding %d chunks from %d file(s) (%d already had embeddings; %d total in request), "
-                "batch_size=%d",
-                len(texts),
-                len(paths_to_embed),
-                len(existing_paths),
-                len(file_paths),
-                _EMBED_BATCH_SIZE,
+            existing_paths = _paths_with_chunks_for_params(
+                session, file_paths, model_name, _CHUNK_SIZE, _CHUNK_OVERLAP
             )
-            vectors = model.encode(
-                texts,
-                batch_size=_EMBED_BATCH_SIZE,
+            paths_to_embed = [p for p in file_paths if p not in existing_paths]
+
+            # 1) Collect chunk texts only for paths that need vectors, then 2) one batched encode.
+            chunk_rows: list[tuple[str, int, str]] = []
+            for path in paths_to_embed:
+                text = _read_text_file_safe(path, _MAX_READ_BYTES_PER_FILE)
+                if not text.strip():
+                    continue
+                chunks = _chunk_text(
+                    text,
+                    chunker=_CHUNKER,
+                    chunk_size=_CHUNK_SIZE,
+                    chunk_overlap=_CHUNK_OVERLAP,
+                )
+                for idx, chunk_text in enumerate(chunks):
+                    chunk_rows.append((path, idx, chunk_text))
+
+            if chunk_rows:
+                texts = [row[2] for row in chunk_rows]
+                logger.info(
+                    "Embedding %d chunks from %d file(s) (%d already had embeddings; %d total in request), "
+                    "batch_size=%d",
+                    len(texts),
+                    len(paths_to_embed),
+                    len(existing_paths),
+                    len(file_paths),
+                    _EMBED_BATCH_SIZE,
+                )
+                vectors = model.encode(
+                    texts,
+                    batch_size=_EMBED_BATCH_SIZE,
+                    convert_to_numpy=True,
+                    normalize_embeddings=True,
+                    show_progress_bar=len(texts) > 64,
+                )
+                records: list[TextEmbeddingChunk] = []
+                for (path, idx, chunk_text), vec in zip(chunk_rows, vectors):
+                    records.append(
+                        TextEmbeddingChunk(
+                            path=path,
+                            chunk_index=idx,
+                            chunk_text=chunk_text,
+                            model_name=model_name,
+                            chunk_size=_CHUNK_SIZE,
+                            chunk_overlap=_CHUNK_OVERLAP,
+                            embedding=vec.tolist(),
+                        )
+                    )
+                session.add_all(records)
+            session.commit()
+
+            # Search: query-side instruction only (Qwen) or BGE asymmetric prefix — not applied to stored chunks.
+            search_query = _format_search_query(model_name, query_text)
+            query_embedding = model.encode(
+                search_query,
                 convert_to_numpy=True,
                 normalize_embeddings=True,
-                show_progress_bar=len(texts) > 64,
+                show_progress_bar=False,
             )
-            records: list[TextEmbeddingChunk] = []
-            for (path, idx, chunk_text), vec in zip(chunk_rows, vectors):
-                records.append(
-                    TextEmbeddingChunk(
-                        path=path,
-                        chunk_index=idx,
-                        chunk_text=chunk_text,
-                        model_name=model_name,
-                        chunk_size=_CHUNK_SIZE,
-                        chunk_overlap=_CHUNK_OVERLAP,
-                        embedding=vec.tolist(),
-                    )
-                )
-            session.add_all(records)
-        session.commit()
+            embedding_str = "[" + ",".join(str(x) for x in query_embedding.tolist()) + "]"
 
-        # Search: query-side instruction only (Qwen) or BGE asymmetric prefix — not applied to stored chunks.
-        search_query = _format_search_query(model_name, query_text)
-        query_embedding = model.encode(
-            search_query,
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-            show_progress_bar=False,
+            # One row per file: best-matching chunk only (DISTINCT ON), then top_k files by similarity.
+            # Scope to this request's paths so we do not rank unrelated corpus rows.
+            query_sql = sql_text(
+                f"""
+                SELECT * FROM (
+                    SELECT DISTINCT ON (path)
+                        id,
+                        path,
+                        chunk_index,
+                        chunk_text,
+                        1 - (embedding <=> '{embedding_str}'::vector) AS similarity
+                    FROM text_embedding_chunks
+                    WHERE model_name = :model_name
+                    AND chunk_size = :chunk_size
+                    AND chunk_overlap = :chunk_overlap
+                    AND path IN :paths
+                    ORDER BY path, embedding <=> '{embedding_str}'::vector ASC
+                ) AS best_chunk_per_path
+                ORDER BY similarity DESC
+                LIMIT :top_k
+                """
+            ).bindparams(bindparam("paths", expanding=True))
+            rows = session.execute(
+                query_sql,
+                {
+                    "model_name": model_name,
+                    "chunk_size": _CHUNK_SIZE,
+                    "chunk_overlap": _CHUNK_OVERLAP,
+                    "paths": file_paths,
+                    "top_k": top_k,
+                },
+            ).fetchall()
+
+        search_results = []
+        for row in rows:
+            sim = float(row.similarity)
+            search_results.append({
+                "id": row.id,
+                "path": row.path,
+                "chunk_index": row.chunk_index,
+                "similarity": sim,
+                "is_match": sim >= min_similarity,
+                "matching_text": _truncate(row.chunk_text or "", 600),
+            })
+        response_data = {
+            "query": query_text,
+            "model": model_name,
+            "top_k": top_k,
+            "min_similarity": min_similarity,
+            "similarity_guidance": (
+                f"Results with similarity >= {min_similarity} are marked as matches."
+            ),
+            "results": search_results,
+        }
+
+        return ResponseBody(
+            root=TextResponse(
+                value=json.dumps(response_data, indent=2),
+                title="Text Search Results",
+                subtitle=f"Found {len(search_results)} results using {model_name}",
+            )
         )
-        embedding_str = "[" + ",".join(str(x) for x in query_embedding.tolist()) + "]"
-
-        # One row per file: best-matching chunk only (DISTINCT ON), then top_k files by similarity.
-        # Scope to this request's paths so we do not rank unrelated corpus rows.
-        query_sql = sql_text(
-            f"""
-            SELECT * FROM (
-                SELECT DISTINCT ON (path)
-                    id,
-                    path,
-                    chunk_index,
-                    chunk_text,
-                    1 - (embedding <=> '{embedding_str}'::vector) AS similarity
-                FROM text_embedding_chunks
-                WHERE model_name = :model_name
-                  AND chunk_size = :chunk_size
-                  AND chunk_overlap = :chunk_overlap
-                  AND path IN :paths
-                ORDER BY path, embedding <=> '{embedding_str}'::vector ASC
-            ) AS best_chunk_per_path
-            ORDER BY similarity DESC
-            LIMIT :top_k
-            """
-        ).bindparams(bindparam("paths", expanding=True))
-        rows = session.execute(
-            query_sql,
-            {
-                "model_name": model_name,
-                "chunk_size": _CHUNK_SIZE,
-                "chunk_overlap": _CHUNK_OVERLAP,
-                "paths": file_paths,
-                "top_k": top_k,
-            },
-        ).fetchall()
-
-    search_results = []
-    for row in rows:
-        sim = float(row.similarity)
-        search_results.append({
-            "id": row.id,
-            "path": row.path,
-            "chunk_index": row.chunk_index,
-            "similarity": round(sim, 4),
-            "is_match": sim >= min_similarity,
-            "matching_text": _truncate(row.chunk_text or "", 600),
-        })
-    response_data = {
-        "query": query_text,
-        "model": model_name,
-        "top_k": top_k,
-        "min_similarity": min_similarity,
-        "similarity_guidance": (
-            f"Results with similarity >= {min_similarity} are marked as matches."
-        ),
-        "results": search_results,
-    }
-
-    return ResponseBody(
-        root=TextResponse(
-            value=json.dumps(response_data, indent=2),
-            title="Text Search Results",
-            subtitle=f"Found {len(search_results)} results using {model_name}",
-        )
-    )
 
 
 def inputs_cli_parse(value: str) -> Inputs:
     # Expect "directory_path,query_text" or just directory for backwards compat
     parts = [p.strip() for p in value.split(",", 1)]
-    from pathlib import Path
     input_dir = Path(parts[0]) if parts[0] else Path(".")
     query_text = parts[1] if len(parts) > 1 else ""
-    return Inputs(
-        input_dir=DirectoryInput(path=input_dir),
-        query=TextInput(text=query_text),
-    )
+    try:
+        return Inputs(
+            input_dir=TextCorpusDirectory(path=input_dir),
+            query=TextInput(text=query_text),
+        )
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def parameters_cli_parse(value: str) -> Parameters:
     parts = [p.strip() for p in value.split(",")]
     top_k = int(parts[0]) if len(parts) > 0 and parts[0] else 3
-    min_similarity = float(parts[1]) if len(parts) > 1 and parts[1] else 0.5
+    min_similarity = float(parts[1]) if len(parts) > 1 and parts[1] else 0.45
     return Parameters(top_k=top_k, min_similarity=min_similarity)
 
 
@@ -522,7 +522,7 @@ server.add_ml_service(
     ),
     parameters_cli_parser=typer.Argument(
         parser=parameters_cli_parse,
-        help="top_k,min_similarity (e.g. 5,0.5)",
+        help="top_k,min_similarity (e.g. 0.45)",
     ),
     short_title="Search Text",
     order=0,

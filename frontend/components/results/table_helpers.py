@@ -24,7 +24,7 @@ def create_sortable_table(
     show_row_labels: bool = False,
     *,
     table_extra_classes: str = "",
-    tip_message_classes: str = "text-xs text-gray-500 mt-2",
+    tip_message_classes: str = "text-xs text-zinc-500 mt-2",
 ):
     """
     Create a sortable table with consistent styling.
@@ -54,7 +54,7 @@ def create_sortable_table(
     
     # Create table with sortable columns (add directly to container)
     with container:
-        tc = f"w-full {table_extra_classes}".strip()
+        tc = f"w-full min-w-0 {table_extra_classes}".strip()
         table = ui.table(
             columns=columns,
             rows=rows,
@@ -71,7 +71,7 @@ def create_sortable_table(
                         field = col.get('field') or col.get('name')
                         # Prefer a full version of the field if available (e.g., 'content_full' for 'content')
                         value = r.get(f"{field}_full", r.get(field, ''))
-                        ui.label(str(value)).classes('text-xs text-gray-600 whitespace-pre-wrap break-words')
+                        ui.label(str(value)).classes('text-xs text-zinc-600 whitespace-pre-wrap break-words')
         
         # Add click handler if provided
         if on_row_click:

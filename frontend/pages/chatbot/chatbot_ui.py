@@ -45,7 +45,7 @@ def create_chat_ui(
         Tuple of (chat_container, input_field, status_label, input_area, below_input_area_container).
         The last column is under the input strip so job results from input-area forms render below the form.
     """
-    logger.info("Creating chat UI using ChatUIBuilder")
+    logger.debug("Creating chat UI using ChatUIBuilder")
 
     # Create UI builder and build the interface
     ui_builder = ChatUIBuilder(

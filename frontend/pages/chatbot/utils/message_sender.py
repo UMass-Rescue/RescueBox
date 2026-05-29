@@ -5,8 +5,9 @@ Handles the complete message sending workflow.
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional
 
+from frontend.pages.chatbot.types import MessageSendParams
 from frontend.pages.chatbot.utils.database_service import DatabaseService
 
 
@@ -16,61 +17,73 @@ class MessageSender:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-    async def send_message(self,
-                          message_text: str,
-                          input_field,
-                          is_processing_ref: dict,
-                          message_handler,
-                          process_handler_result_func,
-                          add_message_func,
-                          show_error_func,
-                          update_status_func,
-                          conversation_id_ref: Optional[dict] = None):
-        """
-        Send a user message through the complete workflow.
+    async def send_message(
+        self,
+        message_text: str,
+        input_field,
+        is_processing_ref: dict,
+        message_handler,
+        process_handler_result_func,
+        add_message_func,
+        show_error_func,
+        update_status_func,
+        conversation_id_ref: Optional[dict] = None,
+    ):
+        """Legacy keyword API; delegates to :meth:`send_message_params`."""
+        await self.send_message_params(
+            MessageSendParams(
+                message_text=message_text,
+                input_field=input_field,
+                is_processing_ref=is_processing_ref,
+                message_handler=message_handler,
+                process_handler_result_func=process_handler_result_func,
+                add_message_func=add_message_func,
+                show_error_func=show_error_func,
+                update_status_func=update_status_func,
+                conversation_id_ref=conversation_id_ref,
+            )
+        )
 
-        Args:
-            message_text: The message text to send
-            input_field: The input field widget
-            is_processing_ref: Dict with processing state
-            message_handler: MessageHandler instance
-            process_handler_result_func: Function to process results
-            add_message_func: Function to add messages to chat
-            show_error_func: Function to show errors
-            update_status_func: Function to update status
-            conversation_id_ref: Optional conversation ID reference
-
-        Returns:
-            None
+    async def send_message_params(self, params: MessageSendParams) -> None:
         """
-        if not message_text.strip() or is_processing_ref.get('value', False):
+        Send a user message through the complete workflow (preferred typed entry).
+
+        Prefer this over :meth:`send_message` for new code.
+        """
+        if (
+            not params.message_text.strip()
+            or params.is_processing_ref.get("value", False)
+        ):
             return
 
         try:
-            # Setup conversation if needed
-            conversation_id = await self._setup_conversation(conversation_id_ref)
-
-            # Save user message to chat history
-            await self._save_user_message(conversation_id, message_text)
-
-            # Update UI for processing
-            await self._update_ui_for_processing(
-                message_text, input_field, is_processing_ref,
-                add_message_func, update_status_func
+            conversation_id = await self._setup_conversation(
+                params.conversation_id_ref
             )
 
-            # Process the message
-            result = await message_handler.handle_message(message_text, conversation_id)
+            await self._save_user_message(conversation_id, params.message_text)
 
-            # Save assistant response to chat history
+            await self._update_ui_for_processing(
+                params.message_text,
+                params.input_field,
+                params.is_processing_ref,
+                params.add_message_func,
+                params.update_status_func,
+            )
+
+            result = await params.message_handler.handle_message(
+                params.message_text, conversation_id
+            )
+
             await self._save_assistant_response(conversation_id, result)
 
-            # Process the result
-            await process_handler_result_func(result, input_field, is_processing_ref)
+            await params.process_handler_result_func(
+                result, params.input_field, params.is_processing_ref
+            )
 
         except Exception as e:
             self.logger.error("Message sending failed: %s", str(e))
-            await show_error_func(f"Failed to send message: {str(e)}")
+            await params.show_error_func(f"Failed to send message: {str(e)}")
 
     async def _setup_conversation(self, conversation_id_ref: Optional[dict]) -> Optional[str]:
         """Setup or get existing conversation ID."""

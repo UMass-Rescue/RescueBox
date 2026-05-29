@@ -61,7 +61,7 @@ class TestFormHandlersErrorHandling:
         """
         from frontend.components.forms import form_handlers
 
-        with patch.object(form_handlers, 'validate_form_data', return_value={'is_valid': False, 'errors': {"input_dir": "Invalid path"}}):
+        with patch.object(form_handlers, 'validate_form', return_value=(False, {"input_dir": "Invalid path"})):
             with patch('frontend.components.forms.form_handlers.handle_validation_error') as mock_handle_error:
                 submit_called = False
                 def mock_submit(data):
@@ -187,4 +187,3 @@ class TestFormHandlersErrorHandling:
         # For now, we test that the function structure handles missing values
         result = collect_form_data(sample_task_schema.model_dump(), widgets)
         assert isinstance(result, dict)
-

@@ -16,24 +16,29 @@ logger.setLevel(logging.INFO)
 
 
 def compute_job_results_title(
-    endpoint: Optional[str],
-    endpoint_chain: Optional[List[str]],
+    endpoint_name: Optional[str],
+    endpoint_name_chain: Optional[List[str]],
 ) -> str:
     """
     Build the job results card heading for single-endpoint vs multi-step pipelines.
 
-    When ``endpoint_chain`` is set (ordered steps), the title lists the full chain.
-    Otherwise falls back to ``endpoint`` alone.
+    Arguments are **display names** (human-readable tool titles), not API routes.
+    When ``endpoint_name_chain`` is set (ordered steps), the title lists the full chain.
+    Otherwise falls back to ``endpoint_name`` alone.
     """
-    chain = endpoint_chain if isinstance(endpoint_chain, list) and endpoint_chain else None
-    if not chain and endpoint:
-        chain = [endpoint]
+    chain = (
+        endpoint_name_chain
+        if isinstance(endpoint_name_chain, list) and endpoint_name_chain
+        else None
+    )
+    if not chain and endpoint_name:
+        chain = [endpoint_name]
     if chain and len(chain) > 1:
         return "Results for: " + " → ".join(chain)
     if chain:
         return "Results for " + chain[0]
-    if endpoint:
-        return "Results for " + endpoint
+    if endpoint_name:
+        return "Results for " + endpoint_name
     return "Results"
 
 
@@ -54,6 +59,7 @@ def extract_job_fields(job) -> Dict[str, Any]:
             - taskUid (Optional[str])
             - endpoint (Optional[str])
             - endpointChain (Optional[list[str]]): ordered endpoints for multi-step chatbot jobs
+            - pipelineRootJobId (Optional[str]): first job id for a multi-step pipeline run
             - startTime (Optional[str])
             - endTime (Optional[str])
             - status (str)
@@ -79,6 +85,10 @@ def extract_job_fields(job) -> Dict[str, Any]:
             'taskUid': job.taskUid,
             'endpoint': job.endpoint,
             'endpointChain': getattr(job, 'endpointChain', None),
+            'pipelineRootJobId': getattr(job, 'pipelineRootJobId', None),
+            'pipelineMetadataFilterCriteria': getattr(
+                job, 'pipelineMetadataFilterCriteria', None
+            ),
             'startTime': job.startTime,
             'endTime': job.endTime,
             'status': job.status.value if hasattr(job.status, 'value') else str(job.status),
@@ -96,6 +106,8 @@ def extract_job_fields(job) -> Dict[str, Any]:
             'taskUid': job.get('taskUid'),
             'endpoint': job.get('endpoint'),
             'endpointChain': job.get('endpointChain'),
+            'pipelineRootJobId': job.get('pipelineRootJobId'),
+            'pipelineMetadataFilterCriteria': job.get('pipelineMetadataFilterCriteria'),
             'startTime': job.get('startTime'),
             'endTime': job.get('endTime'),
             'status': job.get('status', 'Unknown'),

@@ -46,51 +46,7 @@ def render_compact_inputs_summary(task_schema: TaskSchema, request_body: Request
         logger.debug("Compact inputs summary rendered via component")
     except Exception as e:
         logger.exception("Component render failed, falling back to inline: %s", e)
-        # Fallback to inline rendering (original behavior)
-        with ui.expansion('📋 View Inputs & Parameters', icon='description').classes('w-full mb-4'):
-            with ui.column().classes('gap-3 p-4 bg-gray-50 rounded'):
-                # Inputs
-                if task_schema.inputs:
-                    ui.label('Inputs').classes('font-semibold text-lg')
-                    for input_schema in task_schema.inputs:
-                        field_id = input_schema.key
-                        field_input = request_body.inputs.get(field_id)
-
-                        with ui.row().classes('items-start gap-2'):
-                            ui.label(input_schema.label).classes('w-32 font-semibold text-sm')
-
-                            if field_input:
-                                # Extract value from Input union type
-                                input_root = field_input.root if hasattr(field_input, 'root') else field_input
-
-                                if hasattr(input_root, 'path'):
-                                    # FileInput or DirectoryInput
-                                    path_str = str(input_root.path)
-                                    # Truncate long paths
-                                    display_path = path_str if len(path_str) < 80 else path_str[:77] + '...'
-                                    ui.label(display_path).classes('flex-1 text-sm font-mono text-gray-700')
-                                elif hasattr(input_root, 'text'):
-                                    # TextInput - show first line
-                                    text = input_root.text
-                                    first_line = text.split('\\n')[0] if '\\n' in text else text
-                                    display_text = first_line if len(first_line) < 100 else first_line[:97] + '...'
-                                    ui.label(display_text).classes('flex-1 text-sm text-gray-700')
-                                else:
-                                    # Batch types or other
-                                    ui.label(str(input_root)).classes('flex-1 text-sm text-gray-700')
-                            else:
-                                ui.label('(not provided)').classes('flex-1 text-sm text-gray-400 italic')
-
-                # Parameters
-                if task_schema.parameters:
-                    ui.label('Parameters').classes('font-semibold text-lg mt-2')
-                    for param_schema in task_schema.parameters:
-                        param_id = param_schema.key
-                        param_value = request_body.parameters.get(param_id)
-
-                        with ui.row().classes('items-center gap-2'):
-                            ui.label(param_schema.label).classes('w-32 font-semibold text-sm')
-                            ui.label(str(param_value) if param_value is not None else '(not provided)').classes('flex-1 text-sm text-gray-700')
+        
 
 
 def render_readonly_form(task_schema: TaskSchema, request_body: RequestBody):
@@ -116,57 +72,9 @@ def render_readonly_form(task_schema: TaskSchema, request_body: RequestBody):
     logger.debug("Rendering read-only form")
     try:
         from frontend.components.jobs.readonly_form import render_readonly_form as _render_readonly
-        _render_readonly(ui.column(), task_schema, request_body)
+        _render_readonly(
+            ui.column().classes("w-full min-w-0 max-w-full"), task_schema, request_body
+        )
         logger.debug("Read-only form rendered via component")
     except Exception as e:
         logger.exception("Component render failed, falling back to inline: %s", e)
-        ui.label('Request Inputs and Parameters').classes('text-xl font-bold mt-6')
-
-        # Render form fields as read-only
-        with ui.column().classes('gap-4 mt-4'):
-            # Inputs
-            if task_schema.inputs:
-                ui.label('Inputs').classes('font-semibold text-lg')
-                for input_schema in task_schema.inputs:
-                    field_id = input_schema.key
-                    field_input = request_body.inputs.get(field_id)
-
-                    with ui.row().classes('items-center gap-2'):
-                        ui.label(input_schema.label).classes('w-32 font-semibold')
-
-                        if field_input:
-                            # Extract value from Input union type
-                            input_root = field_input.root if hasattr(field_input, 'root') else field_input
-
-                            if hasattr(input_root, 'path'):
-                                # FileInput or DirectoryInput
-                                ui.input(
-                                    label='',
-                                    value=str(input_root.path)
-                                ).classes('flex-1').props('readonly')
-                            elif hasattr(input_root, 'text'):
-                                # TextInput
-                                ui.textarea(
-                                    label='',
-                                    value=input_root.text
-                                ).classes('flex-1').props('readonly')
-                            else:
-                                # Batch types or other
-                                ui.input(
-                                    label='',
-                                    value=str(input_root)
-                                ).classes('flex-1').props('readonly')
-
-            # Parameters
-            if task_schema.parameters:
-                ui.label('Parameters').classes('font-semibold text-lg mt-4')
-                for param_schema in task_schema.parameters:
-                    param_id = param_schema.key
-                    param_value = request_body.parameters.get(param_id)
-
-                    with ui.row().classes('items-center gap-2'):
-                        ui.label(param_schema.label).classes('w-32 font-semibold')
-                        ui.input(
-                            label='',
-                            value=str(param_value) if param_value is not None else ''
-                        ).classes('flex-1').props('readonly')

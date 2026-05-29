@@ -81,7 +81,7 @@ class TestChatbotUIIntegration:
             state_manager = MagicMock()
             state_manager.is_processing = False
             state_manager.conversation_id = None
-            coordinator = MessageFlowCoordinator(state_manager)
+            coordinator = MessageFlowCoordinator(state_manager, MagicMock())
             assert coordinator is not None
 
             # Test that message processing components exist
@@ -116,7 +116,7 @@ class TestChatbotUIIntegration:
             result_processor = ResultProcessor(state_manager, None)  # tool_registry can be None for this test
 
             # Create coordinator
-            coordinator = MessageFlowCoordinator(state_manager)
+            coordinator = MessageFlowCoordinator(state_manager, MagicMock())
             coordinator.message_processor = message_processor
             coordinator.result_processor = result_processor
 
@@ -152,7 +152,8 @@ class TestChatbotUIIntegration:
                     is_processing_ref={'value': False},
                     add_message_func=mock_add_message,
                     show_error_func=mock_show_error,
-                    update_status_func=mock_update_status
+                    update_status_func=mock_update_status,
+                    core=MagicMock()
                 )
 
             asyncio.run(run_test())
@@ -199,7 +200,7 @@ class TestChatbotUIIntegration:
             mock_state_manager = MagicMock()
 
             # Test coordinator creation
-            coordinator = MessageFlowCoordinator(mock_state_manager)
+            coordinator = MessageFlowCoordinator(mock_state_manager, MagicMock())
             assert coordinator is not None
             assert coordinator.message_processor is not None
             assert coordinator.result_processor is not None

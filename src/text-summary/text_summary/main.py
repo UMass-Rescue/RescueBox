@@ -1,29 +1,47 @@
+import json
+import logging
 import os
-from typing import TypedDict
+from pathlib import Path
+from typing import List, TypedDict
+import threading
 
+import typer
+from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
 from rb.api.models import (
+    DirectoryInput,
+    EnumParameterDescriptor,
+    EnumVal,
+    FileFilterDirectory,
     InputSchema,
     InputType,
     ParameterSchema,
-    EnumParameterDescriptor,
     ResponseBody,
     TaskSchema,
-    EnumVal,
     TextResponse,
-    DirectoryInput,
 )
 from text_summary.model import SUPPORTED_MODELS
 from text_summary.summarize import process_files
-import json
-import typer
-from pathlib import Path
+from text_summary.text_parser import PARSERS
 
 APP_NAME = "text_summarization"
+logger = logging.getLogger(__name__)
+
+_SUMMARIZE_LOCK = threading.Lock()
+
+# Extensions handled by ``text_parser.PARSERS`` (top-level files under ``input_dir``).
+TEXT_SUMMARY_EXTENSIONS = frozenset(PARSERS.keys())
+
+
+class TextSummaryInputDirectory(FileFilterDirectory):
+    """Directory must exist, be non-empty, and contain at least one supported input file."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(TEXT_SUMMARY_EXTENSIONS)
 
 
 class Inputs(TypedDict):
-    input_dir: DirectoryInput
+    input_dir: TextSummaryInputDirectory
     output_dir: DirectoryInput
 
 
@@ -34,7 +52,7 @@ class Parameters(TypedDict):
 def task_schema() -> TaskSchema:
     input_dir_schema = InputSchema(
         key="input_dir",
-        label="Path to the directory containing the input files",
+        label="Path to the directory containing the input text files",
         input_type=InputType.DIRECTORY,
     )
     output_dir_schema = InputSchema(
@@ -83,7 +101,8 @@ def summarize(
     output_dir = inputs["output_dir"].path
     model = parameters["model"]
 
-    processed_files = process_files(model, input_dir, output_dir)
+    with _SUMMARIZE_LOCK:
+        processed_files = process_files(model, input_dir, output_dir)
 
     response = TextResponse(value=json.dumps(list(processed_files)))
     return ResponseBody(root=response)
@@ -97,10 +116,14 @@ def inputs_cli_parse(input: str) -> Inputs:
         raise ValueError("Input directory does not exist.")
     if not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
-    return Inputs(
-        input_dir=DirectoryInput(path=input_dir),
-        output_dir=DirectoryInput(path=output_dir),
-    )
+    try:
+        return Inputs(
+            input_dir=TextSummaryInputDirectory(path=input_dir),
+            output_dir=DirectoryInput(path=output_dir),
+        )
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def parameters_cli_parse(model: str) -> Parameters:

@@ -19,17 +19,17 @@ class TestFormGenerator:
             form_gen = FormGenerator()
             await form_gen.generate_form(
                 schema=sample_task_schema.model_dump(),
-                container=container
+                container=container,
+                endpoint="test/endpoint"
             )
         
         await user.open('/test')
         
         # Should see form fields
-        await user.should_see('Input Form')
         await user.should_see('Input Directory')
         await user.should_see('Prompt')
         await user.should_see('Confidence')
-        await user.should_see('Mode')
+        await user.should_see('Processing Mode')
     
     @pytest.mark.asyncio
     async def test_form_generator_submit_button(self, user: User, sample_task_schema):
@@ -50,13 +50,15 @@ class TestFormGenerator:
             await form_gen.generate_form(
                 schema=sample_task_schema.model_dump(),
                 container=container,
-                onSubmit=test_submit
+                onSubmit=test_submit,
+                endpoint="test/endpoint"
             )
         
         await user.open('/test')
         
+        await user.should_see('Submit')
         # Find and click submit button
-        submit_button = user.find('Submit Job')
+        submit_button = user.find('Submit')
         assert submit_button is not None
         
         # Note: Actual submission would require filling form first

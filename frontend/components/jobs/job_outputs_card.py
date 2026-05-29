@@ -5,7 +5,7 @@ from frontend.components.results import ResultsPreview
 from frontend.components.results.image_summary_results_view import (
     augment_response_model_dump_for_image_summary,
 )
-from frontend.components.shared import create_breadcrumbs
+from frontend.chatbot.config import ToolRegistry
 from frontend.pages.jobs.job_utils import extract_job_fields, compute_job_results_title
 from frontend.pages.jobs.components import render_error_status, render_job_action_buttons, render_compact_inputs_summary
 
@@ -26,72 +26,100 @@ async def render_job_outputs_card(container, api_client, job):
     task_schema_dict = job_fields['taskSchema']
     endpoint = job_fields['endpoint']
     endpoint_chain = job_fields.get('endpointChain')
+    endpoint_name = ToolRegistry.display_name_for_endpoint(endpoint) if endpoint else None
+    endpoint_name_chain = (
+        [ToolRegistry.display_name_for_endpoint(ep) for ep in endpoint_chain]
+        if isinstance(endpoint_chain, list) and endpoint_chain
+        else None
+    )
 
-    logger.info("Rendering job outputs for job: %s", job_uid)
+    logger.debug("Rendering job outputs for job: %s", job_uid)
 
-    if not response:
-        logger.warning("Job has no response, showing error status: %s", status)
-        render_error_status(status, status_text)
-        return
+    with container:
+        if not response:
+            st = str(status or "")
+            if st == "Failed":
+                # Message + context live on the Details tab with metadata (no duplicate red card).
+                ui.label("No result output was stored for this job.").classes(
+                    "text-sm font-medium text-zinc-800"
+                )
+                ui.label(
+                    "Open the Details tab for the failure message, timestamps, "
+                    "request inputs, and parameters."
+                ).classes("text-sm text-zinc-600 mt-1")
+                return
+            logger.warning("Job has no response, showing error status: %s", status)
+            render_error_status(status, status_text)
+            return
 
-    try:
-        if isinstance(response, ResponseBody):
-            response_body = response
-        else:
-            response_body = ResponseBody(**response)
-    except Exception as e:
-        logger.error("Invalid response format: %s", str(e))
-        ui.label(f'Invalid response format: {str(e)}').classes('text-red-600')
-        return
-
-    with ui.card().classes('w-full min-w-0 max-w-full self-stretch bg-white border border-gray-300 p-6'):
-        create_breadcrumbs([
-            {'label': 'Jobs', 'link': '/jobs'},
-            {'label': f'Job {job_uid[:8]}...', 'link': f'/jobs/{job_uid}'},
-            {'label': 'Results'}
-        ])
-
-        # Header and action buttons
-        with ui.row().classes('items-center justify-between mb-4'):
-            try:
-                if isinstance(task_schema_dict, dict):
-                    TaskSchema(**task_schema_dict)
-                task_title = compute_job_results_title(endpoint, endpoint_chain)
-            except Exception:
-                task_title = task_schema_dict.get('shortTitle', 'Results') if isinstance(task_schema_dict, dict) else 'Results'
-
-            ui.label(task_title).classes('text-2xl font-bold')
-            with ui.row().classes('gap-2 items-center') as actions_row:
-                try:
-                    from frontend.components.jobs.job_actions_component import render_job_actions
-                    render_job_actions(actions_row, job_fields)
-                except Exception:
-                    # Fallback to original behavior
-                    render_job_action_buttons(job_fields)
-                try:
-                    from frontend.components.jobs.case_export_button import render_case_export_button
-                    render_case_export_button(job_fields)
-                except Exception as e:
-                    logger.debug("CASE export button not shown: %s", e)
-                # audit trail button may be async; caller handles if needed
-                # kept out of component for now
-
-        # Inputs/parameters summary
         try:
-            request_body_dict = job_fields.get('request', {})
-            if request_body_dict and task_schema_dict:
-                task_schema = TaskSchema(**task_schema_dict) if isinstance(task_schema_dict, dict) else task_schema_dict
-                request_body = RequestBody(**request_body_dict) if isinstance(request_body_dict, dict) else request_body_dict
-                render_compact_inputs_summary(task_schema, request_body)
+            if isinstance(response, ResponseBody):
+                response_body = response
+            else:
+                response_body = ResponseBody(**response)
         except Exception as e:
-            logger.debug("Could not render inputs summary: %s", str(e))
+            logger.error("Invalid response format: %s", str(e))
+            ui.label(f"Invalid response format: {str(e)}").classes("text-red-600")
+            return
 
-        # Results preview
-        #logger.debug("Rendering results preview in outputs card")
-        results_container = ui.column().classes('w-full gap-4')
-        preview_dump = augment_response_model_dump_for_image_summary(
-            response_body.model_dump(), job_fields
-        )
-        ResultsPreview.render(results_container, preview_dump)
-        #logger.info("Job outputs rendered successfully (component)")
+        with ui.card().classes(
+            "w-full min-w-0 max-w-full self-stretch bg-white border border-zinc-300 p-6"
+        ):
+            # Breadcrumbs live on the job page layout only (avoid duplicating under Outputs).
+
+            # Header and action buttons
+            with ui.row().classes("items-center justify-between mb-4"):
+                try:
+                    if isinstance(task_schema_dict, dict):
+                        TaskSchema(**task_schema_dict)
+                    task_title = compute_job_results_title(endpoint_name, endpoint_name_chain)
+                except Exception:
+                    task_title = (
+                        task_schema_dict.get("shortTitle", "Results")
+                        if isinstance(task_schema_dict, dict)
+                        else "Results"
+                    )
+
+                ui.label(task_title).classes("text-2xl font-bold")
+                with ui.row().classes("gap-2 items-center") as actions_row:
+                    try:
+                        from frontend.components.jobs.job_actions_component import (
+                            render_job_actions,
+                        )
+
+                        render_job_actions(actions_row, job_fields)
+                    except Exception:
+                        render_job_action_buttons(job_fields)
+                    try:
+                        from frontend.components.jobs.case_export_button import (
+                            render_case_export_button,
+                        )
+
+                        render_case_export_button(job_fields)
+                    except Exception as e:
+                        logger.debug("CASE export button not shown: %s", e)
+
+            # Inputs/parameters summary
+            try:
+                request_body_dict = job_fields.get("request", {})
+                if request_body_dict and task_schema_dict:
+                    task_schema = (
+                        TaskSchema(**task_schema_dict)
+                        if isinstance(task_schema_dict, dict)
+                        else task_schema_dict
+                    )
+                    request_body = (
+                        RequestBody(**request_body_dict)
+                        if isinstance(request_body_dict, dict)
+                        else request_body_dict
+                    )
+                    render_compact_inputs_summary(task_schema, request_body)
+            except Exception as e:
+                logger.debug("Could not render inputs summary: %s", str(e))
+
+            results_container = ui.column().classes("w-full min-w-0 max-w-full gap-4")
+            preview_dump = augment_response_model_dump_for_image_summary(
+                response_body.model_dump(), job_fields
+            )
+            ResultsPreview.render(results_container, preview_dump)
 

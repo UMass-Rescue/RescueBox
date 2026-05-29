@@ -89,7 +89,7 @@ def create_card_container(title: str = None, classes: str = "") -> Any:
     """
     from nicegui import ui
 
-    base_classes = 'bg-white border border-gray-200 rounded-lg shadow-sm'
+    base_classes = 'bg-white border border-zinc-200 rounded-lg shadow-sm'
     if classes:
         base_classes += f' {classes}'
 
@@ -154,10 +154,10 @@ def get_component_theme_colors(component_type: str) -> Dict[str, str]:
             'icon': 'text-yellow-600'
         },
         'info': {
-            'bg': 'bg-blue-50',
-            'border': 'border-blue-300',
-            'text': 'text-blue-700',
-            'icon': 'text-blue-600'
+            'bg': 'bg-indigo-50',
+            'border': 'border-indigo-300',
+            'text': 'text-indigo-700',
+            'icon': 'text-indigo-600'
         }
     }
 

@@ -8,9 +8,14 @@ including job details, cancellation, and deletion.
 import logging
 from nicegui import ui
 from typing import List, Dict
+from frontend.chatbot.config import ToolRegistry
 from frontend.components.shared import create_navbar
 from frontend.components.jobs import render_job_row
 from frontend.pages.jobs.job_utils import extract_job_fields, get_plugin_name
+from frontend.pages.jobs.pipeline_job_grouping import (
+    partition_jobs_by_pipeline,
+    pipeline_group_root_id,
+)
 from frontend.database import JobRecord, JobStatus
 from frontend.api_client import api_client
 from frontend.constants import UI_TITLES, UI_BUTTONS, SUCCESS_MESSAGES, ERROR_MESSAGES
@@ -62,14 +67,9 @@ class JobsPage:
         """
         #logger.info("Rendering jobs page")
         with ui.column().classes('container mx-auto p-8'):
-            try:
-                from frontend.components.jobs.jobs_header import render_jobs_header
-                render_jobs_header(ui.column(), UI_TITLES['jobs'], on_refresh=self.load_jobs)
-            except Exception:
-                # Fallback inline
-                ui.label(UI_TITLES['jobs']).classes('text-4xl font-bold mb-6')
-                ui.button(UI_BUTTONS['refresh'], on_click=self.load_jobs).classes('mb-4 bg-blue-600 text-white')
-
+            with ui.row().classes('items-center justify-between mb-6'):
+                ui.label(UI_TITLES['jobs']).classes('text-4xl font-bold')
+            
             # Jobs table
             #logger.debug("Creating jobs container")
             self.jobs_container = ui.column().classes('space-y-2 w-full')
@@ -130,33 +130,57 @@ class JobsPage:
         with self.jobs_container:
             # Table header
             #logger.debug("Creating table header")
-            with ui.row().classes('bg-gray-200 p-4 font-bold border-b w-full flex-nowrap'):
+            with ui.row().classes(
+                'bg-[#505759] border-b border-[#3d4442] p-4 font-semibold text-white '
+                'w-full flex-nowrap'
+            ):
                 ui.label('Job ID').classes('w-40 shrink-0')
-                ui.label('Model').classes('flex-1 min-w-0')
+                ui.label('Plugin').classes('flex-1 min-w-0')
                 ui.label('Time').classes('w-64 shrink-0')
                 ui.label('Status').classes('w-32 shrink-0')
                 ui.label('Actions').classes('w-48 shrink-0')
         
-            # Job rows
-            #logger.debug("Rendering %d job rows", len(self.jobs))
-            for job in self.jobs:
-                job_fields = extract_job_fields(job)
-                job_uid = job_fields['uid']
-                #logger.debug("Rendering job: %s", job_uid)
-                
-                # Get model name or endpoint name
-                plugin_name = await get_plugin_name(self.api_client, job_fields['modelUid'])
-                if not plugin_name and job_fields['endpoint']:
-                    plugin_name = job_fields['endpoint']  # Use endpoint for chatbot jobs
-                
-                render_job_row(
-                    self.jobs_container,
-                    job,
-                    plugin_name=plugin_name or 'Unknown',
-                    on_view=lambda uid=job_uid: ui.navigate.to(f"/jobs/{uid}"),
-                    on_cancel=self.cancel_job,
-                    on_delete=self.delete_job
-                )
+            # Job rows (group multi-step pipelines under one heading)
+            groups = partition_jobs_by_pipeline(self.jobs)
+            for group in groups:
+                if len(group) > 1:
+                    root_id = pipeline_group_root_id(group)
+                    with ui.row().classes(
+                        'w-full items-center gap-2 py-2 px-3 mb-1 rounded-md '
+                        'bg-[#505759] border border-[#3d4442] text-sm text-white'
+                    ):
+                        ui.label('Pipeline').classes('font-semibold shrink-0')
+                        ui.link(
+                            root_id,
+                            f'/jobs/{root_id}',
+                        ).classes('font-mono text-xs text-white/90 hover:underline shrink-0').tooltip(
+                            f'{len(group)} steps — open root job'
+                        )
+                        ui.label(f'({len(group)} steps)').classes('text-xs text-white/75 shrink-0')
+                    group_wrap = ui.column().classes(
+                        'w-full border-l-2 border-[#505759]/50 pl-3 mb-3 space-y-0'
+                    )
+                else:
+                    group_wrap = self.jobs_container
+
+                for job in group:
+                    job_fields = extract_job_fields(job)
+                    job_uid = job_fields['uid']
+
+                    plugin_name = await get_plugin_name(self.api_client, job_fields['modelUid'])
+                    if not plugin_name and job_fields['endpoint']:
+                        plugin_name = ToolRegistry.display_name_for_endpoint(
+                            job_fields['endpoint']
+                        )
+
+                    render_job_row(
+                        group_wrap,
+                        job,
+                        plugin_name=plugin_name or 'Unknown',
+                        on_view=lambda uid=job_uid: ui.navigate.to(f"/jobs/{uid}"),
+                        on_cancel=self.cancel_job,
+                        on_delete=self.delete_job,
+                    )
     
     async def cancel_job(self, job_id: str):
         """
