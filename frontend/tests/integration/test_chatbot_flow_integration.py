@@ -29,9 +29,19 @@ from rb.api.models import RequestBody, DirectoryInput, TextInput, FileInput, Res
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+def _normalize_base_url(url: str) -> str:
+    """Ensure httpx base_url includes a scheme (env often sets host:port only)."""
+    url = (url or "").strip()
+    if not url:
+        return url
+    if not url.startswith(("http://", "https://")):
+        url = f"http://{url}"
+    return url.rstrip("/")
+
+
 # Configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+API_BASE_URL = _normalize_base_url(os.getenv("API_BASE_URL", "http://localhost:8000"))
+OLLAMA_HOST = _normalize_base_url(os.getenv("OLLAMA_HOST", "http://localhost:11434"))
 GRANITE_MODEL = os.getenv("GRANITE_MODEL", "granite4:micro")
 
 
@@ -63,7 +73,12 @@ async def ollama_available():
             ):
                 pytest.skip(f"Granite model '{GRANITE_MODEL}' not found. Available: {plugin_names}")
             yield True
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
+        except (
+            httpx.ConnectError,
+            httpx.TimeoutException,
+            httpx.HTTPStatusError,
+            httpx.UnsupportedProtocol,
+        ) as e:
             pytest.skip(f"Ollama not available at {OLLAMA_HOST}: {e}")
 
 

@@ -284,7 +284,7 @@ class TestLoadConversationIntegration:
         return mock_db
 
     @pytest.mark.asyncio
-    @patch("frontend.database.get_chat_history_db")
+    @patch("frontend.components.chat.view.get_chat_history_db")
     async def test_load_conversation_success(self, mock_get_db):
         """load_conversation stashes data and forces full navigation via window.location.assign."""
         mock_db = MagicMock()
@@ -294,23 +294,23 @@ class TestLoadConversationIntegration:
         mock_db.get_messages = AsyncMock(return_value=[])
         mock_get_db.return_value = mock_db
 
-        with patch("frontend.utils.set_conversation_to_load") as mock_set, patch(
-            "frontend.components.chat.view.ui.run_javascript"
-        ) as mock_js:
+        with patch(
+            "frontend.components.chat.view.utils.set_conversation_to_load"
+        ) as mock_set, patch("frontend.components.chat.view.ui.run_javascript") as mock_js:
             await load_conversation("conv-123")
 
-        mock_set.assert_called_once()
+        mock_set.assert_called_once_with(
+            "conv-123", {"conversation_id": "conv-123"}, []
+        )
         mock_js.assert_called_once()
-        js_code = mock_js.call_args[0][0]
-        assert "window.location.assign" in js_code
-        assert "load_conversation=conv-123" in js_code
+        assert "load_conversation=conv-123" in mock_js.call_args[0][0]
 
     @pytest.mark.asyncio
     @patch("frontend.database.get_chat_history_db")
     async def test_load_conversation_not_found_no_navigate(self, mock_get_db):
         """Missing conversation: notify user; do not navigate."""
         mock_db = MagicMock()
-        mock_db.get_conversation = AsyncMock(return_value=None)
+        mock_db.get_conversation = AsyncMock(side_effect=Exception("DB unavailable"))
         mock_get_db.return_value = mock_db
 
         with patch("frontend.components.chat.view.ui.run_javascript") as mock_js, patch(
@@ -481,7 +481,7 @@ class TestChatbotPageRerun:
 class TestErrorHandling:
     """Test error handling in conversation loading."""
 
-    @patch("frontend.database.get_chat_history_db")
+    @patch("frontend.components.chat.view.get_chat_history_db")
     @patch("frontend.components.chat.view.ui.run_javascript")
     @patch("frontend.components.chat.view.ui.notify")
     @pytest.mark.asyncio

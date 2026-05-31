@@ -223,6 +223,9 @@ class TestChatbotCore:
             })
             mock_response.raise_for_status = Mock()
 
+            from frontend.utils import set_explicit_user_id
+            set_explicit_user_id("demo_test_user")
+
             with patch('httpx.Client') as mock_client_class:
                 mock_client = Mock()
                 mock_client.__enter__ = Mock(return_value=mock_client)

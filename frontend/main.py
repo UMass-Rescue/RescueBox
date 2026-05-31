@@ -8,46 +8,13 @@ Usage::
 """
 from __future__ import annotations
 import sys
+import platform
 import os
-import pathlib
+from pathlib import Path    
 import asyncio
-
-# Fix for WinError 10054 Proactor Pipe Transport crashes on Windows
-if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-if sys.stdout is None or not hasattr(sys.stdout, 'write'):
-    # Create a log file in the same directory as the .exe
-    log_path = os.path.join(os.path.dirname(sys.executable), "frontend.log")
-    sys.stdout = open(log_path, "w", encoding="utf-8", buffering=1)
-    sys.stderr = sys.stdout
-
-if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-    # 1. Safely get APPDATA, falling back to the standard home directory if it's missing
-    appdata_path = os.getenv('APPDATA', os.path.expanduser('~'))
-    base_dir = pathlib.Path(appdata_path)
-
-    # 2. Construct the path
-    custom_storage_dir = base_dir / 'RescueBox-Desktop' / 'nicegui'
-
-    # 3. Explicitly cast the Path object to a string for the environment variable
-    os.environ['NICEGUI_STORAGE_PATH'] = str(custom_storage_dir)
-
 import logging
-from pathlib import Path
-
-# Repo root + src (for rb.* plugins when running as a module)
-_project_root = Path(__file__).resolve().parent.parent
-if str(_project_root) not in sys.path:
-    sys.path.insert(0, str(_project_root))
-if str(_project_root / "src") not in sys.path:
-    sys.path.insert(0, str(_project_root / "src"))
-
 from starlette.responses import HTMLResponse
-from starlette.staticfiles import StaticFiles
-
 from nicegui import app, Client, ui
-
 from frontend.config import (
     API_BASE_URL,
     API_TIMEOUT,
@@ -73,24 +40,52 @@ from frontend.database import init_db
 from frontend.components.shared import create_navbar
 from frontend.utils import configure_logging_with_context
 from frontend.utils import parse_log_level
-
-# Import page modules so @ui.page decorators register routes
-import frontend.pages.chatbot
-import frontend.pages.demo
-import frontend.pages.demo_image_summary_walkthrough
-import frontend.pages.demo_other_walkthrough
-import frontend.pages.demo_quick_start
-import frontend.pages.demo_transcribe_walkthrough
-import frontend.pages.jobs
-import frontend.pages.about
-import frontend.pages.licenses_copyright
-import frontend.pages.models
+from frontend import utils as _backend_integration
+from frontend.design_tokens import Design
+from frontend.utils import (
+    clear_explicit_user_id,
+    ensure_explicit_user_id_for_tests,
+    get_explicit_user_id,
+    set_explicit_user_id,
+    try_claim_explicit_user_id,
+)
 
 logging.basicConfig(level=parse_log_level(LOG_LEVEL))
 configure_logging_with_context(log_file_path=str(LOG_FILE), log_level=LOG_LEVEL)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(parse_log_level(LOG_LEVEL))
+
+# Fix for WinError 10054 Proactor Pipe Transport crashes on Windows
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+if sys.stdout is None or not hasattr(sys.stdout, 'write'):
+    # Create a log file in the same directory as the .exe
+    log_path = os.path.join(os.path.dirname(sys.executable), "frontend.log")
+    sys.stdout = open(log_path, "w", encoding="utf-8", buffering=1)
+    sys.stderr = sys.stdout
+
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    # 1. Safely get APPDATA, falling back to the standard home directory if it's missing
+    appdata_path = os.getenv('APPDATA', str(Path.home()))
+    base_dir = Path(appdata_path / '.rescuebox')
+    if platform.system() == "Windows":
+        base_dir = Path(appdata_path / 'RescueBox-Desktop')
+
+
+    # 2. Construct the path
+    custom_storage_dir = base_dir / 'nicegui'
+
+    # 3. Explicitly cast the Path object to a string for the environment variable
+    os.environ['NICEGUI_STORAGE_PATH'] = str(custom_storage_dir)
+
+# Repo root + src (for rb.* plugins when running as a module)
+_project_root = Path(__file__).resolve().parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+if str(_project_root / "src") not in sys.path:
+    sys.path.insert(0, str(_project_root / "src"))
 
 # Determine the base path for resources in a PyInstaller bundle
 if hasattr(sys, '_MEIPASS'):
@@ -107,7 +102,7 @@ else:
 # Construct the absolute path to the icon inside the bundle
 APP_FAVICON = os.path.join(base_path, 'icons', 'rb.webp')
 
-from frontend import utils as _backend_integration
+
 
 try:
     _backend_integration.set_backend_available(True)
@@ -119,15 +114,6 @@ except ImportError as e:
 BACKEND_AVAILABLE = _backend_integration.BACKEND_AVAILABLE
 prefetch_and_cache_models = _backend_integration.prefetch_and_cache_models
 setup_backend_routes = _backend_integration.setup_backend_routes
-
-from frontend.design_tokens import Design
-from frontend.utils import (
-    clear_explicit_user_id,
-    ensure_explicit_user_id_for_tests,
-    get_explicit_user_id,
-    set_explicit_user_id,
-    try_claim_explicit_user_id,
-)
 
 
 @ui.page("/")
@@ -278,6 +264,8 @@ if __name__ in {"__main__", "__mp_main__"}:
 
     # Register brand + readability CSS before ui.run so it is not lost vs. on_startup ordering.
     inject_global_readability_css()
+
+    import frontend.pages  # noqa: F401 — register @ui.page handlers (models, jobs, chatbot, …)
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request, exc):

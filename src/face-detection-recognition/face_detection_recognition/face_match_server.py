@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import typer
 import threading
 from dotenv import load_dotenv
@@ -37,6 +36,13 @@ from face_detection_recognition.database_functions import (
     Vector_Database,
     vector_db_for_current_request,
 )
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 

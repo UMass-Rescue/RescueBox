@@ -2,6 +2,7 @@ import json
 import logging
 from nicegui import ui
 
+import frontend.utils as utils
 from frontend.database import get_chat_history_db
 
 logger = logging.getLogger(__name__)
@@ -46,9 +47,7 @@ async def load_conversation(conversation_id: str):
             m.model_dump() if hasattr(m, "model_dump") else dict(m) for m in messages
         ]
         try:
-            from frontend.utils import set_conversation_to_load
-
-            set_conversation_to_load(conversation_id, conv_dict, messages_list)
+            utils.set_conversation_to_load(conversation_id, conv_dict, messages_list)
         except Exception as storage_exc:
             logger.warning(
                 "Could not stash conversation for load fallback: %s", storage_exc
