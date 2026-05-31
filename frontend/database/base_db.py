@@ -35,7 +35,7 @@ class BaseDatabase(ABC):
         if db_path is None:
             # Use data directory in frontend folder
             data_dir = DATA_DIR
-            data_dir.mkdir(exist_ok=True)
+            data_dir.mkdir(parents=True, exist_ok=True)
             db_path = data_dir / db_filename
 
         self.db_path = db_path

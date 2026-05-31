@@ -52,7 +52,7 @@ if platform.system() == 'Windows':
     base_dir = Path(os.getenv('APPDATA'))
     DATA_DIR = base_dir / 'RescueBox-Desktop'/ 'data'
 
-DATA_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DATA_DIR / 'jobs.db'
 
 # Logging Configuration

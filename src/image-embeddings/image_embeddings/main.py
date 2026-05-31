@@ -6,7 +6,7 @@ import logging
 import os
 import threading
 from pathlib import Path
-
+from functools import cache
 import numpy as np
 import onnxruntime as ort
 import typer
@@ -51,8 +51,6 @@ _INSTANCE_LOCK = threading.Lock()
 _CLIP_PROCESSOR_CLS: type | None = None
 
 _CLIP_INSTANCE_CACHE: dict[tuple[str, str], tuple[Any, Any]] = {}
-_ONNX_TEXT_SESSION: ort.InferenceSession | None = None
-_ONNX_VISION_SESSION: ort.InferenceSession | None = None
 
 # Raster types accepted for CLIP embedding (top-level files under ``input_dir``).
 CLIP_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff"}
@@ -199,12 +197,10 @@ def _get_clip_processor(model_name: str) -> Any:
     _CLIP_INSTANCE_CACHE[key] = (processor, None)
     return processor
 
-
+@cache
 def _get_onnx_sessions() -> tuple[ort.InferenceSession, ort.InferenceSession]:
     """Return (text_session, vision_session) with input validation."""
-    global _ONNX_TEXT_SESSION, _ONNX_VISION_SESSION
-    if _ONNX_TEXT_SESSION is not None and _ONNX_VISION_SESSION is not None:
-        return _ONNX_TEXT_SESSION, _ONNX_VISION_SESSION
+    
     model_dir = Path(__file__).resolve().parent / "clip_onnx_models"
     text_model = model_dir / "text.onnx"
     vision_model = model_dir / "vision.onnx"
@@ -212,7 +208,16 @@ def _get_onnx_sessions() -> tuple[ort.InferenceSession, ort.InferenceSession]:
         raise FileNotFoundError(
             f"Missing CLIP ONNX model files in {model_dir}: text.onnx/vision.onnx"
         )
-    providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    available_providers = ort.get_available_providers()
+    providers = []
+    if "CUDAExecutionProvider" in available_providers:
+        providers = [
+            ("CUDAExecutionProvider", {"device_id": 0, "cudnn_conv_algo_search": "DEFAULT"}),
+        ]
+    if "CoreMLExecutionProvider" in available_providers:
+        providers.append("CoreMLExecutionProvider")
+
+    providers.append("CPUExecutionProvider")
     text_candidate = ort.InferenceSession(str(text_model), providers=providers)
     vision_candidate = ort.InferenceSession(str(vision_model), providers=providers)
     
