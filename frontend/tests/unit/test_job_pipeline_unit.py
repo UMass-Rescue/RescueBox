@@ -217,6 +217,7 @@ class TestPartitionJobsByPipeline:
         groups = partition_jobs_by_pipeline([a, b])
         assert len(groups) == 2
 
+    @pytest.mark.asyncio
     async def test_update_job_status_accepts_string_completed(self):
         from frontend.pages.chatbot import database_service as ds
 

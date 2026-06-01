@@ -65,7 +65,12 @@ def _summarize_request(req: Any) -> Dict[str, Any]:
         if isinstance(ins, dict):
             for k, v in list(ins.items())[:24]:
                 if isinstance(v, dict) and "path" in v:
-                    out[f"input:{k}"] = v.get("path")
+                    raw_path = v.get("path")
+                    out[f"input:{k}"] = (
+                        Path(raw_path).as_posix()
+                        if raw_path is not None
+                        else ""
+                    )
                 elif isinstance(v, dict) and "text" in v:
                     t = v.get("text")
                     out[f"input:{k}"] = (
@@ -96,7 +101,12 @@ def _parse_request_structure(
     if isinstance(ins, dict):
         for key, v in ins.items():
             if isinstance(v, dict) and "path" in v:
-                p = str(v.get("path") or "")
+                raw_path = v.get("path")
+                p = (
+                    Path(raw_path).as_posix()
+                    if raw_path is not None
+                    else ""
+                )
                 if not p:
                     continue
                 kl = key.lower()

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import json
 import logging
+import os
+import re
+from pathlib import Path
 from typing import Final
 
 import ollama
@@ -87,3 +91,48 @@ def describe_image(model: str, image_path: str) -> str:
     if response and response.get("done"):
         return extract_response_after_think(response.get("response", "").strip())
     return str(response)
+
+
+def parse_batch_descriptions(raw: str, paths: list[str]) -> dict[str, str]:
+    """Map absolute image paths to descriptions from a batch model JSON payload."""
+    text = extract_response_after_think((raw or "").strip())
+    fence = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    if fence:
+        text = fence.group(1).strip()
+    items = json.loads(text)
+    if not isinstance(items, list):
+        raise ValueError("Batch description payload must be a JSON array")
+
+    by_basename = {Path(p).name: p for p in paths}
+    out: dict[str, str] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        fname = item.get("file") or item.get("filename")
+        desc = item.get("description") or item.get("text")
+        if not fname or desc is None:
+            continue
+        full = by_basename.get(Path(str(fname)).name)
+        if full is not None:
+            out[full] = str(desc)
+    return out
+
+
+def resolve_batch_chunk_size(value: int | None) -> int:
+    """Images per Ollama batch call (capped at 200). Default 1 when unset."""
+    if value is not None:
+        return min(int(value), 200)
+    env = os.getenv("IMAGE_SUMMARY_MAX_IMAGES_PER_BATCH")
+    if env is not None and env.strip() != "":
+        return int(env)
+    return 1
+
+
+def resolve_batch_parallel_workers(value: int | None) -> int:
+    """Concurrent batch workers (capped at 32). Default 1 when unset."""
+    if value is not None:
+        return min(int(value), 32)
+    env = os.getenv("IMAGE_SUMMARY_BATCH_PARALLEL_WORKERS")
+    if env is not None and env.strip() != "":
+        return int(env)
+    return 1

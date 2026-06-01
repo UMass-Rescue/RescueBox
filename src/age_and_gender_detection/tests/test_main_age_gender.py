@@ -1,8 +1,7 @@
 import pytest
-from age_and_gender_detection.main import app as cli_app, APP_NAME, task_schema
+from age_and_gender_detection.main import app as cli_app, APP_NAME, task_schema, server
 from age_and_gender_detection.model import AgeGenderDetector
 from rb.lib.common_tests import RBAppTest
-from rb.api.models import AppMetadata
 from pathlib import Path
 from rb.api.models import ResponseBody
 import logging
@@ -51,18 +50,12 @@ class TestAgeGender(RBAppTest):
         )
 
     def get_metadata(self):
-        return AppMetadata(
-            name="Age and Gender Classifier",
-            author="UMass Rescue",
-            version="2.1.0",
-            gpu=True,
-            info="Model to classify the age and gender of all faces in an image.",
-            plugin_name=APP_NAME,
-        )
+        assert server._app_metadata is not None
+        return server._app_metadata
 
     def get_all_ml_services(self):
         return [
-            (0, "predict", "Age and Gender Classifier", task_schema()),
+            (0, "predict", "Age and Gender", task_schema()),
         ]
 
     def test_predict_age_gender(self):

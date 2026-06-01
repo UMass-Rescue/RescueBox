@@ -81,7 +81,8 @@ def validate_mount_name_tmp(mount_name: str) -> Tuple[bool, str]:
     """
     if mount_name.startswith("/home/tester/Documents"):
         return True, ""
-    if mount_name.startswith("/tmp"):
+    norm = mount_name.replace("\\", "/")
+    if _TMP_SINGLE_SEGMENT.match(norm):
         return True, ""
     return False, "Mount folder must be /tmp/<folder_name>"
 

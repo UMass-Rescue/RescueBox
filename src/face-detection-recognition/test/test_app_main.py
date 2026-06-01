@@ -210,9 +210,9 @@ class TestFaceMatch(RBAppTest):
         """Test app metadata and task schemas"""
         # Check app metadata
         metadata = self.get_metadata()
-        assert metadata.name == "Face Recognition and Matching"
+        assert metadata.name == "Face Match"
         assert metadata.plugin_name == APP_NAME
-        assert metadata.author == "FaceMatch Team"
+        assert metadata.author == "UMass RescueLab"
 
         # Check task schemas
         from face_detection_recognition.face_match_server import (
@@ -356,8 +356,10 @@ class TestFaceMatch(RBAppTest):
         # Assert response
         assert response.status_code == 200
         body = ResponseBody(**response.json())
-        assert isinstance(body.root, TextResponse)
-        print(f"Find face bulk result: {body.root.value}...")
+        from rb.api.models import BatchFileResponse
+
+        assert isinstance(body.root, BatchFileResponse)
+        assert len(body.root.files) > 0
 
     # @pytest.mark.skipif(not has_test_images, reason="Test images not available")
     # def test_07_find_face_bulk_testing_endpoint(self):

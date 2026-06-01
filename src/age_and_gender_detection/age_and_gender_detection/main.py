@@ -65,7 +65,7 @@ server = MLService(APP_NAME)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 info_file_path = os.path.join(script_dir, "app-info.md")
-with open(info_file_path, "r") as f:
+with open(info_file_path, "r", encoding="utf-8") as f:
     info = f.read()
 
 server.add_app_metadata(

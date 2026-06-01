@@ -34,10 +34,10 @@ def test_ensure_model_exists(mock_pull, mock_list):
     with pytest.raises(ValueError, match="Model 'unsupported_model' is not supported."):
         ensure_model_exists("unsupported_model")
 
-    # Test case where pull fails
+    # Test case where pull fails (use a supported model name)
     mock_pull.return_value = MagicMock(status="failure")
-    with pytest.raises(ValueError, match="Failed to pull model 'llama3.2:3b'"):
-        ensure_model_exists("llama3.2:3b")
+    with pytest.raises(ValueError, match="Failed to pull model 'gemma3:4b'"):
+        ensure_model_exists("gemma3:4b")
 
 
 @patch("text_summary.model.ollama.generate")

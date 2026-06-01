@@ -76,7 +76,7 @@ def test_posix_path_in_request_serializes():
         "response": None,
     }
     text = build_jsonld_text(job)
-    assert "/tmp/foo/images" in text
+    assert path.as_posix() in text
     json.loads(text)
 
 
