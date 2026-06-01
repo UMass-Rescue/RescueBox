@@ -114,4 +114,22 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-addopts = "--ignore=frontend/tests/integration"
+addopts = "-p no:warnings --ignore=frontend/tests/integration/ --import-mode=prepend"
+asyncio_mode = "auto"
+pythonpath = [
+    ".",
+    "src/rb-api",
+    "src/rb-lib",
+    "src/face-detection-recognition",
+    "src/image-embeddings",
+    "src/image-similarity",
+    "src/image-summary",
+    "src/text-summary",
+    "src/text-embeddings",
+    "src/audio-transcription",
+    "src/age_and_gender_detection",
+    "src/case-export",
+    "src/ufdr-mounter",
+    "src/deepfake-detection",
+    "src/file-utils",
+]

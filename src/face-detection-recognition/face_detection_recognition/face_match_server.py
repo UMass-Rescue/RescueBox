@@ -38,9 +38,6 @@ from face_detection_recognition.database_functions import (
     vector_db_for_current_request,
 )
 
-# Legacy alias for tests and tooling that expect a module-level Chroma handle.
-DB = get_vector_database()
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -1357,6 +1354,13 @@ def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
 #     order=5,
 #     task_schema_func=list_collections_task_schema,
 # )
+
+def __getattr__(name: str):
+    """Lazy ``DB`` for tests/tooling; avoids import-time Chroma init on partial imports."""
+    if name == "DB":
+        return get_vector_database()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 app = server.app
 if __name__ == "__main__":
