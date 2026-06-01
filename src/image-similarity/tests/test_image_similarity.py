@@ -18,6 +18,7 @@ from rb.api.models import DirectoryInput, FileInput
 #  Task schema
 # ---------------------------------------------------------------------------
 
+
 def test_task_schema_inputs():
     schema = task_schema()
     assert schema is not None
@@ -37,6 +38,7 @@ def test_task_schema_parameters():
 #  Function signature
 # ---------------------------------------------------------------------------
 
+
 def test_search_similar_images_callable():
     assert callable(search_similar_images)
     sig = inspect.signature(search_similar_images)
@@ -47,6 +49,7 @@ def test_search_similar_images_callable():
 # ---------------------------------------------------------------------------
 #  Input / parameter types
 # ---------------------------------------------------------------------------
+
 
 def test_inputs_structure(tmp_path):
     d = tmp_path / "photos"
@@ -73,6 +76,7 @@ def test_parameters_structure():
 # ---------------------------------------------------------------------------
 #  CLI parsers
 # ---------------------------------------------------------------------------
+
 
 def test_inputs_cli_parse(tmp_path):
     d = tmp_path / "imgs"

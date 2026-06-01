@@ -49,7 +49,8 @@ _DEFAULT_QUERY_OPTIONS = (
     "a small child",
     "computer",
 )
-DEFAULT_QUERY="sports or games"
+DEFAULT_QUERY = "sports or games"
+
 
 def _payload(
     input_dir: str,
@@ -133,7 +134,7 @@ async def _run() -> int:
         f"  top_k={top_k}  min_similarity={min_similarity}\n"
         f"  timeout={timeout}s each\n"
     )
-    
+
     async with httpx.AsyncClient(timeout=httpx.Timeout(timeout)) as client:
         if serial:
             results = []

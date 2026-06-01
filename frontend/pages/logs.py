@@ -33,22 +33,28 @@ class LogsPage:
         """Render the logs page. Creates the UI components for displaying log content with"""
         logger.info("Rendering logs page")
 
-        with ui.column().classes('w-full max-w-full min-w-0 p-4 gap-4 flex flex-col flex-1'):
+        with ui.column().classes(
+            "w-full max-w-full min-w-0 p-4 gap-4 flex flex-col flex-1"
+        ):
             # Page header
-            ui.label(UI_TITLES.get('logs', 'Application Logs')).classes('text-2xl font-bold mb-4')
+            ui.label(UI_TITLES.get("logs", "Application Logs")).classes(
+                "text-2xl font-bold mb-4"
+            )
 
             # Use extracted log viewer component (full width, fill available space)
             try:
                 from frontend.components.logs import render_log_viewer
-                log_container = ui.column().classes('w-full max-w-full min-w-0 flex-1')
-                self.log_display = render_log_viewer(log_container, LOG_FILE, self.max_lines)
+
+                log_container = ui.column().classes("w-full max-w-full min-w-0 flex-1")
+                self.log_display = render_log_viewer(
+                    log_container, LOG_FILE, self.max_lines
+                )
                 # Load initial content into returned element if available
                 if self.log_display is not None:
                     await self._load_logs()
             except Exception as e:
                 # Fallback to inline rendering if component fails
                 logger.exception("Failed to use log_viewer component: %s", e)
-
 
         logger.info("Logs page rendered successfully")
 
@@ -60,12 +66,15 @@ class LogsPage:
         self.log_display.content = formatted_content
 
         # Auto-scroll to bottom
-        await ui.run_javascript('''
+        await ui.run_javascript(
+            """
             const scrollArea = document.querySelector('.q-scrollarea__content');
             if (scrollArea) {
                 scrollArea.scrollTop = scrollArea.scrollHeight;
             }
-        ''', timeout=10)
+        """,
+            timeout=10,
+        )
 
         logger.debug(f"Loaded log content from: {LOG_FILE}")
 
@@ -73,14 +82,15 @@ class LogsPage:
         """Refresh the log display by reloading content."""
         logger.info("Refreshing logs")
         await self._load_logs()
-        ui.notify('Logs refreshed', type='positive', classes="rb-notify-505759")
+        ui.notify("Logs refreshed", type="positive", classes="rb-notify-505759")
 
 
-@ui.page('/logs')
+@ui.page("/logs")
 async def logs_page():
     """Page route handler for /logs. Creates the logs page with navigation bar and renders the LogsPage."""
     logger.info("Logs page route accessed")
     from frontend.utils import apply_saved_theme
+
     apply_saved_theme()
     create_navbar()
     from frontend.utils import require_demo_user_session
@@ -99,7 +109,7 @@ def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:
 
         logger.debug(f"Reading log file: {log_file_path}")
 
-        with open(log_file_path, 'r', encoding='utf-8', errors='replace') as f:
+        with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
 
         # Limit to max_lines for performance
@@ -109,7 +119,7 @@ def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:
         else:
             content = ""
 
-        content += ''.join(lines)
+        content += "".join(lines)
         return content
 
     except Exception as e:
@@ -127,15 +137,15 @@ def format_log_content(content: str) -> str:
 def get_log_file_info(log_file_path: Path) -> dict:
     """Get information about the log file. Args:"""
     info = {
-        'path': str(log_file_path),
-        'exists': log_file_path.exists(),
-        'size': 0,
-        'modified': None
+        "path": str(log_file_path),
+        "exists": log_file_path.exists(),
+        "size": 0,
+        "modified": None,
     }
 
     if log_file_path.exists():
         stat = log_file_path.stat()
-        info['size'] = stat.st_size
-        info['modified'] = stat.st_mtime
+        info["size"] = stat.st_size
+        info["modified"] = stat.st_mtime
 
     return info

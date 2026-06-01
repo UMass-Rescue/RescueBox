@@ -80,9 +80,9 @@ def validate_mount_name_tmp(mount_name: str) -> Tuple[bool, str]:
     ``/tmp``, relative names, and ``..`` segments.
     """
     if mount_name.startswith("/home/tester/Documents"):
-            return True, ""
+        return True, ""
     if mount_name.startswith("/tmp"):
-            return True, ""
+        return True, ""
     return False, "Mount folder must be /tmp/<folder_name>"
 
 
@@ -185,7 +185,11 @@ server.add_app_metadata(
 def ufdr_task_schema() -> TaskSchema:
     return TaskSchema(
         inputs=[
-            InputSchema(key="ufdr_file", label="Path to the UFDR File", input_type=InputType.FILE),
+            InputSchema(
+                key="ufdr_file",
+                label="Path to the UFDR File",
+                input_type=InputType.FILE,
+            ),
             InputSchema(
                 key="mount_name",
                 label="Mount folder , take default or /tmp/<name> , e.g. /tmp/case123",
@@ -241,7 +245,9 @@ def mount_task(inputs: UFDRInputs, parameters: UFDRParameters) -> ResponseBody:
             )
 
         if not (
-            platform.system() == "Windows" and len(mount_path) == 2 and mount_path[1] == ":"
+            platform.system() == "Windows"
+            and len(mount_path) == 2
+            and mount_path[1] == ":"
         ):
             os.makedirs(mount_path, exist_ok=True)
 

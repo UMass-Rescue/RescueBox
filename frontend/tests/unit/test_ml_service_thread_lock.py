@@ -7,17 +7,23 @@ from typing import TypedDict
 from rb.lib.ml_service import MLService
 from rb.api.models import ResponseBody, TextResponse, TaskSchema
 
+
 # Mock TaskSchema for the test
 def mock_task_schema_func() -> TaskSchema:
     return TaskSchema(inputs=[], parameters=[])
 
+
 class MockInputs(TypedDict):
     pass
+
+
 class MockParameters(TypedDict):
     pass
 
+
 class MockMLFunctionState:
     """Helper to track calls to the mock ML function."""
+
     def __init__(self):
         self.call_count = 0
         self.execution_log = []
@@ -27,18 +33,25 @@ class MockMLFunctionState:
         self.call_count = 0
         self.execution_log = []
 
+
 mock_state = MockMLFunctionState()
+
 
 def mock_ml_function(inputs: MockInputs, parameters: MockParameters) -> ResponseBody:
     """A mock ML function that simulates a time-consuming operation."""
     with mock_state.lock:
         mock_state.call_count += 1
         start_time = time.time()
-        mock_state.execution_log.append(f"Start {threading.current_thread().name} at {start_time}")
+        mock_state.execution_log.append(
+            f"Start {threading.current_thread().name} at {start_time}"
+        )
         time.sleep(0.1)  # Simulate work
         end_time = time.time()
-        mock_state.execution_log.append(f"End {threading.current_thread().name} at {end_time}")
+        mock_state.execution_log.append(
+            f"End {threading.current_thread().name} at {end_time}"
+        )
         return TextResponse(value=f"Processed by {threading.current_thread().name}")
+
 
 @pytest.fixture
 def ml_service_with_lock():
@@ -51,7 +64,7 @@ def ml_service_with_lock():
         version="1.0.0",
         info="A service to test thread locking.",
         plugin_name=service_name,
-        make_threadsafe=True, # Explicitly set to True
+        make_threadsafe=True,  # Explicitly set to True
     )
     ml_service.add_ml_service(
         rule="/process_locked",
@@ -62,9 +75,10 @@ def ml_service_with_lock():
         short_title="Process Locked",
         order=0,
     )
-    mock_state.reset() # Reset state for each test
-    
+    mock_state.reset()  # Reset state for each test
+
     yield ml_service
+
 
 def test_ml_service_thread_lock_sequential_execution(ml_service_with_lock: MLService):
     """
@@ -74,7 +88,9 @@ def test_ml_service_thread_lock_sequential_execution(ml_service_with_lock: MLSer
     endpoint_rule = f"/{ml_service.name}/process_locked"
 
     # Get the registered command callback
-    run_cmd = next(cmd for cmd in ml_service.app.registered_commands if cmd.name == endpoint_rule)
+    run_cmd = next(
+        cmd for cmd in ml_service.app.registered_commands if cmd.name == endpoint_rule
+    )
     run_callback = run_cmd.callback
 
     num_concurrent_calls = 5
@@ -82,11 +98,11 @@ def test_ml_service_thread_lock_sequential_execution(ml_service_with_lock: MLSer
     results = []
 
     def make_request():
-       try:
-           run_callback(inputs={}, parameters={})
-           results.append(200)
-       except Exception:
-           results.append(500)
+        try:
+            run_callback(inputs={}, parameters={})
+            results.append(200)
+        except Exception:
+            results.append(500)
 
     for i in range(num_concurrent_calls):
         thread = threading.Thread(target=make_request, name=f"TestThread-{i}")
@@ -105,7 +121,7 @@ def test_ml_service_thread_lock_sequential_execution(ml_service_with_lock: MLSer
     # Each call takes 0.1s, so 5 sequential calls should take at least 0.5s
     # We sort the log entries by time and ensure that the 'End' time of one call
     # is not before the 'Start' time of the next call, indicating no overlap.
-    
+
     # Parse the execution log to get start and end times for each call
     parsed_logs = []
     for log_entry in mock_state.execution_log:
@@ -119,24 +135,28 @@ def test_ml_service_thread_lock_sequential_execution(ml_service_with_lock: MLSer
     thread_executions = {}
     for entry in parsed_logs:
         thread_executions.setdefault(entry["thread"], []).append(entry)
-    
+
     # Collect all start and end times, ensuring each thread has a start and end
     all_times = []
     for thread_name, entries in thread_executions.items():
         entries.sort(key=lambda x: x["time"])
-        assert len(entries) == 2, f"Thread {thread_name} did not have a start and end log entry."
+        assert (
+            len(entries) == 2
+        ), f"Thread {thread_name} did not have a start and end log entry."
         assert entries[0]["action"] == "Start"
         assert entries[1]["action"] == "End"
         all_times.append((entries[0]["time"], entries[1]["time"]))
-    
+
     # Sort by start time to check for overlaps
     all_times.sort(key=lambda x: x[0])
 
     # Check for overlaps: the end time of one should be less than or equal to the start time of the next
     for i in range(len(all_times) - 1):
         current_end = all_times[i][1]
-        next_start = all_times[i+1][0]
-        assert current_end <= next_start, f"Overlap detected between calls: {all_times[i]} and {all_times[i+1]}"
+        next_start = all_times[i + 1][0]
+        assert (
+            current_end <= next_start
+        ), f"Overlap detected between calls: {all_times[i]} and {all_times[i+1]}"
 
     # Optional: Print execution log for debugging if needed
     # print("\nExecution log:")

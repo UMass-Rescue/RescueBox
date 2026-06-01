@@ -7,6 +7,7 @@ from frontend.database import get_chat_history_db
 
 logger = logging.getLogger(__name__)
 
+
 async def view_conversation(conversation_id: str):
     """
     View full conversation in a dialog.
@@ -18,15 +19,21 @@ async def view_conversation(conversation_id: str):
     messages = await chat_history.get_messages(conversation_id)
 
     if not conversation:
-        ui.notify('Conversation not found', type='negative')
+        ui.notify("Conversation not found", type="negative")
         return
 
     try:
         from .dialogs import show_conversation_view_dialog
-        show_conversation_view_dialog(conversation, messages, title=conversation.title if hasattr(conversation, 'title') else None)
+
+        show_conversation_view_dialog(
+            conversation,
+            messages,
+            title=conversation.title if hasattr(conversation, "title") else None,
+        )
     except Exception as e:
         logger.error("Error in show_conversation_view_dialog: %s", e)
         # Fallback to inline dialog if component fails
+
 
 async def load_conversation(conversation_id: str):
     """
@@ -57,7 +64,10 @@ async def load_conversation(conversation_id: str):
         # Full reload so /chatbot route runs again with query params (navigate.to alone may not).
         ui.run_javascript(f"window.location.assign({json.dumps(target)})")
     except RuntimeError as ui_error:
-        if "slot" in str(ui_error).lower() or "cannot be determined" in str(ui_error).lower():
+        if (
+            "slot" in str(ui_error).lower()
+            or "cannot be determined" in str(ui_error).lower()
+        ):
             logger.debug("Navigation skipped in no-client context: %s", ui_error)
         else:
             raise
@@ -68,6 +78,7 @@ async def load_conversation(conversation_id: str):
         except RuntimeError:
             pass
 
+
 async def rerun_tool_call(message_id: str):
     """
     Rerun a tool call by navigating to chatbot with rerun parameter.
@@ -75,15 +86,16 @@ async def rerun_tool_call(message_id: str):
     logger.debug("Rerunning tool call: %s", message_id)
     try:
         from frontend.database import get_chat_history_db
+
         chat_history = get_chat_history_db()
         message = await chat_history.get_tool_call_by_id(message_id)
         if not message:
-            ui.notify('Tool call not found for rerun', type='negative')
+            ui.notify("Tool call not found for rerun", type="negative")
             return
         # Show what we're rerunning for test compatibility
-        endpoint = getattr(message, 'tool_call_endpoint', 'tool')
-        ui.notify(f'Re-running: {endpoint}', type='info')
-        ui.navigate.to(f'/chatbot?rerun={message_id}')
+        endpoint = getattr(message, "tool_call_endpoint", "tool")
+        ui.notify(f"Re-running: {endpoint}", type="info")
+        ui.navigate.to(f"/chatbot?rerun={message_id}")
     except Exception as e:
         logger.error("Error rerunning tool call: %s", str(e))
-        ui.notify(f'Error rerunning tool call: {e}', type='negative')
+        ui.notify(f"Error rerunning tool call: {e}", type="negative")

@@ -29,6 +29,7 @@ def test_search_images_types():
     assert callable(search_images)
 
     import inspect
+
     sig = inspect.signature(search_images)
     assert "inputs" in sig.parameters
     assert "parameters" in sig.parameters

@@ -29,15 +29,15 @@ TEST_CRITICAL_ERROR = "Critical error"
 
 # Duration constants (in milliseconds)
 DEFAULT_SUCCESS_TIMEOUT = 3000  # 3 seconds
-DEFAULT_ERROR_TIMEOUT = 5000   # 5 seconds
-DEFAULT_INFO_TIMEOUT = 3000    # 3 seconds
-DEFAULT_WARNING_TIMEOUT = 4000 # 4 seconds
-CUSTOM_TIMEOUT = 5000          # 5 seconds
-PERSISTENT_TIMEOUT = 0         # No auto-hide
+DEFAULT_ERROR_TIMEOUT = 5000  # 5 seconds
+DEFAULT_INFO_TIMEOUT = 3000  # 3 seconds
+DEFAULT_WARNING_TIMEOUT = 4000  # 4 seconds
+CUSTOM_TIMEOUT = 5000  # 5 seconds
+PERSISTENT_TIMEOUT = 0  # No auto-hide
 
 # Position constants
-DEFAULT_POSITION = 'top'
-BOTTOM_POSITION = 'bottom'
+DEFAULT_POSITION = "top"
+BOTTOM_POSITION = "bottom"
 
 
 class TestNotifications:
@@ -59,17 +59,17 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_success
 
-        with patch('nicegui.ui.notify') as mock_notify:
+        with patch("nicegui.ui.notify") as mock_notify:
             notify_success(TEST_SUCCESS_MESSAGE)
 
             mock_notify.assert_called_once()
             call_args = mock_notify.call_args
             assert call_args[0][0] == TEST_SUCCESS_MESSAGE
-            assert call_args[1]['type'] == 'positive'
-            assert call_args[1]['position'] == DEFAULT_POSITION
-            assert call_args[1]['timeout'] == DEFAULT_SUCCESS_TIMEOUT
-            assert call_args[1]['close_button'] is True
-    
+            assert call_args[1]["type"] == "positive"
+            assert call_args[1]["position"] == DEFAULT_POSITION
+            assert call_args[1]["timeout"] == DEFAULT_SUCCESS_TIMEOUT
+            assert call_args[1]["close_button"] is True
+
     def test_notify_success_custom_params(self):
         """Test success notification with custom parameters.
 
@@ -79,22 +79,22 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_success
 
-        with patch('nicegui.ui.notify') as mock_notify:
+        with patch("nicegui.ui.notify") as mock_notify:
             notify_success(
                 TEST_CUSTOM_MESSAGE,
                 duration=5.0,
                 position=BOTTOM_POSITION,
-                close_button=False
+                close_button=False,
             )
 
             mock_notify.assert_called_once()
             call_args = mock_notify.call_args
             assert call_args[0][0] == TEST_CUSTOM_MESSAGE
-            assert call_args[1]['type'] == 'positive'
-            assert call_args[1]['position'] == BOTTOM_POSITION
-            assert call_args[1]['timeout'] == CUSTOM_TIMEOUT
-            assert call_args[1]['close_button'] is False
-    
+            assert call_args[1]["type"] == "positive"
+            assert call_args[1]["position"] == BOTTOM_POSITION
+            assert call_args[1]["timeout"] == CUSTOM_TIMEOUT
+            assert call_args[1]["close_button"] is False
+
     def test_notify_error(self):
         """Test error notification with default parameters.
 
@@ -104,16 +104,16 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_error
 
-        with patch('nicegui.ui.notify') as mock_notify:
+        with patch("nicegui.ui.notify") as mock_notify:
             notify_error(TEST_ERROR_MESSAGE)
 
             mock_notify.assert_called_once()
             call_args = mock_notify.call_args
             assert call_args[0][0] == TEST_ERROR_MESSAGE
-            assert call_args[1]['type'] == 'negative'
-            assert call_args[1]['position'] == DEFAULT_POSITION
-            assert call_args[1]['timeout'] == DEFAULT_ERROR_TIMEOUT
-            assert call_args[1]['close_button'] is True
+            assert call_args[1]["type"] == "negative"
+            assert call_args[1]["position"] == DEFAULT_POSITION
+            assert call_args[1]["timeout"] == DEFAULT_ERROR_TIMEOUT
+            assert call_args[1]["close_button"] is True
 
     def test_notify_error_persistent(self):
         """Test error notification with persistent duration.
@@ -123,13 +123,13 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_error
 
-        with patch('nicegui.ui.notify') as mock_notify:
+        with patch("nicegui.ui.notify") as mock_notify:
             notify_error(TEST_CRITICAL_ERROR, duration=0)
 
             mock_notify.assert_called_once()
             call_args = mock_notify.call_args
-            assert call_args[1]['timeout'] == PERSISTENT_TIMEOUT  # No auto-hide
-    
+            assert call_args[1]["timeout"] == PERSISTENT_TIMEOUT  # No auto-hide
+
     def test_notify_info(self):
         """Test info notification with default parameters.
 
@@ -138,16 +138,16 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_info
 
-        with patch('nicegui.ui.notify') as mock_notify:
+        with patch("nicegui.ui.notify") as mock_notify:
             notify_info(TEST_INFO_MESSAGE)
 
             mock_notify.assert_called_once()
             call_args = mock_notify.call_args
-            assert call_args.kwargs['message'] == TEST_INFO_MESSAGE
-            assert 'type' not in call_args.kwargs
-            assert call_args.kwargs['position'] == DEFAULT_POSITION
-            assert call_args.kwargs['timeout'] == DEFAULT_INFO_TIMEOUT
-            assert 'color' not in call_args.kwargs
+            assert call_args.kwargs["message"] == TEST_INFO_MESSAGE
+            assert "type" not in call_args.kwargs
+            assert call_args.kwargs["position"] == DEFAULT_POSITION
+            assert call_args.kwargs["timeout"] == DEFAULT_INFO_TIMEOUT
+            assert "color" not in call_args.kwargs
 
     def test_notify_warning(self):
         """Test warning notification with default parameters.
@@ -158,16 +158,16 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_warning
 
-        with patch('nicegui.ui.notify') as mock_notify:
+        with patch("nicegui.ui.notify") as mock_notify:
             notify_warning(TEST_WARNING_MESSAGE)
 
             mock_notify.assert_called_once()
             call_args = mock_notify.call_args
             assert call_args[0][0] == TEST_WARNING_MESSAGE
-            assert call_args[1]['type'] == 'warning'
-            assert call_args[1]['position'] == DEFAULT_POSITION
-            assert call_args[1]['timeout'] == DEFAULT_WARNING_TIMEOUT
-    
+            assert call_args[1]["type"] == "warning"
+            assert call_args[1]["position"] == DEFAULT_POSITION
+            assert call_args[1]["timeout"] == DEFAULT_WARNING_TIMEOUT
+
     def test_notify_logging(self):
         """Test that notifications include proper logging.
 
@@ -177,15 +177,15 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_success
 
-        with patch('nicegui.ui.notify'):
-            with patch('frontend.components.shared.logger') as mock_logger:
+        with patch("nicegui.ui.notify"):
+            with patch("frontend.components.shared.logger") as mock_logger:
                 notify_success("Test message")
 
                 # Should log debug message for audit trail
                 mock_logger.debug.assert_called_once()
                 assert "Success notification shown" in mock_logger.debug.call_args[0][0]
 
-    @pytest.mark.parametrize("position", ['top', 'bottom', 'left', 'right'])
+    @pytest.mark.parametrize("position", ["top", "bottom", "left", "right"])
     def test_notify_positions(self, position):
         """Test notifications with different display positions.
 
@@ -195,9 +195,8 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_success
 
-        with patch('nicegui.ui.notify') as mock_notify:
+        with patch("nicegui.ui.notify") as mock_notify:
             notify_success("Test", position=position)
 
             call_args = mock_notify.call_args
-            assert call_args[1]['position'] == position
-
+            assert call_args[1]["position"] == position

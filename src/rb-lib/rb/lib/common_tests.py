@@ -127,7 +127,9 @@ class RBAppTest(ABC):
         for key in expected_metadata.keys():
             assert any(str(key) in k for k in actual_metadata.keys())
             # Use JSON serialization when comparing lengths so non-sequence types are comparable
-            assert len(json.dumps(expected_metadata[key])) == len(json.dumps(actual_metadata[key]))
+            assert len(json.dumps(expected_metadata[key])) == len(
+                json.dumps(actual_metadata[key])
+            )
 
     def test_api_task_schema(self):
         ml_services = self.get_all_ml_services()

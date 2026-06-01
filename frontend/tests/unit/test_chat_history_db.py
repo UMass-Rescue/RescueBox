@@ -22,9 +22,7 @@ import pytest
 import tempfile
 import shutil
 from pathlib import Path
-from frontend.database.chat_history_db import (
-    ChatHistoryDB
-)
+from frontend.database.chat_history_db import ChatHistoryDB
 
 # Test constants
 TEST_CONVERSATION_TITLE = "Test Conversation"
@@ -68,7 +66,7 @@ def temp_db():
     after each test.
     """
     temp_dir = tempfile.mkdtemp()
-    db_path = Path(temp_dir) / 'test_chat_history.db'
+    db_path = Path(temp_dir) / "test_chat_history.db"
     db = ChatHistoryDB(db_path=db_path)
     db.connect()
     yield db
@@ -98,7 +96,7 @@ class TestChatHistoryDB:
     All tests use isolated temporary databases to prevent interference
     and ensure reliable, repeatable results.
     """
-    
+
     @pytest.mark.asyncio
     async def test_create_conversation(self, temp_db):
         """Test creating a new conversation without custom title.
@@ -125,7 +123,7 @@ class TestChatHistoryDB:
         conversation = await temp_db.create_conversation(title=TEST_CONVERSATION_TITLE)
 
         assert conversation.title == TEST_CONVERSATION_TITLE
-    
+
     @pytest.mark.asyncio
     async def test_add_user_message(self, temp_db):
         """Test adding a user message to conversation.
@@ -139,7 +137,7 @@ class TestChatHistoryDB:
         message = await temp_db.add_message(
             conversation_id=conversation.conversation_id,
             role=USER_ROLE,
-            content=USER_MESSAGE_CONTENT
+            content=USER_MESSAGE_CONTENT,
         )
 
         assert message.message_id is not None
@@ -151,7 +149,7 @@ class TestChatHistoryDB:
         # Verify conversation message count updated
         updated_conv = await temp_db.get_conversation(conversation.conversation_id)
         assert updated_conv.message_count == 1
-    
+
     @pytest.mark.asyncio
     async def test_add_tool_call_message(self, temp_db):
         """Test adding a tool call message.
@@ -163,8 +161,8 @@ class TestChatHistoryDB:
         conversation = await temp_db.create_conversation()
 
         tool_call = {
-            'name': FACE_DETECTION_ENDPOINT,
-            'arguments': {'input_dir': TOOL_CALL_INPUT_DIR}
+            "name": FACE_DETECTION_ENDPOINT,
+            "arguments": {"input_dir": TOOL_CALL_INPUT_DIR},
         }
 
         message = await temp_db.add_message(
@@ -174,14 +172,14 @@ class TestChatHistoryDB:
             message_type=TOOL_CALL_MESSAGE_TYPE,
             tool_calls=[tool_call],
             tool_call_endpoint=FACE_DETECTION_ENDPOINT,
-            tool_call_arguments={'input_dir': TOOL_CALL_INPUT_DIR}
+            tool_call_arguments={"input_dir": TOOL_CALL_INPUT_DIR},
         )
 
         assert message.message_type == TOOL_CALL_MESSAGE_TYPE
         assert message.tool_call_endpoint == FACE_DETECTION_ENDPOINT
-        assert message.tool_call_arguments == {'input_dir': TOOL_CALL_INPUT_DIR}
+        assert message.tool_call_arguments == {"input_dir": TOOL_CALL_INPUT_DIR}
         assert message.tool_calls == [tool_call]
-    
+
     @pytest.mark.asyncio
     async def test_get_messages(self, temp_db):
         """Test retrieving messages for a conversation.
@@ -196,12 +194,12 @@ class TestChatHistoryDB:
         await temp_db.add_message(
             conversation_id=conversation.conversation_id,
             role=USER_ROLE,
-            content=FIRST_MESSAGE_CONTENT
+            content=FIRST_MESSAGE_CONTENT,
         )
         await temp_db.add_message(
             conversation_id=conversation.conversation_id,
             role=ASSISTANT_ROLE,
-            content=RESPONSE_CONTENT
+            content=RESPONSE_CONTENT,
         )
 
         messages = await temp_db.get_messages(conversation.conversation_id)
@@ -209,7 +207,7 @@ class TestChatHistoryDB:
         assert len(messages) == 2
         assert messages[0].role == USER_ROLE
         assert messages[1].role == ASSISTANT_ROLE
-    
+
     @pytest.mark.asyncio
     async def test_get_all_conversations(self, temp_db):
         """Test retrieving all conversations with proper ordering.
@@ -226,90 +224,92 @@ class TestChatHistoryDB:
         assert len(conversations) >= 2
         # Should be sorted by updated_at DESC (newest first)
         assert conversations[0].updated_at >= conversations[1].updated_at
-    
+
     @pytest.mark.asyncio
     async def test_get_tool_call_history(self, temp_db):
         """Test retrieving tool call history"""
         conversation = await temp_db.create_conversation()
-        
+
         await temp_db.add_message(
             conversation_id=conversation.conversation_id,
-            role='assistant',
+            role="assistant",
             content="Tool call",
-            message_type='tool_call',
-            tool_call_endpoint='face-detection/findface',
-            tool_call_arguments={'input_dir': '/path'}
+            message_type="tool_call",
+            tool_call_endpoint="face-detection/findface",
+            tool_call_arguments={"input_dir": "/path"},
         )
-        
+
         tool_calls = await temp_db.get_tool_call_history()
-        
+
         assert len(tool_calls) >= 1
-        assert tool_calls[0].tool_call_endpoint == 'face-detection/findface'
-    
+        assert tool_calls[0].tool_call_endpoint == "face-detection/findface"
+
     @pytest.mark.asyncio
     async def test_get_tool_call_history_filtered(self, temp_db):
         """Test retrieving tool call history filtered by endpoint"""
         conversation = await temp_db.create_conversation()
-        
+
         await temp_db.add_message(
             conversation_id=conversation.conversation_id,
-            role='assistant',
+            role="assistant",
             content="Tool call",
-            message_type='tool_call',
-            tool_call_endpoint='face-detection/findface',
-            tool_call_arguments={}
+            message_type="tool_call",
+            tool_call_endpoint="face-detection/findface",
+            tool_call_arguments={},
         )
-        
-        tool_calls = await temp_db.get_tool_call_history(endpoint='face-detection/findface')
-        
+
+        tool_calls = await temp_db.get_tool_call_history(
+            endpoint="face-detection/findface"
+        )
+
         assert len(tool_calls) >= 1
-        assert all(tc.tool_call_endpoint == 'face-detection/findface' for tc in tool_calls)
-    
+        assert all(
+            tc.tool_call_endpoint == "face-detection/findface" for tc in tool_calls
+        )
+
     @pytest.mark.asyncio
     async def test_get_tool_call_by_id(self, temp_db):
         """Test retrieving a specific tool call by message ID"""
         conversation = await temp_db.create_conversation()
-        
+
         message = await temp_db.add_message(
             conversation_id=conversation.conversation_id,
-            role='assistant',
+            role="assistant",
             content="Tool call",
-            message_type='tool_call',
-            tool_call_endpoint='face-detection/findface',
-            tool_call_arguments={'input_dir': '/path'}
+            message_type="tool_call",
+            tool_call_endpoint="face-detection/findface",
+            tool_call_arguments={"input_dir": "/path"},
         )
-        
+
         tool_call = await temp_db.get_tool_call_by_id(message.message_id)
-        
+
         assert tool_call is not None
         assert tool_call.message_id == message.message_id
-        assert tool_call.tool_call_endpoint == 'face-detection/findface'
-    
+        assert tool_call.tool_call_endpoint == "face-detection/findface"
+
     @pytest.mark.asyncio
     async def test_delete_conversation(self, temp_db):
         """Test deleting a conversation"""
         conversation = await temp_db.create_conversation()
-        
+
         # Add a message
         await temp_db.add_message(
-            conversation_id=conversation.conversation_id,
-            role='user',
-            content="Test"
+            conversation_id=conversation.conversation_id, role="user", content="Test"
         )
-        
+
         # Delete conversation
         success = await temp_db.delete_conversation(conversation.conversation_id)
-        
+
         assert success is True
-        
+
         # Verify conversation is deleted
         deleted_conv = await temp_db.get_conversation(conversation.conversation_id)
         assert deleted_conv is None
-        
+
         # Verify messages are also deleted (CASCADE)
         messages = await temp_db.get_messages(conversation.conversation_id)
         assert len(messages) == 0
-    
+
     @pytest.mark.asyncio
     async def test_auto_generate_title_from_first_message(self, temp_db):
         """Test that conversation title is auto-generated from first user message.
@@ -324,13 +324,16 @@ class TestChatHistoryDB:
         await temp_db.add_message(
             conversation_id=conversation.conversation_id,
             role=USER_ROLE,
-            content=AUTO_TITLE_MESSAGE
+            content=AUTO_TITLE_MESSAGE,
         )
 
         # Check if title was updated
         updated_conv = await temp_db.get_conversation(conversation.conversation_id)
         # Title should be generated from message (first 50 chars)
-        assert AUTO_TITLE_FRAGMENT in updated_conv.title or updated_conv.title.startswith(AUTO_TITLE_FRAGMENT)
+        assert (
+            AUTO_TITLE_FRAGMENT in updated_conv.title
+            or updated_conv.title.startswith(AUTO_TITLE_FRAGMENT)
+        )
 
 
 class TestChatHistoryDBIntegration:
@@ -350,7 +353,7 @@ class TestChatHistoryDBIntegration:
     the complex interactions that occur during actual RescueBox usage,
     where users may invoke multiple tools in sequence or parallel.
     """
-    
+
     @pytest.mark.asyncio
     async def test_conversation_with_multiple_tool_calls(self, temp_db):
         """Test a conversation with multiple tool calls.
@@ -365,34 +368,33 @@ class TestChatHistoryDBIntegration:
         await temp_db.add_message(
             conversation_id=conversation.conversation_id,
             role=USER_ROLE,
-            content=MULTI_TOOL_MESSAGE_CONTENT
+            content=MULTI_TOOL_MESSAGE_CONTENT,
         )
-        
+
         # First tool call
         await temp_db.add_message(
             conversation_id=conversation.conversation_id,
-            role='assistant',
+            role="assistant",
             content="Selected tool: image_summary/summarize_images",
-            message_type='tool_call',
-            tool_call_endpoint='image_summary/summarize_images',
-            tool_call_arguments={'input_dir': '/tmp'}
+            message_type="tool_call",
+            tool_call_endpoint="image_summary/summarize_images",
+            tool_call_arguments={"input_dir": "/tmp"},
         )
-        
+
         # Second tool call
         await temp_db.add_message(
             conversation_id=conversation.conversation_id,
-            role='assistant',
+            role="assistant",
             content="Selected tool: face-detection/findface",
-            message_type='tool_call',
-            tool_call_endpoint='face-detection/findface',
-            tool_call_arguments={'input_dir': '/tmp'}
+            message_type="tool_call",
+            tool_call_endpoint="face-detection/findface",
+            tool_call_arguments={"input_dir": "/tmp"},
         )
-        
+
         # Get all tool calls
         tool_calls = await temp_db.get_tool_call_history()
-        
+
         assert len(tool_calls) >= 2
         endpoints = {tc.tool_call_endpoint for tc in tool_calls}
-        assert 'image_summary/summarize_images' in endpoints
-        assert 'face-detection/findface' in endpoints
-
+        assert "image_summary/summarize_images" in endpoints
+        assert "face-detection/findface" in endpoints

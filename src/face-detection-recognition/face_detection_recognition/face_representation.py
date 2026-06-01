@@ -141,7 +141,10 @@ def detect_faces_and_get_embeddings(
         if "CUDAExecutionProvider" in available_providers:
             pvdr = "CUDAExecutionProvider"
             providers = [
-                ("CUDAExecutionProvider", {"device_id": 0, "cudnn_conv_algo_search": "DEFAULT"}),
+                (
+                    "CUDAExecutionProvider",
+                    {"device_id": 0, "cudnn_conv_algo_search": "DEFAULT"},
+                ),
             ]
         if "CoreMLExecutionProvider" in available_providers:
             pvdr = "CoreMLExecutionProvider"

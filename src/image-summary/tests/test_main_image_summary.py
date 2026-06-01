@@ -35,7 +35,9 @@ class TestImageSummary(RBAppTest):
         "image_summary.process.describe_images_batch",
         side_effect=lambda model, paths, **kwargs: {p: "Mocked summary" for p in paths},
     )
-    def test_summarize_images_command(self, describe_batch_mock, ensure_model_exists_mock):
+    def test_summarize_images_command(
+        self, describe_batch_mock, ensure_model_exists_mock
+    ):
         summarize_api = f"/{APP_NAME}/summarize-images"
         full_path = Path.cwd() / "src" / "image-summary" / "test_input"
         output_path = Path.cwd() / "src" / "image-summary" / "test_output"
@@ -113,10 +115,16 @@ class TestImageSummary(RBAppTest):
         pairs = parsed.get("file_pairs")
         assert isinstance(pairs, list)
         assert len(pairs) == len(expected_files)
-        by_out = {p["output_path"]: p["input_path"] for p in pairs if isinstance(p, dict)}
+        by_out = {
+            p["output_path"]: p["input_path"] for p in pairs if isinstance(p, dict)
+        }
         for ef in expected_files:
             assert ef in by_out
-            assert by_out[ef].lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"))
+            assert (
+                by_out[ef]
+                .lower()
+                .endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"))
+            )
 
     @patch("image_summary.process.ensure_model_exists")
     def test_invalid_path(self, ensure_model_exists_mock):

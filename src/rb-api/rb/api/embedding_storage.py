@@ -12,26 +12,26 @@ from rb.api.database import TextEmbedding, ImageEmbedding, ImageSimilarityEmbedd
 
 class EmbeddingStorage(Protocol):
     """Protocol for embedding storage implementations."""
-    
+
     def save_embedding(self, path: str, embedding: list[float]) -> None:
         """
         Save a single embedding to storage.
-        
+
         Args:
             path: File path associated with the embedding
             embedding: The embedding vector as a list of floats
         """
         ...
-    
+
     def save_batch(self, embeddings: dict[str, list[float]]) -> None:
         """
         Save multiple embeddings to storage in a batch.
-        
+
         Args:
             embeddings: Dictionary mapping file paths to embedding vectors
         """
         ...
-    
+
     def commit(self) -> None:
         """Commit any pending changes to storage."""
         ...
@@ -40,44 +40,44 @@ class EmbeddingStorage(Protocol):
 class DatabaseEmbeddingStorage:
     """
     Base class for database-backed embedding storage.
-    
+
     Provides transaction management and batch operations using SQLModel sessions.
     """
-    
+
     def __init__(self, session):
         """
         Initialize storage with a database session.
-        
+
         Args:
             session: SQLModel Session instance
         """
         self.session = session
         self._pending_records = []
-    
+
     @abstractmethod
     def _create_record(self, path: str, embedding: list[float]):
         """
         Create a database record for the embedding.
-        
+
         Args:
             path: File path
             embedding: Embedding vector
-            
+
         Returns:
             Database model instance
         """
         raise NotImplementedError
-    
+
     def save_embedding(self, path: str, embedding: list[float]) -> None:
         """Save a single embedding to the session."""
         record = self._create_record(path, embedding)
         self.session.add(record)
-    
+
     def save_batch(self, embeddings: dict[str, list[float]]) -> None:
         """Save multiple embeddings to the session."""
         for path, embedding in embeddings.items():
             self.save_embedding(path, embedding)
-    
+
     def commit(self) -> None:
         """Commit all pending changes to the database."""
         self.session.commit()
@@ -98,6 +98,7 @@ class TextEmbeddingStorage(DatabaseEmbeddingStorage):
         if not paths:
             return False
         from sqlmodel import select
+
         existing = self.session.exec(
             select(TextEmbedding.path).where(
                 cast(Any, TextEmbedding.__table__.c.path).in_(paths),
@@ -109,6 +110,7 @@ class TextEmbeddingStorage(DatabaseEmbeddingStorage):
     def delete_by_paths(self, paths: list[str]) -> None:
         """Delete embeddings for the given paths (for re-embed on model change)."""
         from sqlmodel import delete
+
         self.session.execute(
             delete(TextEmbedding).where(
                 cast(Any, TextEmbedding.__table__.c.path).in_(paths),
@@ -142,12 +144,14 @@ class ImageSimilarityEmbeddingStorage(DatabaseEmbeddingStorage):
     def save_embedding(
         self, path: str, embedding: list[float], *, content_sha256: str = ""
     ) -> None:
-        self.session.add(ImageSimilarityEmbedding(
-            path=path,
-            embedding=embedding,
-            content_sha256=content_sha256,
-            model_name=self.model_name,
-        ))
+        self.session.add(
+            ImageSimilarityEmbedding(
+                path=path,
+                embedding=embedding,
+                content_sha256=content_sha256,
+                model_name=self.model_name,
+            )
+        )
 
     def _create_record(self, path: str, embedding: list[float]):
         return ImageSimilarityEmbedding(
@@ -159,15 +163,15 @@ class NoOpEmbeddingStorage:
     """
     No-operation storage for testing or when persistence is not needed.
     """
-    
+
     def save_embedding(self, path: str, embedding: list[float]) -> None:
         """No-op save."""
         pass
-    
+
     def save_batch(self, embeddings: dict[str, list[float]]) -> None:
         """No-op batch save."""
         pass
-    
+
     def commit(self) -> None:
         """No-op commit."""
         pass

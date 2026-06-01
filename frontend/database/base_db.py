@@ -24,7 +24,9 @@ class BaseDatabase(ABC):
     schema creation, and basic CRUD operations.
     """
 
-    def __init__(self, db_path: Optional[Path] = None, db_filename: str = "database.db"):
+    def __init__(
+        self, db_path: Optional[Path] = None, db_filename: str = "database.db"
+    ):
         """
         Initialize database with path configuration.
 
@@ -42,7 +44,9 @@ class BaseDatabase(ABC):
         self.conn: Optional[sqlite3.Connection] = None
         self._initialized = False
 
-        logger.info(f"{self.__class__.__name__} initialized with database path: {db_path}")
+        logger.info(
+            f"{self.__class__.__name__} initialized with database path: {db_path}"
+        )
 
     def connect(self) -> sqlite3.Connection:
         """
@@ -55,19 +59,21 @@ class BaseDatabase(ABC):
             logger.debug(f"Connecting to database: {self.db_path}")
             # Use a longer timeout and allow multi-threaded access where appropriate.
             # Enable WAL journal mode and a busy timeout to reduce "database is locked" errors.
-            self.conn = sqlite3.connect(str(self.db_path), timeout=30, check_same_thread=False)
+            self.conn = sqlite3.connect(
+                str(self.db_path), timeout=30, check_same_thread=False
+            )
             self.conn.row_factory = sqlite3.Row  # Enable dict-like access to rows
             # Enable foreign keys
-            self.conn.execute('PRAGMA foreign_keys = ON')
+            self.conn.execute("PRAGMA foreign_keys = ON")
             # Enable WAL for better concurrency
             try:
-                self.conn.execute('PRAGMA journal_mode = WAL')
+                self.conn.execute("PRAGMA journal_mode = WAL")
             except sqlite3.Error:
                 # Older SQLite may ignore WAL; proceed silently
                 pass
             # Set busy timeout (milliseconds)
             try:
-                self.conn.execute('PRAGMA busy_timeout = 5000')
+                self.conn.execute("PRAGMA busy_timeout = 5000")
             except sqlite3.Error:
                 pass
 
@@ -180,7 +186,7 @@ class BaseDatabase(ABC):
         """
         cursor = self.execute_query(
             "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-            (table_name,)
+            (table_name,),
         )
         return cursor.fetchone() is not None
 
@@ -201,6 +207,6 @@ class BaseDatabase(ABC):
             return None
 
         return {
-            'table_name': table_name,
-            'columns': [self._row_to_dict(col) for col in columns]
+            "table_name": table_name,
+            "columns": [self._row_to_dict(col) for col in columns],
         }

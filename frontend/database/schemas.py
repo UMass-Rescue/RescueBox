@@ -178,6 +178,6 @@ class SchemaManager:
             Dict with schema information
         """
         return {
-            'tables': len(self.schema.get_create_statements()),
-            'indexes': len(self.schema.get_index_statements()),
+            "tables": len(self.schema.get_create_statements()),
+            "indexes": len(self.schema.get_index_statements()),
         }

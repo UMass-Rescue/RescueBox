@@ -102,7 +102,11 @@ class TestRecordPipelineSaveResultsDb(unittest.TestCase):
                     "root": {
                         "output_type": "batchfile",
                         "files": [
-                            {"output_type": "file", "path": "/one.txt", "file_type": "text"},
+                            {
+                                "output_type": "file",
+                                "path": "/one.txt",
+                                "file_type": "text",
+                            },
                         ],
                     }
                 }
@@ -110,8 +114,16 @@ class TestRecordPipelineSaveResultsDb(unittest.TestCase):
                     "root": {
                         "output_type": "batchfile",
                         "files": [
-                            {"output_type": "file", "path": "/two.txt", "file_type": "text"},
-                            {"output_type": "file", "path": "/three.txt", "file_type": "text"},
+                            {
+                                "output_type": "file",
+                                "path": "/two.txt",
+                                "file_type": "text",
+                            },
+                            {
+                                "output_type": "file",
+                                "path": "/three.txt",
+                                "file_type": "text",
+                            },
                         ],
                     }
                 }
@@ -326,9 +338,7 @@ class TestRecordPipelineJobCompletion(unittest.TestCase):
                 "frontend.database.pipeline_job_index_db.index_db_path",
                 return_value=db_file,
             ):
-                record_pipeline_job_completion(
-                    "u1", "r1", "jid", "export/stuff", body
-                )
+                record_pipeline_job_completion("u1", "r1", "jid", "export/stuff", body)
                 steps = list_pipeline_job_steps("u1", "r1")
                 self.assertEqual(len(steps), 1)
                 self.assertEqual(steps[0]["detail"]["response"]["output_type"], "file")

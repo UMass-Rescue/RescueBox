@@ -63,7 +63,11 @@ class TestPipelineJobIndexDb(unittest.TestCase):
                         {
                             "input_path": "/in/photo.jpg",
                             "output_path": "/out/row1.json",
-                            "metadata": {"age": "(25-32)", "gender": "Female", "box": [1, 2, 3, 4]},
+                            "metadata": {
+                                "age": "(25-32)",
+                                "gender": "Female",
+                                "box": [1, 2, 3, 4],
+                            },
                         }
                     ],
                 )
@@ -97,9 +101,7 @@ class TestPipelineJobIndexDb(unittest.TestCase):
                 self.assertEqual(len(rows), 1)
                 self.assertEqual(rows[0]["step_job_id"], "child-1")
                 self.assertEqual(rows[0]["endpoint"], "plugin/task")
-                self.assertEqual(
-                    rows[0]["detail"]["response"]["output_type"], "text"
-                )
+                self.assertEqual(rows[0]["detail"]["response"]["output_type"], "text")
 
     def test_insert_pipeline_response_rows_per_container_ordinals(self):
         with tempfile.TemporaryDirectory() as tmp:

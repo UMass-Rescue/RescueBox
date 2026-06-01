@@ -95,7 +95,9 @@ class TestAgeGender(RBAppTest):
                 ]
             ]
             # The implementation logs the response as a BatchFileResponse; check captured text for file paths.
-            captured_text = caplog.text if hasattr(caplog, 'text') else ' '.join(caplog.messages)
+            captured_text = (
+                caplog.text if hasattr(caplog, "text") else " ".join(caplog.messages)
+            )
             for expected_file in expected_files:
                 # Match on filename only to avoid platform-specific path-escaping differences
                 assert Path(expected_file).name in captured_text

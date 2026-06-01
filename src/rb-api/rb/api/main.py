@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import sys
 from pathlib import Path
+
 # Standalone API process: file logging before routes import (routes must not reconfigure).
 from rb.api.logging_setup import configure_backend_logging
 
@@ -15,11 +16,11 @@ from rb.api.facematch_request_context import FacematchRescueboxUserMiddleware
 from rb.api.database import create_db_and_tables
 
 # 1. Safely set the cache paths FIRST
-local_appdata = os.getenv('LOCALAPPDATA', os.path.expanduser('~'))
-app_cache_dir = Path(local_appdata) / 'RescueBox-Desktop'
+local_appdata = os.getenv("LOCALAPPDATA", os.path.expanduser("~"))
+app_cache_dir = Path(local_appdata) / "RescueBox-Desktop"
 
-os.environ['MPLCONFIGDIR'] = str(app_cache_dir / 'matplotlib')
-os.environ['XDG_CACHE_HOME'] = str(app_cache_dir / 'xdg_cache')
+os.environ["MPLCONFIGDIR"] = str(app_cache_dir / "matplotlib")
+os.environ["XDG_CACHE_HOME"] = str(app_cache_dir / "xdg_cache")
 
 app = FastAPI(
     title="RescueBoxAPI",
@@ -40,6 +41,7 @@ app.add_middleware(
 )
 app.add_middleware(FacematchRescueboxUserMiddleware)
 
+
 @app.on_event("startup")
 def on_startup():
     # Uvicorn's default log_config runs in Config() before the app is imported; it can
@@ -53,6 +55,7 @@ def on_startup():
         "set RESCUEBOX_API_LOG_LEVEL=DEBUG for full trace. "
         "API_LOG_FILE rb-backend.log"
     )
+
 
 app.mount(
     "/static",

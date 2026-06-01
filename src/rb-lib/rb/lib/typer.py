@@ -142,14 +142,14 @@ def typer_app_to_tree(app: typer.Typer) -> tuple[dict, dict]:
 
     def node_to_dict(node: Node) -> dict:
         _node = node.command
-        endpoint_path = "/" + "/".join([_.name.split('/')[-1] for _ in node.path][1:])
+        endpoint_path = "/" + "/".join([_.name.split("/")[-1] for _ in node.path][1:])
         result = {
             "name": node.name,
             "is_group": node.is_group,
             "help": None,
             "order": 0,
         }
-        
+
         if _node:
             _node_map[endpoint_path] = _node
 

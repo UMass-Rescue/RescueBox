@@ -63,7 +63,6 @@ class ClipImageDirectory(FileFilterDirectory):
     file_extensions: List[str] = list(CLIP_IMAGE_EXTENSIONS)
 
 
-
 class Inputs(TypedDict):
     input_dir: ClipImageDirectory
     query: TextInput
@@ -73,6 +72,7 @@ class Parameters(TypedDict):
     model_name: str
     top_k: int
     min_similarity: float
+
 
 def task_schema() -> TaskSchema:
     input_dir_schema = InputSchema(
@@ -86,7 +86,6 @@ def task_schema() -> TaskSchema:
         input_type=InputType.TEXT,
     )
 
-  
     model_enum = EnumParameterDescriptor(
         enum_vals=[
             EnumVal(
@@ -197,10 +196,11 @@ def _get_clip_processor(model_name: str) -> Any:
     _CLIP_INSTANCE_CACHE[key] = (processor, None)
     return processor
 
+
 @cache
 def _get_onnx_sessions() -> tuple[ort.InferenceSession, ort.InferenceSession]:
     """Return (text_session, vision_session) with input validation."""
-    
+
     model_dir = Path(__file__).resolve().parent / "clip_onnx_models"
     text_model = model_dir / "text.onnx"
     vision_model = model_dir / "vision.onnx"
@@ -212,7 +212,10 @@ def _get_onnx_sessions() -> tuple[ort.InferenceSession, ort.InferenceSession]:
     providers = []
     if "CUDAExecutionProvider" in available_providers:
         providers = [
-            ("CUDAExecutionProvider", {"device_id": 0, "cudnn_conv_algo_search": "DEFAULT"}),
+            (
+                "CUDAExecutionProvider",
+                {"device_id": 0, "cudnn_conv_algo_search": "DEFAULT"},
+            ),
         ]
     if "CoreMLExecutionProvider" in available_providers:
         providers.append("CoreMLExecutionProvider")
@@ -220,7 +223,7 @@ def _get_onnx_sessions() -> tuple[ort.InferenceSession, ort.InferenceSession]:
     providers.append("CPUExecutionProvider")
     text_candidate = ort.InferenceSession(str(text_model), providers=providers)
     vision_candidate = ort.InferenceSession(str(vision_model), providers=providers)
-    
+
     return text_candidate, vision_candidate
 
 
@@ -230,7 +233,9 @@ def _pick_session_for_inputs(
     label: str,
 ) -> tuple[ort.InferenceSession, set[str]]:
     input_keys = set(inputs.keys())
-    candidates = [(session, {inp.name for inp in session.get_inputs()}) for session in sessions]
+    candidates = [
+        (session, {inp.name for inp in session.get_inputs()}) for session in sessions
+    ]
 
     if label == "vision":
         # Prefer a pure-vision encoder (pixel_values only).
@@ -310,11 +315,13 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         dummy_text = _dummy_text_inputs(processor)
         dummy_pixels = _dummy_pixel_values(processor)
 
-
         file_paths: list[str] = []
         for name in sorted(os.listdir(input_dir)):
             path = os.path.join(input_dir, name)
-            if os.path.isfile(path) and os.path.splitext(path)[1].lower() in CLIP_IMAGE_EXTENSIONS:
+            if (
+                os.path.isfile(path)
+                and os.path.splitext(path)[1].lower() in CLIP_IMAGE_EXTENSIONS
+            ):
                 file_paths.append(path)
 
         path_to_hash: dict[str, str] = {}
@@ -356,7 +363,9 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                     try:
                         image = Image.open(path).convert("RGB")
                         inputs_processed = dict(
-                            processor(images=image, return_tensors="np", do_rescale=True)
+                            processor(
+                                images=image, return_tensors="np", do_rescale=True
+                            )
                         )
                         vision_inputs = {**inputs_processed, **dummy_text}
                         onnx_session, required = _pick_session_for_inputs(
@@ -393,7 +402,9 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                         continue
                 if row is not None:
                     row_path_str = str(row.path)
-                    if row_path_str == path or os.path.normpath(row_path_str) == os.path.normpath(path):
+                    if row_path_str == path or os.path.normpath(
+                        row_path_str
+                    ) == os.path.normpath(path):
                         paths_for_search.append(path)
                         reused_count += 1
                         already.add(path)
@@ -423,8 +434,6 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             if newly_embedded_count or relocated_count or cloned_count:
                 storage.commit()
 
-            
-                
             text_inputs = dict(
                 processor(text=[query_text], return_tensors="np", padding=True)
             )
@@ -452,17 +461,15 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             if embedded_paths:
                 # pgvector: rank only rows whose path was embedded in this run (uses index on embedding).
                 qvec_literal = "[" + ",".join(str(x) for x in query_vec.tolist()) + "]"
-                stmt = (
-                    text(
-                        """
+                stmt = text(
+                    """
                         SELECT id, path, 1 - (embedding <=> CAST(:qvec AS vector)) AS similarity
                         FROM image_embeddings
                         WHERE path IN :paths
                         ORDER BY embedding <=> CAST(:qvec AS vector)
                         LIMIT :top_k
                         """
-                    ).bindparams(bindparam("paths", expanding=True))
-                )
+                ).bindparams(bindparam("paths", expanding=True))
                 rows = session.execute(
                     stmt,
                     {"qvec": qvec_literal, "paths": embedded_paths, "top_k": top_k},
@@ -472,7 +479,7 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                     sim = float(row.similarity)
                     search_results.append(
                         {
-                            #"id": row.id,
+                            # "id": row.id,
                             "path": row.path,
                             "similarity": round(sim, 4),
                             "is_match": sim >= min_similarity,
@@ -495,8 +502,8 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                         "Query": query_text,
                         "Similarity": str(sim),
                         "Match": "Yes" if is_match else "No",
-                        #"Model": model_name,
-                        #"id": str(row.get("id", "")),
+                        # "Model": model_name,
+                        # "id": str(row.get("id", "")),
                     },
                 )
             )
@@ -508,7 +515,9 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 def inputs_cli_parse(value: str) -> Inputs:
     """CLI: ``input_dir|||query`` (triple pipe separates directory from query text)."""
     if "|||" not in value:
-        raise ValueError("Expected 'input_dir|||query' (use ||| between folder path and search text).")
+        raise ValueError(
+            "Expected 'input_dir|||query' (use ||| between folder path and search text)."
+        )
     dir_part, query_part = value.split("|||", 1)
     try:
         return Inputs(

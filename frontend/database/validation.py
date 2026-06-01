@@ -13,7 +13,7 @@ from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T', bound=BaseModel)
+T = TypeVar("T", bound=BaseModel)
 
 
 class DatabaseValidator:
@@ -30,10 +30,10 @@ class DatabaseValidator:
         Returns:
             Dictionary representation
         """
-        if hasattr(model, 'model_dump'):
+        if hasattr(model, "model_dump"):
             # Pydantic v2
             return model.model_dump()
-        elif hasattr(model, '__dict__'):
+        elif hasattr(model, "__dict__"):
             # Object with __dict__
             return dict(model)
         elif isinstance(model, dict):
@@ -41,7 +41,7 @@ class DatabaseValidator:
             return model
         else:
             # Fallback: convert to string and wrap
-            return {'value': str(model)}
+            return {"value": str(model)}
 
     @staticmethod
     def dict_to_pydantic(data: Union[Dict, Any], model_class: Type[T]) -> T:
@@ -62,12 +62,16 @@ class DatabaseValidator:
             try:
                 return model_class(**data)
             except ValidationError:
-                logger.error(f"Failed to validate {model_class.__name__} from data: {data}")
+                logger.error(
+                    f"Failed to validate {model_class.__name__} from data: {data}"
+                )
                 raise
         else:
             # Try to wrap non-dict data
-            logger.warning(f"Converting non-dict data to {model_class.__name__}: {data}")
-            return model_class(**{'value': data})
+            logger.warning(
+                f"Converting non-dict data to {model_class.__name__}: {data}"
+            )
+            return model_class(**{"value": data})
 
     @staticmethod
     def serialize_json(data: Any) -> str:
@@ -82,7 +86,11 @@ class DatabaseValidator:
         """
         try:
             # Convert Pydantic models to dict first
-            if hasattr(data, 'model_dump') or hasattr(data, '__dict__') or isinstance(data, dict):
+            if (
+                hasattr(data, "model_dump")
+                or hasattr(data, "__dict__")
+                or isinstance(data, dict)
+            ):
                 serializable_data = DatabaseValidator.pydantic_to_dict(data)
             else:
                 serializable_data = data
@@ -93,7 +101,9 @@ class DatabaseValidator:
             raise
 
     @staticmethod
-    def deserialize_json(json_str: str, model_class: Optional[Type[T]] = None) -> Union[T, Dict, Any]:
+    def deserialize_json(
+        json_str: str, model_class: Optional[Type[T]] = None
+    ) -> Union[T, Dict, Any]:
         """
         Deserialize JSON string from database storage.
 
@@ -152,10 +162,12 @@ class DatabaseValidator:
             value = str(value)
 
         # Remove null bytes and other problematic characters
-        value = value.replace('\x00', '')
+        value = value.replace("\x00", "")
 
         if max_length and len(value) > max_length:
-            logger.warning(f"Truncating string from {len(value)} to {max_length} characters")
+            logger.warning(
+                f"Truncating string from {len(value)} to {max_length} characters"
+            )
             value = value[:max_length]
 
         return value
@@ -176,5 +188,7 @@ class DatabaseValidator:
             ValueError: If status is not valid
         """
         if value not in valid_values:
-            raise ValueError(f"Invalid status '{value}'. Must be one of: {valid_values}")
+            raise ValueError(
+                f"Invalid status '{value}'. Must be one of: {valid_values}"
+            )
         return value

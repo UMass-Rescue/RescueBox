@@ -22,12 +22,12 @@ def setup_component_imports():
     This function ensures backend models are available to components.
     """
     # Add backend models to path if not already there
-    backend_path = Path(__file__).parent.parent / 'src'
+    backend_path = Path(__file__).parent.parent / "src"
     if str(backend_path) not in sys.path:
         sys.path.insert(0, str(backend_path))
 
 
-def format_timestamp(timestamp: str, format_type: str = 'relative') -> str:
+def format_timestamp(timestamp: str, format_type: str = "relative") -> str:
     """
     Format a timestamp for display.
 
@@ -40,11 +40,11 @@ def format_timestamp(timestamp: str, format_type: str = 'relative') -> str:
     """
     try:
         if isinstance(timestamp, str):
-            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
         else:
             dt = timestamp
 
-        if format_type == 'relative':
+        if format_type == "relative":
             now = datetime.now()
             diff = now - dt.replace(tzinfo=None) if dt.tzinfo else now - dt
 
@@ -60,13 +60,13 @@ def format_timestamp(timestamp: str, format_type: str = 'relative') -> str:
             elif diff.days < 7:
                 return f"{diff.days} days ago"
             else:
-                return dt.strftime('%Y-%m-%d')
+                return dt.strftime("%Y-%m-%d")
 
-        elif format_type == 'absolute':
-            return dt.strftime('%Y-%m-%d %H:%M:%S')
+        elif format_type == "absolute":
+            return dt.strftime("%Y-%m-%d %H:%M:%S")
 
-        elif format_type == 'short':
-            return dt.strftime('%m/%d %H:%M')
+        elif format_type == "short":
+            return dt.strftime("%m/%d %H:%M")
 
         else:
             return str(dt)
@@ -89,14 +89,14 @@ def create_card_container(title: str = None, classes: str = "") -> Any:
     """
     from nicegui import ui
 
-    base_classes = 'bg-white border border-zinc-200 rounded-lg shadow-sm'
+    base_classes = "bg-white border border-zinc-200 rounded-lg shadow-sm"
     if classes:
-        base_classes += f' {classes}'
+        base_classes += f" {classes}"
 
     card = ui.card().classes(base_classes)
 
     if title:
-        ui.label(title).classes('text-lg font-semibold mb-4')
+        ui.label(title).classes("text-lg font-semibold mb-4")
 
     return card
 
@@ -135,36 +135,38 @@ def get_component_theme_colors(component_type: str) -> Dict[str, str]:
         Dict[str, str]: Color configuration
     """
     themes = {
-        'success': {
-            'bg': 'bg-green-50',
-            'border': 'border-green-300',
-            'text': 'text-green-700',
-            'icon': 'text-green-600'
+        "success": {
+            "bg": "bg-green-50",
+            "border": "border-green-300",
+            "text": "text-green-700",
+            "icon": "text-green-600",
         },
-        'error': {
-            'bg': 'bg-red-50',
-            'border': 'border-red-300',
-            'text': 'text-red-700',
-            'icon': 'text-red-600'
+        "error": {
+            "bg": "bg-red-50",
+            "border": "border-red-300",
+            "text": "text-red-700",
+            "icon": "text-red-600",
         },
-        'warning': {
-            'bg': 'bg-yellow-50',
-            'border': 'border-yellow-300',
-            'text': 'text-yellow-700',
-            'icon': 'text-yellow-600'
+        "warning": {
+            "bg": "bg-yellow-50",
+            "border": "border-yellow-300",
+            "text": "text-yellow-700",
+            "icon": "text-yellow-600",
         },
-        'info': {
-            'bg': 'bg-zinc-50',
-            'border': 'border-zinc-300',
-            'text': 'text-zinc-700',
-            'icon': 'text-zinc-600'
-        }
+        "info": {
+            "bg": "bg-zinc-50",
+            "border": "border-zinc-300",
+            "text": "text-zinc-700",
+            "icon": "text-zinc-600",
+        },
     }
 
-    return themes.get(component_type, themes['info'])
+    return themes.get(component_type, themes["info"])
 
 
-def log_component_event(component_name: str, event: str, details: Optional[Dict[str, Any]] = None):
+def log_component_event(
+    component_name: str, event: str, details: Optional[Dict[str, Any]] = None
+):
     """
     Log a component event with structured information.
 

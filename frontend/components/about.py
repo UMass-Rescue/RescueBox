@@ -87,7 +87,9 @@ def _primary_and_third_party_paths(
     return primary, third_party
 
 
-def render_one_file(container: ui.element, root: Path, rel: str, *, static_url: str) -> None:
+def render_one_file(
+    container: ui.element, root: Path, rel: str, *, static_url: str
+) -> None:
     path = _safe_relative_file(root, rel)
     if path is None:
         ui.label("Could not open that document.").classes("text-red-600")
@@ -131,7 +133,9 @@ def render_license_documents_section(
     with ui.card().classes(
         "w-full max-w-3xl p-6 bg-white border border-zinc-300 rounded-xl shadow-sm"
     ):
-        ui.label("License & Copyright").classes("text-xl font-semibold text-[#505759] mb-2")
+        ui.label("License & Copyright").classes(
+            "text-xl font-semibold text-[#505759] mb-2"
+        )
         ui.label(
             "RescueBox LICENSE, COPYRIGHT, and NOTICE, see bundled third-party notices when you choose Third party."
         ).classes("text-sm text-zinc-600 mb-4")
@@ -179,11 +183,7 @@ def render_license_documents_section(
         if not isinstance(v, str):
             return
         if v == _THIRD_PARTY_SENTINEL and third_party_files:
-            target = (
-                rel
-                if rel in third_party_files
-                else third_party_files[0]
-            )
+            target = rel if rel in third_party_files else third_party_files[0]
             _navigate_to_doc(target)
         elif v != _THIRD_PARTY_SENTINEL:
             _navigate_to_doc(v)

@@ -20,10 +20,11 @@ class TestNavbar:
         # Full UI testing would require NiceGUI context
         assert callable(create_navbar)
 
+
 class TestBreadcrumbs:
     """Test breadcrumb component."""
 
-    @patch('frontend.components.shared.ui')
+    @patch("frontend.components.shared.ui")
     def test_create_breadcrumbs_structure(self, mock_ui):
         """Test breadcrumb creation."""
         mock_row = MagicMock()
@@ -33,7 +34,7 @@ class TestBreadcrumbs:
         breadcrumbs = [
             {"label": "Home", "path": "/"},
             {"label": "Jobs", "path": "/jobs"},
-            {"label": "Job Details", "path": "/jobs/123"}
+            {"label": "Job Details", "path": "/jobs/123"},
         ]
 
         result = create_breadcrumbs(breadcrumbs)
@@ -42,13 +43,17 @@ class TestBreadcrumbs:
         mock_ui.row.assert_called_once()
         assert result is not None
 
+
 class TestSharedComponentsIntegration:
     """Integration tests for shared components."""
 
     def test_shared_components_coordination(self):
         """Test that shared components work together."""
         from frontend.components.shared import (
-            navbar, notifications, breadcrumbs, stepper
+            navbar,
+            notifications,
+            breadcrumbs,
+            stepper,
         )
 
         # Verify all modules are available
@@ -59,10 +64,7 @@ class TestSharedComponentsIntegration:
 
     def test_shared_component_exports(self):
         """Test that shared components export expected functions."""
-        from frontend.components.shared import (
-            create_navbar,
-            create_breadcrumbs
-        )
+        from frontend.components.shared import create_navbar, create_breadcrumbs
 
         # Verify key functions are exported
         assert callable(create_navbar)

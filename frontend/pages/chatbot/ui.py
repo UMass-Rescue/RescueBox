@@ -65,23 +65,30 @@ page = ui.page
 chat_message = ui.chat_message
 code = ui.code
 
+
 def show_error_to_user(*args, **kwargs):
     return _show_error_to_user(*args, **kwargs)
 
+
 async def handle_api_error(*args, **kwargs):
     return await _handle_api_error(*args, **kwargs)
+
 
 # Storage safety for tests handled via try/except in storage utils
 
 logger = logging.getLogger(__name__)
 
+
 class FormConfig:
     """Configuration and styling constants for chatbot forms."""
+
     FORM_REVEAL_OUTER_CLASSES = "w-full space-y-4 opacity-0 transition-opacity duration-300 rb-form-reveal-outer"
     FORM_SCROLL_AFTER_REVEAL_DELAY_S = 0.35
 
+
 class UIOperations:
     """UI operations for the chatbot interface."""
+
     @staticmethod
     def scroll_to_bottom(client=None):
         js = "window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});"
@@ -101,10 +108,12 @@ class UIOperations:
     @staticmethod
     def scroll_form_into_view_with_retries(client=None):
         for delay in [0.1, 0.3, 0.7]:
-            ui.timer(delay, lambda: UIOperations.scroll_form_into_view(client), once=True)
+            ui.timer(
+                delay, lambda: UIOperations.scroll_form_into_view(client), once=True
+            )
 
     @staticmethod
-    def safe_notify(message: str, type: str = 'info', **kwargs):
+    def safe_notify(message: str, type: str = "info", **kwargs):
         try:
             ui.notify(message, type=type, **kwargs)
         except Exception:
@@ -117,13 +126,14 @@ class UIOperations:
         except Exception:
             pass
 
+
 def render_message(container: element, message: ChatMessage):
     """Render a message in the chat container."""
     with container:
-        if message.role == 'user':
-            chat_message(message.content, name='You', sent=True)
+        if message.role == "user":
+            chat_message(message.content, name="You", sent=True)
         else:
-            chat_message(message.content, name='Assistant')
+            chat_message(message.content, name="Assistant")
 
 
 def _history_record_to_chat_message(msg: Any) -> ChatMessage:
@@ -170,7 +180,9 @@ def _is_adjacent_job_started_then_completed(started: Any, completed: Any) -> boo
     return False
 
 
-def render_merged_job_tool_results(container: element, started_msg: Any, completed_msg: Any) -> None:
+def render_merged_job_tool_results(
+    container: element, started_msg: Any, completed_msg: Any
+) -> None:
     """
     Single card for a job lifecycle row pair: no duplicate job-details buttons.
 
@@ -199,7 +211,9 @@ def render_merged_job_tool_results(container: element, started_msg: Any, complet
             if isinstance(args, dict) and (
                 args.get("inputs") is not None or args.get("parameters") is not None
             ):
-                with expansion("Job inputs & parameters", value=False).classes("w-full"):
+                with expansion("Job inputs & parameters", value=False).classes(
+                    "w-full"
+                ):
                     code(json.dumps(args, indent=2, default=str)).classes(
                         "text-xs w-full whitespace-pre-wrap break-all"
                     )
@@ -210,9 +224,9 @@ def render_merged_job_tool_results(container: element, started_msg: Any, complet
                 def _open_job() -> None:
                     navigate.to(f"/jobs/{jid}")
 
-                button("Open job details", icon="open_in_new", on_click=_open_job).classes(
-                    f"mt-1 {Design.BTN_MEDIUM_GRAY}"
-                )
+                button(
+                    "Open job details", icon="open_in_new", on_click=_open_job
+                ).classes(f"mt-1 {Design.BTN_MEDIUM_GRAY}")
 
 
 def render_persisted_history_message(container: element, msg: Any) -> None:
@@ -232,8 +246,12 @@ def render_persisted_history_message(container: element, msg: Any) -> None:
                 "w-full max-w-3xl border border-zinc-200 rounded-xl p-4 bg-white "
                 "shadow-sm space-y-2"
             ):
-                label("Assistant").classes("text-xs font-semibold text-zinc-500 uppercase")
-                label(content).classes("text-sm text-zinc-900 whitespace-pre-wrap break-words")
+                label("Assistant").classes(
+                    "text-xs font-semibold text-zinc-500 uppercase"
+                )
+                label(content).classes(
+                    "text-sm text-zinc-900 whitespace-pre-wrap break-words"
+                )
                 ep = getattr(msg, "tool_call_endpoint", None)
                 if ep:
                     try:
@@ -245,7 +263,9 @@ def render_persisted_history_message(container: element, msg: Any) -> None:
                 if isinstance(args, dict) and (
                     args.get("inputs") is not None or args.get("parameters") is not None
                 ):
-                    with expansion("Job inputs & parameters", value=False).classes("w-full"):
+                    with expansion("Job inputs & parameters", value=False).classes(
+                        "w-full"
+                    ):
                         code(json.dumps(args, indent=2, default=str)).classes(
                             "text-xs w-full whitespace-pre-wrap break-all"
                         )
@@ -256,9 +276,9 @@ def render_persisted_history_message(container: element, msg: Any) -> None:
                     def _open_job() -> None:
                         navigate.to(f"/jobs/{jid}")
 
-                    button("Open job details", icon="open_in_new", on_click=_open_job).classes(
-                        f"mt-1 {Design.BTN_MEDIUM_GRAY}"
-                    )
+                    button(
+                        "Open job details", icon="open_in_new", on_click=_open_job
+                    ).classes(f"mt-1 {Design.BTN_MEDIUM_GRAY}")
         return
 
     if mt == "tool_call":
@@ -289,7 +309,9 @@ def render_persisted_history_message(container: element, msg: Any) -> None:
 
     if mt == "error":
         with container:
-            with card().classes("w-full max-w-3xl border border-red-200 bg-red-50 p-4 space-y-1"):
+            with card().classes(
+                "w-full max-w-3xl border border-red-200 bg-red-50 p-4 space-y-1"
+            ):
                 label("Error").classes("text-xs font-semibold text-red-800")
                 label(content).classes("text-sm text-red-900 whitespace-pre-wrap")
         return
@@ -305,52 +327,70 @@ def show_error_message(container: element, message: str):
     """Show an error message in the chat container."""
     render_error_message(container, message)
 
+
 async def show_tool_picker(container: ui.element, tool_registry, on_tool_selected):
     from frontend.pages.chatbot.handlers import ToolPicker
+
     picker = ToolPicker(container, tool_registry, on_tool_selected)
     await picker.show()
 
+
 async def show_analysis_picker(container: ui.element, on_analysis_selected):
     from frontend.pages.chatbot.handlers import AnalysisPicker
+
     picker = AnalysisPicker(container, on_analysis_selected)
     await picker.show()
 
+
 async def show_tool_selection(container: element, endpoint: str):
     from frontend.components.results import render_tool_selection_message
+
     try:
         render_tool_selection_message(container, endpoint)
     except Exception:
         with container:
-            label(f"Running {endpoint}...").classes('text-sm text-zinc-500 italic')
+            label(f"Running {endpoint}...").classes("text-sm text-zinc-500 italic")
 
-async def load_and_show_form(container, core, endpoint, arguments, on_form_submit, on_form_cancel=None):
+
+async def load_and_show_form(
+    container, core, endpoint, arguments, on_form_submit, on_form_cancel=None
+):
     try:
         task_schema = await core.get_task_schema_from_endpoint(endpoint)
         if not task_schema:
-            await handle_api_error(ValueError(f"Could not load tool configuration for {endpoint}"), "Form loading")
+            await handle_api_error(
+                ValueError(f"Could not load tool configuration for {endpoint}"),
+                "Form loading",
+            )
             return
-        
-        initial_values = core.convert_arguments_to_initial_values(arguments, task_schema, endpoint)
-        
+
+        initial_values = core.convert_arguments_to_initial_values(
+            arguments, task_schema, endpoint
+        )
+
         async def _wrapped_submit(form_data, endpoint=None, task_schema=None, **kwargs):
             # chatbot/forms.py's handle_submit passes (validated, endpoint, task_schema)
             # as positional arguments.
-            return await on_form_submit(form_data, endpoint=endpoint, task_schema=task_schema, **kwargs)
-        
+            return await on_form_submit(
+                form_data, endpoint=endpoint, task_schema=task_schema, **kwargs
+            )
+
         await core.create_input_form(
-            task_schema, endpoint, initial_values=initial_values,
-            on_submit=_wrapped_submit, on_cancel=on_form_cancel, container=container
+            task_schema,
+            endpoint,
+            initial_values=initial_values,
+            on_submit=_wrapped_submit,
+            on_cancel=on_form_cancel,
+            container=container,
         )
     except Exception as e:
         logger.exception("Error in load_and_show_form: %s", e)
         await handle_api_error(e, "Form loading")
         show_error_message(container, f"Failed to load form: {str(e)}")
 
+
 async def show_results(
-    container: element,
-    response_body,
-    job_id: Optional[str] = None,
-    **kwargs
+    container: element, response_body, job_id: Optional[str] = None, **kwargs
 ):
     """
     Show a compact job completed strip with one green button to open full results.
@@ -363,36 +403,47 @@ async def show_results(
         logger.error("Error showing results: %s", e)
         await handle_api_error(e, "Results rendering")
 
+
 async def _show_results_body(
-    container: element,
-    response_body,
-    job_id: Optional[str],
-    **kwargs
+    container: element, response_body, job_id: Optional[str], **kwargs
 ) -> None:
     """Accented card indicating job completion."""
     with container:
         # rb-job-result-anchor: scroll helpers target this after async render
         with card().classes(
-            'rb-job-result-anchor w-full max-w-md rounded-xl border-2 border-green-400 '
-            'bg-gradient-to-br from-green-50 to-emerald-50 p-4 shadow-sm flex flex-col gap-3'
+            "rb-job-result-anchor w-full max-w-md rounded-xl border-2 border-green-400 "
+            "bg-gradient-to-br from-green-50 to-emerald-50 p-4 shadow-sm flex flex-col gap-3"
         ):
-            label('Job completed').classes('text-base font-semibold text-green-900')
+            label("Job completed").classes("text-base font-semibold text-green-900")
 
             if job_id:
+
                 def _open_results() -> None:
-                    navigate.to(f'/jobs/{job_id}')
+                    navigate.to(f"/jobs/{job_id}")
 
                 button(
-                    'View results',
-                    icon='open_in_new',
+                    "View results",
+                    icon="open_in_new",
                     on_click=_open_results,
                 ).classes(
-                    'w-full bg-green-600 hover:bg-green-700 text-white '
-                    'font-medium py-3 rounded-lg shadow-sm'
+                    "w-full bg-green-600 hover:bg-green-700 text-white "
+                    "font-medium py-3 rounded-lg shadow-sm"
                 )
 
+
 class ChatUIBuilder:
-    def __init__(self, on_send, on_new_conversation, on_conversation_select, on_rerun_tool, tool_registry, core, form_submit_handler, status_text_ref=None, state_manager=None):
+    def __init__(
+        self,
+        on_send,
+        on_new_conversation,
+        on_conversation_select,
+        on_rerun_tool,
+        tool_registry,
+        core,
+        form_submit_handler,
+        status_text_ref=None,
+        state_manager=None,
+    ):
         self.on_send = on_send
         self.on_new_conversation = on_new_conversation
         self.on_conversation_select = on_conversation_select
@@ -407,54 +458,85 @@ class ChatUIBuilder:
         self.history_btn = None
 
     def build_ui(self):
-        from frontend.components.chat import create_chat_header, create_chat_window, create_input_area
-        
-        with column().classes("rb-chat-layout-core min-h-screen w-full flex flex-col -mt-16 bg-zinc-50 relative"):
+        from frontend.components.chat import (
+            create_chat_header,
+            create_chat_window,
+            create_input_area,
+        )
+
+        with column().classes(
+            "rb-chat-layout-core min-h-screen w-full flex flex-col -mt-16 bg-zinc-50 relative"
+        ):
             self.models_btn, self.analyze_btn, self.history_btn = create_chat_header(
                 on_show_history=self._show_history_dialog
             )
-            
-            with column().classes('container mx-auto w-full px-4 flex-1 flex flex-col min-h-0 pb-4'):
+
+            with column().classes(
+                "container mx-auto w-full px-4 flex-1 flex flex-col min-h-0 pb-4"
+            ):
                 with card().classes(Design.PANEL_SHELL_CHAT_CARD):
                     with row().classes(Design.PANEL_SHELL_HEADER):
-                        label('RescueBox Assistant').classes(Design.PANEL_SHELL_HEADER_TITLE)
-                        self.mode_indicator = badge('Chat mode', color=None).classes('text-xs font-medium rb-chat-mode-badge')
+                        label("RescueBox Assistant").classes(
+                            Design.PANEL_SHELL_HEADER_TITLE
+                        )
+                        self.mode_indicator = badge("Chat mode", color=None).classes(
+                            "text-xs font-medium rb-chat-mode-badge"
+                        )
 
                     chat_container = create_chat_window()
                     input_area = create_input_area(self.status_text_ref, self.on_send)
                     self.input_field = input_area.input_field
 
-                below_input_area = column().classes('rb-chat-below-input-area w-full max-w-none space-y-4 mt-2 mb-4')
+                below_input_area = column().classes(
+                    "rb-chat-below-input-area w-full max-w-none space-y-4 mt-2 mb-4"
+                )
 
             self._setup_mode_handlers(chat_container)
 
         self.chat_container = chat_container
-        return chat_container, self.input_field, self.status_text_ref, input_area, below_input_area
+        return (
+            chat_container,
+            self.input_field,
+            self.status_text_ref,
+            input_area,
+            below_input_area,
+        )
 
     def _setup_mode_handlers(self, chat_container):
         async def handle_models_click():
-            self.mode_indicator.set_text('Menu mode')
+            self.mode_indicator.set_text("Menu mode")
             chat_container.clear()
-            await asyncio.sleep(0.01) # Give NiceGUI a moment
+            await asyncio.sleep(0.01)  # Give NiceGUI a moment
             from .handlers import ToolPicker
-            picker = ToolPicker(chat_container, self.tool_registry, self._on_tool_selected)
+
+            picker = ToolPicker(
+                chat_container, self.tool_registry, self._on_tool_selected
+            )
             await picker.show()
 
         async def handle_analyze_click():
-            self.mode_indicator.set_text('Chat mode')
+            self.mode_indicator.set_text("Chat mode")
             chat_container.clear()
             from frontend.components.chat import render_welcome_message
+
             render_welcome_message(chat_container)
 
         self.models_btn.on_click(handle_models_click)
         self.analyze_btn.on_click(handle_analyze_click)
 
     async def _on_tool_selected(self, endpoint, arguments):
-        async def handle_form_submit(request_body, endpoint=None, task_schema=None, **kwargs):
+        async def handle_form_submit(
+            request_body, endpoint=None, task_schema=None, **kwargs
+        ):
             return await self.form_submit_handler.submit_form(
-                request_body, endpoint, task_schema, self.chat_container, self.core, **kwargs
+                request_body,
+                endpoint,
+                task_schema,
+                self.chat_container,
+                self.core,
+                **kwargs,
             )
-        
+
         def _on_cancel():
             if self.state_manager:
                 self.state_manager.set_input_enabled(True)
@@ -463,14 +545,23 @@ class ChatUIBuilder:
         if self.state_manager:
             self.state_manager.set_input_enabled(False, hide_completely=False)
 
-        await load_and_show_form(self.chat_container, self.core, endpoint, arguments or {}, handle_form_submit, on_form_cancel=_on_cancel)
+        await load_and_show_form(
+            self.chat_container,
+            self.core,
+            endpoint,
+            arguments or {},
+            handle_form_submit,
+            on_form_cancel=_on_cancel,
+        )
         UIOperations.scroll_form_into_view_with_retries()
 
     async def _show_history_dialog(self):
         from frontend.components.chat import show_history_dialog
+
         await show_history_dialog(
             on_conversation_select=self.on_conversation_select,
         )
+
 
 class ChatbotPage:
     _instance = None
@@ -484,15 +575,19 @@ class ChatbotPage:
         self.config = config or ChatbotConfig()
         self.core = ChatbotCore(self.config)
         from frontend.chatbot.message_handler import MessageHandler
+
         self.message_handler = MessageHandler(self.core, self.config)
         self.tool_registry = ToolRegistry()
         self.state_manager = ChatbotStateManager()
-        
+
         from frontend.pages.chatbot.coordinator import MessageFlowCoordinator
-        self.message_flow_coordinator = MessageFlowCoordinator(self.state_manager, self.load_and_show_form)
+
+        self.message_flow_coordinator = MessageFlowCoordinator(
+            self.state_manager, self.load_and_show_form
+        )
         self.message_flow_coordinator.set_message_handler(self.message_handler)
         self.message_flow_coordinator.set_tool_registry(self.tool_registry)
-        
+
         self.form_handler = self.message_flow_coordinator.form_submit_handler
 
     async def render(self):
@@ -505,13 +600,13 @@ class ChatbotPage:
             core=self.core,
             form_submit_handler=self.form_handler,
             status_text_ref=self.state_manager,
-            state_manager=self.state_manager
+            state_manager=self.state_manager,
         )
         self.chat_container, self.input_field, _, input_area, _ = builder.build_ui()
         self.message_flow_coordinator.chat_container = self.chat_container
         self.state_manager.set_input_area(input_area)
         self.state_manager.set_input_field(self.input_field)
-        
+
     async def _handle_send_message(self):
         msg = self.input_field.value.strip()
         if not msg:
@@ -519,11 +614,11 @@ class ChatbotPage:
         await self.message_flow_coordinator.process_user_message(
             message_text=msg,
             input_field=self.input_field,
-            is_processing_ref={'value': False},
+            is_processing_ref={"value": False},
             add_message_func=self._add_message,
             show_error_func=self._show_error,
             update_status_func=self._update_status,
-            core=self.core
+            core=self.core,
         )
 
     def _add_message(self, message: ChatMessage, scroll_after: bool = True):
@@ -535,7 +630,9 @@ class ChatbotPage:
     async def _show_error(self, error_message: str):
         show_error_message(self.chat_container, error_message)
 
-    def _update_status(self, status: str, scroll_after: bool = True, scroll_to_form: bool = False):
+    def _update_status(
+        self, status: str, scroll_after: bool = True, scroll_to_form: bool = False
+    ):
         self.state_manager.set_status(status)
         if scroll_after:
             if scroll_to_form:
@@ -548,15 +645,30 @@ class ChatbotPage:
         self.chat_container.clear()
         self.state_manager.set_input_enabled(True)
         from frontend.components.chat import render_welcome_message
+
         render_welcome_message(self.chat_container)
 
-    async def load_and_show_form(self, endpoint, arguments, remaining_calls=None, container=None):
+    async def load_and_show_form(
+        self, endpoint, arguments, remaining_calls=None, container=None
+    ):
         target_container = container or self.chat_container
-        async def _on_submit(request_body, endpoint=endpoint, task_schema=None, **kwargs):
+
+        async def _on_submit(
+            request_body, endpoint=endpoint, task_schema=None, **kwargs
+        ):
             return await self.form_handler.submit_form(
-                request_body, endpoint, task_schema, target_container, self.core, remaining_calls=remaining_calls, **kwargs
+                request_body,
+                endpoint,
+                task_schema,
+                target_container,
+                self.core,
+                remaining_calls=remaining_calls,
+                **kwargs,
             )
-        await load_and_show_form(target_container, self.core, endpoint, arguments, _on_submit)
+
+        await load_and_show_form(
+            target_container, self.core, endpoint, arguments, _on_submit
+        )
         UIOperations.scroll_form_into_view_with_retries()
 
     async def _handle_conversation_select(self, conversation_id: str):
@@ -582,7 +694,9 @@ class ChatbotPage:
         n = len(messages)
         while i < n:
             msg = messages[i]
-            if i + 1 < n and _is_adjacent_job_started_then_completed(msg, messages[i + 1]):
+            if i + 1 < n and _is_adjacent_job_started_then_completed(
+                msg, messages[i + 1]
+            ):
                 self.state_manager.add_message(_history_record_to_chat_message(msg))
                 self.state_manager.add_message(
                     _history_record_to_chat_message(messages[i + 1])
@@ -604,14 +718,17 @@ class ChatbotPage:
 
     async def load_conversation_from_data(self, conversation_data: dict):
         """Legacy helper for loading conversation from a data dict."""
-        cid = conversation_data.get('conversation_id')
+        cid = conversation_data.get("conversation_id")
         if cid:
             await self._handle_conversation_select(cid)
 
-    async def _poll_job_status(self, job_id: str, endpoint: str, interval: float | None = None):
+    async def _poll_job_status(
+        self, job_id: str, endpoint: str, interval: float | None = None
+    ):
         """Poll for job status updates and trigger result rendering."""
         from frontend.pages.chatbot import get_job_db, show_results
         import asyncio
+
         if interval is None:
             interval = 2.0
         job_db = get_job_db()
@@ -619,10 +736,12 @@ class ChatbotPage:
             job = await job_db.get_job_by_uid(job_id)
             if not job:
                 break
-            status = getattr(job, 'status', '').lower()
-            if status in ('completed', 'failed', 'finished'):
-                if status == 'completed' or status == 'finished':
-                    response = getattr(job, 'response', None) or getattr(job, 'response_body', None)
+            status = getattr(job, "status", "").lower()
+            if status in ("completed", "failed", "finished"):
+                if status == "completed" or status == "finished":
+                    response = getattr(job, "response", None) or getattr(
+                        job, "response_body", None
+                    )
                     await show_results(self.chat_container, response, job_id)
                 break
             await asyncio.sleep(interval)
@@ -630,14 +749,17 @@ class ChatbotPage:
     async def _handle_rerun_tool(self, message_id: str):
         """Handle re-running a tool from a specific message."""
         from frontend.database import get_chat_history_db
+
         chat_db = get_chat_history_db()
         msg = await chat_db.get_tool_call_by_id(message_id)
-        if msg and msg.metadata and 'endpoint' in msg.metadata:
-            endpoint = msg.metadata['endpoint']
-            arguments = msg.metadata.get('arguments', {})
+        if msg and msg.metadata and "endpoint" in msg.metadata:
+            endpoint = msg.metadata["endpoint"]
+            arguments = msg.metadata.get("arguments", {})
             await self._re_run_tool(endpoint, arguments)
         else:
-            UIOperations.safe_notify("Could not find tool metadata for this message.", type="warning")
+            UIOperations.safe_notify(
+                "Could not find tool metadata for this message.", type="warning"
+            )
 
     async def _re_run_tool(self, endpoint: str, arguments: dict):
         """Re-run a tool with given endpoint and arguments."""
@@ -645,10 +767,11 @@ class ChatbotPage:
         # Try to find input area container or fallback to chat container
         try:
             from frontend.components.chat import get_latest_input_area
+
             container = get_latest_input_area() or self.chat_container
         except Exception:
             container = self.chat_container
-            
+
         await self.load_and_show_form(endpoint, arguments, container=container)
 
 
@@ -709,18 +832,23 @@ async def handle_rerun_parameter(message_id: str) -> None:
     await chatbot.load_and_show_form(endpoint, arguments)
 
 
-@ui.page('/chatbot')
-async def chatbot_page(load_conversation: Optional[str] = None, rerun: Optional[str] = None):
+@ui.page("/chatbot")
+async def chatbot_page(
+    load_conversation: Optional[str] = None, rerun: Optional[str] = None
+):
     from frontend.utils import ensure_user_id
+
     if ensure_user_id() is None:
         return
-        
+
     from frontend.utils import apply_saved_theme
+
     apply_saved_theme()
     create_navbar()
-    
+
     # Global CSS injection for compact UI
-    ui.add_head_html('''
+    ui.add_head_html(
+        """
         <style>
             .q-header { min-height: 16px !important
             }
@@ -738,8 +866,9 @@ async def chatbot_page(load_conversation: Optional[str] = None, rerun: Optional[
             body { font-size: 0.8rem !important
             }
         </style>
-    ''')
-    
+    """
+    )
+
     chatbot = ChatbotPage()
     await chatbot.render()
 
@@ -757,12 +886,14 @@ async def chatbot_page(load_conversation: Optional[str] = None, rerun: Optional[
         if stored and stored.get("conversation_id"):
             await chatbot.load_conversation_from_data(stored)
 
+
 async def create_chat_ui(config: Optional[ChatbotConfig] = None):
     chatbot = ChatbotPage(config)
     await chatbot.render()
     return chatbot
 
+
 def apply_saved_theme():
     from frontend.utils import apply_saved_theme as _apply
-    _apply()
 
+    _apply()

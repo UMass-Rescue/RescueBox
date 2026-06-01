@@ -46,7 +46,6 @@ class TestChatbotUIIntegration:
         try:
             from frontend.chatbot.utils import get_rejection_message
             from frontend.pages.chatbot import MessageFlowCoordinator
-            
 
             # Test the rejection message generation
             rejection_msg = get_rejection_message("no_match")
@@ -56,6 +55,7 @@ class TestChatbotUIIntegration:
 
             # Test that the message flow coordinator can be created
             from unittest.mock import MagicMock
+
             state_manager = MagicMock()
             state_manager.is_processing = False
             state_manager.conversation_id = None
@@ -63,13 +63,13 @@ class TestChatbotUIIntegration:
             assert coordinator is not None
 
             # Test that message processing components exist
-            assert hasattr(coordinator, 'message_processor')
-            assert hasattr(coordinator, 'result_processor')
+            assert hasattr(coordinator, "message_processor")
+            assert hasattr(coordinator, "result_processor")
 
             # Verify rejection message structure
-            expected_result = {'type': 'message', 'content': rejection_msg}
-            assert expected_result['type'] == 'message'
-            assert expected_result['content'] == rejection_msg
+            expected_result = {"type": "message", "content": rejection_msg}
+            assert expected_result["type"] == "message"
+            assert expected_result["content"] == rejection_msg
 
         except Exception as e:
             pytest.fail(f"Rejection message flow test failed: {e}")
@@ -84,13 +84,16 @@ class TestChatbotUIIntegration:
 
             # Create mock components
             from unittest.mock import MagicMock
+
             state_manager = MagicMock()
             state_manager.is_processing = False
             state_manager.conversation_id = None
 
             message_handler = TestUtilities.create_mock_message_handler()
             message_processor = MessageProcessor(state_manager, message_handler)
-            result_processor = ResultProcessor(state_manager, None)  # tool_registry can be None for this test
+            result_processor = ResultProcessor(
+                state_manager, None
+            )  # tool_registry can be None for this test
 
             # Create coordinator
             coordinator = MessageFlowCoordinator(state_manager, MagicMock())
@@ -99,7 +102,7 @@ class TestChatbotUIIntegration:
 
             # Mock the message handler to return rejection result for invalid input
             async def mock_handle_message(message_text, update_callback):
-                return {'type': 'message', 'content': get_rejection_message('no_match')}
+                return {"type": "message", "content": get_rejection_message("no_match")}
 
             message_handler.handle_message = mock_handle_message
 
@@ -118,33 +121,39 @@ class TestChatbotUIIntegration:
 
             # Test processing an invalid message
             from unittest.mock import MagicMock
+
             mock_textarea = MagicMock()
             mock_textarea.enable = MagicMock()
 
             import asyncio
+
             async def run_test():
                 await coordinator.process_user_message(
                     message_text="invalid input that should be rejected",
                     input_field=mock_textarea,
-                    is_processing_ref={'value': False},
+                    is_processing_ref={"value": False},
                     add_message_func=mock_add_message,
                     show_error_func=mock_show_error,
                     update_status_func=mock_update_status,
-                    core=MagicMock()
+                    core=MagicMock(),
                 )
 
             asyncio.run(run_test())
 
             # Verify that messages were added
-            assert len(messages_received) >= 2  # At least user message + rejection message
-            assert len(errors_received) == 0   # No errors should occur
+            assert (
+                len(messages_received) >= 2
+            )  # At least user message + rejection message
+            assert len(errors_received) == 0  # No errors should occur
 
             # Find the rejection message (should be from assistant)
-            assistant_messages = [msg for msg in messages_received if msg.role == 'assistant']
+            assistant_messages = [
+                msg for msg in messages_received if msg.role == "assistant"
+            ]
             assert len(assistant_messages) >= 1
 
             # Verify the rejection message content
-            rejection_content = get_rejection_message('no_match')
+            rejection_content = get_rejection_message("no_match")
             rejection_message = assistant_messages[0]
             assert rejection_message.content == rejection_content
 
@@ -230,8 +239,8 @@ class TestEndToEndWorkflows:
             # Test state manager creation
             state_manager = ChatbotStateManager()
             assert state_manager is not None
-            assert hasattr(state_manager, 'reset_conversation')
-            assert hasattr(state_manager, 'messages')
+            assert hasattr(state_manager, "reset_conversation")
+            assert hasattr(state_manager, "messages")
 
         except Exception as e:
             pytest.fail(f"State management UI integration failed: {e}")

@@ -33,8 +33,7 @@ class Design:
         "font-medium shadow-sm transition-colors"
     )
     BTN_PRIMARY_TIGHT = (
-        "rb-brand-primary text-white px-3 py-1 rounded text-sm "
-        "transition-colors"
+        "rb-brand-primary text-white px-3 py-1 rounded text-sm " "transition-colors"
     )
     BTN_GHOST = "text-zinc-600 hover:bg-zinc-100 px-4 py-2 rounded-lg transition-colors"
     BTN_SECONDARY_NEUTRAL = (
@@ -121,9 +120,7 @@ class Design:
         "w-[95vw] max-w-[1400px] max-h-[95vh] mx-auto flex flex-col min-h-0 "
         "rounded-3xl shadow-xl shadow-zinc-200/50 border border-zinc-100 p-0 overflow-hidden"
     )
-    PANEL_SHELL_HEADER = (
-        "w-full bg-zinc-50 p-4 border-b border-zinc-100 items-center justify-between flex-none"
-    )
+    PANEL_SHELL_HEADER = "w-full bg-zinc-50 p-4 border-b border-zinc-100 items-center justify-between flex-none"
     PANEL_SHELL_HEADER_TITLE = "text-lg font-bold text-zinc-900 tracking-tight"
     # Icon-only close on dialogs (Medium Gray #505759; hover matches .rb-btn-medium-gray hover)
     PANEL_SHELL_HEADER_ICON = "!text-[#505759] hover:!text-[#3d4442] transition-colors"

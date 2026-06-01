@@ -130,7 +130,10 @@ def summarize_images(
     has_ff = "file_filter" in raw
     logger.info(
         "ImageSummary API: received request | model=%s | input_dir=%s | output_dir=%s | file_filter=%s",
-        model, input_dir, output_dir, has_ff
+        model,
+        input_dir,
+        output_dir,
+        has_ff,
     )
     file_pairs = process_images(model, input_dir, output_dir, file_filter)
 

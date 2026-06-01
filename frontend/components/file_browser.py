@@ -1,7 +1,9 @@
 import logging
 from nicegui import ui
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
 
 def render_file_browser_header(
     title: str = "Select Directory",
@@ -24,11 +26,12 @@ def render_file_browser_header(
         icon_cls = "mr-3 shrink-0"
         label_cls = f"text-xl font-semibold text-zinc-900{extra}"
     else:
-        row_cls = "bg-gradient-to-r from-[#881c1c] to-[#6a1616] text-white p-4 items-center"
+        row_cls = (
+            "bg-gradient-to-r from-[#881c1c] to-[#6a1616] text-white p-4 items-center"
+        )
         icon_cls = "mr-3 text-white/80"
         label_cls = f"text-xl font-semibold{extra}"
 
     with ui.row().classes(row_cls):
         ui.icon(icon, size="2rem").classes(icon_cls)
         ui.label(title).classes(label_cls)
-

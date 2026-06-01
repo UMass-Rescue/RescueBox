@@ -56,6 +56,7 @@ def _pipeline_helpers():
 
     return apply_metadata_filter, extract_batch_file_items
 
+
 DEFAULT_BASE = "http://127.0.0.1:8080/api"
 DEFAULT_INPUT = "/home/tester/Documents/demo/age-gender-classifier/inputs"
 DEFAULT_OUTPUT_PARENT = (
@@ -201,7 +202,9 @@ async def _run() -> int:
         else:
             print(f"{line}\n    body: {snippet[:320]}...")
 
-    print(f"\nSummary: {ok}/{n} pipelines completed (predict + summarize) with HTTP 200")
+    print(
+        f"\nSummary: {ok}/{n} pipelines completed (predict + summarize) with HTTP 200"
+    )
     if ok < n and not serial:
         print(
             "\nHint: Retry with E2E_SERIAL=1 if parallel runs contend on GPU/Ollama.",

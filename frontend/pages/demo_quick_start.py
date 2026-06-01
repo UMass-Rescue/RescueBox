@@ -55,7 +55,7 @@ async def demo_quick_start_page():
                 "Back to Demo",
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
             ).classes("rb-brand-primary text-white")
-          
+
             ui.link("Demo samples", demo_samples_url("quick_start")).classes(
                 "text-[#881c1c] hover:underline text-sm"
             )

@@ -11,17 +11,20 @@ logger = logging.getLogger(__name__)
 
 _LATEST_INPUT_AREA = None
 
+
 def set_latest_input_area(container):
     global _LATEST_INPUT_AREA
     _LATEST_INPUT_AREA = container
 
+
 def get_latest_input_area():
     return _LATEST_INPUT_AREA
+
 
 class UIOperations:
     @staticmethod
     def safe_notify(message: str, type: str = "info"):
-        
+
         if type == "success":
             notify_success(message)
         elif type == "error":
@@ -34,14 +37,18 @@ class UIOperations:
     @staticmethod
     def scroll_to_bottom(client=None):
         try:
-            (client or ui).run_javascript("window.scrollTo(0, document.body.scrollHeight)")
+            (client or ui).run_javascript(
+                "window.scrollTo(0, document.body.scrollHeight)"
+            )
         except Exception:
             pass
 
     @staticmethod
     def scroll_document_to_bottom(client=None):
         try:
-            (client or ui).run_javascript("window.scrollTo(0, document.body.scrollHeight)")
+            (client or ui).run_javascript(
+                "window.scrollTo(0, document.body.scrollHeight)"
+            )
         except Exception:
             pass
 
@@ -53,7 +60,7 @@ class UIOperations:
     @staticmethod
     async def safe_container_update(container):
         try:
-            if hasattr(container, 'update'): 
+            if hasattr(container, "update"):
                 container.update()
             await asyncio.sleep(0.01)
         except Exception:

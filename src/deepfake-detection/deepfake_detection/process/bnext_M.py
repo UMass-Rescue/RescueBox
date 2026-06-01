@@ -110,7 +110,9 @@ class BNext_M_ModelONNX:
                     pdir = getattr(self, "crop_preview_dir", None)
                     if pdir:
                         try:
-                            out = Path(pdir) / f"face_preview_{uuid.uuid4().hex[:12]}.jpg"
+                            out = (
+                                Path(pdir) / f"face_preview_{uuid.uuid4().hex[:12]}.jpg"
+                            )
                             image.save(out, format="JPEG", quality=92)
                             self.last_crop_preview_path = str(out.resolve())
                         except Exception as ex:

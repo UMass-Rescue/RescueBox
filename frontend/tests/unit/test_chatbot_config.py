@@ -82,7 +82,7 @@ class TestChatbotConfig:
     - Content filtering enablement
     - Model and service endpoint configuration
     """
-    
+
     def test_default_config(self, monkeypatch):
         """Test default configuration values."""
         monkeypatch.delenv("OLLAMA_HOST", raising=False)
@@ -91,6 +91,7 @@ class TestChatbotConfig:
         assert config.GRANITE_MODEL == DEFAULT_GRANITE_MODEL
         # Allow environment override (API_BASE_URL) when running integration-enabled test runs.
         import os
+
         expected_hosts = {DEFAULT_RESCUEBOX_HOST, os.getenv("API_BASE_URL")} - {None}
         assert config.RESCUEBOX_HOST in expected_hosts
         assert config.TIMEOUT == 604800
@@ -108,7 +109,7 @@ class TestChatbotConfig:
             GRANITE_MODEL=CUSTOM_GRANITE_MODEL,
             RESCUEBOX_HOST=CUSTOM_RESCUEBOX_HOST,
             TIMEOUT=CUSTOM_TIMEOUT,
-            FILTER_ENABLED=CUSTOM_FILTER_ENABLED
+            FILTER_ENABLED=CUSTOM_FILTER_ENABLED,
         )
         assert config.OLLAMA_HOST == CUSTOM_OLLAMA_HOST
         assert config.GRANITE_MODEL == CUSTOM_GRANITE_MODEL
@@ -134,7 +135,7 @@ class TestToolRegistry:
     - Help text generation and completeness
     - Menu consistency and validation
     """
-    
+
     def test_slash_commands_exist(self):
         """Test that all essential slash commands are defined.
 
@@ -161,7 +162,7 @@ class TestToolRegistry:
         assert ToolRegistry.SLASH_COMMANDS[SUMMARIZE_COMMAND] == SUMMARIZE_ENDPOINT
         assert ToolRegistry.SLASH_COMMANDS[MODELS_COMMAND] == PICK_TOOL_ENDPOINT
         assert ToolRegistry.SLASH_COMMANDS[ASSISTANT_COMMAND] == SMART_ANALYZE_ENDPOINT
-    
+
     def test_tool_menu_structure(self):
         """Test that tool menu has correct structure and required fields.
 
@@ -185,7 +186,7 @@ class TestToolRegistry:
         assert uids.index("image_summary") < uids.index("image_embeddings")
         assert uids.count("face-match") == 1
         assert uids[-1] == "ufdr_mounter"
-    
+
     def test_blocked_patterns(self):
         """Test that blocked patterns are defined for content filtering.
 
@@ -197,7 +198,7 @@ class TestToolRegistry:
         # Check for common blocked patterns
         patterns_str = " ".join(ToolRegistry.BLOCKED_PATTERNS)
         assert WEATHER_PATTERN in patterns_str or STOCK_PATTERN in patterns_str
-    
+
     def test_rescuebox_keywords(self):
         """Test that RescueBox keywords are defined for tool discovery.
 

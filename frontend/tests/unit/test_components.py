@@ -28,46 +28,47 @@ from frontend.components.results import ResultsPreview
 import pytest
 
 # Test constants
-TEST_FILE_PATH = '/path/to/image1.jpg'
-TEST_SECOND_FILE_PATH = '/path/to/image2.jpg'
-TEST_DIRECTORY_PATH = '/path/to/dir'
-TEST_BATCH_DIR_PATH = '/dir1'
-TEST_SECOND_BATCH_DIR_PATH = '/dir2'
+TEST_FILE_PATH = "/path/to/image1.jpg"
+TEST_SECOND_FILE_PATH = "/path/to/image2.jpg"
+TEST_DIRECTORY_PATH = "/path/to/dir"
+TEST_BATCH_DIR_PATH = "/dir1"
+TEST_SECOND_BATCH_DIR_PATH = "/dir2"
 
-TEST_FILE_TITLE = 'Output Image'
-TEST_DIRECTORY_TITLE = 'Output Directory'
-TEST_TEXT_TITLE = 'Result'
-TEST_TEXT_VALUE = 'Test result text'
-TEST_MARKDOWN_VALUE = '# Test Heading\n\nThis is **bold** text.'
+TEST_FILE_TITLE = "Output Image"
+TEST_DIRECTORY_TITLE = "Output Directory"
+TEST_TEXT_TITLE = "Result"
+TEST_TEXT_VALUE = "Test result text"
+TEST_MARKDOWN_VALUE = "# Test Heading\n\nThis is **bold** text."
 
 # Batch response data
-BATCH_FILE_1_TITLE = 'Image 1'
-BATCH_FILE_2_TITLE = 'Image 2'
-BATCH_TEXT_1_TITLE = 'Title 1'
-BATCH_TEXT_2_TITLE = 'Title 2'
-BATCH_DIR_1_TITLE = 'Dir 1'
-BATCH_DIR_2_TITLE = 'Dir 2'
+BATCH_FILE_1_TITLE = "Image 1"
+BATCH_FILE_2_TITLE = "Image 2"
+BATCH_TEXT_1_TITLE = "Title 1"
+BATCH_TEXT_2_TITLE = "Title 2"
+BATCH_DIR_1_TITLE = "Dir 1"
+BATCH_DIR_2_TITLE = "Dir 2"
 
-BATCH_TEXT_1_VALUE = 'Text 1'
-BATCH_TEXT_2_VALUE = 'Text 2'
+BATCH_TEXT_1_VALUE = "Text 1"
+BATCH_TEXT_2_VALUE = "Text 2"
 
 # Metadata constants
-TEST_AGE_1 = '25'
-TEST_AGE_2 = '30'
-AGE_METADATA_KEY = 'Age'
+TEST_AGE_1 = "25"
+TEST_AGE_2 = "30"
+AGE_METADATA_KEY = "Age"
 
 # Expected UI text
-FILE_RESULT_TITLE = 'File Result'
-DIRECTORY_RESULT_TITLE = 'Directory Result'
-TEXT_RESULT_TITLE = 'Text Result'
-MARKDOWN_RESULT_TITLE = 'Markdown Result'
-BATCH_FILE_RESULT_TITLE = 'Batch File Result'
-BATCH_TEXT_RESULT_TITLE = 'Transcription'
-BATCH_DIRECTORY_RESULT_TITLE = 'Batch Directory Result'
+FILE_RESULT_TITLE = "File Result"
+DIRECTORY_RESULT_TITLE = "Directory Result"
+TEXT_RESULT_TITLE = "Text Result"
+MARKDOWN_RESULT_TITLE = "Markdown Result"
+BATCH_FILE_RESULT_TITLE = "Batch File Result"
+BATCH_TEXT_RESULT_TITLE = "Transcription"
+BATCH_DIRECTORY_RESULT_TITLE = "Batch Directory Result"
 
 # Table headers
-PATH_HEADER = 'Path'
-TITLE_HEADER = 'Title'
+PATH_HEADER = "Path"
+TITLE_HEADER = "Title"
+
 
 class TestResultsPreview:
     """Integration tests for results preview UI components.
@@ -89,7 +90,7 @@ class TestResultsPreview:
     All tests use NiceGUI's User testing framework to simulate real
     browser interactions and validate the complete user experience.
     """
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_file_response(self, user: User, sample_response_body):
@@ -101,16 +102,16 @@ class TestResultsPreview:
         """
         from nicegui import ui
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
-            with patch('os.path.exists', return_value=True):
+            with patch("os.path.exists", return_value=True):
                 ResultsPreview.render(container, sample_response_body.model_dump())
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(FILE_RESULT_TITLE)
         await user.should_see(TEST_FILE_TITLE)
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_directory_response(self, user: User):
@@ -123,23 +124,23 @@ class TestResultsPreview:
         from nicegui import ui
         from rb.api.models import ResponseBody, DirectoryResponse
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             response = ResponseBody(
                 root=DirectoryResponse(
-                    output_type='directory',
+                    output_type="directory",
                     path=TEST_DIRECTORY_PATH,
-                    title=TEST_DIRECTORY_TITLE
+                    title=TEST_DIRECTORY_TITLE,
                 )
             )
-            with patch('os.path.exists', return_value=True):
+            with patch("os.path.exists", return_value=True):
                 ResultsPreview.render(container, response.model_dump())
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(DIRECTORY_RESULT_TITLE)
         await user.should_see(TEST_DIRECTORY_TITLE)
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_text_response(self, user: User):
@@ -152,22 +153,20 @@ class TestResultsPreview:
         from nicegui import ui
         from rb.api.models import ResponseBody, TextResponse
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             response = ResponseBody(
                 root=TextResponse(
-                    output_type='text',
-                    value=TEST_TEXT_VALUE,
-                    title=TEST_TEXT_TITLE
+                    output_type="text", value=TEST_TEXT_VALUE, title=TEST_TEXT_TITLE
                 )
             )
             ResultsPreview.render(container, response.model_dump())
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(TEXT_RESULT_TITLE)
         await user.should_see(TEST_TEXT_VALUE)
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_batch_file_response(self, user: User):
@@ -179,9 +178,14 @@ class TestResultsPreview:
         processing operations.
         """
         from nicegui import ui
-        from rb.api.models import ResponseBody, BatchFileResponse, FileResponse, FileType
+        from rb.api.models import (
+            ResponseBody,
+            BatchFileResponse,
+            FileResponse,
+            FileType,
+        )
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             response = ResponseBody(
@@ -191,21 +195,21 @@ class TestResultsPreview:
                             file_type=FileType.IMG,
                             path=TEST_FILE_PATH,
                             title=BATCH_FILE_1_TITLE,
-                            metadata={AGE_METADATA_KEY: TEST_AGE_1}
+                            metadata={AGE_METADATA_KEY: TEST_AGE_1},
                         ),
                         FileResponse(
                             file_type=FileType.IMG,
                             path=TEST_SECOND_FILE_PATH,
                             title=BATCH_FILE_2_TITLE,
-                            metadata={AGE_METADATA_KEY: TEST_AGE_2}
+                            metadata={AGE_METADATA_KEY: TEST_AGE_2},
                         ),
                     ]
                 )
             )
-            with patch('os.path.exists', return_value=True):
+            with patch("os.path.exists", return_value=True):
                 ResultsPreview.render(container, response.model_dump())
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(BATCH_FILE_RESULT_TITLE)
         try:
             await user.should_see(Path(TEST_FILE_PATH).name)
@@ -213,7 +217,7 @@ class TestResultsPreview:
             await user.should_see(TEST_AGE_1)
         except AssertionError:
             pass
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_markdown_response(self, user: User):
@@ -226,21 +230,18 @@ class TestResultsPreview:
         from nicegui import ui
         from rb.api.models import ResponseBody, MarkdownResponse
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             response = ResponseBody(
-                root=MarkdownResponse(
-                    output_type='markdown',
-                    value=TEST_MARKDOWN_VALUE
-                )
+                root=MarkdownResponse(output_type="markdown", value=TEST_MARKDOWN_VALUE)
             )
             ResultsPreview.render(container, response.model_dump())
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(MARKDOWN_RESULT_TITLE)
-        await user.should_see('Test Heading')
-    
+        await user.should_see("Test Heading")
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_batch_text_response(self, user: User):
@@ -253,24 +254,32 @@ class TestResultsPreview:
         from nicegui import ui
         from rb.api.models import ResponseBody, BatchTextResponse, TextResponse
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             response = ResponseBody(
                 root=BatchTextResponse(
                     texts=[
-                        TextResponse(output_type='text', value=BATCH_TEXT_1_VALUE, title=BATCH_TEXT_1_TITLE),
-                        TextResponse(output_type='text', value=BATCH_TEXT_2_VALUE, title=BATCH_TEXT_2_TITLE),
+                        TextResponse(
+                            output_type="text",
+                            value=BATCH_TEXT_1_VALUE,
+                            title=BATCH_TEXT_1_TITLE,
+                        ),
+                        TextResponse(
+                            output_type="text",
+                            value=BATCH_TEXT_2_VALUE,
+                            title=BATCH_TEXT_2_TITLE,
+                        ),
                     ]
                 )
             )
             ResultsPreview.render(container, response.model_dump())
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(BATCH_TEXT_RESULT_TITLE)
         await user.should_see(BATCH_TEXT_1_TITLE)
         await user.should_see(BATCH_TEXT_1_VALUE)
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_batch_directory_response(self, user: User):
@@ -281,23 +290,35 @@ class TestResultsPreview:
         compare multiple directory results from batch processing operations.
         """
         from nicegui import ui
-        from rb.api.models import ResponseBody, BatchDirectoryResponse, DirectoryResponse
+        from rb.api.models import (
+            ResponseBody,
+            BatchDirectoryResponse,
+            DirectoryResponse,
+        )
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             response = ResponseBody(
                 root=BatchDirectoryResponse(
                     directories=[
-                        DirectoryResponse(output_type='directory', path=TEST_BATCH_DIR_PATH, title=BATCH_DIR_1_TITLE),
-                        DirectoryResponse(output_type='directory', path=TEST_SECOND_BATCH_DIR_PATH, title=BATCH_DIR_2_TITLE),
+                        DirectoryResponse(
+                            output_type="directory",
+                            path=TEST_BATCH_DIR_PATH,
+                            title=BATCH_DIR_1_TITLE,
+                        ),
+                        DirectoryResponse(
+                            output_type="directory",
+                            path=TEST_SECOND_BATCH_DIR_PATH,
+                            title=BATCH_DIR_2_TITLE,
+                        ),
                     ]
                 )
             )
-            with patch('os.path.exists', return_value=True):
+            with patch("os.path.exists", return_value=True):
                 ResultsPreview.render(container, response.model_dump())
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(BATCH_DIRECTORY_RESULT_TITLE)
         try:
             await user.should_see(TEST_BATCH_DIR_PATH)

@@ -44,7 +44,8 @@ import time
 
 # Import backend models for type hints and validation
 import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 from rb.api.models import TaskSchema, RequestBody, ResponseBody
 
 # Import refactored components
@@ -58,19 +59,20 @@ logger.setLevel(logging.INFO)
 
 class JobStatus(str, Enum):
     """Job status enumeration"""
-    RUNNING = 'Running'
-    COMPLETED = 'Completed'
-    FAILED = 'Failed'
-    CANCELED = 'Canceled'
+
+    RUNNING = "Running"
+    COMPLETED = "Completed"
+    FAILED = "Failed"
+    CANCELED = "Canceled"
 
 
 class JobRecord(BaseModel):
     """
     Pydantic model for job records in the database.
-    
+
     Represents a job with all its metadata, request, response, and schema.
     Supports both traditional model/task jobs and chatbot endpoint-based jobs.
-    
+
     Attributes:
         uid (str): Unique job identifier
         modelUid (Optional[str]): Model UID (for traditional jobs)
@@ -83,20 +85,23 @@ class JobRecord(BaseModel):
         request (Union[RequestBody, Dict]): Request body (validated as RequestBody)
         response (Optional[Union[ResponseBody, Dict]]): Response body (validated as ResponseBody)
         taskSchema (Union[TaskSchema, Dict]): Task schema (validated as TaskSchema)
-    
+
     Tips:
     - request, response, and taskSchema can be dicts or Pydantic models
     - When loaded from database, they are dicts (validated on access)
     - When creating, can pass Pydantic models directly
     """
-    
+
     uid: str = Field(..., description="Unique job identifier")
-    userId: Optional[str] = Field(None, description="NiceGUI session or user identifier")
+    userId: Optional[str] = Field(
+        None, description="NiceGUI session or user identifier"
+    )
     modelUid: Optional[str] = Field(None, description="Model UID for traditional jobs")
     taskUid: Optional[str] = Field(None, description="Task UID for traditional jobs")
     endpoint: Optional[str] = Field(None, description="Endpoint name for chatbot jobs")
     endpointChain: Optional[List[str]] = Field(
-        None, description="Ordered endpoints for multi-step chatbot pipelines (includes current job endpoint)"
+        None,
+        description="Ordered endpoints for multi-step chatbot pipelines (includes current job endpoint)",
     )
     pipelineRootJobId: Optional[str] = Field(
         None,
@@ -106,17 +111,25 @@ class JobRecord(BaseModel):
         None,
         description="Classifier metadata filter (e.g. age/gender) applied when chaining to the next pipeline step",
     )
-    filterId: Optional[str] = Field(None, description="Optional persisted filter id linking to file_filters")
-    caseNotes: Optional[str] = Field(None, description="User-entered case notes for the job")
+    filterId: Optional[str] = Field(
+        None, description="Optional persisted filter id linking to file_filters"
+    )
+    caseNotes: Optional[str] = Field(
+        None, description="User-entered case notes for the job"
+    )
     startTime: str = Field(..., description="Job start time in ISO format")
     endTime: Optional[str] = Field(None, description="Job end time in ISO format")
     status: JobStatus = Field(..., description="Job status")
     statusText: Optional[str] = Field(None, description="Status text for errors")
     request: Union[RequestBody, Dict[str, Any]] = Field(..., description="Request body")
-    response: Optional[Union[ResponseBody, Dict[str, Any]]] = Field(None, description="Response body")
-    taskSchema: Union[TaskSchema, Dict[str, Any]] = Field(..., description="Task schema")
-    
-    @field_validator('request', mode='before')
+    response: Optional[Union[ResponseBody, Dict[str, Any]]] = Field(
+        None, description="Response body"
+    )
+    taskSchema: Union[TaskSchema, Dict[str, Any]] = Field(
+        ..., description="Task schema"
+    )
+
+    @field_validator("request", mode="before")
     @classmethod
     def validate_request(cls, v):
         """Convert dict to RequestBody if needed"""
@@ -124,11 +137,13 @@ class JobRecord(BaseModel):
             try:
                 return RequestBody(**v)
             except Exception as e:
-                logger.warning("Could not validate request as RequestBody, keeping as dict: %s", e)
+                logger.warning(
+                    "Could not validate request as RequestBody, keeping as dict: %s", e
+                )
                 return v
         return v
-    
-    @field_validator('response', mode='before')
+
+    @field_validator("response", mode="before")
     @classmethod
     def validate_response(cls, v):
         """Convert dict to ResponseBody if needed"""
@@ -138,11 +153,14 @@ class JobRecord(BaseModel):
             try:
                 return ResponseBody(**v)
             except Exception as e:
-                logger.warning("Could not validate response as ResponseBody, keeping as dict: %s", e)
+                logger.warning(
+                    "Could not validate response as ResponseBody, keeping as dict: %s",
+                    e,
+                )
                 return v
         return v
-    
-    @field_validator('taskSchema', mode='before')
+
+    @field_validator("taskSchema", mode="before")
     @classmethod
     def validate_task_schema(cls, v):
         """Convert dict to TaskSchema if needed"""
@@ -150,14 +168,17 @@ class JobRecord(BaseModel):
             try:
                 return TaskSchema(**v)
             except Exception as e:
-                logger.warning("Could not validate taskSchema as TaskSchema, keeping as dict: %s", e)
+                logger.warning(
+                    "Could not validate taskSchema as TaskSchema, keeping as dict: %s",
+                    e,
+                )
                 return v
         return v
 
-    @field_validator('endpointChain', mode='before')
+    @field_validator("endpointChain", mode="before")
     @classmethod
     def validate_endpoint_chain(cls, v):
-        if v is None or v == '':
+        if v is None or v == "":
             return None
         if isinstance(v, list):
             return [str(x) for x in v]
@@ -169,7 +190,7 @@ class JobRecord(BaseModel):
                 return None
         return None
 
-    @field_validator('status', mode='before')
+    @field_validator("status", mode="before")
     @classmethod
     def validate_status(cls, v):
         """Convert string to JobStatus if needed"""
@@ -184,7 +205,7 @@ class JobRecord(BaseModel):
                 logger.warning("Unknown status: %s, using RUNNING", v)
                 return JobStatus.RUNNING
         return v
-    
+
     def model_dump_for_db(self) -> Dict[str, Any]:
         """
         Convert JobRecord to dict for database storage.
@@ -196,50 +217,51 @@ class JobRecord(BaseModel):
         - Converts Pydantic models to dicts
         - Serializes complex fields to JSON strings for database
         """
-        data = self.model_dump(mode='json')
+        data = self.model_dump(mode="json")
 
         # Use DatabaseValidator for consistent serialization
         validator = DatabaseValidator()
 
         # Serialize complex fields to JSON strings for database
-        data['request'] = validator.serialize_json(data.get('request'))
-        data['response'] = validator.serialize_json(data.get('response')) if data.get('response') else None
-        data['taskSchema'] = validator.serialize_json(data.get('taskSchema'))
+        data["request"] = validator.serialize_json(data.get("request"))
+        data["response"] = (
+            validator.serialize_json(data.get("response"))
+            if data.get("response")
+            else None
+        )
+        data["taskSchema"] = validator.serialize_json(data.get("taskSchema"))
 
         # Convert enum to string
-        if isinstance(data.get('status'), JobStatus):
-            data['status'] = data['status'].value
+        if isinstance(data.get("status"), JobStatus):
+            data["status"] = data["status"].value
         # Ensure optional fields are present (may be None)
-        if 'filterId' not in data:
-            data['filterId'] = None
-        if 'caseNotes' not in data:
-            data['caseNotes'] = None
-        if 'pipelineRootJobId' not in data:
-            data['pipelineRootJobId'] = None
-        if data.get('endpointChain') is not None:
-            data['endpointChain'] = json.dumps(data['endpointChain'])
+        if "filterId" not in data:
+            data["filterId"] = None
+        if "caseNotes" not in data:
+            data["caseNotes"] = None
+        if "pipelineRootJobId" not in data:
+            data["pipelineRootJobId"] = None
+        if data.get("endpointChain") is not None:
+            data["endpointChain"] = json.dumps(data["endpointChain"])
         else:
-            data['endpointChain'] = None
+            data["endpointChain"] = None
 
         return data
-    
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        use_enum_values=True
-    )
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)
 
 
 class JobDB(BaseDatabase):
     """
     Job database manager for SQLite storage.
-    
+
     Manages job records in SQLite database, supporting both traditional
     model/task jobs and chatbot endpoint-based jobs.
-    
+
     Attributes:
         db_path (Path): Path to SQLite database file
         conn (sqlite3.Connection): Database connection
-    
+
     Tips:
     - Database file is stored in frontend/data/jobs.db
     - Jobs are stored with JSON serialization for request/response/taskSchema
@@ -282,15 +304,19 @@ class JobDB(BaseDatabase):
             # Quick check whether the column exists
             conn.execute("SELECT userId FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
-            if 'no such column' in str(e).lower():
+            if "no such column" in str(e).lower():
                 logger.debug("userId column missing in jobs table; adding column")
                 try:
                     conn.execute("ALTER TABLE jobs ADD COLUMN userId TEXT")
-                    conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_userId ON jobs(userId)")
+                    conn.execute(
+                        "CREATE INDEX IF NOT EXISTS idx_jobs_userId ON jobs(userId)"
+                    )
                     conn.commit()
                     logger.debug("Added userId column and index to jobs table")
                 except Exception as e_add:
-                    logger.exception("Failed to add userId column to jobs table: %s", e_add)
+                    logger.exception(
+                        "Failed to add userId column to jobs table: %s", e_add
+                    )
                     raise
             else:
                 # Other operational errors should be propagated
@@ -301,7 +327,7 @@ class JobDB(BaseDatabase):
         try:
             conn.execute("SELECT caseNotes FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
-            if 'no such column' in str(e).lower():
+            if "no such column" in str(e).lower():
                 logger.debug("caseNotes column missing; adding column")
                 try:
                     conn.execute("ALTER TABLE jobs ADD COLUMN caseNotes TEXT")
@@ -318,7 +344,7 @@ class JobDB(BaseDatabase):
         try:
             conn.execute("SELECT endpointChain FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
-            if 'no such column' in str(e).lower():
+            if "no such column" in str(e).lower():
                 logger.debug("endpointChain column missing; adding column")
                 try:
                     conn.execute("ALTER TABLE jobs ADD COLUMN endpointChain TEXT")
@@ -335,7 +361,7 @@ class JobDB(BaseDatabase):
         try:
             conn.execute("SELECT pipelineRootJobId FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
-            if 'no such column' in str(e).lower():
+            if "no such column" in str(e).lower():
                 logger.debug("pipelineRootJobId column missing; adding column")
                 try:
                     conn.execute("ALTER TABLE jobs ADD COLUMN pipelineRootJobId TEXT")
@@ -345,24 +371,32 @@ class JobDB(BaseDatabase):
                     conn.commit()
                     logger.debug("Added pipelineRootJobId column to jobs table")
                 except Exception as e_add:
-                    logger.exception("Failed to add pipelineRootJobId column: %s", e_add)
+                    logger.exception(
+                        "Failed to add pipelineRootJobId column: %s", e_add
+                    )
                     raise
             else:
                 raise
 
-    def _ensure_pipeline_metadata_filter_criteria_column(self, conn: sqlite3.Connection) -> None:
+    def _ensure_pipeline_metadata_filter_criteria_column(
+        self, conn: sqlite3.Connection
+    ) -> None:
         """Ensure ``pipelineMetadataFilterCriteria`` exists (pipeline age/gender filter text)."""
         try:
             conn.execute("SELECT pipelineMetadataFilterCriteria FROM jobs LIMIT 1")
         except sqlite3.OperationalError as e:
-            if 'no such column' in str(e).lower():
-                logger.debug("pipelineMetadataFilterCriteria column missing; adding column")
+            if "no such column" in str(e).lower():
+                logger.debug(
+                    "pipelineMetadataFilterCriteria column missing; adding column"
+                )
                 try:
                     conn.execute(
                         "ALTER TABLE jobs ADD COLUMN pipelineMetadataFilterCriteria TEXT"
                     )
                     conn.commit()
-                    logger.debug("Added pipelineMetadataFilterCriteria column to jobs table")
+                    logger.debug(
+                        "Added pipelineMetadataFilterCriteria column to jobs table"
+                    )
                 except Exception as e_add:
                     logger.exception(
                         "Failed to add pipelineMetadataFilterCriteria column: %s", e_add
@@ -382,11 +416,11 @@ class JobDB(BaseDatabase):
             Schema initialization is handled by the base class
         """
         return super().connect()
-    
+
     def close(self):
         """
         Close database connection.
-        
+
         Returns:
             None
         """
@@ -395,14 +429,14 @@ class JobDB(BaseDatabase):
             self.conn.close()
             self.conn = None
             logger.info("Database connection closed")
-    
+
     async def initialize_schema(self):
         """
         Initialize database schema (create jobs table if it doesn't exist).
-        
+
         Returns:
             None
-        
+
         Tips:
         - Creates jobs table with all required fields
         - Uses TEXT for JSON fields (request, response, taskSchema)
@@ -410,8 +444,9 @@ class JobDB(BaseDatabase):
         """
         conn = self.connect()
         logger.info("Initializing database schema")
-        
-        conn.execute("""
+
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS jobs (
                 uid TEXT PRIMARY KEY,
                 userId TEXT,
@@ -428,15 +463,16 @@ class JobDB(BaseDatabase):
                 filterId TEXT,
                 caseNotes TEXT
             )
-        """)
-        
+        """
+        )
+
         # Create indexes for common queries
         conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_modelUid ON jobs(modelUid)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_userId ON jobs(userId)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_startTime ON jobs(startTime)")
         conn.execute("CREATE INDEX IF NOT EXISTS filterID ON jobs(filterId)")
-        
+
         conn.commit()
         logger.info("Database schema initialized successfully")
         # Ensure userId and caseNotes columns exist for older DBs
@@ -448,7 +484,7 @@ class JobDB(BaseDatabase):
             self._ensure_pipeline_metadata_filter_criteria_column(conn)
         except Exception:
             logger.debug("Column migration encountered an error during initialization")
-    
+
     async def create_job(
         self,
         request_body: Union[RequestBody, Dict[str, Any]],
@@ -464,7 +500,7 @@ class JobDB(BaseDatabase):
     ) -> JobRecord:
         """
         Create a new job record.
-        
+
         Args:
             request_body (Union[RequestBody, Dict[str, Any]]): Request body (inputs and parameters).
                 Can be RequestBody Pydantic model or dict
@@ -473,13 +509,13 @@ class JobDB(BaseDatabase):
             model_uid (Optional[str]): Model UID (for traditional jobs)
             task_uid (Optional[str]): Task UID (for traditional jobs)
             endpoint (Optional[str]): Endpoint name (for chatbot jobs)
-        
+
         Returns:
             JobRecord: Created job record as Pydantic model
-        
+
         Raises:
             ValueError: If neither (model_uid/task_uid) nor endpoint is provided
-        
+
         Tips:
         - Generates job uid as JOB_<uuid_hex> for consistency
         - Stores request_body and task_schema as JSON strings in database
@@ -489,11 +525,12 @@ class JobDB(BaseDatabase):
         """
         if not model_uid and not endpoint:
             raise ValueError("Either model_uid/task_uid or endpoint must be provided")
-        
+
         # Use explicit user_id if passed (from request context), else resolve from storage
         if user_id is None:
             try:
                 from frontend.utils import get_user_id_for_jobs
+
                 user_id = get_user_id_for_jobs()
             except Exception:
                 user_id = None
@@ -511,21 +548,25 @@ class JobDB(BaseDatabase):
             self._ensure_pipeline_metadata_filter_criteria_column(conn)
         except Exception:
             logger.debug("Failed to ensure columns before insert")
-        
+
         # Create JobRecord with validation
         # Extract optional filterId from request body parameters (supports _meta convention)
         try:
             maybe_filter_id = None
             if isinstance(request_body, dict):
-                params_section = request_body.get('parameters') or {}
+                params_section = request_body.get("parameters") or {}
                 if isinstance(params_section, dict):
                     # prefer top-level filterId for backward-compat, else look in _meta
-                    maybe_filter_id = params_section.get('filterId') or (params_section.get('_meta') or {}).get('filterId')
+                    maybe_filter_id = params_section.get("filterId") or (
+                        params_section.get("_meta") or {}
+                    ).get("filterId")
             else:
                 # pydantic model case
-                params_section = getattr(request_body, 'parameters', None) or {}
+                params_section = getattr(request_body, "parameters", None) or {}
                 if isinstance(params_section, dict):
-                    maybe_filter_id = params_section.get('filterId') or (params_section.get('_meta') or {}).get('filterId')
+                    maybe_filter_id = params_section.get("filterId") or (
+                        params_section.get("_meta") or {}
+                    ).get("filterId")
         except Exception:
             maybe_filter_id = None
 
@@ -561,13 +602,19 @@ class JobDB(BaseDatabase):
             statusText=None,
             request=request_body,  # Will be validated by JobRecord
             response=None,
-            taskSchema=task_schema  # Will be validated by JobRecord
+            taskSchema=task_schema,  # Will be validated by JobRecord
         )
-        
+
         # Convert to database format
         job_data = job_record.model_dump_for_db()
-        
-        logger.debug("Creating job %s (model_uid=%s, task_uid=%s, endpoint=%s)", uid, model_uid, task_uid, endpoint)
+
+        logger.debug(
+            "Creating job %s (model_uid=%s, task_uid=%s, endpoint=%s)",
+            uid,
+            model_uid,
+            task_uid,
+            endpoint,
+        )
 
         insert_sql = """
             INSERT INTO jobs (uid, userId, modelUid, taskUid, endpoint, endpointChain, pipelineRootJobId,
@@ -576,23 +623,23 @@ class JobDB(BaseDatabase):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
-            job_data['uid'],
-            job_data.get('userId'),
-            job_data['modelUid'],
-            job_data['taskUid'],
-            job_data['endpoint'],
-            job_data.get('endpointChain'),
-            job_data.get('pipelineRootJobId'),
-            job_data.get('pipelineMetadataFilterCriteria'),
-            job_data['startTime'],
-            job_data['endTime'],
-            job_data['status'],
-            job_data['statusText'],
-            job_data['request'],
-            job_data['response'],
-            job_data['taskSchema'],
-            job_data.get('filterId'),
-            job_data.get('caseNotes')
+            job_data["uid"],
+            job_data.get("userId"),
+            job_data["modelUid"],
+            job_data["taskUid"],
+            job_data["endpoint"],
+            job_data.get("endpointChain"),
+            job_data.get("pipelineRootJobId"),
+            job_data.get("pipelineMetadataFilterCriteria"),
+            job_data["startTime"],
+            job_data["endTime"],
+            job_data["status"],
+            job_data["statusText"],
+            job_data["request"],
+            job_data["response"],
+            job_data["taskSchema"],
+            job_data.get("filterId"),
+            job_data.get("caseNotes"),
         )
 
         # Try inserting with handling for IntegrityError and transient locking
@@ -610,7 +657,7 @@ class JobDB(BaseDatabase):
                 logger.warning("Job ID collision detected when creating %s: %s", uid, e)
                 # regenerate uid using uuid4 to avoid repeated collisions
                 uid = f"JOB_{uuid.uuid4().hex}"
-                job_data['uid'] = uid
+                job_data["uid"] = uid
                 params = list(params)
                 params[0] = uid
                 params = tuple(params)
@@ -618,8 +665,13 @@ class JobDB(BaseDatabase):
                 continue
             except sqlite3.OperationalError as e:
                 # Handle transient "database is locked" errors with backoff
-                if 'locked' in str(e).lower():
-                    logger.warning("Database locked when creating job %s, retrying (attempt=%d): %s", uid, attempt + 1, e)
+                if "locked" in str(e).lower():
+                    logger.warning(
+                        "Database locked when creating job %s, retrying (attempt=%d): %s",
+                        uid,
+                        attempt + 1,
+                        e,
+                    )
                     time.sleep(backoff)
                     backoff = min(1.0, backoff * 2)
                     attempt += 1
@@ -627,19 +679,21 @@ class JobDB(BaseDatabase):
                 raise
 
         # If we reach here, raise an error
-        logger.error("Failed to create job after %d attempts for uid %s", max_attempts, uid)
+        logger.error(
+            "Failed to create job after %d attempts for uid %s", max_attempts, uid
+        )
         raise RuntimeError("Failed to create job due to database errors")
-    
+
     async def get_job_by_uid(self, uid: str) -> Optional[JobRecord]:
         """
         Get job by UID.
-        
+
         Args:
             uid (str): Job UID
-        
+
         Returns:
             Optional[JobRecord]: Job record as Pydantic model if found, None otherwise
-        
+
         Tips:
         - Parses JSON fields (request, response, taskSchema) and validates as Pydantic models
         - Returns JobRecord with validated RequestBody, ResponseBody, and TaskSchema
@@ -654,20 +708,25 @@ class JobDB(BaseDatabase):
             self._ensure_pipeline_metadata_filter_criteria_column(conn)
         except Exception:
             logger.debug("Failed to ensure columns before fetch by uid")
-        
+
         cursor = conn.execute("SELECT * FROM jobs WHERE uid = ?", (uid,))
         row = cursor.fetchone()
-        
+
         if row:
             job_dict = self._row_to_dict(row)
             # Allow access only if job matches current user ID (explicit user string)
             try:
                 from frontend.utils import get_user_id_for_jobs
+
                 current_user_id = get_user_id_for_jobs()
             except Exception:
                 current_user_id = None
 
-            if current_user_id and job_dict.get('userId') and job_dict.get('userId') != current_user_id:
+            if (
+                current_user_id
+                and job_dict.get("userId")
+                and job_dict.get("userId") != current_user_id
+            ):
                 logger.warning("Access denied for job %s: session mismatch", uid)
                 return None
             try:
@@ -680,14 +739,14 @@ class JobDB(BaseDatabase):
         else:
             logger.debug("Job %s not found", uid)
             return None
-    
+
     async def get_all_jobs(self) -> List[Dict[str, Any]]:
         """
         Get all jobs, sorted by start time (newest first).
-        
+
         Returns:
             List[Dict[str, Any]]: List of job records as dictionaries
-        
+
         Tips:
         - Jobs are sorted by startTime descending (newest first)
         - All jobs are validated as JobRecord models
@@ -703,8 +762,10 @@ class JobDB(BaseDatabase):
             self._ensure_pipeline_root_job_id_column(conn)
             self._ensure_pipeline_metadata_filter_criteria_column(conn)
         except Exception:
-            logger.debug("Failed to ensure columns before fetching jobs; continuing without change")
-        
+            logger.debug(
+                "Failed to ensure columns before fetching jobs; continuing without change"
+            )
+
         # Use a local import to avoid circular dependency issues
         # job_utils -> database -> job_db -> job_utils
         from frontend.pages.jobs import extract_job_fields
@@ -712,19 +773,23 @@ class JobDB(BaseDatabase):
         # Filter by explicit user ID only
         try:
             from frontend.utils import get_user_id_for_jobs
+
             current_user = get_user_id_for_jobs()
         except Exception:
             current_user = None
 
         if current_user:
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT * FROM jobs
                 WHERE userId = ?
                 ORDER BY startTime DESC
-            """, (current_user,))
+            """,
+                (current_user,),
+            )
         else:
             cursor = conn.execute("SELECT * FROM jobs WHERE 1=0")
-        
+
         jobs = []
         for row in cursor.fetchall():
             job_dict = self._row_to_dict(row)
@@ -734,11 +799,17 @@ class JobDB(BaseDatabase):
                 # Convert the validated object to a clean dictionary for the UI
                 jobs.append(extract_job_fields(job_record_validated))
             except Exception as e:
-                logger.warning("Failed to validate job %s as JobRecord: %s, skipping", job_dict.get('uid', 'unknown'), e)
-        
+                logger.warning(
+                    "Failed to validate job %s as JobRecord: %s, skipping",
+                    job_dict.get("uid", "unknown"),
+                    e,
+                )
+
         return jobs
 
-    async def list_jobs_for_pipeline_root(self, user_id: str, root_uid: str) -> List[JobRecord]:
+    async def list_jobs_for_pipeline_root(
+        self, user_id: str, root_uid: str
+    ) -> List[JobRecord]:
         """
         Return jobs belonging to one pipeline run (same ``pipelineRootJobId`` or the root row).
 
@@ -751,7 +822,9 @@ class JobDB(BaseDatabase):
             self._ensure_pipeline_root_job_id_column(conn)
             self._ensure_pipeline_metadata_filter_criteria_column(conn)
         except Exception:
-            logger.debug("pipelineRootJobId ensure failed before list_jobs_for_pipeline_root")
+            logger.debug(
+                "pipelineRootJobId ensure failed before list_jobs_for_pipeline_root"
+            )
         cursor = conn.execute(
             """
             SELECT * FROM jobs
@@ -811,18 +884,18 @@ class JobDB(BaseDatabase):
         except Exception as e:
             logger.debug("get_job_count_for_user failed: %s", e)
             return 0
-    
+
     async def update_job_status(
         self,
         uid: str,
         status: JobStatus,
         response_body: Optional[Union[ResponseBody, Dict[str, Any]]] = None,
         status_text: Optional[str] = None,
-        end_time: Optional[datetime] = None
+        end_time: Optional[datetime] = None,
     ) -> bool:
         """
         Update job status and optionally response.
-        
+
         Args:
             uid (str): Job UID
             status (JobStatus): New status
@@ -830,10 +903,10 @@ class JobDB(BaseDatabase):
                 Can be ResponseBody Pydantic model or dict (for Completed status)
             status_text (Optional[str]): Status text (for Failed status)
             end_time (Optional[datetime]): End time (defaults to now if not provided)
-        
+
         Returns:
             bool: True if job was updated, False if job not found
-        
+
         Tips:
         - Sets end_time to current time if not provided
         - Stores response_body as JSON string in database
@@ -845,103 +918,100 @@ class JobDB(BaseDatabase):
                 if s.value.lower() == status.lower():
                     status = s
                     break
-        status_val = status.value if hasattr(status, 'value') else status
+        status_val = status.value if hasattr(status, "value") else status
         logger.debug("Updating job %s status to %s", uid, status_val)
-        
+
         if end_time is None:
             end_time = datetime.now()
-        
-        updates = {
-            'status': status_val,
-            'endTime': end_time.isoformat()
-        }
-        
+
+        updates = {"status": status_val, "endTime": end_time.isoformat()}
+
         if response_body is not None:
             # Serialize response_body to JSON string
             if isinstance(response_body, ResponseBody):
-                updates['response'] = json.dumps(response_body.model_dump(mode='json'))
+                updates["response"] = json.dumps(response_body.model_dump(mode="json"))
             else:
-                updates['response'] = json.dumps(response_body)
-        
+                updates["response"] = json.dumps(response_body)
+
         if status_text is not None:
-            updates['statusText'] = status_text
-        
-        set_clause = ', '.join([f"{k} = ?" for k in updates.keys()])
+            updates["statusText"] = status_text
+
+        set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
         values = list(updates.values()) + [uid]
-        
+
         cursor = conn.execute(f"UPDATE jobs SET {set_clause} WHERE uid = ?", values)
         conn.commit()
-        
+
         if cursor.rowcount > 0:
             logger.debug("Job %s updated successfully", uid)
             return True
         else:
             logger.warning("Job %s not found for update", uid)
             return False
-    
+
     async def delete_job(self, uid: str) -> bool:
         """
         Delete job by UID.
-        
+
         Args:
             uid (str): Job UID
-        
+
         Returns:
             bool: True if job was deleted, False if job not found
         """
         conn = self.connect()
         logger.info("Deleting job %s", uid)
-        
+
         cursor = conn.execute("DELETE FROM jobs WHERE uid = ?", (uid,))
         conn.commit()
-        
+
         if cursor.rowcount > 0:
             logger.info("Job %s deleted successfully", uid)
             return True
         else:
             logger.warning("Job %s not found for deletion", uid)
             return False
-    
+
     def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
         """
         Convert SQLite Row to dictionary with JSON parsing.
-        
+
         Parses JSON fields from database and returns dict ready for JobRecord validation.
-        
+
         Args:
             row (sqlite3.Row): SQLite row object
-        
+
         Returns:
             Dict[str, Any]: Dictionary with parsed JSON fields (ready for JobRecord)
-        
+
         Tips:
         - Parses JSON strings to dicts for request, response, and taskSchema
         - Result can be passed directly to JobRecord(**job_dict) for validation
         """
         job = dict(row)
-        
+
         # Parse JSON fields from database strings to dicts
-        if job.get('request'):
+        if job.get("request"):
             try:
-                job['request'] = json.loads(job['request'])
+                job["request"] = json.loads(job["request"])
             except json.JSONDecodeError as e:
                 logger.error("Failed to parse request JSON: %s", e)
-                job['request'] = {}
-        
-        if job.get('response'):
+                job["request"] = {}
+
+        if job.get("response"):
             try:
-                job['response'] = json.loads(job['response'])
+                job["response"] = json.loads(job["response"])
             except json.JSONDecodeError as e:
                 logger.error("Failed to parse response JSON: %s", e)
-                job['response'] = None
-        
-        if job.get('taskSchema'):
+                job["response"] = None
+
+        if job.get("taskSchema"):
             try:
-                job['taskSchema'] = json.loads(job['taskSchema'])
+                job["taskSchema"] = json.loads(job["taskSchema"])
             except json.JSONDecodeError as e:
                 logger.error("Failed to parse taskSchema JSON: %s", e)
-                job['taskSchema'] = {}
-        
+                job["taskSchema"] = {}
+
         return job
 
 
@@ -952,45 +1022,44 @@ _job_db: Optional[JobDB] = None
 async def init_database(db_path: Optional[Path] = None) -> JobDB:
     """
     Initialize database and return JobDB instance.
-    
+
     Args:
         db_path (Optional[Path]): Path to database file
-    
+
     Returns:
         JobDB: Initialized JobDB instance
-    
+
     Tips:
     - Creates schema if it doesn't exist
     - Returns singleton instance for reuse
     """
     global _job_db
-    
+
     if _job_db is None:
         _job_db = JobDB(db_path)
         await _job_db.initialize_schema()
-    
+
     return _job_db
 
 
 def get_job_db() -> JobDB:
     """
     Get global JobDB instance, initializing it if needed.
-    
+
     Returns:
         JobDB: Global JobDB instance
-    
+
     Tips:
     - Lazy initialization - database is created on first access
     - This avoids async initialization issues at module level
     - Schema is created automatically on first connection
     """
     global _job_db
-    
+
     if _job_db is None:
         logger.debug("Lazy-initializing job database")
         _job_db = JobDB()
         # Connect will auto-create schema if needed
         _job_db.connect()
-    
-    return _job_db
 
+    return _job_db

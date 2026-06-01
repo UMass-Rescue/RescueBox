@@ -1,6 +1,17 @@
 import os
 from pathlib import Path
-from typing import Any, Callable, List, Mapping, Optional, Tuple, Union, get_args, get_origin, get_type_hints
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 from pydantic import BaseModel
 from typing_extensions import assert_never
@@ -65,6 +76,7 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
         """Unwrap NotRequired[X] to X for optional input validation."""
         try:
             from typing import NotRequired
+
             if get_origin(hint) is NotRequired:
                 return get_args(hint)[0]
         except Exception:
@@ -144,17 +156,26 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
 
 # ---Pipeline Filter helper utilities for plugins ----------------------------------
 
+
 def extract_filter_id(inputs: dict, parameters: dict) -> Optional[str]:
     """Extract a filter id from parameters or inputs if present."""
     fid = None
     try:
         # Check top-level then _meta container
-        fid = parameters.get("filterId") or parameters.get("filter_id") or (parameters.get("_meta") or {}).get("filterId")
+        fid = (
+            parameters.get("filterId")
+            or parameters.get("filter_id")
+            or (parameters.get("_meta") or {}).get("filterId")
+        )
     except Exception:
         fid = None
 
     try:
-        ffi = inputs.get("file_filter") if isinstance(inputs, dict) else inputs["file_filter"]
+        ffi = (
+            inputs.get("file_filter")
+            if isinstance(inputs, dict)
+            else inputs["file_filter"]
+        )
         if isinstance(ffi, dict) and ffi.get("filter_id"):
             fid = fid or ffi.get("filter_id")
         else:
@@ -258,7 +279,11 @@ def apply_torch_cpu_preference() -> None:
     initializing CUDA can **SIGSEGV** the process. Setting ``CUDA_VISIBLE_DEVICES``
     to empty **before** torch loads prevents the CUDA driver from loading.
     """
-    if os.environ.get("RESCUEBOX_FORCE_CPU", "").strip().lower() in ("1", "true", "yes"):
+    if os.environ.get("RESCUEBOX_FORCE_CPU", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
         return
     for key in ("RESCUEBOX_PYTORCH_DEVICE", "RESCUEBOX_CLIP_DEVICE"):
@@ -266,4 +291,3 @@ def apply_torch_cpu_preference() -> None:
         if dev in ("cpu", "none"):
             os.environ["CUDA_VISIBLE_DEVICES"] = ""
             return
-

@@ -19,16 +19,15 @@ def backend_log_file_path() -> Path:
     if env:
         return Path(env).expanduser().resolve()
     logfile = Path("rb-backend.log")
-    if platform.system() == 'Windows':
-        base_dir = Path(os.getenv('APPDATA'))
-        logfile = base_dir / 'RescueBox-Desktop' / 'logs' / 'backend.log'
-    
+    if platform.system() == "Windows":
+        base_dir = Path(os.getenv("APPDATA"))
+        logfile = base_dir / "RescueBox-Desktop" / "logs" / "backend.log"
+
     return logfile
 
 
 def backend_log_level() -> str:
     return os.environ.get("RESCUEBOX_API_LOG_LEVEL") or "INFO"
-
 
 
 def configure_backend_logging() -> None:

@@ -127,7 +127,9 @@ if __name__ == "__main__":
     facecropper = None
     try:
         facecropper = _load_face_detector_session()
-        print("Face detector loaded; preprocess uses face alignment when a face is found.")
+        print(
+            "Face detector loaded; preprocess uses face alignment when a face is found."
+        )
     except Exception as e:
         print(f"Face detector unavailable ({e}); using full-frame preprocessing only.")
     results = run_models(models_to_use, test_dataset, facecrop=facecropper)

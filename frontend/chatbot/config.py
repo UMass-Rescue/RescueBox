@@ -35,83 +35,151 @@ class ChatbotConfig(BaseModel):
     This Pydantic model defines all configurable parameters for the chatbot,
     including API endpoints, model names, timeouts, and feature flags.
     """
-    OLLAMA_HOST: str = Field(default="http://127.0.0.1:11434", description="Ollama API base URL")
-    GRANITE_MODEL: str = Field(default="granite4:micro", description="Granite model name for tool calling")
-    RESCUEBOX_HOST: str = Field(default="http://localhost:8000", description="RescueBox API base URL")
-    TIMEOUT: int = Field(default=60*60*24*7, description="HTTP request timeout in seconds")
-    FILTER_ENABLED: bool = Field(default=True, description="Enable input filtering for non-forensic requests")
-    POLL_INTERVAL: float = Field(default=5.0, description="Polling interval (seconds) for checking running jobs on page load")
-    
+
+    OLLAMA_HOST: str = Field(
+        default="http://127.0.0.1:11434", description="Ollama API base URL"
+    )
+    GRANITE_MODEL: str = Field(
+        default="granite4:micro", description="Granite model name for tool calling"
+    )
+    RESCUEBOX_HOST: str = Field(
+        default="http://localhost:8000", description="RescueBox API base URL"
+    )
+    TIMEOUT: int = Field(
+        default=60 * 60 * 24 * 7, description="HTTP request timeout in seconds"
+    )
+    FILTER_ENABLED: bool = Field(
+        default=True, description="Enable input filtering for non-forensic requests"
+    )
+    POLL_INTERVAL: float = Field(
+        default=5.0,
+        description="Polling interval (seconds) for checking running jobs on page load",
+    )
+
     def __init__(self, **data):
         """Initialize ChatbotConfig with logging and allow environment overrides."""
         # Allow environment variables to override defaults when constructing config.
         # Tests may instantiate ChatbotConfig without passing RESCUEBOX_HOST; prefer env var if present.
-        env_rescue = os.getenv('RESCUEBOX_HOST')
+        env_rescue = os.getenv("RESCUEBOX_HOST")
         # Also allow API_BASE_URL to override RESCUEBOX_HOST (test runner sets this)
-        env_api_base = os.getenv('API_BASE_URL')
-        env_ollama = os.getenv('OLLAMA_HOST')
-        env_granite = os.getenv('GRANITE_MODEL')
+        env_api_base = os.getenv("API_BASE_URL")
+        env_ollama = os.getenv("OLLAMA_HOST")
+        env_granite = os.getenv("GRANITE_MODEL")
         # Respect API_BASE_URL only for integration runs (controlled by RUN_INTEGRATION).
         # This prevents test runs from accidentally inheriting an externally-set API_BASE_URL
         # when unit tests expect the default host.
-        run_integration_flag = os.getenv('RUN_INTEGRATION')
-        if env_api_base and 'RESCUEBOX_HOST' not in data and run_integration_flag in ('1', 'true', 'True'):
-            data['RESCUEBOX_HOST'] = env_api_base
-        elif env_rescue and 'RESCUEBOX_HOST' not in data:
-            data['RESCUEBOX_HOST'] = env_rescue
-        if env_ollama and env_ollama != '0.0.0.0' and 'OLLAMA_HOST' not in data:
-            data['OLLAMA_HOST'] = env_ollama
-        if env_granite and 'GRANITE_MODEL' not in data:
-            data['GRANITE_MODEL'] = env_granite
+        run_integration_flag = os.getenv("RUN_INTEGRATION")
+        if (
+            env_api_base
+            and "RESCUEBOX_HOST" not in data
+            and run_integration_flag in ("1", "true", "True")
+        ):
+            data["RESCUEBOX_HOST"] = env_api_base
+        elif env_rescue and "RESCUEBOX_HOST" not in data:
+            data["RESCUEBOX_HOST"] = env_rescue
+        if env_ollama and env_ollama != "0.0.0.0" and "OLLAMA_HOST" not in data:
+            data["OLLAMA_HOST"] = env_ollama
+        if env_granite and "GRANITE_MODEL" not in data:
+            data["GRANITE_MODEL"] = env_granite
 
         # Long-running jobs (e.g. image_summary) — override default TIMEOUT without code changes
-        if 'TIMEOUT' not in data:
-            env_job_timeout = os.getenv('RESCUEBOX_CHATBOT_TIMEOUT')
+        if "TIMEOUT" not in data:
+            env_job_timeout = os.getenv("RESCUEBOX_CHATBOT_TIMEOUT")
             if env_job_timeout:
                 try:
-                    data['TIMEOUT'] = int(float(env_job_timeout))
+                    data["TIMEOUT"] = int(float(env_job_timeout))
                 except ValueError:
                     pass
 
         super().__init__(**data)
-        logger.info("ChatbotConfig initialized: OLLAMA_HOST=%s, RESCUEBOX_HOST=%s, GRANITE_MODEL=%s, TIMEOUT=%s, FILTER_ENABLED=%s",
-                     self.OLLAMA_HOST, self.RESCUEBOX_HOST, self.GRANITE_MODEL, self.TIMEOUT, self.FILTER_ENABLED)
+        logger.info(
+            "ChatbotConfig initialized: OLLAMA_HOST=%s, RESCUEBOX_HOST=%s, GRANITE_MODEL=%s, TIMEOUT=%s, FILTER_ENABLED=%s",
+            self.OLLAMA_HOST,
+            self.RESCUEBOX_HOST,
+            self.GRANITE_MODEL,
+            self.TIMEOUT,
+            self.FILTER_ENABLED,
+        )
 
 
 class ToolRegistry:
     """Tool registry - Add new tools here"""
-    
+
     # Slash command to endpoint mapping (Method 1: Slash Commands)
     SLASH_COMMANDS: Dict[str, str] = {
-        '/transcribe': 'audio/transcribe',
-        '/describe-images': 'image_summary/summarize-images',
-        '/detect-deepfakes': 'deepfake_detection/predict',
-        '/age-gender': 'age-gender/predict',
-        '/upload-faces': 'face-match/bulkupload',
-        '/find-faces': 'face-match/findfacebulk',
-        '/summarize-text': 'text_summarization/summarize',
-        '/search-text': 'text_embeddings/search',
-        '/search-images': 'image_embeddings/search_images',
-        '/similar-images': 'image_similarity/search_similar_images',
-        '/ufdr-mount': 'ufdr_mounter/mount',
-        '/models': 'pick_tool',
-        '/assistant': 'smart_analyze',
-        '/help': 'help',
+        "/transcribe": "audio/transcribe",
+        "/describe-images": "image_summary/summarize-images",
+        "/detect-deepfakes": "deepfake_detection/predict",
+        "/age-gender": "age-gender/predict",
+        "/upload-faces": "face-match/bulkupload",
+        "/find-faces": "face-match/findfacebulk",
+        "/summarize-text": "text_summarization/summarize",
+        "/search-text": "text_embeddings/search",
+        "/search-images": "image_embeddings/search_images",
+        "/similar-images": "image_similarity/search_similar_images",
+        "/ufdr-mount": "ufdr_mounter/mount",
+        "/models": "pick_tool",
+        "/assistant": "smart_analyze",
+        "/help": "help",
     }
-    
+
     # Tool picker menu (Method 4: Tool Picker)
     TOOL_MENU: Dict[str, Dict[str, str]] = {
-        "1": {"name": "Transcribe Audio", "endpoint": "audio/transcribe", "desc": "Convert speech to text"},
-        "2": {"name": "Describe Images", "endpoint": "image_summary/summarize-images", "desc": "AI descriptions of photos"},
-        "3": {"name": "Search Images", "endpoint": "image_embeddings/search_images", "desc": "description or caption match"},
-        "4": {"name": "Age & Gender Predictor", "endpoint": "age-gender/predict", "desc": "Classify faces by age and gender"},
-        "5": {"name": "Detect Deepfakes", "endpoint": "deepfake_detection/predict", "desc": "Find manipulated media"},
-        "6": {"name": "Upload Face Match", "endpoint": "face-match/bulkupload", "desc": "Step 1 Build face collection"},
-        "7": {"name": "Find Face Match", "endpoint": "face-match/findfacebulk", "desc": "Step 2 Search face collection"},
-        "8": {"name": "Summarize Text", "endpoint": "text_summarization/summarize", "desc": "Document summaries"},
-        "9": {"name": "Search Text", "endpoint": "text_embeddings/search", "desc": "words or caption match"},
-        "10": {"name": "UFDR Mount", "endpoint": "ufdr_mounter/mount", "desc": "Mount UFDR files"},
-        "11": {"name": "Similar Images", "endpoint": "image_similarity/search_similar_images", "desc": "Find images similar to a query image"},
+        "1": {
+            "name": "Transcribe Audio",
+            "endpoint": "audio/transcribe",
+            "desc": "Convert speech to text",
+        },
+        "2": {
+            "name": "Describe Images",
+            "endpoint": "image_summary/summarize-images",
+            "desc": "AI descriptions of photos",
+        },
+        "3": {
+            "name": "Search Images",
+            "endpoint": "image_embeddings/search_images",
+            "desc": "description or caption match",
+        },
+        "4": {
+            "name": "Age & Gender Predictor",
+            "endpoint": "age-gender/predict",
+            "desc": "Classify faces by age and gender",
+        },
+        "5": {
+            "name": "Detect Deepfakes",
+            "endpoint": "deepfake_detection/predict",
+            "desc": "Find manipulated media",
+        },
+        "6": {
+            "name": "Upload Face Match",
+            "endpoint": "face-match/bulkupload",
+            "desc": "Step 1 Build face collection",
+        },
+        "7": {
+            "name": "Find Face Match",
+            "endpoint": "face-match/findfacebulk",
+            "desc": "Step 2 Search face collection",
+        },
+        "8": {
+            "name": "Summarize Text",
+            "endpoint": "text_summarization/summarize",
+            "desc": "Document summaries",
+        },
+        "9": {
+            "name": "Search Text",
+            "endpoint": "text_embeddings/search",
+            "desc": "words or caption match",
+        },
+        "10": {
+            "name": "UFDR Mount",
+            "endpoint": "ufdr_mounter/mount",
+            "desc": "Mount UFDR files",
+        },
+        "11": {
+            "name": "Similar Images",
+            "endpoint": "image_similarity/search_similar_images",
+            "desc": "Find images similar to a query image",
+        },
     }
 
     @staticmethod
@@ -147,7 +215,7 @@ class ToolRegistry:
             if uid not in seen:
                 seen.append(uid)
         return seen
-    
+
     # Non-forensic chit-chat (applied only after RESCUEBOX_KEYWORDS / path checks in utils.py)
     BLOCKED_PATTERNS: list[str] = [
         r"\b(weather|stock|news|sports|politics)\b",
@@ -159,57 +227,106 @@ class ToolRegistry:
         r"\b(write|compose|create|generate)\b.*(story|poem|essay|code)",
         r"\b(translate|convert)\b.*(language|spanish|french|german)",
     ]
-    
+
     # Enhanced request filtering keywords (from filter_user_input.py and rescuebox_tool.py)
     RESCUEBOX_KEYWORDS: list[str] = [
         # Audio
-        "transcribe", "audio", "speech", "voice", "recording", "interview",
+        "transcribe",
+        "audio",
+        "speech",
+        "voice",
+        "recording",
+        "interview",
         # Images
-        "image", "photo", "picture", "describe", "visual",
+        "image",
+        "photo",
+        "picture",
+        "describe",
+        "visual",
         # Age/Gender
-        "age", "gender", "classify", "demographics", "face",
+        "age",
+        "gender",
+        "classify",
+        "demographics",
+        "face",
         # Deepfake
-        "deepfake", "fake", "synthetic", "manipulated", "authentic", "real",
+        "deepfake",
+        "fake",
+        "synthetic",
+        "manipulated",
+        "authentic",
+        "real",
         # Face matching
-        "face match", "find face", "upload face", "collection", "identify", "recognize",
-        "suspect", "missing person", "match",
+        "face match",
+        "find face",
+        "upload face",
+        "collection",
+        "identify",
+        "recognize",
+        "suspect",
+        "missing person",
+        "match",
         # Text
-        "summarize", "summary", "document", "text", "report",
+        "summarize",
+        "summary",
+        "document",
+        "text",
+        "report",
         # Text embeddings & semantic search
-        "embed", "embedding", "semantic search", "vector search", "similar text",
+        "embed",
+        "embedding",
+        "semantic search",
+        "vector search",
+        "similar text",
         # General forensic
-        "forensic", "evidence", "analyze", "analysis", "investigate", "case",
-        "detect", "scan", "process", "extract",
+        "forensic",
+        "evidence",
+        "analyze",
+        "analysis",
+        "investigate",
+        "case",
+        "detect",
+        "scan",
+        "process",
+        "extract",
         # UFDR / mobile forensics
-        "ufdr", "cellebrite",
+        "ufdr",
+        "cellebrite",
         # Image embeddings & semantic search
-        "image search", "vector search", "similar image",
+        "image search",
+        "vector search",
+        "similar image",
         # Common paths (indicator of tool usage)
-        "/tmp", "/data", "/evidence", "/home", "/case", "/images",
+        "/tmp",
+        "/data",
+        "/evidence",
+        "/home",
+        "/case",
+        "/images",
     ]
-    
+
     @staticmethod
     def get_help_text() -> str:
         """
         Generate help text from tool registry.
-        
+
         This method dynamically builds help documentation by iterating through
         the tool registry. It combines slash commands, tool menu descriptions,
         and usage instructions into a formatted markdown string.
-        
+
         The help text includes:
         - List of all slash commands with descriptions
         - Special commands (/models, /assistant, /help)
         - Natural language usage examples
         - Overview of available methods
-        
+
         Returns:
             str: Formatted markdown help text suitable for display in the UI
-            
+
         Usage:
             help_text = ToolRegistry.get_help_text()
             # Display in UI or send as message
-            
+
         Tips:
         - Help text is automatically generated, so adding tools to registry
           automatically updates the help
@@ -218,9 +335,9 @@ class ToolRegistry:
         - Descriptions come from TOOL_MENU if available, otherwise uses endpoint name
         """
         logger.info("Generating help text from tool registry")
-        
+
         # help_text = """### 🛠️ RescueBox Usage
-        
+
         help_text = """
 
 #### Three different ways to use RescueBox Assistant
@@ -251,5 +368,5 @@ only the photos that match the filter will be fed to the next step to summarize 
 
 
 """
-        
+
         return help_text

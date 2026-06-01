@@ -28,14 +28,14 @@ from frontend.components.results import (
 )
 
 # Test constants
-TEST_IMAGE_PATH = '/tmp/test_image.jpg'
-TEST_FILE_PATH = '/tmp/test_file.txt'
-TEST_BATCH_PATH_1 = '/path/to/image1.jpg'
-TEST_BATCH_PATH_2 = '/path/to/image2.jpg'
-TEST_IMAGE_TITLE = 'Test Image'
-TEST_FILE_TITLE = 'Test File'
-BATCH_IMAGE_TITLE_1 = 'Image 1'
-BATCH_IMAGE_TITLE_2 = 'Image 2'
+TEST_IMAGE_PATH = "/tmp/test_image.jpg"
+TEST_FILE_PATH = "/tmp/test_file.txt"
+TEST_BATCH_PATH_1 = "/path/to/image1.jpg"
+TEST_BATCH_PATH_2 = "/path/to/image2.jpg"
+TEST_IMAGE_TITLE = "Test Image"
+TEST_FILE_TITLE = "Test File"
+BATCH_IMAGE_TITLE_1 = "Image 1"
+BATCH_IMAGE_TITLE_2 = "Image 2"
 
 
 class TestFileRenderers:
@@ -61,21 +61,19 @@ class TestFileRenderers:
         from rb.api.models import FileResponse, FileType
 
         response = FileResponse(
-            file_type=FileType.IMG,
-            path=TEST_IMAGE_PATH,
-            title=TEST_IMAGE_TITLE
+            file_type=FileType.IMG, path=TEST_IMAGE_PATH, title=TEST_IMAGE_TITLE
         )
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
-            with patch('os.path.exists', return_value=True):
+            with patch("os.path.exists", return_value=True):
                 render_file(container, response)
 
-        await user.open('/test')
-        await user.should_see('File Result')
+        await user.open("/test")
+        await user.should_see("File Result")
         await user.should_see(TEST_IMAGE_TITLE)
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_file_non_image(self, user: User):
@@ -88,22 +86,20 @@ class TestFileRenderers:
         from rb.api.models import FileResponse, FileType
 
         response = FileResponse(
-            file_type=FileType.TXT,
-            path=TEST_FILE_PATH,
-            title=TEST_FILE_TITLE
+            file_type=FileType.TXT, path=TEST_FILE_PATH, title=TEST_FILE_TITLE
         )
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
-            with patch('os.path.exists', return_value=True):
+            with patch("os.path.exists", return_value=True):
                 render_file(container, response)
 
-        await user.open('/test')
-        await user.should_see('File Result')
-        await user.should_see('Open File')
-        await user.should_see('Open Folder')
-    
+        await user.open("/test")
+        await user.should_see("File Result")
+        await user.should_see("Open File")
+        await user.should_see("Open Folder")
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_batch_file_with_metadata(self, user: User):
@@ -120,36 +116,36 @@ class TestFileRenderers:
                 file_type=FileType.IMG,
                 path=TEST_BATCH_PATH_1,
                 title=BATCH_IMAGE_TITLE_1,
-                metadata={'Age': '25', 'Gender': 'Male'}
+                metadata={"Age": "25", "Gender": "Male"},
             ),
             FileResponse(
                 file_type=FileType.IMG,
                 path=TEST_BATCH_PATH_2,
                 title=BATCH_IMAGE_TITLE_2,
-                metadata={'Age': '30', 'Gender': 'Female'}
+                metadata={"Age": "30", "Gender": "Female"},
             ),
         ]
 
         response = BatchFileResponse(files=files)
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             render_batch_file(container, response)
 
-        await user.open('/test')
-        await user.should_see('Batch File Result')
+        await user.open("/test")
+        await user.should_see("Batch File Result")
         from pathlib import Path
 
         try:
             await user.should_see(Path(TEST_BATCH_PATH_1).name)
             await user.should_see(BATCH_IMAGE_TITLE_1)
-            await user.should_see('25')
-            await user.should_see('Male')
+            await user.should_see("25")
+            await user.should_see("Male")
             await user.should_see(BATCH_IMAGE_TITLE_1)
         except AssertionError:
             pass
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_batch_file_without_metadata(self, user: User):
@@ -165,22 +161,22 @@ class TestFileRenderers:
             FileResponse(
                 file_type=FileType.IMG,
                 path=TEST_BATCH_PATH_1,
-                title=BATCH_IMAGE_TITLE_1
+                title=BATCH_IMAGE_TITLE_1,
             ),
             FileResponse(
                 file_type=FileType.IMG,
                 path=TEST_BATCH_PATH_2,
-                title=BATCH_IMAGE_TITLE_2
+                title=BATCH_IMAGE_TITLE_2,
             ),
         ]
 
         response = BatchFileResponse(files=files)
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             render_batch_file(container, response)
 
-        await user.open('/test')
-        await user.should_see('Batch File Result')
-        await user.should_see('IMG')
+        await user.open("/test")
+        await user.should_see("Batch File Result")
+        await user.should_see("IMG")

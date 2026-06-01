@@ -77,6 +77,7 @@ def test_search_types():
     assert callable(search)
 
     import inspect
+
     sig = inspect.signature(search)
     assert "inputs" in sig.parameters
     assert "parameters" in sig.parameters

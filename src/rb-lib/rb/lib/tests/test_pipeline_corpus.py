@@ -36,7 +36,9 @@ def test_list_text_files_in_directory_empty_on_missing_dir(tmp_path):
 def test_list_text_files_in_directory_respects_extensions(tmp_path):
     (tmp_path / "a.md").write_text("m", encoding="utf-8")
     (tmp_path / "b.txt").write_text("t", encoding="utf-8")
-    only_md = list_text_files_in_directory(str(tmp_path), allowed_extensions=frozenset({".md"}))
+    only_md = list_text_files_in_directory(
+        str(tmp_path), allowed_extensions=frozenset({".md"})
+    )
     assert only_md == [str(tmp_path / "a.md")]
 
 

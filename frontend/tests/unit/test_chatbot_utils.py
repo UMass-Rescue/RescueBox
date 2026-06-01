@@ -111,7 +111,7 @@ class TestNormalizeArguments:
     - Preservation of unknown keys
     - Complex multi-endpoint scenarios
     """
-    
+
     def test_normalize_input_directory(self):
         """Test normalization of input_directory to input_dir.
 
@@ -146,7 +146,7 @@ class TestNormalizeArguments:
             INPUT_DIRECTORY_KEY: TEST_INPUT_PATH,
             "output_path": TEST_OUTPUT_PATH,
             PATH_KEY: TEST_ANOTHER_PATH,
-            FOLDER_KEY: TEST_FOLDER_PATH
+            FOLDER_KEY: TEST_FOLDER_PATH,
         }
         result = normalize_arguments(args)
         # When multiple keys map to the same normalized key, the last one wins
@@ -154,7 +154,7 @@ class TestNormalizeArguments:
         # So "folder" (last) overwrites previous values
         assert result[INPUT_DIR_KEY] == TEST_FOLDER_PATH  # Last one wins
         assert result[OUTPUT_DIR_KEY] == TEST_OUTPUT_PATH
-    
+
     def test_normalize_age_gender_endpoint(self):
         """Test endpoint-specific normalization for age_gender tool.
 
@@ -201,7 +201,7 @@ class TestNormalizeArguments:
         result = normalize_arguments(args, endpoint=FIND_FACE_ENDPOINT)
         assert QUERY_DIRECTORY_KEY in result
         assert result[QUERY_DIRECTORY_KEY] == TEST_QUERY_PATH
-    
+
     def test_normalize_unknown_key(self):
         """Test that unknown keys are preserved without modification.
 
@@ -237,9 +237,7 @@ class TestNormalizeArguments:
 
     def test_normalize_preserves_search_query_for_text_embeddings(self):
         args = {"input_dir": "/tmp/summaries", "query": "witness statement"}
-        result = normalize_arguments(
-            args, endpoint="text_embeddings/search"
-        )
+        result = normalize_arguments(args, endpoint="text_embeddings/search")
         assert result.get("query") == "witness statement"
 
 
@@ -259,7 +257,7 @@ class TestIsRescueboxRequest:
     - Filter disablement for testing/admin purposes
     - Rejection reason categorization
     """
-    
+
     def test_valid_audio_request(self):
         """Test valid audio transcription request with keyword and path.
 
@@ -280,7 +278,7 @@ class TestIsRescueboxRequest:
         """
         is_valid, reason = is_rescuebox_request(DESCRIBE_REQUEST)
         assert is_valid is True
-    
+
     def test_valid_forensic_request(self):
         """Test valid forensic analysis request with evidence path.
 
@@ -320,19 +318,19 @@ class TestIsRescueboxRequest:
         is_valid, reason = is_rescuebox_request(JOKE_REQUEST)
         assert is_valid is False
         assert reason == NON_FORENSIC_REASON
-    
+
     def test_blocked_recipe_request(self):
         """Test blocked recipe request"""
         is_valid, reason = is_rescuebox_request("how to cook pasta?")
         assert is_valid is False
         assert reason == "non_forensic"
-    
+
     def test_blocked_greeting(self):
         """Test blocked simple greeting"""
         is_valid, reason = is_rescuebox_request("hello")
         assert is_valid is False
         assert reason == "non_forensic"
-    
+
     def test_path_detection(self):
         """Test that file paths trigger valid request"""
         # Use input with path but no keywords (keywords are checked first)
@@ -341,7 +339,7 @@ class TestIsRescueboxRequest:
         is_valid, reason = is_rescuebox_request("process files in /tmp/data/files")
         assert is_valid is True
         assert reason == "keyword_match"
-    
+
     def test_no_match_request(self):
         """Test request with no keywords or paths"""
         # Use string without any keywords or paths
@@ -349,13 +347,13 @@ class TestIsRescueboxRequest:
         is_valid, reason = is_rescuebox_request("hello there how are you today")
         assert is_valid is False
         assert reason == "no_match"
-    
+
     def test_filter_disabled(self):
         """Test that filter can be disabled"""
         is_valid, reason = is_rescuebox_request("random text", filter_enabled=False)
         assert is_valid is True
         assert reason == "filter_disabled"
-    
+
     def test_keyword_variations(self):
         """Test various keyword variations for tool recognition.
 
@@ -383,26 +381,26 @@ class TestGetRejectionMessage:
     - Consistent branding and tone
     - Comprehensive capability listings
     """
-    
+
     def test_non_forensic_rejection(self):
         """Test rejection message for non-forensic requests"""
         message = get_rejection_message("non_forensic")
         assert "RescueBox chat Assistant" in message
         assert "What will work:" in message
-    
+
     def test_no_match_rejection(self):
         """Test rejection message for unmatched requests"""
         message = get_rejection_message("no_match")
         assert "RescueBox Forensic Assistant" in message or "Examples:" in message
         assert "RescueBox Forensic Assistant" in message
         assert "Examples:" in message
-    
+
     def test_rejection_contains_examples(self):
         """Test that rejection messages contain helpful examples"""
         message = get_rejection_message("non_forensic")
         assert "Transcribe" in message or "transcribe" in message
         assert "Detect" in message or "detect" in message
-    
+
     def test_rejection_format(self):
         """Test that rejection messages are properly formatted markdown"""
         message = get_rejection_message("non_forensic")

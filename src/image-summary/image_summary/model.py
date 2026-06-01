@@ -6,16 +6,20 @@ from typing import Final
 import ollama
 
 SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
-    "moondream:latest": {"display_name": "moondream:latest: fast,less accurate runs on most hardware"},
+    "moondream:latest": {
+        "display_name": "moondream:latest: fast,less accurate runs on most hardware"
+    },
     "gemma3:4b": {"display_name": "Gemma3 4B: Small,slower runs on most hardware"},
-    "gemma3:27b": {"display_name": "Gemma3 27B: Larger, powerful model, runs on more powerful hardware"},
+    "gemma3:27b": {
+        "display_name": "Gemma3 27B: Larger, powerful model, runs on more powerful hardware"
+    },
 }
 
-'''
+"""
  "llama3.2-vision:90b": {
         "display_name": "LLAMA 3.2 90B: Most performant, needs plenty of VRAM",
     },
-'''
+"""
 
 IMAGE_PROMPT: Final[str] = (
     "You are an isolated, automated digital forensics analysis algorithm vision model."
@@ -28,9 +32,7 @@ IMAGE_PROMPT: Final[str] = (
     "Output only the description."
 )
 
-IMAGE_PROMPT_MOONDREAM: Final[str] = (
-    "Briefly describe the image."
-)
+IMAGE_PROMPT_MOONDREAM: Final[str] = "Briefly describe the image."
 
 
 def extract_response_after_think(text: str) -> str:

@@ -36,11 +36,20 @@ class TestComputeJobResultsTitle:
         assert "Search Text" in title
 
     def test_single_endpoint_in_chain(self):
-        assert compute_job_results_title(None, ["Transcribe Audio"]) == "Results for Transcribe Audio"
+        assert (
+            compute_job_results_title(None, ["Transcribe Audio"])
+            == "Results for Transcribe Audio"
+        )
 
     def test_fallback_to_name_when_no_chain(self):
-        assert compute_job_results_title("Transcribe Audio", None) == "Results for Transcribe Audio"
-        assert compute_job_results_title("Transcribe Audio", []) == "Results for Transcribe Audio"
+        assert (
+            compute_job_results_title("Transcribe Audio", None)
+            == "Results for Transcribe Audio"
+        )
+        assert (
+            compute_job_results_title("Transcribe Audio", [])
+            == "Results for Transcribe Audio"
+        )
 
     def test_empty_without_name(self):
         assert compute_job_results_title(None, None) == "Results"
@@ -150,13 +159,18 @@ class TestDatabaseServiceJobHelpers:
         mock_db.create_job = capture_create
         mock_db.update_job_status = AsyncMock()
 
-        with patch("frontend.pages.chatbot.database_service.get_job_db", return_value=mock_db):
+        with patch(
+            "frontend.pages.chatbot.database_service.get_job_db", return_value=mock_db
+        ):
             with patch.object(ds, "set_logging_context", MagicMock()):
                 out = await ds.DatabaseService.create_and_track_job(
                     RequestBody(inputs={}, parameters={}),
                     "text_embeddings/search",
                     task_schema=TaskSchema(inputs=[], parameters=[]),
-                    endpoint_chain=["image_summary/summarize-images", "text_embeddings/search"],
+                    endpoint_chain=[
+                        "image_summary/summarize-images",
+                        "text_embeddings/search",
+                    ],
                 )
 
         assert out is not None
@@ -190,8 +204,16 @@ class TestPartitionJobsByPipeline:
         assert pipeline_group_root_id(groups[0]) == root
 
     def test_standalone_jobs_are_separate_groups(self):
-        a = {"uid": "JOB_a", "pipelineRootJobId": None, "startTime": "2025-01-02T10:00:00"}
-        b = {"uid": "JOB_b", "pipelineRootJobId": None, "startTime": "2025-01-01T10:00:00"}
+        a = {
+            "uid": "JOB_a",
+            "pipelineRootJobId": None,
+            "startTime": "2025-01-02T10:00:00",
+        }
+        b = {
+            "uid": "JOB_b",
+            "pipelineRootJobId": None,
+            "startTime": "2025-01-01T10:00:00",
+        }
         groups = partition_jobs_by_pipeline([a, b])
         assert len(groups) == 2
 
@@ -201,7 +223,9 @@ class TestPartitionJobsByPipeline:
         mock_db = MagicMock()
         mock_db.update_job_status = AsyncMock()
 
-        with patch("frontend.pages.chatbot.database_service.get_job_db", return_value=mock_db):
+        with patch(
+            "frontend.pages.chatbot.database_service.get_job_db", return_value=mock_db
+        ):
             await ds.DatabaseService.update_job_status("JOB_x", "completed")
 
         mock_db.update_job_status.assert_called()
@@ -210,4 +234,3 @@ class TestPartitionJobsByPipeline:
         if hasattr(actual_status, "value"):
             actual_status = actual_status.value
         assert str(actual_status).lower() == JobStatus.COMPLETED.value.lower()
-

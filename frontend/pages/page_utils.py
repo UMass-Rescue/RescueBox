@@ -18,15 +18,16 @@ def setup_common_imports():
     """Setup commonly used imports for pages. This function can be called by page modules to ensure"""
     # Common imports that most pages need
     from frontend.utils import setup_backend_path
+
     setup_backend_path()
 
 
 def create_page_metadata(page_name: str) -> Dict[str, Any]:
     """Create metadata for a page. Args:"""
     return {
-        'name': page_name,
-        'title': get_page_title(page_name.lower(), page_name),
-        'route': f'/{page_name.lower()}',
+        "name": page_name,
+        "title": get_page_title(page_name.lower(), page_name),
+        "route": f"/{page_name.lower()}",
     }
 
 

@@ -5,8 +5,9 @@ from pathlib import Path
 
 project_root = Path(__file__).resolve().parent.parent
 DATA_DIR = os.path.join(project_root, "resources")
-if hasattr(sys, '_MEIPASS'):
+if hasattr(sys, "_MEIPASS"):
     DATA_DIR = sys._MEIPASS
+
 
 def get_resource_path(filename):
     os.makedirs(DATA_DIR, exist_ok=True)

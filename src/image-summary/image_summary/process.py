@@ -45,7 +45,9 @@ def iter_image_files(directory: Path, file_filter: List[Path]) -> Iterable[Path]
             yield path
 
 
-def process_images(model: str, input_dir: str, output_dir: str, file_filter: List[Path]) -> List[ImageSummaryFilePair]:
+def process_images(
+    model: str, input_dir: str, output_dir: str, file_filter: List[Path]
+) -> List[ImageSummaryFilePair]:
     """
     Process images sequentially, writing one ``.txt`` per image.
 

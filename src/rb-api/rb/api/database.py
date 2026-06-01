@@ -18,22 +18,35 @@ def create_db_and_tables():
     # Migration: add model_name to text_embeddings if missing (for existing DBs)
     try:
         from sqlalchemy import text
+
         with engine.begin() as conn:
             conn.execute(
-                text("ALTER TABLE text_embeddings ADD COLUMN model_name VARCHAR(128) DEFAULT 'BAAI/bge-m3' NOT NULL")
+                text(
+                    "ALTER TABLE text_embeddings ADD COLUMN model_name VARCHAR(128) DEFAULT 'BAAI/bge-m3' NOT NULL"
+                )
             )
     except Exception:
         pass  # Column likely already exists
     # Migration: add chunk_size, chunk_overlap if missing (for config invalidation)
     try:
         from sqlalchemy import text
+
         with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE text_embedding_chunks ADD COLUMN IF NOT EXISTS chunk_size INT DEFAULT 0"))
-            conn.execute(text("ALTER TABLE text_embedding_chunks ADD COLUMN IF NOT EXISTS chunk_overlap INT DEFAULT 0"))
+            conn.execute(
+                text(
+                    "ALTER TABLE text_embedding_chunks ADD COLUMN IF NOT EXISTS chunk_size INT DEFAULT 0"
+                )
+            )
+            conn.execute(
+                text(
+                    "ALTER TABLE text_embedding_chunks ADD COLUMN IF NOT EXISTS chunk_overlap INT DEFAULT 0"
+                )
+            )
     except Exception:
         pass
     try:
         from sqlalchemy import text
+
         with engine.begin() as conn:
             conn.execute(
                 text(
@@ -46,6 +59,7 @@ def create_db_and_tables():
     # BGE-M3 and other modern text encoders use 1024-dim vectors; legacy was 384 (MiniLM / bge-small).
     try:
         from sqlalchemy import text
+
         with engine.begin() as conn:
             for table, idx_name in (
                 ("text_embedding_chunks", "text_chunk_vector_idx"),
@@ -65,13 +79,16 @@ def create_db_and_tables():
                     conn.execute(text(f"DROP INDEX IF EXISTS {idx_name}"))
                     conn.execute(text(f"DELETE FROM {table}"))
                     conn.execute(text(f"ALTER TABLE {table} DROP COLUMN embedding"))
-                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN embedding vector(1024)"))
+                    conn.execute(
+                        text(f"ALTER TABLE {table} ADD COLUMN embedding vector(1024)")
+                    )
     except Exception:
         pass
-    
+
     # Image embeddings: plugin default openai/clip-vit-large-patch14-336 → projection_dim 768.
     try:
         from sqlalchemy import text
+
         with engine.begin() as conn:
             row = conn.execute(
                 text(
@@ -86,7 +103,11 @@ def create_db_and_tables():
                 conn.execute(text("DROP INDEX IF EXISTS image_embeddings_hnsw_idx"))
                 conn.execute(text("DELETE FROM image_embeddings"))
                 conn.execute(text("ALTER TABLE image_embeddings DROP COLUMN embedding"))
-                conn.execute(text("ALTER TABLE image_embeddings ADD COLUMN embedding vector(512))"))
+                conn.execute(
+                    text(
+                        "ALTER TABLE image_embeddings ADD COLUMN embedding vector(512))"
+                    )
+                )
     except Exception:
         pass
     SQLModel.metadata.create_all(engine)
@@ -123,6 +144,7 @@ class TextEmbedding(SQLModel, table=True):
     model_name: str = Field(default="all-MiniLM-L6-v2", index=True)
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(1024)))
 
+
 class TextEmbeddingChunk(SQLModel, table=True):
     """Chunk-level text embedding for better semantic recall (e.g. 'stones' matches 'pebbles')."""
 
@@ -133,7 +155,9 @@ class TextEmbeddingChunk(SQLModel, table=True):
     chunk_index: int = Field(default=0)
     chunk_text: str = Field(default="", sa_column=Column(Text))
     model_name: str = Field(default="BAAI/bge-small-en-v1.5", index=True)
-    chunk_size: int = Field(default=0)  # 0 = legacy; used to invalidate when params change
+    chunk_size: int = Field(
+        default=0
+    )  # 0 = legacy; used to invalidate when params change
     chunk_overlap: int = Field(default=0)
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(1024)))
 
@@ -148,6 +172,7 @@ class ImageEmbedding(SQLModel, table=True):
     # CLIP ViT-L/14 @336px joint embedding size (must match image_embeddings plugin default projection_dim).
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(512)))
 
+
 class ImageSimilarityEmbedding(SQLModel, table=True):
     """Image embeddings used by the image-to-image similarity search plugin."""
 
@@ -158,17 +183,18 @@ class ImageSimilarityEmbedding(SQLModel, table=True):
     content_sha256: str = Field(default="", index=True)
     model_name: str = Field(default="google/siglip2-so400m-patch14-384", index=True)
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
-    
+
+
 # TODO: There is probably a way to do this without this try kludge
 try:
     # Create an HNSW index
     index = Index(
-        'item_vector_idx',
+        "item_vector_idx",
         TextEmbedding.embedding,
-        postgresql_using='hnsw',
+        postgresql_using="hnsw",
         # OK, like, whatever...
-        postgresql_with={'m': 16, 'ef_construction': 64},
-        postgresql_ops={'embedding': 'vector_l2_ops'}
+        postgresql_with={"m": 16, "ef_construction": 64},
+        postgresql_ops={"embedding": "vector_l2_ops"},
     )
     index.create(engine)
 

@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+
 def vector_db_for_path(path: str) -> Vector_Database:
     """Backward-compatible alias; prefer :func:`vector_db_for_current_request`."""
     return vector_db_for_current_request(str(path))
@@ -129,7 +130,9 @@ def _collection_name_enum_for_find_tasks() -> EnumParameterDescriptor:
 
     Names come only from the current user's Chroma store (``X-RescueBox-User-Id`` when set).
     """
-    names = vector_db_for_current_request(None).get_available_collections(isEnsemble=False)
+    names = vector_db_for_current_request(None).get_available_collections(
+        isEnsemble=False
+    )
     names = [n for n in names if n]
     if names:
         return EnumParameterDescriptor(
@@ -146,7 +149,9 @@ def _collection_name_enum_for_find_tasks() -> EnumParameterDescriptor:
 
 def _collection_name_enum_for_multi_pipeline_find() -> EnumParameterDescriptor:
     """Same as :func:`_collection_name_enum_for_find_tasks` but for ensemble collection names."""
-    names = vector_db_for_current_request(None).get_available_collections(isEnsemble=True)
+    names = vector_db_for_current_request(None).get_available_collections(
+        isEnsemble=True
+    )
     names = [n for n in names if n]
     if names:
         return EnumParameterDescriptor(
@@ -407,14 +412,19 @@ def find_face_bulk_endpoint(
                             },
                         )
                     )
-        
+
         if not status or not file_responses:
             # If results is a string (e.g., an error message), use it directly
             # Otherwise, convert the dictionary to a string representation
-            error_message = str(results) if isinstance(results, str) else json.dumps(results, indent=2)
+            error_message = (
+                str(results)
+                if isinstance(results, str)
+                else json.dumps(results, indent=2)
+            )
             return ResponseBody(root=TextResponse(value=error_message))
-        
+
         return ResponseBody(root=BatchFileResponse(files=file_responses))
+
 
 server.add_ml_service(
     rule="/findfacebulk",
@@ -559,11 +569,7 @@ def get_ingest_images_task_schema() -> TaskSchema:
                         for collection_name in _choices
                     ],
                     message_when_empty="No collections found",
-                    default=(
-                        _choices[0]
-                        if len(_choices) > 0
-                        else ""
-                    ),
+                    default=(_choices[0] if len(_choices) > 0 else ""),
                 ),
             ),
             ParameterSchema(
@@ -626,7 +632,9 @@ def bulk_upload_endpoint(
             False,
         )
         # Call the model function
-        response = face_match_model.bulk_upload(input_directory_path, full_collection_name)
+        response = face_match_model.bulk_upload(
+            input_directory_path, full_collection_name
+        )
 
         # New collections appear on the next task_schema fetch (Chroma list_collections).
         return ResponseBody(root=TextResponse(value=response))
@@ -677,11 +685,7 @@ def get_multi_pipeline_ingest_images_task_schema() -> TaskSchema:
                         for collection_name in _mpc
                     ],
                     message_when_empty="No collections found",
-                    default=(
-                        _mpc[0]
-                        if len(_mpc) > 0
-                        else ""
-                    ),
+                    default=(_mpc[0] if len(_mpc) > 0 else ""),
                 ),
             ),
             ParameterSchema(
@@ -758,7 +762,9 @@ def multi_pipeline_bulk_upload_endpoint(
     inputs: MultiPipelineBulkUploadInputs, parameters: MultiPipelineBulkUploadParameters
 ) -> ResponseBody:
     check_cuDNN_version()
-    available_multi_pipeline_collections = _bulk_upload_collection_choices(is_ensemble=True)
+    available_multi_pipeline_collections = _bulk_upload_collection_choices(
+        is_ensemble=True
+    )
     base_collection_name = _resolve_bulk_upload_base_collection_name(
         parameters, available_multi_pipeline_collections
     )

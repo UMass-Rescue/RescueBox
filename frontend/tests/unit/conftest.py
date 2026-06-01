@@ -18,11 +18,11 @@ TEST_DIR_PATH = "/tmp/test_dir"
 
 # Sample data structures
 SAMPLE_CONVERSATION_DATA = {
-    'conversation_id': TEST_CONVERSATION_ID,
-    'conversation_data': {
-        'title': 'Test Conversation',
-        'created_at': '2024-01-01T10:00:00'
-    }
+    "conversation_id": TEST_CONVERSATION_ID,
+    "conversation_data": {
+        "title": "Test Conversation",
+        "created_at": "2024-01-01T10:00:00",
+    },
 }
 
 SAMPLE_RESPONSE_BODY = {
@@ -30,11 +30,8 @@ SAMPLE_RESPONSE_BODY = {
     "status": "completed",
     "result": {
         "type": "file",
-        "data": {
-            "filename": "output.txt",
-            "content": "Test content"
-        }
-    }
+        "data": {"filename": "output.txt", "content": "Test content"},
+    },
 }
 
 
@@ -42,7 +39,9 @@ SAMPLE_RESPONSE_BODY = {
 def reset_storage_registry():
     """Automatically reset the test fallback storage between tests."""
     from frontend.utils.storage import reset_test_storage
+
     reset_test_storage()
+
 
 @pytest.fixture
 def temp_directory(tmp_path):
@@ -84,13 +83,12 @@ def mock_api_client():
 def mock_database():
     """Mock database with async methods."""
     mock_db = MagicMock()
-    mock_db.get_conversation = AsyncMock(return_value={
-        'title': 'Test Conversation',
-        'created_at': '2024-01-01'
-    })
-    mock_db.get_messages = AsyncMock(return_value=[
-        {'role': 'user', 'content': 'Hello'}
-    ])
+    mock_db.get_conversation = AsyncMock(
+        return_value={"title": "Test Conversation", "created_at": "2024-01-01"}
+    )
+    mock_db.get_messages = AsyncMock(
+        return_value=[{"role": "user", "content": "Hello"}]
+    )
     mock_db.save_message = AsyncMock()
     return mock_db
 
@@ -108,7 +106,7 @@ def mock_chatbot():
 @pytest.fixture
 def mock_ui():
     """Mock NiceGUI ui module for testing."""
-    with patch('frontend.components.shared.ui') as mock_ui:
+    with patch("frontend.components.shared.ui") as mock_ui:
         # Mock common UI elements
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
@@ -124,45 +122,43 @@ def mock_ui():
 def sample_task_schema():
     """Create sample task schema for testing."""
     from rb.api.models import (
-        TaskSchema, InputSchema, ParameterSchema, InputType,
-        RangedFloatParameterDescriptor, FloatRangeDescriptor,
-        EnumParameterDescriptor, EnumVal
+        TaskSchema,
+        InputSchema,
+        ParameterSchema,
+        InputType,
+        RangedFloatParameterDescriptor,
+        FloatRangeDescriptor,
+        EnumParameterDescriptor,
+        EnumVal,
     )
 
     return TaskSchema(
         inputs=[
             InputSchema(
-                key='input_dir',
-                label='Input Directory',
-                inputType=InputType.DIRECTORY
+                key="input_dir", label="Input Directory", inputType=InputType.DIRECTORY
             ),
-            InputSchema(
-                key='prompt',
-                label='Prompt',
-                inputType=InputType.TEXT
-            )
+            InputSchema(key="prompt", label="Prompt", inputType=InputType.TEXT),
         ],
         parameters=[
             ParameterSchema(
-                key='confidence',
-                label='Confidence',
+                key="confidence",
+                label="Confidence",
                 value=RangedFloatParameterDescriptor(
-                    range=FloatRangeDescriptor(min=0.0, max=1.0),
-                    default=0.8
-                )
+                    range=FloatRangeDescriptor(min=0.0, max=1.0), default=0.8
+                ),
             ),
             ParameterSchema(
-                key='mode',
-                label='Processing Mode',
+                key="mode",
+                label="Processing Mode",
                 value=EnumParameterDescriptor(
                     enumVals=[
-                        EnumVal(key='fast', value='fast', label='Fast'),
-                        EnumVal(key='accurate', value='accurate', label='Accurate')
+                        EnumVal(key="fast", value="fast", label="Fast"),
+                        EnumVal(key="accurate", value="accurate", label="Accurate"),
                     ],
-                    default='fast'
-                )
-            )
-        ]
+                    default="fast",
+                ),
+            ),
+        ],
     )
 
 
@@ -177,7 +173,7 @@ def sample_response_body():
         content="Test content",
         file_type=FileType.TEXT,
         path="/tmp/output.txt",
-        title="Output Image"
+        title="Output Image",
     )
 
     # Create ResponseBody with the file response as the root value
@@ -189,10 +185,10 @@ def sample_response_body():
 def sample_files():
     """Create sample file paths for testing."""
     return {
-        'text_file': '/tmp/sample.txt',
-        'image_file': '/tmp/sample.jpg',
-        'audio_file': '/tmp/sample.mp3',
-        'directory': '/tmp/sample_dir'
+        "text_file": "/tmp/sample.txt",
+        "image_file": "/tmp/sample.jpg",
+        "audio_file": "/tmp/sample.mp3",
+        "directory": "/tmp/sample_dir",
     }
 
 
@@ -203,21 +199,21 @@ async def user():
     from nicegui.testing import User
 
     # Ensure app.config has required attributes to avoid AttributeErrors during page resolution
-    if not hasattr(app.config, 'title'):
-        app.config.title = 'RescueBox'
-    if not hasattr(app.config, 'viewport'):
-        app.config.viewport = 'width=device-width, initial-scale=1'
-    if not hasattr(app.config, 'favicon'):
+    if not hasattr(app.config, "title"):
+        app.config.title = "RescueBox"
+    if not hasattr(app.config, "viewport"):
+        app.config.viewport = "width=device-width, initial-scale=1"
+    if not hasattr(app.config, "favicon"):
         app.config.favicon = None
-    if not hasattr(app.config, 'dark'):
+    if not hasattr(app.config, "dark"):
         app.config.dark = None
-    if not hasattr(app.config, 'language'):
-        app.config.language = 'en-US'
-    if not hasattr(app.config, 'tailwind'):
+    if not hasattr(app.config, "language"):
+        app.config.language = "en-US"
+    if not hasattr(app.config, "tailwind"):
         app.config.tailwind = True
-    if not hasattr(app.config, 'quasar_config'):
+    if not hasattr(app.config, "quasar_config"):
         app.config.quasar_config = {}
-    if not hasattr(app.config, 'prod_js'):
+    if not hasattr(app.config, "prod_js"):
         app.config.prod_js = True
 
     # Initialize NiceGUI app context properly
@@ -227,7 +223,9 @@ async def user():
     except Exception:
         pass
 
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
         yield User(client)
 
 
@@ -235,12 +233,13 @@ async def user():
 def create_mock_message(role, content, message_id=None):
     """Create a mock message for testing."""
     from frontend.database import ChatMessageRecord
+
     return ChatMessageRecord(
         message_id=message_id or f"msg-{role[:3]}",
         conversation_id=TEST_CONVERSATION_ID,
         role=role,
         content=content,
-        timestamp='2024-01-01T10:00:00Z'
+        timestamp="2024-01-01T10:00:00Z",
     )
 
 
@@ -255,9 +254,9 @@ def assert_messages_equal(actual, expected):
 # Context managers for common mocking patterns
 def mock_ui_operations():
     """Context manager to mock UI operations."""
-    return patch.multiple('nicegui.ui', notify=MagicMock(), navigate=MagicMock())
+    return patch.multiple("nicegui.ui", notify=MagicMock(), navigate=MagicMock())
 
 
 def mock_storage_operations():
     """Context manager to mock storage operations."""
-    return patch.object(app.storage, 'client', {})
+    return patch.object(app.storage, "client", {})

@@ -299,4 +299,6 @@ def inject_global_readability_css() -> None:
         """,
         shared=True,
     )
-    logger.debug("Global readability CSS injected (notifications + .rb-chat-input-area)")
+    logger.debug(
+        "Global readability CSS injected (notifications + .rb-chat-input-area)"
+    )

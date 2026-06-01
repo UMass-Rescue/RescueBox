@@ -76,9 +76,7 @@ def test_suggested_ufdr_mount_folder_path():
     s = suggested_ufdr_mount_folder_path(
         "/home/tester/Documents/demo5/ufdr-mount/inputs/test.ufdr"
     )
-    assert s == str(
-        Path("/home/tester/Documents/demo5/ufdr-mount/outputs").resolve()
-    )
+    assert s == str(Path("/home/tester/Documents/demo5/ufdr-mount/outputs").resolve())
 
 
 def test_paired_ufdr_mount_name_field_id():

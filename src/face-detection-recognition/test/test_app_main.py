@@ -63,7 +63,9 @@ class TestFaceMatch(RBAppTest):
         """Set up the test environment once before all test methods"""
 
         # Skip face-detection tests if required ONNX models are not available.
-        models_dir = Path("src/face-detection-recognition/face_detection_recognition/models")
+        models_dir = Path(
+            "src/face-detection-recognition/face_detection_recognition/models"
+        )
         if not (models_dir / "retinaface-resnet50.onnx").exists():
             pytest.skip("Face detection ONNX models not available in CI environment")
 

@@ -27,7 +27,7 @@ from rb.api.database import TextEmbeddingChunk, engine
 from sqlalchemy import bindparam, text as sql_text, update
 from sqlmodel import Session, delete, select
 
-#_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+# _MODEL_NAME = "BAAI/bge-small-en-v1.5"
 _MODEL_NAME = "BAAI/bge-m3"
 
 _BGE_QUERY_PREFIX = "query: "  # BGE asymmetric search (queries only)
@@ -188,12 +188,14 @@ def _paths_with_chunks_for_params(
     if not paths:
         return set()
     rows = session.exec(
-        select(TextEmbeddingChunk.path).where(
+        select(TextEmbeddingChunk.path)
+        .where(
             cast(Any, TextEmbeddingChunk.__table__.c.path).in_(paths),
             TextEmbeddingChunk.model_name == model_name,
             TextEmbeddingChunk.chunk_size == chunk_size,
             TextEmbeddingChunk.chunk_overlap == chunk_overlap,
-        ).distinct()
+        )
+        .distinct()
     ).all()
     return set(rows)
 
@@ -228,11 +230,13 @@ def _relocate_matching_basenames(
     Relocation is skipped when both the old and new full paths appear in ``file_paths``.
     """
     stored_paths = session.exec(
-        select(TextEmbeddingChunk.path).where(
+        select(TextEmbeddingChunk.path)
+        .where(
             TextEmbeddingChunk.model_name == model_name,
             TextEmbeddingChunk.chunk_size == chunk_size,
             TextEmbeddingChunk.chunk_overlap == chunk_overlap,
-        ).distinct()
+        )
+        .distinct()
     ).all()
     by_bn: dict[str, str] = {}
     for sp in stored_paths:
@@ -278,7 +282,7 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     Semantic search over text files. Embeds the directory if embeddings don't exist
     for the requested model, then runs cosine similarity search.
     """
-    
+
     from sentence_transformers import SentenceTransformer  # type: ignore
 
     input_dir = str(inputs["input_dir"].path)
@@ -301,7 +305,7 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         )
 
     model = SentenceTransformer(model_name)
-   
+
     logger.info(
         "SentenceTransformer loaded on device=%s model_name=%s",
         model.device,
@@ -414,14 +418,16 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     search_results = []
     for row in rows:
         sim = float(row.similarity)
-        search_results.append({
-            "id": row.id,
-            "path": row.path,
-            "chunk_index": row.chunk_index,
-            "similarity": sim,
-            "is_match": sim >= min_similarity,
-            "matching_text": _truncate(row.chunk_text or "", 600),
-        })
+        search_results.append(
+            {
+                "id": row.id,
+                "path": row.path,
+                "chunk_index": row.chunk_index,
+                "similarity": sim,
+                "is_match": sim >= min_similarity,
+                "matching_text": _truncate(row.chunk_text or "", 600),
+            }
+        )
     response_data = {
         "query": query_text,
         "model": model_name,

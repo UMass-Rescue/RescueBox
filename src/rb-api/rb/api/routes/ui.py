@@ -33,8 +33,6 @@ else:
     )
 
 
-
-
 @ui_router.get("/")
 async def interface(request: Request):
     tree, _ = typer_app_to_tree(rescuebox_app)

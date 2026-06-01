@@ -30,60 +30,57 @@ class TestValidateFormData:
         and returns a successful validation result.
         """
         form_data = {
-            'inputs': {
-                'input_dir': {'path': str(temp_directory)},
-                'prompt': {'text': 'Test prompt'}
+            "inputs": {
+                "input_dir": {"path": str(temp_directory)},
+                "prompt": {"text": "Test prompt"},
             },
-            'parameters': {
-                'confidence': 0.85,
-                'mode': 'fast'
-            }
+            "parameters": {"confidence": 0.85, "mode": "fast"},
         }
-        
+
         result = validate_form_data(form_data, sample_task_schema)
-        
-        assert result['is_valid'] is True
-        assert len(result['errors']) == 0
-        assert 'validated_data' in result
-    
+
+        assert result["is_valid"] is True
+        assert len(result["errors"]) == 0
+        assert "validated_data" in result
+
     def test_validate_invalid_directory(self, sample_task_schema):
         """Test validation fails with invalid directory path"""
         form_data = {
-            'inputs': {
-                'input_dir': {'path': '/nonexistent/path'},
-                'prompt': {'text': 'Test'}
+            "inputs": {
+                "input_dir": {"path": "/nonexistent/path"},
+                "prompt": {"text": "Test"},
             },
-            'parameters': {}
+            "parameters": {},
         }
-        
+
         result = validate_form_data(form_data, sample_task_schema)
-        
+
         # Should fail validation due to invalid path
-        assert result['is_valid'] is False
-        assert 'input_dir' in result['errors']
+        assert result["is_valid"] is False
+        assert "input_dir" in result["errors"]
 
     def test_validate_missing_input_dir(self, sample_task_schema):
         """Submitting without a declared input path must fail before RequestBody."""
         form_data = {
-            'inputs': {'prompt': {'text': 'Test'}},
-            'parameters': {},
+            "inputs": {"prompt": {"text": "Test"}},
+            "parameters": {},
         }
         result = validate_form_data(form_data, sample_task_schema)
-        assert result['is_valid'] is False
-        assert 'input_dir' in result['errors']
+        assert result["is_valid"] is False
+        assert "input_dir" in result["errors"]
 
     def test_validate_empty_directory_path(self, sample_task_schema):
         """Empty path string must be rejected for directory inputs."""
         form_data = {
-            'inputs': {
-                'input_dir': {'path': '   '},
-                'prompt': {'text': 'Test'},
+            "inputs": {
+                "input_dir": {"path": "   "},
+                "prompt": {"text": "Test"},
             },
-            'parameters': {},
+            "parameters": {},
         }
         result = validate_form_data(form_data, sample_task_schema)
-        assert result['is_valid'] is False
-        assert 'input_dir' in result['errors']
+        assert result["is_valid"] is False
+        assert "input_dir" in result["errors"]
 
     def test_query_text_input_must_not_be_empty(self, tmp_path):
         """image_embeddings/search_images (and similar) require a non-blank ``query`` input."""
@@ -195,13 +192,13 @@ class TestValidateFormData:
         d.mkdir()
         (d / "notes.txt").write_text("no images")
         form_data = {
-            'inputs': {'input_dir': {'path': str(d)}, 'prompt': {'text': 'captions'}},
-            'parameters': {'confidence': 0.8, 'mode': 'fast'},
+            "inputs": {"input_dir": {"path": str(d)}, "prompt": {"text": "captions"}},
+            "parameters": {"confidence": 0.8, "mode": "fast"},
         }
         result = validate_form_data(form_data, schema)
-        assert result['is_valid'] is False
-        assert 'input_dir' in result['errors']
-        assert 'image' in result['errors']['input_dir'].lower()
+        assert result["is_valid"] is False
+        assert "input_dir" in result["errors"]
+        assert "image" in result["errors"]["input_dir"].lower()
 
     def test_image_endpoint_accepts_dir_with_jpeg(self, tmp_path):
         from rb.api.models import (
@@ -248,13 +245,13 @@ class TestValidateFormData:
         )
         d = tmp_path / "evidence"
         d.mkdir()
-        (d / "kid.jpeg").write_bytes(b'\xff\xd8\xff\xd9')
+        (d / "kid.jpeg").write_bytes(b"\xff\xd8\xff\xd9")
         form_data = {
-            'inputs': {'input_dir': {'path': str(d)}, 'prompt': {'text': 'x'}},
-            'parameters': {'confidence': 0.8, 'mode': 'fast'},
+            "inputs": {"input_dir": {"path": str(d)}, "prompt": {"text": "x"}},
+            "parameters": {"confidence": 0.8, "mode": "fast"},
         }
         result = validate_form_data(form_data, schema)
-        assert result['is_valid'] is True
+        assert result["is_valid"] is True
 
     def test_image_endpoint_skips_raster_check_for_output_dir(self, tmp_path):
         """Output folders are often empty until the job runs; do not require raster files there."""
@@ -417,25 +414,27 @@ class TestValidateFormData:
         )
         d = tmp_path / "audio_in"
         d.mkdir()
-        (d / "speech.txt").write_text('x')
+        (d / "speech.txt").write_text("x")
         form_data = {
-            'inputs': {'input_dir': {'path': str(d)}, 'prompt': {'text': 'x'}},
-            'parameters': {'confidence': 0.8, 'mode': 'fast'},
+            "inputs": {"input_dir": {"path": str(d)}, "prompt": {"text": "x"}},
+            "parameters": {"confidence": 0.8, "mode": "fast"},
         }
         result = validate_form_data(form_data, schema)
-        assert result['is_valid'] is True
+        assert result["is_valid"] is True
 
     def test_validate_invalid_schema_dict(self):
         """Test validation with invalid schema dictionary"""
-        form_data = {'inputs': {}, 'parameters': {}}
-        invalid_schema = {'inputs': 'invalid', 'parameters': []}
-        
+        form_data = {"inputs": {}, "parameters": {}}
+        invalid_schema = {"inputs": "invalid", "parameters": []}
+
         result = validate_form_data(form_data, invalid_schema)
-        
-        assert result['is_valid'] is False
-        assert 'schema' in result['errors']
-    
-    def test_validate_form_data_parameters_pass_through(self, sample_task_schema, temp_directory):
+
+        assert result["is_valid"] is False
+        assert "schema" in result["errors"]
+
+    def test_validate_form_data_parameters_pass_through(
+        self, sample_task_schema, temp_directory
+    ):
         """``validate_form_data`` does not range-check parameters against the task schema."""
         form_data = {
             "inputs": {
@@ -456,114 +455,104 @@ class TestValidateFormData:
 
 class TestCreateInputModel:
     """Tests for _create_input_model function"""
-    
+
     def test_create_directory_input(self, sample_task_schema):
         """Test creating DirectoryInput model"""
         input_schema = sample_task_schema.inputs[0]  # input_dir
-        value = {'path': str(Path.cwd())}
-        
+        value = {"path": str(Path.cwd())}
+
         result = _create_input_model(input_schema, value)
-        
+
         assert isinstance(result, DirectoryInput)
         assert result.path == Path.cwd()
-    
+
     def test_create_file_input(self):
         """Test creating FileInput model"""
         from rb.api.models import FileInput, InputSchema, InputType
-        
-        input_schema = InputSchema(
-            key='file',
-            label='File',
-            inputType=InputType.FILE
-        )
-        value = {'path': str(Path(__file__))}
-        
+
+        input_schema = InputSchema(key="file", label="File", inputType=InputType.FILE)
+        value = {"path": str(Path(__file__))}
+
         result = _create_input_model(input_schema, value)
-        
+
         assert isinstance(result, FileInput)
         assert result.path == Path(__file__)
-    
+
     def test_create_text_input(self):
         """Test creating TextInput model"""
         from rb.api.models import TextInput, InputSchema, InputType
-        
-        input_schema = InputSchema(
-            key='text',
-            label='Text',
-            inputType=InputType.TEXT
-        )
-        value = {'text': 'Hello world'}
-        
+
+        input_schema = InputSchema(key="text", label="Text", inputType=InputType.TEXT)
+        value = {"text": "Hello world"}
+
         result = _create_input_model(input_schema, value)
-        
+
         assert isinstance(result, TextInput)
-        assert result.text == 'Hello world'
+        assert result.text == "Hello world"
 
 
 class TestValidateParameterValue:
     """Tests for _validate_parameter_value function"""
-    
+
     def test_validate_ranged_float_valid(self, sample_task_schema):
         """Test validation of valid ranged float parameter"""
         param_schema = sample_task_schema.parameters[0]  # confidence
         value = 0.75
-        
+
         # Should not raise
         _validate_parameter_value(value, param_schema)
-    
+
     def test_validate_ranged_float_out_of_range(self, sample_task_schema):
         """Test validation fails for out-of-range float"""
         param_schema = sample_task_schema.parameters[0]  # confidence
         value = 1.5  # Out of range [0.0, 1.0]
-        
-        with pytest.raises(ValueError, match='must be between'):
+
+        with pytest.raises(ValueError, match="must be between"):
             _validate_parameter_value(value, param_schema)
-    
+
     def test_validate_enum_valid(self, sample_task_schema):
         """Test validation of valid enum parameter"""
         param_schema = sample_task_schema.parameters[1]  # mode
-        value = 'fast'
-        
+        value = "fast"
+
         # Should not raise
         _validate_parameter_value(value, param_schema)
-    
+
     def test_validate_enum_invalid(self, sample_task_schema):
         """Test validation fails for invalid enum value"""
         param_schema = sample_task_schema.parameters[1]  # mode
-        value = 'invalid_mode'
-        
-        with pytest.raises(ValueError, match='must be one of'):
+        value = "invalid_mode"
+
+        with pytest.raises(ValueError, match="must be one of"):
             _validate_parameter_value(value, param_schema)
 
 
 class TestValidateResponseBody:
     """Tests for validate_response_body function"""
-    
+
     def test_validate_valid_response(self):
         """Test validation of valid response body"""
         from rb.api.models import FileResponse
-        
+
         response_data = {
-            'output_type': 'file',
-            'file_type': 'img',
-            'path': '/path/to/file.jpg',
-            'title': 'Test File'
+            "output_type": "file",
+            "file_type": "img",
+            "path": "/path/to/file.jpg",
+            "title": "Test File",
         }
-        
+
         result = validate_response_body(response_data)
 
         assert isinstance(result, ResponseBody)
         result_rb = cast(ResponseBody, result)
         assert isinstance(result_rb.root, FileResponse)
-    
+
     def test_validate_invalid_response(self):
         """Test validation fails for invalid response"""
-        response_data = {
-            'output_type': 'invalid_type'
-        }
-        
+        response_data = {"output_type": "invalid_type"}
+
         result = validate_response_body(response_data)
-        
+
         assert isinstance(result, dict)
-        assert result['is_valid'] is False
-        assert 'errors' in result
+        assert result["is_valid"] is False
+        assert "errors" in result

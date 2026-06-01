@@ -23,7 +23,11 @@ def list_text_files_in_directory(
     allowed_extensions: Optional[FrozenSet[str]] = None,
 ) -> list[str]:
     """Return sorted list of text file paths directly under ``input_dir`` (non-recursive)."""
-    exts = allowed_extensions if allowed_extensions is not None else _DEFAULT_TEXT_EXTENSIONS
+    exts = (
+        allowed_extensions
+        if allowed_extensions is not None
+        else _DEFAULT_TEXT_EXTENSIONS
+    )
     paths: list[str] = []
     try:
         names = sorted(os.listdir(input_dir))
@@ -62,7 +66,9 @@ def resolve_text_file_corpus_paths(
     """
     ff = get_file_filter_from_inputs(inputs)
     if ff is None:
-        paths = list_text_files_in_directory(input_dir, allowed_extensions=allowed_extensions)
+        paths = list_text_files_in_directory(
+            input_dir, allowed_extensions=allowed_extensions
+        )
         if not paths:
             return [], empty_dir_error
         return paths, ""

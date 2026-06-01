@@ -18,6 +18,7 @@ def test_backward_compat_chat_submodules_resolve():
     assert conversation_utils is chat_pkg.utils
     assert history_panel is chat_pkg
 
+
 @pytest.mark.parametrize(
     "import_path, symbol",
     [

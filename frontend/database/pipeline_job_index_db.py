@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 def _sanitize_segment(s: str) -> str:
     out = []
-    for ch in (s or ""):
+    for ch in s or "":
         if ch.isalnum() or ch in ("-", "_", "."):
             out.append(ch)
         else:
@@ -270,7 +270,10 @@ def insert_pipeline_response_rows(
             next_ord[container] += 1
             ot = str(r.get("output_type") or "unknown")
             payload = r.get("payload")
-            if not isinstance(payload, (dict, list, str, int, float, bool)) and payload is not None:
+            if (
+                not isinstance(payload, (dict, list, str, int, float, bool))
+                and payload is not None
+            ):
                 payload = {"_repr": str(payload)[:8000]}
             try:
                 pj = json.dumps(payload, ensure_ascii=False, default=str)

@@ -126,11 +126,13 @@ async def test_granite_selects_expected_tool_first(
     try:
         caplog.set_level(logging.INFO, "frontend.chatbot.core")
         with caplog.at_level(logging.INFO):
-            tool_calls = await core.call_granite_model_direct(short_prompt, use_advanced=True)
+            tool_calls = await core.call_granite_model_direct(
+                short_prompt, use_advanced=True
+            )
 
-        assert tool_calls is not None and len(tool_calls) > 0, (
-            f"No tool calls for prompt={short_prompt!r} — check Ollama logs and Granite output."
-        )
+        assert (
+            tool_calls is not None and len(tool_calls) > 0
+        ), f"No tool calls for prompt={short_prompt!r} — check Ollama logs and Granite output."
         first = tool_calls[0]
         got = first.get("name", "")
         logger.info(

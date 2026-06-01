@@ -78,9 +78,9 @@ def _sanitize_payload_fragment(obj: Any, depth: int = 0) -> Any:
         return out
     if isinstance(obj, list):
         if len(obj) > 5000:
-            return [
-                _sanitize_payload_fragment(x, depth + 1) for x in obj[:5000]
-            ] + [f"<truncated {len(obj) - 5000} list items>"]
+            return [_sanitize_payload_fragment(x, depth + 1) for x in obj[:5000]] + [
+                f"<truncated {len(obj) - 5000} list items>"
+            ]
         return [_sanitize_payload_fragment(x, depth + 1) for x in obj]
     return str(obj)[:4000]
 
@@ -104,7 +104,9 @@ def _append_response_row(
     return True
 
 
-def _flatten_json_dict_lists(payload: dict, out: List[Dict[str, Any]], cap: int) -> None:
+def _flatten_json_dict_lists(
+    payload: dict, out: List[Dict[str, Any]], cap: int
+) -> None:
     handled: set[str] = set()
     for key in _JSON_LIST_KEYS:
         if key not in payload:
@@ -130,9 +132,7 @@ def _flatten_json_dict_lists(payload: dict, out: List[Dict[str, Any]], cap: int)
     for k, v in extra_lists.items():
         remainder.pop(k, None)
         for item in v:
-            if not _append_response_row(
-                out, f"text.json.{k}", "json_item", item, cap
-            ):
+            if not _append_response_row(out, f"text.json.{k}", "json_item", item, cap):
                 logger.warning(
                     "pipeline_response_rows: cap %s reached (extra list %s)",
                     cap,
@@ -203,9 +203,7 @@ def flatten_job_response_to_rows(
                     fr if isinstance(fr, dict) else {"_item": fr},
                     cap,
                 ):
-                    logger.warning(
-                        "pipeline_response_rows: cap %s (batchfile)", cap
-                    )
+                    logger.warning("pipeline_response_rows: cap %s (batchfile)", cap)
                     break
     elif ot == "batchtext":
         td = root.get("transcripts_dir")
@@ -223,9 +221,7 @@ def flatten_job_response_to_rows(
                     tx if isinstance(tx, dict) else {"value": tx},
                     cap,
                 ):
-                    logger.warning(
-                        "pipeline_response_rows: cap %s (batchtext)", cap
-                    )
+                    logger.warning("pipeline_response_rows: cap %s (batchtext)", cap)
                     break
     elif ot == "batchdirectory":
         dirs = root.get("directories") or []
@@ -345,15 +341,15 @@ def record_pipeline_job_completion(
         "endpoint": endpoint,
         "step_job_id": step_job_id or "",
         "pipeline_root_job_id": root_job_id,
-        "response": _lineage_detail_from_root(root) if root else {"output_type": "unknown"},
+        "response": (
+            _lineage_detail_from_root(root) if root else {"output_type": "unknown"}
+        ),
     }
     insert_pipeline_job_step(user_id, root_job_id, step_job_id, endpoint, detail)
 
     flat = flatten_job_response_to_rows(response_data, endpoint)
     if flat:
-        insert_pipeline_response_rows(
-            user_id, root_job_id, step_job_id, endpoint, flat
-        )
+        insert_pipeline_response_rows(user_id, root_job_id, step_job_id, endpoint, flat)
 
     record_image_summary_for_pipeline(user_id, root_job_id, endpoint, response_data)
     _record_generic_file_pair_artifacts(
@@ -384,7 +380,9 @@ def _record_generic_file_pair_artifacts(
                 if not isinstance(fr, dict):
                     continue
                 outp = fr.get("path")
-                meta = fr.get("metadata") if isinstance(fr.get("metadata"), dict) else {}
+                meta = (
+                    fr.get("metadata") if isinstance(fr.get("metadata"), dict) else {}
+                )
                 inp = meta.get("input_path") or meta.get("source_path")
                 if (
                     isinstance(outp, str)
@@ -426,7 +424,9 @@ def _record_generic_file_pair_artifacts(
                     continue
                 if not inp.strip() or not outp.strip():
                     continue
-                meta = pr.get("metadata") if isinstance(pr.get("metadata"), dict) else {}
+                meta = (
+                    pr.get("metadata") if isinstance(pr.get("metadata"), dict) else {}
+                )
                 merged = dict(meta)
                 merged.setdefault("link_kind", "file_pair_rows")
                 merged.update(
@@ -448,11 +448,7 @@ def _record_generic_file_pair_artifacts(
         is_summarize = _is_image_summarize_endpoint(endpoint)
         is_img_payload = bool(payload.get("image_summary"))
         pairs = payload.get("file_pairs")
-        if (
-            isinstance(pairs, list)
-            and pairs
-            and not (is_summarize and is_img_payload)
-        ):
+        if isinstance(pairs, list) and pairs and not (is_summarize and is_img_payload):
             for pair in pairs[:_MAX_IO_ROWS_PER_JOB]:
                 if not isinstance(pair, dict):
                     continue

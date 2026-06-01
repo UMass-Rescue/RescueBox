@@ -43,8 +43,6 @@ def patched_nicegui_app(monkeypatch):
     return utils
 
 
-
-
 def test_try_claim_explicit_user_id_invalid(patched_nicegui_app):
     ngs = patched_nicegui_app
     assert ngs.try_claim_explicit_user_id("") == "invalid"

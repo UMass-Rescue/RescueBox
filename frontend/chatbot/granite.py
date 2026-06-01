@@ -17,7 +17,10 @@ def _append_parsed_payload(tool_calls: List[Dict[str, Any]], parsed: Any) -> Non
             if isinstance(item, dict) and "name" in item:
                 args = item.get("arguments", {})
                 tool_calls.append(
-                    {"name": item["name"], "arguments": args if isinstance(args, dict) else {}}
+                    {
+                        "name": item["name"],
+                        "arguments": args if isinstance(args, dict) else {},
+                    }
                 )
     elif isinstance(parsed, dict):
         if "calls" in parsed and isinstance(parsed["calls"], list):
@@ -25,7 +28,10 @@ def _append_parsed_payload(tool_calls: List[Dict[str, Any]], parsed: Any) -> Non
         elif "name" in parsed:
             args = parsed.get("arguments", {})
             tool_calls.append(
-                {"name": parsed["name"], "arguments": args if isinstance(args, dict) else {}}
+                {
+                    "name": parsed["name"],
+                    "arguments": args if isinstance(args, dict) else {},
+                }
             )
 
 

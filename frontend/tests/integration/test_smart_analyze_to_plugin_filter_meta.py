@@ -17,16 +17,21 @@ async def test_filter_meta_flow(tmp_path):
     input_dir.mkdir()
     f = input_dir / "i.jpg"
     f.write_text("x")
-    fid = create_filter(name="t", input_dir=str(input_dir), paths=[str(f)], filter_type="input", owner_id="u1")
-
-    # Simulate a request body coming from form submission with _meta.filterId
-    request_body = RequestBody(
-        inputs={},
-        parameters={"_meta": {"filterId": fid}}
+    fid = create_filter(
+        name="t",
+        input_dir=str(input_dir),
+        paths=[str(f)],
+        filter_type="input",
+        owner_id="u1",
     )
 
+    # Simulate a request body coming from form submission with _meta.filterId
+    request_body = RequestBody(inputs={}, parameters={"_meta": {"filterId": fid}})
+
     # Call create_and_track_job which should create job with filterId stored
-    res = await DatabaseService.create_and_track_job(request_body, endpoint="image_summary/summarize-images", task_schema={})
+    res = await DatabaseService.create_and_track_job(
+        request_body, endpoint="image_summary/summarize-images", task_schema={}
+    )
     assert res is not None
     job_id = res.get("job_id")
     assert job_id

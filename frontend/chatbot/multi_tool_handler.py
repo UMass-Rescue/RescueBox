@@ -14,7 +14,7 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from rb.api.models import ResponseBody, TaskSchema, InputType
 from frontend.utils import validate_response_body
@@ -26,14 +26,19 @@ logger.setLevel(logging.INFO)
 
 class MultiToolCallResult:
     """Result of executing multiple tool calls."""
-    
+
     def __init__(self):
         self.tool_calls: List[Dict[str, Any]] = []
         self.results: List[ResponseBody] = []
         self.errors: List[str] = []
         self.completed_count = 0
-    
-    def add_result(self, tool_call: Dict, result: Optional[ResponseBody], error: Optional[str] = None):
+
+    def add_result(
+        self,
+        tool_call: Dict,
+        result: Optional[ResponseBody],
+        error: Optional[str] = None,
+    ):
         """Add a result for a tool call."""
         self.tool_calls.append(tool_call)
         self.results.append(result)
@@ -88,6 +93,7 @@ def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
     Accepts ResponseBody or plain dict (e.g. before coercion).
     """
     from rb.api.models import BatchFileResponse, FileResponse
+
     try:
         root: Any = None
         if isinstance(response_body, ResponseBody):
@@ -107,21 +113,28 @@ def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
         items: List[Dict[str, Any]] = []
         for fr in files:
             if isinstance(fr, FileResponse):
-                items.append({
-                    "path": Path(fr.path).as_posix(),
-                    "metadata": dict(fr.metadata) if fr.metadata else {},
-                })
+                items.append(
+                    {
+                        "path": Path(fr.path).as_posix(),
+                        "metadata": dict(fr.metadata) if fr.metadata else {},
+                    }
+                )
             elif isinstance(fr, dict):
                 path = fr.get("path")
                 if not path:
                     continue
                 meta = fr.get("metadata")
-                items.append({
-                    "path": Path(path).as_posix(),
-                    "metadata": dict(meta) if isinstance(meta, dict) else {},
-                })
+                items.append(
+                    {
+                        "path": Path(path).as_posix(),
+                        "metadata": dict(meta) if isinstance(meta, dict) else {},
+                    }
+                )
             else:
-                logger.debug("extract_batch_file_items: skipping unknown file entry type=%s", type(fr))
+                logger.debug(
+                    "extract_batch_file_items: skipping unknown file entry type=%s",
+                    type(fr),
+                )
 
         if not items and files:
             logger.warning(
@@ -158,6 +171,7 @@ def _parse_age_range_for_comparison(mval_str: str) -> Optional[float]:
     Returns the upper bound as float for numeric comparison, or None if not parseable.
     """
     import re
+
     m = re.match(r"\((\d+)-(\d+)\)", mval_str.strip())
     if m:
         return float(m.group(2))  # upper bound
@@ -234,7 +248,11 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
                 break
             mval_str = str(mval)
             key_lower = key.lower()
-            age_num = _parse_age_range_for_comparison(mval_str) if key_lower == "age" else None
+            age_num = (
+                _parse_age_range_for_comparison(mval_str)
+                if key_lower == "age"
+                else None
+            )
             logger.info("Metadata mval_str %s", mval_str)
             logger.info(f"The age_num is: {age_num}")
 
@@ -319,16 +337,16 @@ def apply_metadata_filter(items: List[Dict[str, Any]], criteria_str: str) -> Lis
 def extract_output_path(response_body: ResponseBody) -> Optional[str]:
     """
     Extract output directory/path from a ResponseBody.
-    
+
     This function attempts to extract the output path from various response types:
     - BatchDirectoryResponse: Returns the first directory path
     - DirectoryResponse: Returns the directory path
     - BatchFileResponse: Returns parent directory of first file (if same dir)
     - FileResponse: Returns parent directory of file
-    
+
     Args:
         response_body: ResponseBody from API call
-        
+
     Returns:
         Optional[str]: Output path if found, None otherwise
     """
@@ -344,7 +362,9 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
     try:
         root = response_body.root
 
-        if isinstance(root, BatchTextResponse) and getattr(root, "transcripts_dir", None):
+        if isinstance(root, BatchTextResponse) and getattr(
+            root, "transcripts_dir", None
+        ):
             td = Path(root.transcripts_dir).as_posix()
             logger.debug("Extracted transcripts_dir from BatchTextResponse: %s", td)
             return td
@@ -358,7 +378,8 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
                     # Don't use resolve() to avoid Windows drive letters/normalization
                     files_root = Path(mp.rstrip("/")) / "files"
                     logger.debug(
-                        "Extracted UFDR files root from mount message: %s", files_root.as_posix()
+                        "Extracted UFDR files root from mount message: %s",
+                        files_root.as_posix(),
                     )
                     return files_root.as_posix()
 
@@ -366,6 +387,7 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
         if isinstance(root, TextResponse) and root.value:
             try:
                 import json
+
                 parsed = json.loads(root.value)
                 file_list = None
                 if isinstance(parsed, dict) and parsed.get("image_summary"):
@@ -376,7 +398,10 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
                     first_path = file_list[0]
                     if isinstance(first_path, str):
                         output_path = Path(first_path).parent.as_posix()
-                        logger.debug("Extracted output path from TextResponse (file list): %s", output_path)
+                        logger.debug(
+                            "Extracted output path from TextResponse (file list): %s",
+                            output_path,
+                        )
                         return output_path
             except (json.JSONDecodeError, TypeError, IndexError):
                 pass
@@ -384,30 +409,44 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
         # BatchDirectoryResponse
         if isinstance(root, BatchDirectoryResponse) and root.directories:
             output_path = root.directories[0].path
-            logger.debug("Extracted output path from BatchDirectoryResponse: %s", output_path)
-            return Path(output_path).parent.as_posix() if Path(output_path).is_file() else Path(output_path).as_posix()
-        
+            logger.debug(
+                "Extracted output path from BatchDirectoryResponse: %s", output_path
+            )
+            return (
+                Path(output_path).parent.as_posix()
+                if Path(output_path).is_file()
+                else Path(output_path).as_posix()
+            )
+
         # DirectoryResponse
         if isinstance(root, DirectoryResponse):
             output_path = root.path
-            logger.debug("Extracted output path from DirectoryResponse: %s", output_path)
-            return Path(output_path).parent.as_posix() if Path(output_path).is_file() else Path(output_path).as_posix()
-        
+            logger.debug(
+                "Extracted output path from DirectoryResponse: %s", output_path
+            )
+            return (
+                Path(output_path).parent.as_posix()
+                if Path(output_path).is_file()
+                else Path(output_path).as_posix()
+            )
+
         # BatchFileResponse - use parent directory of first file
         if isinstance(root, BatchFileResponse) and root.files:
             first_file = root.files[0]
             output_path = Path(first_file.path).parent
-            logger.debug("Extracted output path from BatchFileResponse: %s", output_path)
+            logger.debug(
+                "Extracted output path from BatchFileResponse: %s", output_path
+            )
             # Normalize path separators for cross-platform compatibility
             return output_path.as_posix()
-        
+
         # FileResponse - use parent directory
         if isinstance(root, FileResponse):
             output_path = Path(root.path).parent
             logger.debug("Extracted output path from FileResponse: %s", output_path)
             # Normalize path separators for cross-platform compatibility
             return output_path.as_posix()
-        
+
         logger.debug("Could not extract output path from response")
         return None
     except Exception as e:
@@ -418,30 +457,30 @@ def extract_output_path(response_body: ResponseBody) -> Optional[str]:
 def chain_output_to_input(
     previous_output: ResponseBody,
     current_arguments: Dict[str, Any],
-    current_schema: TaskSchema
+    current_schema: TaskSchema,
 ) -> Dict[str, Any]:
     """
     Chain output from previous tool call to input of next tool call.
-    
+
     This function attempts to use the output path from the previous call as
     input directory for the next call, if applicable.
-    
+
     Args:
         previous_output: ResponseBody from previous tool call
         current_arguments: Arguments for current tool call
         current_schema: TaskSchema for current tool call
-        
+
     Returns:
         Dict[str, Any]: Updated arguments with chained output if applicable
     """
     logger.debug("Attempting to chain output from previous call to current call")
-    
+
     # Extract output path from previous call
     output_path = extract_output_path(previous_output)
     if not output_path:
         logger.info("No output path found in previous result, skipping chaining")
         return current_arguments
-    
+
     # Find input directory field in current schema
     input_dir_key = None
     output_dir_key = None
@@ -449,20 +488,19 @@ def chain_output_to_input(
         if input_schema.input_type == InputType.DIRECTORY:
             # Try common names for input directory
             key_lower = input_schema.key.lower()
-            if 'input' in key_lower and 'dir' in key_lower:
+            if "input" in key_lower and "dir" in key_lower:
                 input_dir_key = input_schema.key
-            if 'output' in key_lower and 'dir' in key_lower:
+            if "output" in key_lower and "dir" in key_lower:
                 output_dir_key = input_schema.key
 
-    
     # Also check arguments for common patterns
     if not input_dir_key:
         for key in current_arguments.keys():
             key_lower = key.lower()
-            if 'input' in key_lower and ('dir' in key_lower or 'dataset' in key_lower):
+            if "input" in key_lower and ("dir" in key_lower or "dataset" in key_lower):
                 input_dir_key = key
                 break
-    
+
     # Update arguments if input directory found
     if input_dir_key:
         logger.info("Chaining path '%s' to input '%s'", output_path, input_dir_key)
@@ -484,17 +522,21 @@ def chain_output_to_input(
                     suggested = Path(output_path).parent / "text_summary"
                     current_arguments[k] = suggested.as_posix()
                     logger.debug(
-                        "Chained default %s for summarize pipeline: %s", k, current_arguments[k]
+                        "Chained default %s for summarize pipeline: %s",
+                        k,
+                        current_arguments[k],
                     )
                 break
 
         # If previous response is TextResponse with file list, also inject file_filter for pipelines
         # (e.g. image_summary -> text_embeddings)
         from rb.api.models import TextResponse
+
         root = previous_output.root
         if isinstance(root, TextResponse) and root.value:
             try:
                 import json
+
                 parsed = json.loads(root.value)
                 if isinstance(parsed, dict) and parsed.get("image_summary"):
                     raw_paths = parsed.get("files") or []
@@ -519,4 +561,3 @@ def chain_output_to_input(
         logger.debug("No input directory field found in schema, skipping chaining")
 
     return current_arguments
-

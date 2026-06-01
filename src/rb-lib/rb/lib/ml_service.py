@@ -54,7 +54,7 @@ class MLService(object):
         self.endpoints: List[EndpointDetails] = []
         self._app_metadata: Optional[AppMetadata] = None
         self.plugin_name = name
-        self._ml_function_locks: Dict[str, Optional[threading.Lock]] = {} # New line
+        self._ml_function_locks: Dict[str, Optional[threading.Lock]] = {}  # New line
         self._make_threadsafe: bool = True
 
         @self.app.command(f"/{self.name}/api/routes")
@@ -133,7 +133,7 @@ class MLService(object):
             order=order,
         )
         self.endpoints.append(endpoint)
-        
+
         if self._make_threadsafe:
             self._ml_function_locks[endpoint.rule] = threading.Lock()
         else:

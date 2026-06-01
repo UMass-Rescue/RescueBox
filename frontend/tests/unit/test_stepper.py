@@ -24,11 +24,11 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 # Test constants for step names
-STEP_1_NAME = 'Step 1'
-STEP_2_NAME = 'Step 2'
-STEP_3_NAME = 'Step 3'
-STEP_4_NAME = 'Step 4'
-STEP_5_NAME = 'Step 5'
+STEP_1_NAME = "Step 1"
+STEP_2_NAME = "Step 2"
+STEP_3_NAME = "Step 3"
+STEP_4_NAME = "Step 4"
+STEP_5_NAME = "Step 5"
 
 STEPS_THREE = [STEP_1_NAME, STEP_2_NAME, STEP_3_NAME]
 STEPS_TWO = [STEP_1_NAME, STEP_2_NAME]
@@ -42,11 +42,11 @@ INVALID_NEGATIVE_INDEX = -1
 INVALID_HIGH_INDEX = 3
 
 # CSS class constants for visual styling
-COMPLETED_STEP_BG_CLASS = 'bg-green-500'
-CURRENT_STEP_BG_CLASS = 'rb-brand-step-current'
-PENDING_STEP_BG_CLASS = 'bg-zinc-300'
-COMPLETED_CURRENT_LABEL_CLASS = 'font-semibold'
-PENDING_LABEL_CLASS = 'text-zinc-400'
+COMPLETED_STEP_BG_CLASS = "bg-green-500"
+CURRENT_STEP_BG_CLASS = "rb-brand-step-current"
+PENDING_STEP_BG_CLASS = "bg-zinc-300"
+COMPLETED_CURRENT_LABEL_CLASS = "font-semibold"
+PENDING_LABEL_CLASS = "text-zinc-400"
 
 # Warning messages
 ALREADY_AT_LAST_STEP_WARNING = "Already at last step"
@@ -78,8 +78,8 @@ class TestWorkflowStepper:
     and reliable navigation controls for users working through complex
     analytical workflows in RescueBox.
     """
-    
-    @patch('frontend.components.shared.ui.column')
+
+    @patch("frontend.components.shared.ui.column")
     def test_stepper_initialization(self, mock_column):
         """Test stepper initialization with steps.
 
@@ -110,11 +110,13 @@ class TestWorkflowStepper:
         from frontend.components.shared import WorkflowStepper
 
         container = MagicMock()
-        stepper = WorkflowStepper(STEPS_TWO, current_step=FIRST_STEP_INDEX, container=container)
+        stepper = WorkflowStepper(
+            STEPS_TWO, current_step=FIRST_STEP_INDEX, container=container
+        )
 
         assert stepper.container == container
         assert stepper.current_step == FIRST_STEP_INDEX
-    
+
     def test_set_step_valid(self, mock_ui):
         """Test setting step to valid index.
 
@@ -151,12 +153,18 @@ class TestWorkflowStepper:
 
         stepper = WorkflowStepper(STEPS_THREE, current_step=FIRST_STEP_INDEX)
 
-        with pytest.raises(ValueError, match=STEP_INDEX_OUT_OF_RANGE_TEMPLATE.format(index=INVALID_NEGATIVE_INDEX)):
+        with pytest.raises(
+            ValueError,
+            match=STEP_INDEX_OUT_OF_RANGE_TEMPLATE.format(index=INVALID_NEGATIVE_INDEX),
+        ):
             stepper.set_step(INVALID_NEGATIVE_INDEX)
 
-        with pytest.raises(ValueError, match=STEP_INDEX_OUT_OF_RANGE_TEMPLATE.format(index=INVALID_HIGH_INDEX)):
+        with pytest.raises(
+            ValueError,
+            match=STEP_INDEX_OUT_OF_RANGE_TEMPLATE.format(index=INVALID_HIGH_INDEX),
+        ):
             stepper.set_step(INVALID_HIGH_INDEX)
-    
+
     def test_next_step(self, mock_ui):
         """Test moving to next step"""
         from frontend.components.shared import WorkflowStepper
@@ -165,15 +173,15 @@ class TestWorkflowStepper:
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2', 'Step 3']
+        steps = ["Step 1", "Step 2", "Step 3"]
         stepper = WorkflowStepper(steps, current_step=0)
-        
+
         stepper.next_step()
         assert stepper.current_step == 1
-        
+
         stepper.next_step()
         assert stepper.current_step == 2
-    
+
     def test_next_step_at_last_step(self, mock_ui):
         """Test next_step when already at last step.
 
@@ -189,13 +197,13 @@ class TestWorkflowStepper:
 
         stepper = WorkflowStepper(STEPS_TWO, current_step=SECOND_STEP_INDEX)
 
-        with patch('frontend.components.shared.logger') as mock_logger:
+        with patch("frontend.components.shared.logger") as mock_logger:
             stepper.next_step()
             # Should stay at last step
             assert stepper.current_step == SECOND_STEP_INDEX
             mock_logger.warning.assert_called_once()
             assert ALREADY_AT_LAST_STEP_WARNING in mock_logger.warning.call_args[0][0]
-    
+
     def test_previous_step(self, mock_ui):
         """Test moving to previous step"""
         from frontend.components.shared import WorkflowStepper
@@ -204,15 +212,15 @@ class TestWorkflowStepper:
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2', 'Step 3']
+        steps = ["Step 1", "Step 2", "Step 3"]
         stepper = WorkflowStepper(steps, current_step=2)
-        
+
         stepper.previous_step()
         assert stepper.current_step == 1
-        
+
         stepper.previous_step()
         assert stepper.current_step == 0
-    
+
     def test_previous_step_at_first_step(self, mock_ui):
         """Test previous_step when already at first step"""
         from frontend.components.shared import WorkflowStepper
@@ -222,16 +230,16 @@ class TestWorkflowStepper:
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2']
+        steps = ["Step 1", "Step 2"]
         stepper = WorkflowStepper(steps, current_step=0)
-        
-        with patch('frontend.components.shared.logger') as mock_logger:
+
+        with patch("frontend.components.shared.logger") as mock_logger:
             stepper.previous_step()
             # Should stay at first step
             assert stepper.current_step == 0
             mock_logger.warning.assert_called_once()
             assert "Already at first step" in mock_logger.warning.call_args[0][0]
-    
+
     def test_get_current_step_name(self, mock_ui):
         """Test getting current step name"""
         from frontend.components.shared import WorkflowStepper
@@ -240,11 +248,11 @@ class TestWorkflowStepper:
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2', 'Step 3']
+        steps = ["Step 1", "Step 2", "Step 3"]
         stepper = WorkflowStepper(steps, current_step=1)
-        
-        assert stepper.get_current_step_name() == 'Step 2'
-    
+
+        assert stepper.get_current_step_name() == "Step 2"
+
     def test_is_complete(self, mock_ui):
         """Test is_complete method"""
         from frontend.components.shared import WorkflowStepper
@@ -253,35 +261,32 @@ class TestWorkflowStepper:
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2', 'Step 3']
+        steps = ["Step 1", "Step 2", "Step 3"]
         stepper = WorkflowStepper(steps, current_step=0)
-        
+
         assert stepper.is_complete() is False
-        
+
         stepper.set_step(1)
         assert stepper.is_complete() is False
-        
+
         stepper.set_step(2)  # Last step (index 2 of 3 steps)
         assert stepper.is_complete() is True
-    
+
     def test_create_workflow_stepper(self, mock_ui):
         """Test create_workflow_stepper convenience function"""
-        from frontend.components.shared import (
-            create_workflow_stepper,
-            WorkflowStepper
-        )
+        from frontend.components.shared import create_workflow_stepper, WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2']
+        steps = ["Step 1", "Step 2"]
         stepper = create_workflow_stepper(steps, current_step=1)
-        
+
         assert isinstance(stepper, WorkflowStepper)
         assert stepper.current_step == 1
         assert stepper.steps == steps
-    
+
     def test_stepper_multiple_steps(self, mock_ui):
         """Test stepper with many steps"""
         from frontend.components.shared import WorkflowStepper
@@ -290,18 +295,18 @@ class TestWorkflowStepper:
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2', 'Step 3', 'Step 4', 'Step 5']
+        steps = ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"]
         stepper = WorkflowStepper(steps, current_step=0)
-        
+
         # Progress through all steps
         for i in range(len(steps)):
             stepper.set_step(i)
             assert stepper.current_step == i
             assert stepper.get_current_step_name() == steps[i]
-        
+
         # Should be complete at last step
         assert stepper.is_complete() is True
-    
+
     def test_stepper_circle_classes(self, mock_ui):
         """Test circle class generation"""
         from frontend.components.shared import WorkflowStepper
@@ -310,18 +315,18 @@ class TestWorkflowStepper:
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2', 'Step 3']
+        steps = ["Step 1", "Step 2", "Step 3"]
         stepper = WorkflowStepper(steps, current_step=1)
-        
+
         # Completed step (index 0)
-        assert 'bg-green-500' in stepper._get_circle_classes(0)
-        
+        assert "bg-green-500" in stepper._get_circle_classes(0)
+
         # Current step (index 1)
-        assert 'rb-brand-step-current' in stepper._get_circle_classes(1)
-        
+        assert "rb-brand-step-current" in stepper._get_circle_classes(1)
+
         # Pending step (index 2)
-        assert 'bg-zinc-300' in stepper._get_circle_classes(2)
-    
+        assert "bg-zinc-300" in stepper._get_circle_classes(2)
+
     def test_stepper_label_classes(self, mock_ui):
         """Test label class generation"""
         from frontend.components.shared import WorkflowStepper
@@ -330,16 +335,16 @@ class TestWorkflowStepper:
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2', 'Step 3']
+        steps = ["Step 1", "Step 2", "Step 3"]
         stepper = WorkflowStepper(steps, current_step=1)
-        
+
         # Completed/current step labels
-        assert 'font-semibold' in stepper._get_label_classes(0)
-        assert 'font-semibold' in stepper._get_label_classes(1)
-        
+        assert "font-semibold" in stepper._get_label_classes(0)
+        assert "font-semibold" in stepper._get_label_classes(1)
+
         # Pending step label
-        assert 'text-zinc-400' in stepper._get_label_classes(2)
-    
+        assert "text-zinc-400" in stepper._get_label_classes(2)
+
     def test_stepper_line_classes(self, mock_ui):
         """Test connector line class generation"""
         from frontend.components.shared import WorkflowStepper
@@ -348,12 +353,11 @@ class TestWorkflowStepper:
         mock_container = MagicMock()
         mock_ui.column.return_value = mock_container
 
-        steps = ['Step 1', 'Step 2', 'Step 3']
+        steps = ["Step 1", "Step 2", "Step 3"]
         stepper = WorkflowStepper(steps, current_step=1)
-        
-        # Completed path
-        assert 'bg-green-500' in stepper._get_line_classes(0)
-        
-        # Pending path
-        assert 'bg-zinc-300' in stepper._get_line_classes(1)
 
+        # Completed path
+        assert "bg-green-500" in stepper._get_line_classes(0)
+
+        # Pending path
+        assert "bg-zinc-300" in stepper._get_line_classes(1)

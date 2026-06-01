@@ -32,7 +32,9 @@ import httpx
 
 DEFAULT_BASE = "http://127.0.0.1:8080/api"
 DEFAULT_INPUT = "/home/tester/Documents/demo/describe-images/inputs"
-DEFAULT_OUTPUT_PARENT = "/home/tester/Documents/demo/describe-images/outputs/e2e-concurrent"
+DEFAULT_OUTPUT_PARENT = (
+    "/home/tester/Documents/demo/describe-images/outputs/e2e-concurrent"
+)
 
 
 def _payload(input_dir: str, output_dir: str, model: str) -> dict[str, Any]:
@@ -72,7 +74,7 @@ async def _run() -> int:
     base = os.environ.get("RESCUEBOX_API_BASE", DEFAULT_BASE).rstrip("/")
     input_dir = os.environ.get("DESCRIBE_INPUT_DIR", DEFAULT_INPUT)
     out_parent = os.environ.get("DESCRIBE_OUTPUT_PARENT", DEFAULT_OUTPUT_PARENT)
-    model = os.environ.get("IMAGE_SUMMARY_MODEL", "moondream:latest" )
+    model = os.environ.get("IMAGE_SUMMARY_MODEL", "moondream:latest")
     n = int(os.environ.get("CONCURRENT_USERS", "40"))
     timeout = float(os.environ.get("DESCRIBE_TIMEOUT", "600"))
     serial = os.environ.get("E2E_SERIAL", "").strip().lower() in ("1", "true", "yes")

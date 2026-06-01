@@ -21,21 +21,23 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[str, Any]:
+def normalize_arguments(
+    user_args: Dict[str, Any], endpoint: str = ""
+) -> Dict[str, Any]:
     """
     Normalize user argument keys to match API expectations.
-    
+
     This function maps common key variations to standardized API parameter names.
     For example, it converts "input_directory", "input_path", "input", "path",
     "directory", or "folder" all to the standard "input_dir" key.
-        
+
     Returns:
         Dict[str, Any]: Dictionary with normalized argument keys matching API expectations.
             Original values are preserved, only keys are normalized.
     """
-    logger.debug("Normalizing arguments for endpoint: %s", endpoint or 'generic')
+    logger.debug("Normalizing arguments for endpoint: %s", endpoint or "generic")
     logger.debug("Input arguments: %s", list(user_args.keys()))
-    
+
     key_mappings = {
         "input_directory": "input_dir",
         "input_path": "input_dir",
@@ -56,7 +58,7 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
         "videos": "input_dir",
         "crop": "facecrop",
     }
-    
+
     normalized = {}
     for key, value in user_args.items():
         key_lower = key.lower()
@@ -65,10 +67,18 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
         if "ufdr_mounter" in endpoint:
             if key_lower in ("ufdr_path", "file", "archive", "ufdr", "ufdr_file"):
                 new_key = "ufdr_file"
-            elif key_lower in ("mount_path", "mount_point", "mount_folder", "mount_dir", "mount_name"):
+            elif key_lower in (
+                "mount_path",
+                "mount_point",
+                "mount_folder",
+                "mount_dir",
+                "mount_name",
+            ):
                 new_key = "mount_name"
             elif key_lower == "path" and isinstance(value, str):
-                new_key = "ufdr_file" if value.lower().endswith(".ufdr") else "mount_name"
+                new_key = (
+                    "ufdr_file" if value.lower().endswith(".ufdr") else "mount_name"
+                )
             else:
                 new_key = key_mappings.get(key_lower, key)
         else:
@@ -81,7 +91,9 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
         elif "image_embeddings" in endpoint and key_lower == "query":
             new_key = "query"
         # Endpoint-specific overrides (from rescuebox_tool.py)
-        elif ("age_gender" in endpoint or "age-gender" in endpoint) and new_key == "input_dir":
+        elif (
+            "age_gender" in endpoint or "age-gender" in endpoint
+        ) and new_key == "input_dir":
             new_key = "image_directory"
             logger.debug("Applied age-gender override: %s -> %s", key, new_key)
         elif "bulk_upload" in endpoint and new_key == "input_dir":
@@ -94,30 +106,35 @@ def normalize_arguments(user_args: Dict[str, Any], endpoint: str = "") -> Dict[s
             logger.debug("Mapped key: %s -> %s", key, new_key)
 
         normalized[new_key] = value
-    
+
     logger.debug("Normalization complete. Output keys: %s", list(normalized.keys()))
     return normalized
 
 
-def is_rescuebox_request(user_input: str, filter_enabled: bool = True) -> Tuple[bool, str]:
+def is_rescuebox_request(
+    user_input: str, filter_enabled: bool = True
+) -> Tuple[bool, str]:
     """
     Check if input is a valid RescueBox forensic request.
-    
+
     This function validates user input to determine if it's a legitimate forensic
     analysis request. It uses keyword matching, pattern blocking, and path detection
     to filter out non-forensic requests like weather queries, jokes, recipes, etc.
     """
-    logger.debug("Checking if request is valid RescueBox request (filter_enabled=%s)", filter_enabled)
-    
+    logger.debug(
+        "Checking if request is valid RescueBox request (filter_enabled=%s)",
+        filter_enabled,
+    )
+
     if not filter_enabled:
         logger.debug("Filter disabled - allowing all requests")
         return True, "filter_disabled"
-    
+
     input_lower = user_input.lower().strip()
     logger.debug("Checking input (length=%d): %s...", len(user_input), user_input[:50])
 
     # Allow internal commands (starting with /) - these come from tool picker
-    if user_input.strip().startswith('/'):
+    if user_input.strip().startswith("/"):
         logger.debug("Request validated as internal command: %s", user_input)
         return True, "internal_command"
 
@@ -128,7 +145,7 @@ def is_rescuebox_request(user_input: str, filter_enabled: bool = True) -> Tuple[
             logger.debug("Request validated by keyword match: '%s'", keyword)
             return True, "keyword_match"
 
-    if re.search(r'[/\\][\w\-\.]+[/\\]?', user_input):
+    if re.search(r"[/\\][\w\-\.]+[/\\]?", user_input):
         logger.debug("Request validated by path detection")
         return True, "path_detected"
 
@@ -144,12 +161,12 @@ def is_rescuebox_request(user_input: str, filter_enabled: bool = True) -> Tuple[
 def get_rejection_message(reason: str) -> str:
     """
     Get appropriate rejection message based on rejection reason.
-    
+
     This function generates user-friendly markdown messages explaining why a
     request was rejected and providing guidance on how to make valid requests.
     """
     logger.debug("Generating rejection message for reason: %s", reason)
-    
+
     if reason == "non_forensic":
         logger.debug("Using non_forensic rejection message")
         return """
@@ -187,7 +204,9 @@ Please rephrase your request as a forensic analysis task."""
 Type `/help` for detailed instructions."""
 
 
-def calculate_text_area_height(text_length: int, min_height: int = 24, max_height: int = 96) -> str:
+def calculate_text_area_height(
+    text_length: int, min_height: int = 24, max_height: int = 96
+) -> str:
     """
     Calculate appropriate Tailwind height class for text content areas.
 
@@ -217,7 +236,7 @@ def calculate_text_area_height(text_length: int, min_height: int = 24, max_heigh
         - Returns Tailwind class numbers (where 1 unit = 0.25rem = 4px)
     """
     if text_length <= 0:
-        return f'h-{min_height}'
+        return f"h-{min_height}"
 
     # Estimate lines: ~25 chars per line
     text_lines = text_length // 25 + 1
@@ -228,4 +247,4 @@ def calculate_text_area_height(text_length: int, min_height: int = 24, max_heigh
     # Convert to Tailwind class units (1 unit = 4px), with bounds
     height_class_num = min(max(estimated_height_px // 4, min_height), max_height)
 
-    return f'h-{height_class_num}'
+    return f"h-{height_class_num}"

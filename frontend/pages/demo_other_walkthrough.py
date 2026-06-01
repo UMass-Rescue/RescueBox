@@ -43,7 +43,9 @@ async def demo_other_walkthrough_page():
     text = load_markdown_file(_MD_FILE, _fallback_markdown)
 
     with ui.column().classes("container mx-auto p-8 max-w-4xl w-full min-w-0 pb-16"):
-        ui.label("Interesting plugins & pipeline walkthrough").classes("text-3xl font-bold mb-2")
+        ui.label("Interesting plugins & pipeline walkthrough").classes(
+            "text-3xl font-bold mb-2"
+        )
 
         render_guided_markdown_body(ui.column().classes("w-full min-w-0"), text)
 
@@ -54,9 +56,13 @@ async def demo_other_walkthrough_page():
                 "Back to Demo",
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
             ).classes("rb-brand-primary text-white")
-            
-            ui.link("Open Assistant", NAV_LINKS["chatbot"]).classes("text-[#881c1c] hover:underline")
-            ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes("text-[#881c1c] hover:underline")
+
+            ui.link("Open Assistant", NAV_LINKS["chatbot"]).classes(
+                "text-[#881c1c] hover:underline"
+            )
+            ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes(
+                "text-[#881c1c] hover:underline"
+            )
 
     schedule_hash_fragment_scroll()
     logger.debug("Other walkthrough page rendered")

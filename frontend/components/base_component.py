@@ -56,9 +56,9 @@ class BaseComponent(ABC):
         Returns:
             ui.element: Error display element
         """
-        with ui.card().classes('bg-red-50 border border-red-300 p-4') as error_card:
-            ui.label('Error').classes('text-lg font-semibold text-red-700 mb-2')
-            ui.label(message).classes('text-red-600')
+        with ui.card().classes("bg-red-50 border border-red-300 p-4") as error_card:
+            ui.label("Error").classes("text-lg font-semibold text-red-700 mb-2")
+            ui.label(message).classes("text-red-600")
         return error_card
 
     def create_loading_display(self, message: str = "Loading...") -> ui.element:
@@ -71,9 +71,9 @@ class BaseComponent(ABC):
         Returns:
             ui.element: Loading display element
         """
-        with ui.row().classes('items-center gap-2') as loading_row:
-            ui.spinner(size='sm')
-            ui.label(message).classes('text-sm text-zinc-600')
+        with ui.row().classes("items-center gap-2") as loading_row:
+            ui.spinner(size="sm")
+            ui.label(message).classes("text-sm text-zinc-600")
         return loading_row
 
     def create_success_display(self, message: str) -> ui.element:
@@ -86,9 +86,11 @@ class BaseComponent(ABC):
         Returns:
             ui.element: Success display element
         """
-        with ui.card().classes('bg-green-50 border border-green-300 p-4') as success_card:
-            ui.label('Success').classes('text-lg font-semibold text-green-700 mb-2')
-            ui.label(message).classes('text-green-600')
+        with ui.card().classes(
+            "bg-green-50 border border-green-300 p-4"
+        ) as success_card:
+            ui.label("Success").classes("text-lg font-semibold text-green-700 mb-2")
+            ui.label(message).classes("text-green-600")
         return success_card
 
     def log_action(self, action: str, details: Optional[str] = None):

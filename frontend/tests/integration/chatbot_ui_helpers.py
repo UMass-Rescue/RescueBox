@@ -7,7 +7,9 @@ if TYPE_CHECKING:
     from nicegui.testing import User
 
 
-async def open_chatbot_and_wait_for_ready(user: "User", *, max_wait_s: float = 30.0) -> None:
+async def open_chatbot_and_wait_for_ready(
+    user: "User", *, max_wait_s: float = 30.0
+) -> None:
     """Open /chatbot and wait until primary controls are in the DOM."""
     await user.open("/chatbot")
     # Async page render (ChatbotPage.render) can lag behind user.open in long test runs

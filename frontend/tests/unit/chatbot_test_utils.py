@@ -25,7 +25,9 @@ class TestUtilities:
     @staticmethod
     def create_mock_message_handler() -> MagicMock:
         handler = MagicMock()
-        handler.handle_message = AsyncMock(return_value={'type': 'message', 'content': 'ok'})
+        handler.handle_message = AsyncMock(
+            return_value={"type": "message", "content": "ok"}
+        )
         return handler
 
     @staticmethod

@@ -6,11 +6,12 @@ Initializes NiceGUI, optional integrated FastAPI plugin routes, and the home pag
 Usage::
     python -m frontend.main
 """
+
 from __future__ import annotations
 import sys
 import platform
 import os
-from pathlib import Path    
+from pathlib import Path
 import asyncio
 import logging
 from starlette.responses import HTMLResponse
@@ -54,10 +55,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(parse_log_level(LOG_LEVEL))
 
 # Fix for WinError 10054 Proactor Pipe Transport crashes on Windows
-if sys.platform == 'win32':
+if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-if sys.stdout is None or not hasattr(sys.stdout, 'write'):
+if sys.stdout is None or not hasattr(sys.stdout, "write"):
     # Create a log file in the same directory as the .exe
     log_path = os.path.join(os.path.dirname(sys.executable), "frontend.log")
     sys.stdout = open(log_path, "w", encoding="utf-8", buffering=1)
@@ -65,17 +66,16 @@ if sys.stdout is None or not hasattr(sys.stdout, 'write'):
 
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     # 1. Safely get APPDATA, falling back to the standard home directory if it's missing
-    appdata_path = os.getenv('APPDATA', str(Path.home()))
-    base_dir = Path(appdata_path / '.rescuebox')
+    appdata_path = os.getenv("APPDATA", str(Path.home()))
+    base_dir = Path(appdata_path / ".rescuebox")
     if platform.system() == "Windows":
-        base_dir = Path(appdata_path / 'RescueBox-Desktop')
-
+        base_dir = Path(appdata_path / "RescueBox-Desktop")
 
     # 2. Construct the path
-    custom_storage_dir = base_dir / 'nicegui'
+    custom_storage_dir = base_dir / "nicegui"
 
     # 3. Explicitly cast the Path object to a string for the environment variable
-    os.environ['NICEGUI_STORAGE_PATH'] = str(custom_storage_dir)
+    os.environ["NICEGUI_STORAGE_PATH"] = str(custom_storage_dir)
 
 # Repo root + src (for rb.* plugins when running as a module)
 _project_root = Path(__file__).resolve().parent.parent
@@ -85,10 +85,12 @@ if str(_project_root / "src") not in sys.path:
     sys.path.insert(0, str(_project_root / "src"))
 
 # Determine the base path for resources in a PyInstaller bundle
-if hasattr(sys, '_MEIPASS'):
+if hasattr(sys, "_MEIPASS"):
     base_path = sys._MEIPASS
     if sys.stderr is None or sys.stdout is None:
-        _output = open("nicegui-app.log", "w")  # noqa: SIM115 # keep it open until the whole python ends.
+        _output = open(
+            "nicegui-app.log", "w"
+        )  # noqa: SIM115 # keep it open until the whole python ends.
         if sys.stderr is None:
             sys.stderr = _output
         if sys.stdout is None:
@@ -97,8 +99,7 @@ else:
     base_path = os.path.abspath(".")
 
 # Construct the absolute path to the icon inside the bundle
-APP_FAVICON = os.path.join(base_path, 'icons', 'rb.webp')
-
+APP_FAVICON = os.path.join(base_path, "icons", "rb.webp")
 
 
 try:
@@ -147,20 +148,22 @@ async def index():
             ui.label(UI_TITLES["home"]).classes("text-4xl font-bold mb-4")
             ui.label(UI_TITLES["home_subtitle"]).classes("text-xl text-zinc-600")
             with ui.card().classes("w-full max-w-xl mt-4 p-4 bg-zinc-50"):
-                ui.label(f"{HOME_USER_ID['current_prefix']} {explicit_user_id}").classes(
-                    "text-sm font-medium"
+                ui.label(
+                    f"{HOME_USER_ID['current_prefix']} {explicit_user_id}"
+                ).classes("text-sm font-medium")
+                ui.label(HOME_USER_ID["change_user_hint"]).classes(
+                    "text-xs text-zinc-500 mt-1"
                 )
-                ui.label(HOME_USER_ID["change_user_hint"]).classes("text-xs text-zinc-500 mt-1")
                 with ui.row().classes("mt-3"):
 
                     def _change_user_id():
                         clear_explicit_user_id()
                         ui.timer(0.2, lambda: ui.navigate.reload(), once=True)
 
-                   # ui.button(
-                   #     HOME_USER_ID["change_user_button"],
-                   #     on_click=_change_user_id,
-                   # ).classes("bg-zinc-200 text-zinc-800")
+                # ui.button(
+                #     HOME_USER_ID["change_user_button"],
+                #     on_click=_change_user_id,
+                # ).classes("bg-zinc-200 text-zinc-800")
 
             with ui.row().classes("gap-4 mt-8"):
                 logger.debug("Creating action buttons")
@@ -188,10 +191,18 @@ async def index():
                 def _save_home_user_id():
                     val = (uid_input.value or "").strip()
                     if not val:
-                        ui.notify("Please enter a User ID.", type="warning", classes="rb-notify-505759")
+                        ui.notify(
+                            "Please enter a User ID.",
+                            type="warning",
+                            classes="rb-notify-505759",
+                        )
                         return
                     if not is_valid_explicit_user_id(val):
-                        ui.notify(HOME_USER_ID["invalid_format"], type="warning", classes="rb-notify-505759")
+                        ui.notify(
+                            HOME_USER_ID["invalid_format"],
+                            type="warning",
+                            classes="rb-notify-505759",
+                        )
                         return
                     claim = try_claim_explicit_user_id(val)
                     if claim == "taken":
@@ -253,7 +264,9 @@ if __name__ in {"__main__", "__mp_main__"}:
         )
 
     async def _prefetch_models_startup():
-        await prefetch_and_cache_models(backend_url=BACKEND_URL, api_timeout=API_TIMEOUT)
+        await prefetch_and_cache_models(
+            backend_url=BACKEND_URL, api_timeout=API_TIMEOUT
+        )
 
     app.on_startup(_prefetch_models_startup)
 
@@ -319,5 +332,5 @@ if __name__ in {"__main__", "__mp_main__"}:
         show=False,
         reconnect_timeout=RECONNECT_TIMEOUT,
         storage_secret="REPLACE_WITH_A_REAL_SECRET_KEY",
-        reload=False
+        reload=False,
     )

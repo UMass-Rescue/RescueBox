@@ -22,6 +22,7 @@ Error scenarios tested:
 These tests are critical for ensuring reliable operation in production
 environments where external dependencies may fail intermittently.
 """
+
 from unittest.mock import AsyncMock
 
 import pytest
@@ -91,6 +92,7 @@ class TestChatbotCoreErrorHandling:
         Returns a patch context manager for httpx.Client that creates mock
         clients with proper async context manager behavior.
         """
+
         def mock_client_factory():
             """Factory function for creating mock HTTP clients."""
             mock_client = Mock()
@@ -98,13 +100,13 @@ class TestChatbotCoreErrorHandling:
             mock_client.__exit__ = Mock(return_value=None)
             return mock_client
 
-        return patch('httpx.Client', return_value=mock_client_factory())
-    
+        return patch("httpx.Client", return_value=mock_client_factory())
+
     @pytest.fixture
     def core(self):
         """Create ChatbotCore instance (real API clients; patch fetch/orchestrator per test)."""
         return ChatbotCore(ChatbotConfig())
-    
+
     @pytest.mark.asyncio
     async def test_get_task_schema_http_404_error(self, core):
         """Test handling of HTTP 404 error when fetching task schema.
@@ -115,11 +117,17 @@ class TestChatbotCoreErrorHandling:
         """
         mock_response = Mock()
         mock_response.status_code = HTTP_404_NOT_FOUND
-        err = httpx.HTTPStatusError(ENDPOINT_NOT_FOUND_MSG, request=Mock(), response=mock_response)
-        with patch("frontend.chatbot.core.fetch_task_schema", new_callable=AsyncMock, side_effect=err):
+        err = httpx.HTTPStatusError(
+            ENDPOINT_NOT_FOUND_MSG, request=Mock(), response=mock_response
+        )
+        with patch(
+            "frontend.chatbot.core.fetch_task_schema",
+            new_callable=AsyncMock,
+            side_effect=err,
+        ):
             with pytest.raises(httpx.HTTPStatusError, match=ENDPOINT_NOT_FOUND_MSG):
                 await core.get_task_schema_from_endpoint(NONEXISTENT_ENDPOINT)
-    
+
     @pytest.mark.asyncio
     async def test_get_task_schema_http_500_error(self, core):
         """Test handling of HTTP 500 error when fetching task schema.
@@ -130,11 +138,17 @@ class TestChatbotCoreErrorHandling:
         """
         mock_response = Mock()
         mock_response.status_code = HTTP_500_INTERNAL_ERROR
-        err = httpx.HTTPStatusError(HTTP_500_ERROR_MSG, request=Mock(), response=mock_response)
-        with patch("frontend.chatbot.core.fetch_task_schema", new_callable=AsyncMock, side_effect=err):
+        err = httpx.HTTPStatusError(
+            HTTP_500_ERROR_MSG, request=Mock(), response=mock_response
+        )
+        with patch(
+            "frontend.chatbot.core.fetch_task_schema",
+            new_callable=AsyncMock,
+            side_effect=err,
+        ):
             with pytest.raises(httpx.HTTPStatusError, match=HTTP_500_ERROR_MSG):
                 await core.get_task_schema_from_endpoint(TEST_ENDPOINT)
-    
+
     @pytest.mark.asyncio
     async def test_get_task_schema_network_error(self, core):
         """Test handling of network error when fetching task schema.
@@ -150,7 +164,7 @@ class TestChatbotCoreErrorHandling:
         ):
             with pytest.raises(httpx.RequestError):
                 await core.get_task_schema_from_endpoint(TEST_ENDPOINT)
-    
+
     @pytest.mark.asyncio
     async def test_get_task_schema_invalid_json(self, core):
         """Test handling of invalid JSON response when fetching task schema.
@@ -166,7 +180,7 @@ class TestChatbotCoreErrorHandling:
         ):
             with pytest.raises(ValueError, match=INVALID_JSON_MSG):
                 await core.get_task_schema_from_endpoint(TEST_ENDPOINT)
-    
+
     @pytest.mark.asyncio
     async def test_get_task_schema_invalid_schema_format(self, core):
         """Invalid payload cannot be coerced to TaskSchema (Pydantic validation)."""
@@ -179,30 +193,28 @@ class TestChatbotCoreErrorHandling:
 
             with pytest.raises(ValidationError):
                 await core.get_task_schema_from_endpoint("audio/transcribed")
-    
+
     @pytest.mark.asyncio
     async def test_submit_job_http_404_error(self, core):
         """Test handling of HTTP 404 error when submitting job"""
         with tempfile.TemporaryDirectory() as temp_dir:
             request_body = RequestBody(
-                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))},
-                parameters={}
+                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))}, parameters={}
             )
             with patch(
                 "frontend.chatbot.core.submit_job_orchestrator",
                 new_callable=AsyncMock,
-                side_effect=Exception('Job submission failed: Not Found'),
+                side_effect=Exception("Job submission failed: Not Found"),
             ):
                 with pytest.raises(Exception, match="Job submission failed"):
                     await core.submit_job(request_body, "nonexistent/endpoint")
-    
+
     @pytest.mark.asyncio
     async def test_submit_job_http_500_error(self, core):
         """Test handling of HTTP 500 error when submitting job"""
         with tempfile.TemporaryDirectory() as temp_dir:
             request_body = RequestBody(
-                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))},
-                parameters={}
+                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))}, parameters={}
             )
             with patch(
                 "frontend.chatbot.core.submit_job_orchestrator",
@@ -211,31 +223,31 @@ class TestChatbotCoreErrorHandling:
             ):
                 with pytest.raises(Exception, match="Internal server error"):
                     await core.submit_job(request_body, "audio/transcribed")
-    
+
     @pytest.mark.asyncio
     async def test_submit_job_network_error(self, core):
         """Test handling of network error when submitting job"""
         with tempfile.TemporaryDirectory() as temp_dir:
             request_body = RequestBody(
-                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))},
-                parameters={}
+                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))}, parameters={}
             )
             with patch(
                 "frontend.chatbot.core.submit_job_orchestrator",
                 new_callable=AsyncMock,
-                side_effect=Exception("Network error submitting job: Connection timeout"),
+                side_effect=Exception(
+                    "Network error submitting job: Connection timeout"
+                ),
             ):
                 with pytest.raises(Exception) as exc:
                     await core.submit_job(request_body, "audio/transcribed")
                 assert "Network error submitting job" in str(exc.value)
-    
+
     @pytest.mark.asyncio
     async def test_submit_job_invalid_json_response(self, core):
         """Orchestrator surfaces failures while resolving job response JSON."""
         with tempfile.TemporaryDirectory() as temp_dir:
             request_body = RequestBody(
-                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))},
-                parameters={}
+                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))}, parameters={}
             )
             with patch(
                 "frontend.chatbot.core.submit_job_orchestrator",
@@ -244,14 +256,13 @@ class TestChatbotCoreErrorHandling:
             ):
                 with pytest.raises(ValueError, match="Invalid JSON"):
                     await core.submit_job(request_body, "audio/transcribed")
-    
+
     @pytest.mark.asyncio
     async def test_submit_job_invalid_response_format(self, core):
         """Response body dict must satisfy ResponseBody schema."""
         with tempfile.TemporaryDirectory() as temp_dir:
             request_body = RequestBody(
-                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))},
-                parameters={}
+                inputs={"input_dir": DirectoryInput(path=Path(temp_dir))}, parameters={}
             )
             with patch(
                 "frontend.chatbot.core.submit_job_orchestrator",
@@ -260,52 +271,53 @@ class TestChatbotCoreErrorHandling:
             ):
                 with pytest.raises(Exception, match="Invalid response format"):
                     await core.submit_job(request_body, "audio/transcribed")
-    
+
     @pytest.mark.asyncio
     async def test_call_granite_model_404_error(self, core):
         """Test handling of HTTP 404 error when calling Granite model"""
         mock_response = AsyncMock()
         mock_response.status_code = 404
         mock_response.text = ""
-        
+
         core.ollama_client.post = AsyncMock(return_value=mock_response)
-        
+
         result = await core.call_granite_model("test prompt")
         # Should return None on error
         assert result is None
-    
+
     @pytest.mark.asyncio
     async def test_call_granite_model_network_error(self, core):
         """Test handling of network error when calling Granite model"""
-        core.ollama_client.post = AsyncMock(side_effect=httpx.RequestError("Connection refused"))
-        
+        core.ollama_client.post = AsyncMock(
+            side_effect=httpx.RequestError("Connection refused")
+        )
+
         result = await core.call_granite_model("test prompt")
         # Should return None on error
         assert result is None
-    
+
     @pytest.mark.asyncio
     async def test_call_granite_model_invalid_response_format(self, core):
         """Test handling of invalid response format from Granite model"""
         mock_response = AsyncMock()
         mock_response.raise_for_status = Mock()  # raise_for_status() is synchronous
         mock_response.json = Mock(side_effect=ValueError("Invalid JSON"))
-        
+
         core.ollama_client.post = AsyncMock(return_value=mock_response)
-        
+
         result = await core.call_granite_model("test prompt")
         # Should return None on error
         assert result is None
-    
+
     @pytest.mark.asyncio
     async def test_call_granite_model_missing_response_key(self, core):
         """Test handling of missing 'response' key in Granite model response"""
         mock_response = AsyncMock()
         mock_response.raise_for_status = Mock()  # raise_for_status() is synchronous
         mock_response.json = Mock(return_value={"no_response": "key"})
-        
+
         core.ollama_client.post = AsyncMock(return_value=mock_response)
-        
+
         result = await core.call_granite_model("test prompt")
         # Should return None when no response key
         assert result is None
-

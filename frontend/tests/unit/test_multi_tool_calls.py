@@ -39,13 +39,13 @@ from frontend.chatbot.multi_tool_handler import (
 )
 
 # Test constants
-TEST_OUTPUT_DIR = '/output/summaries'
-TEST_RESULTS_DIR = '/output/results'
-TEST_IMAGES_DIR = '/output/images'
-TEST_IMAGE_PATH = '/output/images/photo.jpg'
-TEST_BATCH_IMAGE_PATH = '/output/images/photo1.jpg'
-TEST_TEXT_VALUE = 'Some text'
-TEST_TOOL_NAME = 'test/tool'
+TEST_OUTPUT_DIR = "/output/summaries"
+TEST_RESULTS_DIR = "/output/results"
+TEST_IMAGES_DIR = "/output/images"
+TEST_IMAGE_PATH = "/output/images/photo.jpg"
+TEST_BATCH_IMAGE_PATH = "/output/images/photo1.jpg"
+TEST_TEXT_VALUE = "Some text"
+TEST_TOOL_NAME = "test/tool"
 
 
 class TestExtractOutputPath:
@@ -63,19 +63,21 @@ class TestExtractOutputPath:
         the system can extract the primary output directory path for
         chaining to subsequent tools that need directory inputs.
         """
-        from rb.api.models import DirectoryResponse, BatchDirectoryResponse, ResponseBody
+        from rb.api.models import (
+            DirectoryResponse,
+            BatchDirectoryResponse,
+            ResponseBody,
+        )
 
         dir_response = DirectoryResponse(
-            output_type='directory',
-            path=TEST_OUTPUT_DIR,
-            title='Summaries'
+            output_type="directory", path=TEST_OUTPUT_DIR, title="Summaries"
         )
         batch_dir = BatchDirectoryResponse(directories=[dir_response])
         response_body = ResponseBody(root=batch_dir)
 
         result = extract_output_path(response_body)
         assert result == TEST_OUTPUT_DIR
-    
+
     def test_extract_from_directory_response(self):
         """Test extracting path from DirectoryResponse.
 
@@ -85,9 +87,7 @@ class TestExtractOutputPath:
         from rb.api.models import DirectoryResponse, ResponseBody
 
         dir_response = DirectoryResponse(
-            output_type='directory',
-            path=TEST_RESULTS_DIR,
-            title='Results'
+            output_type="directory", path=TEST_RESULTS_DIR, title="Results"
         )
         response_body = ResponseBody(root=dir_response)
 
@@ -104,10 +104,10 @@ class TestExtractOutputPath:
         from rb.api.models import FileResponse, BatchFileResponse, ResponseBody
 
         file_response = FileResponse(
-            output_type='file',
-            file_type='img',
+            output_type="file",
+            file_type="img",
             path=TEST_BATCH_IMAGE_PATH,
-            title='Photo 1'
+            title="Photo 1",
         )
         batch_file = BatchFileResponse(files=[file_response])
         response_body = ResponseBody(root=batch_file)
@@ -148,16 +148,13 @@ class TestExtractOutputPath:
         from rb.api.models import FileResponse, ResponseBody
 
         file_response = FileResponse(
-            output_type='file',
-            file_type='img',
-            path=TEST_IMAGE_PATH,
-            title='Photo'
+            output_type="file", file_type="img", path=TEST_IMAGE_PATH, title="Photo"
         )
         response_body = ResponseBody(root=file_response)
 
         result = extract_output_path(response_body)
         assert result == TEST_IMAGES_DIR
-    
+
     def test_extract_none_when_no_path(self):
         """Test returning None when path cannot be extracted.
 
@@ -168,9 +165,7 @@ class TestExtractOutputPath:
         from rb.api.models import TextResponse, ResponseBody
 
         text_response = TextResponse(
-            output_type='text',
-            value=TEST_TEXT_VALUE,
-            title='Text'
+            output_type="text", value=TEST_TEXT_VALUE, title="Text"
         )
         response_body = ResponseBody(root=text_response)
 
@@ -186,38 +181,40 @@ class TestChainOutputToInput:
     next tool in a multi-tool workflow, enabling complex processing
     pipelines without manual intervention.
     """
-    
+
     def test_chain_directory_output_to_input_dir(self):
         """Test chaining directory output to input directory field"""
         # Previous output with directory
         dir_response = DirectoryResponse(
-            output_type='directory',
-            path='/output/summaries',
-            title='Summaries'
+            output_type="directory", path="/output/summaries", title="Summaries"
         )
         previous_output = ResponseBody(root=dir_response)
-        
+
         # Current schema with input_dir field
         current_schema = TaskSchema(
             inputs=[
                 InputSchema(
-                    key='input_dir',
-                    label='Input Directory',
-                    input_type=InputType.DIRECTORY
+                    key="input_dir",
+                    label="Input Directory",
+                    input_type=InputType.DIRECTORY,
                 )
             ],
-            parameters=[]
+            parameters=[],
         )
-        
-        # Current arguments
-        current_arguments = {'input_dir': '/tmp'}
-        
-        # Chain output
-        result = chain_output_to_input(previous_output, current_arguments, current_schema)
-        
-        assert result['input_dir'] == '/output/summaries'
 
-    def test_chain_image_summary_to_text_search_injects_file_filter_without_schema_row(self):
+        # Current arguments
+        current_arguments = {"input_dir": "/tmp"}
+
+        # Chain output
+        result = chain_output_to_input(
+            previous_output, current_arguments, current_schema
+        )
+
+        assert result["input_dir"] == "/output/summaries"
+
+    def test_chain_image_summary_to_text_search_injects_file_filter_without_schema_row(
+        self,
+    ):
         """Public GET task_schema omits file_filter; chaining must still set explicit paths."""
         import json
         from rb.api.models import TextResponse
@@ -234,7 +231,9 @@ class TestChainOutputToInput:
         # Schema like text-embeddings public API: only input_dir + query (no file_filter key).
         current_schema = TaskSchema(
             inputs=[
-                InputSchema(key="input_dir", label="In", input_type=InputType.DIRECTORY),
+                InputSchema(
+                    key="input_dir", label="In", input_type=InputType.DIRECTORY
+                ),
                 InputSchema(key="query", label="Q", input_type=InputType.TEXT),
             ],
             parameters=[],
@@ -296,125 +295,118 @@ class TestChainOutputToInput:
     def test_chain_to_input_dataset(self):
         """Test chaining to input_dataset field"""
         dir_response = DirectoryResponse(
-            output_type='directory',
-            path='/output/results',
-            title='Results'
+            output_type="directory", path="/output/results", title="Results"
         )
         previous_output = ResponseBody(root=dir_response)
-        
+
         current_schema = TaskSchema(
             inputs=[
                 InputSchema(
-                    key='input_dataset',
-                    label='Input Dataset',
-                    input_type=InputType.DIRECTORY
+                    key="input_dataset",
+                    label="Input Dataset",
+                    input_type=InputType.DIRECTORY,
                 )
             ],
-            parameters=[]
+            parameters=[],
         )
-        
-        current_arguments = {'input_dataset': '/tmp'}
-        
-        result = chain_output_to_input(previous_output, current_arguments, current_schema)
-        
-        assert result['input_dataset'] == '/output/results'
-    
+
+        current_arguments = {"input_dataset": "/tmp"}
+
+        result = chain_output_to_input(
+            previous_output, current_arguments, current_schema
+        )
+
+        assert result["input_dataset"] == "/output/results"
+
     def test_preserve_other_arguments(self):
         """Test that other arguments are preserved"""
         dir_response = DirectoryResponse(
-            output_type='directory',
-            path='/output/summaries',
-            title='Summaries'
+            output_type="directory", path="/output/summaries", title="Summaries"
         )
         previous_output = ResponseBody(root=dir_response)
-        
+
         current_schema = TaskSchema(
             inputs=[
                 InputSchema(
-                    key='input_dir',
-                    label='Input Directory',
-                    input_type=InputType.DIRECTORY
+                    key="input_dir",
+                    label="Input Directory",
+                    input_type=InputType.DIRECTORY,
                 )
             ],
             parameters=[
                 ParameterSchema(
-                    key='confidence',
-                    label='Confidence',
-                    value=FloatParameterDescriptor(default=0.5)
+                    key="confidence",
+                    label="Confidence",
+                    value=FloatParameterDescriptor(default=0.5),
                 )
-            ]
+            ],
         )
-        
-        current_arguments = {
-            'input_dir': '/tmp',
-            'confidence': 0.8
-        }
-        
-        result = chain_output_to_input(previous_output, current_arguments, current_schema)
-        
-        assert result['input_dir'] == '/output/summaries'
-        assert result['confidence'] == 0.8
-    
+
+        current_arguments = {"input_dir": "/tmp", "confidence": 0.8}
+
+        result = chain_output_to_input(
+            previous_output, current_arguments, current_schema
+        )
+
+        assert result["input_dir"] == "/output/summaries"
+        assert result["confidence"] == 0.8
+
     def test_no_chaining_when_no_output_path(self):
         """Test that arguments remain unchanged when no output path can be extracted"""
-        
+
         text_response = TextResponse(
-            output_type='text',
-            value='Some text',
-            title='Text'
+            output_type="text", value="Some text", title="Text"
         )
         previous_output = ResponseBody(root=text_response)
-        
+
         current_schema = TaskSchema(
             inputs=[
                 InputSchema(
-                    key='input_dir',
-                    label='Input Directory',
-                    input_type=InputType.DIRECTORY
+                    key="input_dir",
+                    label="Input Directory",
+                    input_type=InputType.DIRECTORY,
                 )
             ],
-            parameters=[]
+            parameters=[],
         )
-        
-        current_arguments = {'input_dir': '/tmp'}
-        
-        result = chain_output_to_input(previous_output, current_arguments, current_schema)
-        
+
+        current_arguments = {"input_dir": "/tmp"}
+
+        result = chain_output_to_input(
+            previous_output, current_arguments, current_schema
+        )
+
         # Should remain unchanged
-        assert result['input_dir'] == '/tmp'
-    
+        assert result["input_dir"] == "/tmp"
+
     def test_no_chaining_when_no_input_dir_field(self):
         """Test that arguments remain unchanged when no input directory field exists"""
         dir_response = DirectoryResponse(
-            output_type='directory',
-            path='/output/summaries',
-            title='Summaries'
+            output_type="directory", path="/output/summaries", title="Summaries"
         )
         previous_output = ResponseBody(root=dir_response)
-        
+
         # Schema without input directory field
         current_schema = TaskSchema(
             inputs=[
-                InputSchema(
-                    key='prompt',
-                    label='Prompt',
-                    input_type=InputType.TEXT
-                )
+                InputSchema(key="prompt", label="Prompt", input_type=InputType.TEXT)
             ],
-            parameters=[]
+            parameters=[],
         )
-        
-        current_arguments = {'prompt': 'test'}
-        
-        result = chain_output_to_input(previous_output, current_arguments, current_schema)
-        
+
+        current_arguments = {"prompt": "test"}
+
+        result = chain_output_to_input(
+            previous_output, current_arguments, current_schema
+        )
+
         # Should remain unchanged
         assert result == current_arguments
 
 
 class TestMultiToolCallResult:
     """Tests for MultiToolCallResult class"""
-    
+
     def test_initialization(self):
         """Test MultiToolCallResult initialization"""
         result = MultiToolCallResult()
@@ -422,35 +414,35 @@ class TestMultiToolCallResult:
         assert result.results == []
         assert result.errors == []
         assert result.completed_count == 0
-    
+
     def test_add_result_success(self):
         """Test adding successful result"""
         result = MultiToolCallResult()
-        
-        tool_call = {'endpoint': 'audio/transcribe', 'arguments': {}}
-        response_body = ResponseBody(root=DirectoryResponse(
-            output_type='directory',
-            path='/output',
-            title='Output'
-        ))
-        
+
+        tool_call = {"endpoint": "audio/transcribe", "arguments": {}}
+        response_body = ResponseBody(
+            root=DirectoryResponse(
+                output_type="directory", path="/output", title="Output"
+            )
+        )
+
         result.add_result(tool_call, response_body, None)
-        
+
         assert len(result.tool_calls) == 1
         assert len(result.results) == 1
         assert len(result.errors) == 1
         assert result.completed_count == 1
         assert result.errors[0] is None
-    
+
     def test_add_result_error(self):
         """Test adding result with error"""
         result = MultiToolCallResult()
-        
-        tool_call = {'endpoint': 'test/endpoint', 'arguments': {}}
-        error = 'Test error'
-        
+
+        tool_call = {"endpoint": "test/endpoint", "arguments": {}}
+        error = "Test error"
+
         result.add_result(tool_call, None, error)
-        
+
         assert len(result.tool_calls) == 1
         assert result.results[0] is None
         assert result.errors[0] == error
@@ -537,61 +529,75 @@ class TestCallGraniteModelMultipleCalls:
 
 class TestMessageHandlerMultipleCalls:
     """Tests for message handler with multiple tool calls"""
-    
+
     @pytest.fixture
     def handler(self):
         """Create MessageHandler instance"""
         from frontend.chatbot.message_handler import MessageHandler
         from frontend.chatbot.config import ChatbotConfig
         from frontend.chatbot.core import ChatbotCore
-        
+
         config = ChatbotConfig()
         core = ChatbotCore(config)
         return MessageHandler(core, config)
-    
+
     @pytest.mark.asyncio
     async def test_handle_multiple_tool_calls(self, handler):
         """Test handling multiple tool calls"""
         # Mock call_granite_model to return multiple tool calls
         multiple_calls = [
-            {"name": "image_summary/summarize-images", "arguments": {"input_dir": "/tmp"}},
-            {"name": "deepfake_detection/predict", "arguments": {"input_dataset": "/tmp"}},
+            {
+                "name": "image_summary/summarize-images",
+                "arguments": {"input_dir": "/tmp"},
+            },
+            {
+                "name": "deepfake_detection/predict",
+                "arguments": {"input_dataset": "/tmp"},
+            },
         ]
 
-        with patch.object(handler.core, "call_granite_model_direct", new_callable=AsyncMock) as mock_call:
+        with patch.object(
+            handler.core, "call_granite_model_direct", new_callable=AsyncMock
+        ) as mock_call:
             mock_call.return_value = multiple_calls
 
-            result = await handler.handle_smart_analyze("summarize images and detect fakes")
+            result = await handler.handle_smart_analyze(
+                "summarize images and detect fakes"
+            )
 
             assert result["type"] == "multi_tool_calls"
             assert "tool_calls" in result
             assert len(result["tool_calls"]) == 2
-            assert result["tool_calls"][0]["endpoint"] == "image_summary/summarize-images"
+            assert (
+                result["tool_calls"][0]["endpoint"] == "image_summary/summarize-images"
+            )
             assert result["tool_calls"][1]["endpoint"] == "deepfake_detection/predict"
-    
+
     @pytest.mark.asyncio
     async def test_handle_single_tool_call_backward_compat(self, handler):
         """Test backward compatibility with single tool call"""
-        single_call = [
-            {'name': 'audio/transcribe', 'arguments': {'input_dir': '/tmp'}}
-        ]
-        
-        with patch.object(handler.core, 'call_granite_model_direct', new_callable=AsyncMock) as mock_call:
+        single_call = [{"name": "audio/transcribe", "arguments": {"input_dir": "/tmp"}}]
+
+        with patch.object(
+            handler.core, "call_granite_model_direct", new_callable=AsyncMock
+        ) as mock_call:
             mock_call.return_value = single_call
-            
+
             result = await handler.handle_smart_analyze("transcribe audio")
-            
+
             # Should return 'show_form' type for single call (backward compatible)
-            assert result['type'] == 'show_form'
-            assert result['endpoint'] == 'audio/transcribe'
-            assert 'arguments' in result
+            assert result["type"] == "show_form"
+            assert result["endpoint"] == "audio/transcribe"
+            assert "arguments" in result
 
 
 class TestBatchMetadataFilterGate:
     """Pipeline filter dialog should only apply when prior step has Age/Gender metadata."""
 
     def test_clip_search_rows_do_not_trigger_age_gender_filter(self):
-        from frontend.chatbot.multi_tool_handler import batch_items_have_age_gender_metadata
+        from frontend.chatbot.multi_tool_handler import (
+            batch_items_have_age_gender_metadata,
+        )
 
         items = [
             {
@@ -607,7 +613,9 @@ class TestBatchMetadataFilterGate:
         assert batch_items_have_age_gender_metadata(items) is False
 
     def test_age_gender_classifier_rows_trigger_filter(self):
-        from frontend.chatbot.multi_tool_handler import batch_items_have_age_gender_metadata
+        from frontend.chatbot.multi_tool_handler import (
+            batch_items_have_age_gender_metadata,
+        )
 
         items = [
             {"path": "/photos/a.jpg", "metadata": {"Gender": "Female", "Age": "(4-6)"}},

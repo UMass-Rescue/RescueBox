@@ -32,16 +32,16 @@ from frontend.chatbot.utils import calculate_text_area_height
 from frontend.components.results import render_batch_text, render_markdown, render_text
 
 # Test constants
-TEST_TEXT_CONTENT = 'This is test text content'
-TEST_RESULT_TITLE = 'Test Result'
-IMAGE_SUMMARIES_TITLE = 'Image Summaries'
+TEST_TEXT_CONTENT = "This is test text content"
+TEST_RESULT_TITLE = "Test Result"
+IMAGE_SUMMARIES_TITLE = "Image Summaries"
 
 # File content for image summaries
-FILE1_CONTENT = 'A blue car in the parking lot'
-FILE2_CONTENT = 'A red bicycle on the street'
-FILE1_NAME = 'image1.txt'
-FILE2_NAME = 'image2.txt'
-FILE1_DISPLAY_CONTENT = 'A blue car'
+FILE1_CONTENT = "A blue car in the parking lot"
+FILE2_CONTENT = "A red bicycle on the street"
+FILE1_NAME = "image1.txt"
+FILE2_NAME = "image2.txt"
+FILE1_DISPLAY_CONTENT = "A blue car"
 
 # Markdown content
 MARKDOWN_CONTENT = """
@@ -53,22 +53,22 @@ This is **bold** text and *italic* text.
 """
 
 # Batch text data
-BATCH_ITEM1_TITLE = 'Item 1'
-BATCH_ITEM2_TITLE = 'Item 2'
-BATCH_ITEM1_SUBTITLE = 'First subtitle'
-BATCH_ITEM2_SUBTITLE = 'Second subtitle'
-BATCH_ITEM1_CONTENT = 'First text item'
-BATCH_ITEM2_CONTENT = 'Second text item'
+BATCH_ITEM1_TITLE = "Item 1"
+BATCH_ITEM2_TITLE = "Item 2"
+BATCH_ITEM1_SUBTITLE = "First subtitle"
+BATCH_ITEM2_SUBTITLE = "Second subtitle"
+BATCH_ITEM1_CONTENT = "First text item"
+BATCH_ITEM2_CONTENT = "Second text item"
 
 # Expected UI text
-TEXT_RESULT_TITLE_UI = 'Text Result'
-MARKDOWN_RESULT_TITLE_UI = 'Markdown Result'
-BATCH_TEXT_RESULT_TITLE_UI = 'Transcription'
-SEARCH_LABEL = 'Search'
-FILENAME_HEADER = 'Filename'
-HASH_HEADER = '#'
-TITLE_HEADER = 'Title'
-SUBTITLE_HEADER = 'Subtitle'
+TEXT_RESULT_TITLE_UI = "Text Result"
+MARKDOWN_RESULT_TITLE_UI = "Markdown Result"
+BATCH_TEXT_RESULT_TITLE_UI = "Transcription"
+SEARCH_LABEL = "Search"
+FILENAME_HEADER = "Filename"
+HASH_HEADER = "#"
+TITLE_HEADER = "Title"
+SUBTITLE_HEADER = "Subtitle"
 
 
 class TestTextRenderers:
@@ -90,7 +90,7 @@ class TestTextRenderers:
     browser interactions and validate the complete user experience
     for text content consumption in RescueBox.
     """
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_text(self, user: User):
@@ -101,21 +101,19 @@ class TestTextRenderers:
         text presentation suitable for analysis results and messages.
         """
         response = TextResponse(
-            output_type='text',
-            value=TEST_TEXT_CONTENT,
-            title=TEST_RESULT_TITLE
+            output_type="text", value=TEST_TEXT_CONTENT, title=TEST_RESULT_TITLE
         )
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             render_text(container, response)
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(TEXT_RESULT_TITLE_UI)
         await user.should_see(TEST_RESULT_TITLE)
         await user.should_see(TEST_TEXT_CONTENT)
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_text_image_summary_format(self, user: User):
@@ -137,17 +135,15 @@ class TestTextRenderers:
             json_value = json.dumps(file_paths)
 
             response = TextResponse(
-                output_type='text',
-                value=json_value,
-                title=IMAGE_SUMMARIES_TITLE
+                output_type="text", value=json_value, title=IMAGE_SUMMARIES_TITLE
             )
 
-            @ui.page('/test')
+            @ui.page("/test")
             def test_page():
                 container = ui.column()
                 render_text(container, response)
 
-            await user.open('/test')
+            await user.open("/test")
             await user.should_see(IMAGE_SUMMARIES_TITLE)
             await user.should_see(SEARCH_LABEL)
             try:
@@ -155,7 +151,7 @@ class TestTextRenderers:
                 await user.should_see(FILE1_DISPLAY_CONTENT)
             except AssertionError:
                 pass
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_text_search_results_as_table(self, user: User):
@@ -204,34 +200,32 @@ class TestTextRenderers:
         """Test that search input is present in searchable file list"""
         with tempfile.TemporaryDirectory() as tmpdir:
             file1 = Path(tmpdir) / FILE1_NAME
-            file1.write_text('A blue car in the parking lot')
+            file1.write_text("A blue car in the parking lot")
             file2 = Path(tmpdir) / FILE2_NAME
-            file2.write_text('A red bicycle on the street')
-            
+            file2.write_text("A red bicycle on the street")
+
             file_paths = [str(file1), str(file2)]
             json_value = json.dumps(file_paths)
-            
+
             response = TextResponse(
-                output_type='text',
-                value=json_value,
-                title='Image Summaries'
+                output_type="text", value=json_value, title="Image Summaries"
             )
-            
-            @ui.page('/test')
+
+            @ui.page("/test")
             def test_page():
                 container = ui.column()
                 render_text(container, response)
-            
-            await user.open('/test')
+
+            await user.open("/test")
             # Should see search input and file list
-            await user.should_see('Search')
+            await user.should_see("Search")
             try:
-                await user.should_see('image1.txt')
-                await user.should_see('image2.txt')
-                await user.should_see('A blue car')
+                await user.should_see("image1.txt")
+                await user.should_see("image2.txt")
+                await user.should_see("A blue car")
             except AssertionError:
                 pass
-    
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_markdown(self, user: User):
@@ -241,48 +235,41 @@ class TestTextRenderers:
         appropriate HTML formatting, including headers, bold/italic text,
         and lists for rich text display in analysis results and documentation.
         """
-        response = MarkdownResponse(
-            output_type='markdown',
-            value=MARKDOWN_CONTENT
-        )
+        response = MarkdownResponse(output_type="markdown", value=MARKDOWN_CONTENT)
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             render_markdown(container, response)
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(MARKDOWN_RESULT_TITLE_UI)
-        await user.should_see('Heading 1')
-    
+        await user.should_see("Heading 1")
+
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_render_batch_text(self, user: User):
         """Test rendering batch text response with multiple items."""
         texts = [
             TextResponse(
-                output_type='text',
-                value=BATCH_ITEM1_CONTENT,
-                title=BATCH_ITEM1_TITLE
+                output_type="text", value=BATCH_ITEM1_CONTENT, title=BATCH_ITEM1_TITLE
             ),
             TextResponse(
-                output_type='text',
-                value=BATCH_ITEM2_CONTENT,
-                title=BATCH_ITEM2_TITLE
+                output_type="text", value=BATCH_ITEM2_CONTENT, title=BATCH_ITEM2_TITLE
             ),
         ]
 
         response = BatchTextResponse(texts=texts)
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             render_batch_text(container, response)
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(BATCH_TEXT_RESULT_TITLE_UI)
-        await user.should_see('2 file(s)')
-        await user.should_see('Source')
+        await user.should_see("2 file(s)")
+        await user.should_see("Source")
         await user.should_see(BATCH_ITEM1_TITLE)
         await user.should_see(BATCH_ITEM1_CONTENT)
         await user.should_see(BATCH_ITEM2_TITLE)
@@ -296,27 +283,28 @@ class TestTextRenderers:
         Ensures that long text content is properly displayed and
         the UI handles extended content gracefully.
         """
-        long_content = "This is a very long piece of text content that should test how the UI handles extended text display and ensure that all the content is visible and properly formatted within the user interface. " * 10  # Repeat to make it long
+        long_content = (
+            "This is a very long piece of text content that should test how the UI handles extended text display and ensure that all the content is visible and properly formatted within the user interface. "
+            * 10
+        )  # Repeat to make it long
 
         texts = [
             TextResponse(
-                output_type='text',
-                value=long_content,
-                title='Long Content Test'
+                output_type="text", value=long_content, title="Long Content Test"
             )
         ]
 
         response = BatchTextResponse(texts=texts)
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             render_batch_text(container, response)
 
-        await user.open('/test')
+        await user.open("/test")
         await user.should_see(BATCH_TEXT_RESULT_TITLE_UI)
-        await user.should_see('Long Content Test')
-        await user.should_see('This is a very long piece')
+        await user.should_see("Long Content Test")
+        await user.should_see("This is a very long piece")
         await user.should_see(long_content[:80])
 
     @pytest.mark.asyncio
@@ -329,27 +317,27 @@ class TestTextRenderers:
         """
         texts = [
             TextResponse(
-                output_type='text',
-                value='',  # Empty content
-                title='Empty Content Test'
+                output_type="text",
+                value="",  # Empty content
+                title="Empty Content Test",
             ),
             TextResponse(
-                output_type='text',
-                value='',  # None content replaced with empty string for validation
-                title='None Content Test'
-            )
+                output_type="text",
+                value="",  # None content replaced with empty string for validation
+                title="None Content Test",
+            ),
         ]
 
         response = BatchTextResponse(texts=texts)
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             render_batch_text(container, response)
 
-        await user.open('/test')
-        await user.should_see('Empty Content Test')
-        await user.should_see('None Content Test')
+        await user.open("/test")
+        await user.should_see("Empty Content Test")
+        await user.should_see("None Content Test")
 
     @pytest.mark.asyncio
     @pytest.mark.integration
@@ -363,24 +351,24 @@ class TestTextRenderers:
 
         texts = [
             TextResponse(
-                output_type='text',
+                output_type="text",
                 value=special_content,
-                title='Special Characters Test'
+                title="Special Characters Test",
             )
         ]
 
         response = BatchTextResponse(texts=texts)
 
-        @ui.page('/test')
+        @ui.page("/test")
         def test_page():
             container = ui.column()
             render_batch_text(container, response)
 
-        await user.open('/test')
-        await user.should_see('Special Characters Test')
-        await user.should_see('éñüñ')  # Special characters
-        await user.should_see('New line here')  # Newline handling
-        await user.should_see('©®™')  # Unicode symbols
+        await user.open("/test")
+        await user.should_see("Special Characters Test")
+        await user.should_see("éñüñ")  # Special characters
+        await user.should_see("New line here")  # Newline handling
+        await user.should_see("©®™")  # Unicode symbols
 
 
 class TestTextAreaHeightCalculation:
@@ -393,34 +381,34 @@ class TestTextAreaHeightCalculation:
     def test_calculate_text_area_height_short_text(self):
         """Test height calculation for short text."""
         result = calculate_text_area_height(50)
-        assert result == 'h-25'
+        assert result == "h-25"
 
     def test_calculate_text_area_height_medium_text(self):
         """Test height calculation for medium text."""
         result = calculate_text_area_height(300)
-        assert result == 'h-75'
+        assert result == "h-75"
 
     def test_calculate_text_area_height_long_text(self):
         """Test height calculation for long text (Twinkle Twinkle lyrics)."""
         result = calculate_text_area_height(683)  # Length of test lyrics
-        assert result == 'h-96'  # Capped at max
+        assert result == "h-96"  # Capped at max
 
     def test_calculate_text_area_height_very_long_text(self):
         """Test height calculation for very long text."""
         result = calculate_text_area_height(2000)
-        assert result == 'h-96'  # Maximum height cap
+        assert result == "h-96"  # Maximum height cap
 
     def test_calculate_text_area_height_empty_text(self):
         """Test height calculation for empty text."""
         result = calculate_text_area_height(0)
-        assert result == 'h-24'  # Minimum height
+        assert result == "h-24"  # Minimum height
 
     def test_calculate_text_area_height_edge_cases(self):
         """Test height calculation edge cases."""
         # Very large text
         result = calculate_text_area_height(10000)
-        assert result == 'h-96'  # Maximum height cap
+        assert result == "h-96"  # Maximum height cap
 
         # Boundary text
         result = calculate_text_area_height(400)
-        assert result == 'h-95'
+        assert result == "h-95"

@@ -7,9 +7,11 @@ from frontend.chatbot.config import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
+
 class DatabaseService:
     @staticmethod
-    def get_job_db(): return get_job_db()
+    def get_job_db():
+        return get_job_db()
 
     @staticmethod
     async def ensure_active_conversation(state_manager) -> str:
@@ -66,21 +68,33 @@ class DatabaseService:
         await chat_history.update_conversation(conversation_id, title=new_title)
 
     @staticmethod
-    async def save_message_to_history(conversation_id: str, role: str, content: str, **kwargs):
+    async def save_message_to_history(
+        conversation_id: str, role: str, content: str, **kwargs
+    ):
         chat_history = get_chat_history_db()
-        await chat_history.add_message(conversation_id=conversation_id, role=role, content=content, **kwargs)
+        await chat_history.add_message(
+            conversation_id=conversation_id, role=role, content=content, **kwargs
+        )
 
     @staticmethod
-    async def create_and_track_job(request_body, endpoint: str, task_schema=None, **kwargs):
+    async def create_and_track_job(
+        request_body, endpoint: str, task_schema=None, **kwargs
+    ):
         from frontend.utils import set_logging_context
+
         job_db = get_job_db()
-        job_record = await job_db.create_job(request_body=request_body, endpoint=endpoint, task_schema=task_schema, **kwargs)
+        job_record = await job_db.create_job(
+            request_body=request_body,
+            endpoint=endpoint,
+            task_schema=task_schema,
+            **kwargs,
+        )
         if not job_record:
             return None
-        job_id = getattr(job_record, 'uid', None)
+        job_id = getattr(job_record, "uid", None)
         if job_id:
             set_logging_context(job_id=job_id)
-        return {'job_id': job_id, 'status': 'RUNNING'} if job_id else None
+        return {"job_id": job_id, "status": "RUNNING"} if job_id else None
 
     @staticmethod
     async def update_job_status(job_uid: str, status: str, **kwargs):
@@ -106,18 +120,22 @@ class DatabaseService:
                 snap["parameters"] = data["parameters"]
             return snap or None
         except Exception:
-            logger.debug("Could not snapshot request body for chat history", exc_info=True)
+            logger.debug(
+                "Could not snapshot request body for chat history", exc_info=True
+            )
             return None
 
     @staticmethod
-    async def save_tool_call_to_history(conversation_id: str, endpoint: str, arguments: dict):
+    async def save_tool_call_to_history(
+        conversation_id: str, endpoint: str, arguments: dict
+    ):
         chat_history = get_chat_history_db()
         await chat_history.add_message(
             conversation_id=conversation_id,
-            role='assistant',
+            role="assistant",
             content=f"Selected tool: {endpoint}",
-            message_type='tool_call',
-            tool_calls=[{'name': endpoint, 'arguments': arguments}]
+            message_type="tool_call",
+            tool_calls=[{"name": endpoint, "arguments": arguments}],
         )
 
     @staticmethod
@@ -131,59 +149,79 @@ class DatabaseService:
         snapshot = DatabaseService._job_request_snapshot(request_body)
         await chat_history.add_message(
             conversation_id=conversation_id,
-            role='assistant',
+            role="assistant",
             content=f"Job {job_id} started for {ToolRegistry.display_name_for_endpoint(endpoint)}",
-            message_type='tool_result',
+            message_type="tool_result",
             tool_call_endpoint=endpoint,
             tool_call_arguments=snapshot,
-            metadata={'job_id': job_id, 'status': 'RUNNING', 'endpoint': endpoint},
+            metadata={"job_id": job_id, "status": "RUNNING", "endpoint": endpoint},
         )
         try:
             await DatabaseService._set_conversation_list_title_from_job(
                 conversation_id, endpoint, job_id
             )
         except Exception:
-            logger.debug("Could not update conversation list title from job", exc_info=True)
+            logger.debug(
+                "Could not update conversation list title from job", exc_info=True
+            )
 
     @staticmethod
-    async def save_tool_result_to_history(conversation_id: str, endpoint: str, job_id: Optional[str] = None):
+    async def save_tool_result_to_history(
+        conversation_id: str, endpoint: str, job_id: Optional[str] = None
+    ):
         chat_history = get_chat_history_db()
-        content = f"Job {job_id} completed successfully" if job_id else "Job completed successfully"
+        content = (
+            f"Job {job_id} completed successfully"
+            if job_id
+            else "Job completed successfully"
+        )
         await chat_history.add_message(
             conversation_id=conversation_id,
-            role='assistant',
+            role="assistant",
             content=content,
-            message_type='tool_result',
+            message_type="tool_result",
             tool_call_endpoint=endpoint,
-            metadata={'job_id': job_id, 'status': 'completed'} if job_id else {'status': 'completed'}
+            metadata=(
+                {"job_id": job_id, "status": "completed"}
+                if job_id
+                else {"status": "completed"}
+            ),
         )
 
     @staticmethod
-    async def save_error_to_history(conversation_id: str, endpoint: str, error_message: str):
+    async def save_error_to_history(
+        conversation_id: str, endpoint: str, error_message: str
+    ):
         chat_history = get_chat_history_db()
         await chat_history.add_message(
             conversation_id=conversation_id,
-            role='assistant',
+            role="assistant",
             content=error_message,
-            message_type='error',
+            message_type="error",
             tool_call_endpoint=endpoint,
-            metadata={'status': 'failed'}
+            metadata={"status": "failed"},
         )
 
     @staticmethod
     async def complete_job(job_id: str, response_body) -> bool:
         job_db = get_job_db()
-        await job_db.update_job_status(uid=job_id, status=JobStatus.COMPLETED, response_body=response_body)
+        await job_db.update_job_status(
+            uid=job_id, status=JobStatus.COMPLETED, response_body=response_body
+        )
         return True
 
     @staticmethod
-    async def save_user_prompt_if_missing_from_form_submission(conversation_id: str, prompt: str):
+    async def save_user_prompt_if_missing_from_form_submission(
+        conversation_id: str, prompt: str
+    ):
         # Implementation if needed by tests
         pass
 
     @staticmethod
     def set_logging_context(**kwargs):
         from frontend.utils import set_logging_context
+
         return set_logging_context(**kwargs)
+
 
 DatabaseService.DatabaseService = DatabaseService

@@ -16,6 +16,7 @@ ort.set_default_logger_severity(3)
 
 logger = logging.getLogger(__name__)
 
+
 def _env_force_cpu() -> bool:
     return os.environ.get("RESCUEBOX_ORT_CPU", "").strip().lower() in (
         "1",

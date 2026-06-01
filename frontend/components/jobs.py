@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict , Callable, Optional
+from typing import Any, Dict, Callable, Optional
 from nicegui import ui
 from frontend.design_tokens import Design
-from rb.api.models import TaskSchema, RequestBody,ResponseBody
+from rb.api.models import TaskSchema, RequestBody, ResponseBody
 from frontend.components.results import ResultsPreview
 from frontend.components.results import (
     augment_response_model_dump_for_image_summary,
@@ -12,6 +12,7 @@ from frontend.chatbot.config import ToolRegistry
 from datetime import datetime
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -38,73 +39,112 @@ def render_case_export_button(job_fields: Dict[str, Any]) -> None:
             ui.download(data, f"rescuebox-job-{uid}.jsonld")
         except Exception as e:
             logger.exception("CASE export failed: %s", e)
-            ui.notify(f"Export failed: {e}", type="negative", classes="rb-notify-505759")
+            ui.notify(
+                f"Export failed: {e}", type="negative", classes="rb-notify-505759"
+            )
 
     ui.button(
         "Export CASE JSON-LD",
         icon="download",
         on_click=_download,
-    ).classes(Design.BTN_MEDIUM_GRAY).props("dense").tooltip(
-        "Download a JSON-LD fragment (UCO-oriented) for this job"
-    )
+    ).classes(
+        Design.BTN_MEDIUM_GRAY
+    ).props("dense").tooltip("Download a JSON-LD fragment (UCO-oriented) for this job")
 
-def render_compact_inputs_summary(container: ui.element, task_schema: Any, request_body: Any) -> None:
+
+def render_compact_inputs_summary(
+    container: ui.element, task_schema: Any, request_body: Any
+) -> None:
     """
     Render a compact summary of inputs and parameters inside `container`.
     """
     logger.debug("Rendering compact inputs summary (component)")
     with container:
-        with ui.expansion('View inputs & parameters', icon='description').classes('w-full mb-4'):
-            with ui.column().classes('gap-3 p-4 bg-zinc-50 rounded'):
+        with ui.expansion("View inputs & parameters", icon="description").classes(
+            "w-full mb-4"
+        ):
+            with ui.column().classes("gap-3 p-4 bg-zinc-50 rounded"):
                 # Inputs
-                if getattr(task_schema, 'inputs', None):
-                    ui.label('Inputs').classes('font-semibold text-lg')
+                if getattr(task_schema, "inputs", None):
+                    ui.label("Inputs").classes("font-semibold text-lg")
                     for input_schema in task_schema.inputs:
                         field_id = input_schema.key
                         field_input = request_body.inputs.get(field_id)
 
-                        with ui.row().classes('items-start gap-2'):
-                            ui.label(input_schema.label).classes('w-32 font-semibold text-sm')
+                        with ui.row().classes("items-start gap-2"):
+                            ui.label(input_schema.label).classes(
+                                "w-32 font-semibold text-sm"
+                            )
 
                             if field_input:
-                                input_root = field_input.root if hasattr(field_input, 'root') else field_input
+                                input_root = (
+                                    field_input.root
+                                    if hasattr(field_input, "root")
+                                    else field_input
+                                )
 
-                                if hasattr(input_root, 'path'):
+                                if hasattr(input_root, "path"):
                                     path_str = str(input_root.path)
-                                    display_path = path_str if len(path_str) < 80 else path_str[:77] + '...'
-                                    ui.label(display_path).classes('flex-1 text-sm font-mono text-zinc-700')
-                                elif hasattr(input_root, 'text'):
+                                    display_path = (
+                                        path_str
+                                        if len(path_str) < 80
+                                        else path_str[:77] + "..."
+                                    )
+                                    ui.label(display_path).classes(
+                                        "flex-1 text-sm font-mono text-zinc-700"
+                                    )
+                                elif hasattr(input_root, "text"):
                                     text = input_root.text
-                                    first_line = text.split('\n')[0] if '\n' in text else text
-                                    display_text = first_line if len(first_line) < 100 else first_line[:97] + '...'
-                                    ui.label(display_text).classes('flex-1 text-sm text-zinc-700')
+                                    first_line = (
+                                        text.split("\n")[0] if "\n" in text else text
+                                    )
+                                    display_text = (
+                                        first_line
+                                        if len(first_line) < 100
+                                        else first_line[:97] + "..."
+                                    )
+                                    ui.label(display_text).classes(
+                                        "flex-1 text-sm text-zinc-700"
+                                    )
                                 else:
-                                    ui.label(str(input_root)).classes('flex-1 text-sm text-zinc-700')
+                                    ui.label(str(input_root)).classes(
+                                        "flex-1 text-sm text-zinc-700"
+                                    )
                             else:
-                                ui.label('(not provided)').classes('flex-1 text-sm text-zinc-400 italic')
+                                ui.label("(not provided)").classes(
+                                    "flex-1 text-sm text-zinc-400 italic"
+                                )
 
                 # Parameters
-                if getattr(task_schema, 'parameters', None):
-                    ui.label('Parameters').classes('font-semibold text-lg mt-2')
+                if getattr(task_schema, "parameters", None):
+                    ui.label("Parameters").classes("font-semibold text-lg mt-2")
                     for param_schema in task_schema.parameters:
                         param_id = param_schema.key
                         param_value = request_body.parameters.get(param_id)
 
-                        with ui.row().classes('items-center gap-2'):
-                            ui.label(param_schema.label).classes('w-32 font-semibold text-sm')
-                            ui.label(str(param_value) if param_value is not None else '(not provided)').classes('flex-1 text-sm text-zinc-700')
+                        with ui.row().classes("items-center gap-2"):
+                            ui.label(param_schema.label).classes(
+                                "w-32 font-semibold text-sm"
+                            )
+                            ui.label(
+                                str(param_value)
+                                if param_value is not None
+                                else "(not provided)"
+                            ).classes("flex-1 text-sm text-zinc-700")
 
     logger.debug("Compact inputs summary (component) rendered")
 
 
-def render_jobs_header(container: ui.element, title: str, on_refresh: Optional[Callable] = None):
+def render_jobs_header(
+    container: ui.element, title: str, on_refresh: Optional[Callable] = None
+):
     """
     Render the jobs page header with title and refresh button.
     """
     try:
         with container:
-            with ui.row().classes('items-center justify-between mb-6'):
-                ui.label(title).classes('text-4xl font-bold')
+            with ui.row().classes("items-center justify-between mb-6"):
+                ui.label(title).classes("text-4xl font-bold")
     except Exception as e:
         logger.exception("Failed to render jobs header component: %s", e)
 
@@ -116,14 +156,16 @@ def render_job_actions(container: ui.element, job_fields: Dict[str, Any]) -> Non
     """
     try:
         from frontend.pages.jobs import render_job_action_buttons
+
         with container:
             render_job_action_buttons(job_fields)
     except Exception as e:
         logger.exception("Failed to render job actions via component: %s", e)
 
 
-
-async def render_job_details_panel(container: ui.element, api_client, job_fields: dict) -> None:
+async def render_job_details_panel(
+    container: ui.element, api_client, job_fields: dict
+) -> None:
     """
     Render the job details panel: metadata, model info, case notes, and read-only form.
     """
@@ -132,39 +174,44 @@ async def render_job_details_panel(container: ui.element, api_client, job_fields
         render_model_info,
         render_readonly_form,
     )
-    request_body_dict = job_fields.get('request', {})
-    task_schema_dict = job_fields.get('taskSchema')
-    case_notes = job_fields.get('caseNotes')
-    pipeline_filter = job_fields.get('pipelineMetadataFilterCriteria')
+
+    request_body_dict = job_fields.get("request", {})
+    task_schema_dict = job_fields.get("taskSchema")
+    case_notes = job_fields.get("caseNotes")
+    pipeline_filter = job_fields.get("pipelineMetadataFilterCriteria")
 
     with container:
-        with ui.card().classes('w-full min-w-0 max-w-full self-stretch bg-white border border-zinc-300 p-6'):
+        with ui.card().classes(
+            "w-full min-w-0 max-w-full self-stretch bg-white border border-zinc-300 p-6"
+        ):
             # Job metadata header
-            with ui.column().classes('gap-4 w-full min-w-0 max-w-full'):
-                ui.label('Job Information').classes('text-2xl font-bold')
+            with ui.column().classes("gap-4 w-full min-w-0 max-w-full"):
+                ui.label("Job Information").classes("text-2xl font-bold")
 
                 # Classifier metadata filter (age/gender pipeline → next step), if recorded
                 if pipeline_filter is not None:
-                    with ui.column().classes('gap-2'):
-                        ui.label('Classifier filter (next pipeline step)').classes(
-                            'font-semibold text-zinc-700'
+                    with ui.column().classes("gap-2"):
+                        ui.label("Classifier filter (next pipeline step)").classes(
+                            "font-semibold text-zinc-700"
                         )
-                        _txt = (pipeline_filter or '').strip()
+                        _txt = (pipeline_filter or "").strip()
                         ui.label(
                             _txt
                             if _txt
-                            else 'No age/gender filter — all images were eligible for the next step.'
+                            else "No age/gender filter — all images were eligible for the next step."
                         ).classes(
-                            'text-sm text-zinc-800 whitespace-pre-wrap rounded p-3 '
-                            'bg-amber-50/80 border border-amber-100'
+                            "text-sm text-zinc-800 whitespace-pre-wrap rounded p-3 "
+                            "bg-amber-50/80 border border-amber-100"
                         )
 
                 # Case notes section
                 if case_notes:
-                    with ui.column().classes('gap-2'):
-                        ui.label('Case Notes').classes('font-semibold text-zinc-700')
-                        ui.label(case_notes).classes('text-zinc-800 whitespace-pre-wrap rounded p-3 bg-zinc-50 border border-zinc-200')
-                elif case_notes is not None and case_notes == '':
+                    with ui.column().classes("gap-2"):
+                        ui.label("Case Notes").classes("font-semibold text-zinc-700")
+                        ui.label(case_notes).classes(
+                            "text-zinc-800 whitespace-pre-wrap rounded p-3 bg-zinc-50 border border-zinc-200"
+                        )
+                elif case_notes is not None and case_notes == "":
                     pass  # Empty notes, don't show section
                 # If caseNotes key not present (older jobs), don't show
 
@@ -182,7 +229,9 @@ async def render_job_details_panel(container: ui.element, api_client, job_fields
                 _status_text = (job_fields.get("statusText") or "").strip()
                 if _status == "Failed":
                     with ui.column().classes("gap-2 w-full min-w-0"):
-                        ui.label("Failure message").classes("font-semibold text-zinc-800")
+                        ui.label("Failure message").classes(
+                            "font-semibold text-zinc-800"
+                        )
                         if _status_text:
                             ui.label(_status_text).classes(
                                 "text-sm text-zinc-900 whitespace-pre-wrap rounded p-3 "
@@ -196,12 +245,24 @@ async def render_job_details_panel(container: ui.element, api_client, job_fields
                 # Request body (read-only form)
                 if task_schema_dict:
                     try:
-                        task_schema = TaskSchema(**task_schema_dict) if isinstance(task_schema_dict, dict) else task_schema_dict
-                        request_body = RequestBody(**request_body_dict) if isinstance(request_body_dict, dict) else request_body_dict
+                        task_schema = (
+                            TaskSchema(**task_schema_dict)
+                            if isinstance(task_schema_dict, dict)
+                            else task_schema_dict
+                        )
+                        request_body = (
+                            RequestBody(**request_body_dict)
+                            if isinstance(request_body_dict, dict)
+                            else request_body_dict
+                        )
                         render_readonly_form(task_schema, request_body)
                     except Exception as e:
-                        logger.error("Error parsing schema in details panel: %s", str(e))
-                        ui.label(f'Error parsing schema: {str(e)}').classes('text-red-600')
+                        logger.error(
+                            "Error parsing schema in details panel: %s", str(e)
+                        )
+                        ui.label(f"Error parsing schema: {str(e)}").classes(
+                            "text-red-600"
+                        )
 
 
 async def render_job_outputs_card(container, api_client, job):
@@ -210,17 +271,23 @@ async def render_job_outputs_card(container, api_client, job):
     previously inline inside `job_details.render_job_outputs`.
     """
     from frontend.pages.jobs import extract_job_fields, compute_job_results_title
-    from frontend.pages.jobs import render_error_status, render_job_action_buttons, render_compact_inputs_summary
+    from frontend.pages.jobs import (
+        render_error_status,
+        render_job_action_buttons,
+        render_compact_inputs_summary,
+    )
 
     job_fields = extract_job_fields(job)
-    job_uid = job_fields['uid']
-    response = job_fields['response']
-    status = job_fields['status']
-    status_text = job_fields['statusText']
-    task_schema_dict = job_fields['taskSchema']
-    endpoint = job_fields['endpoint']
-    endpoint_chain = job_fields.get('endpointChain')
-    endpoint_name = ToolRegistry.display_name_for_endpoint(endpoint) if endpoint else None
+    job_uid = job_fields["uid"]
+    response = job_fields["response"]
+    status = job_fields["status"]
+    status_text = job_fields["statusText"]
+    task_schema_dict = job_fields["taskSchema"]
+    endpoint = job_fields["endpoint"]
+    endpoint_chain = job_fields.get("endpointChain")
+    endpoint_name = (
+        ToolRegistry.display_name_for_endpoint(endpoint) if endpoint else None
+    )
     endpoint_name_chain = (
         [ToolRegistry.display_name_for_endpoint(ep) for ep in endpoint_chain]
         if isinstance(endpoint_chain, list) and endpoint_chain
@@ -266,7 +333,9 @@ async def render_job_outputs_card(container, api_client, job):
                 try:
                     if isinstance(task_schema_dict, dict):
                         TaskSchema(**task_schema_dict)
-                    task_title = compute_job_results_title(endpoint_name, endpoint_name_chain)
+                    task_title = compute_job_results_title(
+                        endpoint_name, endpoint_name_chain
+                    )
                 except Exception:
                     task_title = (
                         task_schema_dict.get("shortTitle", "Results")
@@ -318,7 +387,6 @@ async def render_job_outputs_card(container, api_client, job):
             ResultsPreview.render(results_container, preview_dump)
 
 
-
 """
 Job Row Component
 
@@ -326,106 +394,119 @@ This module provides the render_job_row function for displaying job information
 in a table row format. The row shows job status, timestamps, and action buttons.
 """
 
+
 def render_job_row(
-    container, 
-    job: Dict, 
-    plugin_name: Optional[str] = None, 
-    on_view: Optional[Callable] = None, 
-    on_cancel: Optional[Callable] = None, 
-    on_delete: Optional[Callable] = None
+    container,
+    job: Dict,
+    plugin_name: Optional[str] = None,
+    on_view: Optional[Callable] = None,
+    on_cancel: Optional[Callable] = None,
+    on_delete: Optional[Callable] = None,
 ):
     """
     Render a job row in table format.
-    
+
     This function creates a table row component displaying job information including
     model name, status, timestamps, and action buttons. The row uses color-coding
     to indicate job status (Running, Completed, Failed, Canceled).
 
     """
-    logger.debug("Rendering job row for job: %s (Status: %s)", job.get('uid', 'Unknown'), job.get('status', 'Unknown'))
-    
-    status = job.get('status', 'Unknown')
+    logger.debug(
+        "Rendering job row for job: %s (Status: %s)",
+        job.get("uid", "Unknown"),
+        job.get("status", "Unknown"),
+    )
+
+    status = job.get("status", "Unknown")
     status_colors = {
-        'Running': 'text-[#881c1c]',
-        'Completed': 'text-green-600',
-        'Failed': 'text-red-600',
-        'Canceled': 'text-zinc-600'
+        "Running": "text-[#881c1c]",
+        "Completed": "text-green-600",
+        "Failed": "text-red-600",
+        "Canceled": "text-zinc-600",
     }
-    status_color = status_colors.get(status, 'text-zinc-600')
-    #logger.debug("Job status: %s, color class: %s", status, status_color)
-    
+    status_color = status_colors.get(status, "text-zinc-600")
+    # logger.debug("Job status: %s, color class: %s", status, status_color)
+
     # Format timestamps
-    start_time_str = 'N/A'
-    if job.get('startTime'):
+    start_time_str = "N/A"
+    if job.get("startTime"):
         try:
-            start_time = datetime.fromisoformat(job['startTime'].replace('Z', '+00:00'))
-            start_time_str = start_time.strftime('%Y-%m-%d %H:%M')
-            #logger.debug("Formatted start time: %s", start_time_str)
+            start_time = datetime.fromisoformat(job["startTime"].replace("Z", "+00:00"))
+            start_time_str = start_time.strftime("%Y-%m-%d %H:%M")
+            # logger.debug("Formatted start time: %s", start_time_str)
         except Exception as e:
-            logger.warning("Failed to parse start time: %s, error: %s", job['startTime'], e)
-            start_time_str = job['startTime']
-    
-    end_time_str = 'N/A'
-    if job.get('endTime'):
+            logger.warning(
+                "Failed to parse start time: %s, error: %s", job["startTime"], e
+            )
+            start_time_str = job["startTime"]
+
+    end_time_str = "N/A"
+    if job.get("endTime"):
         try:
-            end_time = datetime.fromisoformat(job['endTime'].replace('Z', '+00:00'))
-            end_time_str = end_time.strftime('%Y-%m-%d %H:%M')
-            #logger.debug("Formatted end time: %s", end_time_str)
+            end_time = datetime.fromisoformat(job["endTime"].replace("Z", "+00:00"))
+            end_time_str = end_time.strftime("%Y-%m-%d %H:%M")
+            # logger.debug("Formatted end time: %s", end_time_str)
         except Exception as e:
-            logger.warning("Failed to parse end time: %s, error: %s", job['endTime'], e)
-            end_time_str = job['endTime']
-    
-    job_uid = job.get('uid', 'N/A')
+            logger.warning("Failed to parse end time: %s, error: %s", job["endTime"], e)
+            end_time_str = job["endTime"]
+
+    job_uid = job.get("uid", "N/A")
     with container:
-        with ui.row().classes('p-4 border-b hover:bg-zinc-50 items-center w-full flex-nowrap gap-2'):
+        with ui.row().classes(
+            "p-4 border-b hover:bg-zinc-50 items-center w-full flex-nowrap gap-2"
+        ):
             # Job ID - truncated with ellipsis, full ID on hover
-            with ui.element('div').classes('w-40 min-w-0 shrink-0'):
-                id_label = ui.label(job_uid).classes('font-mono text-sm truncate block')
+            with ui.element("div").classes("w-40 min-w-0 shrink-0"):
+                id_label = ui.label(job_uid).classes("font-mono text-sm truncate block")
                 id_label.tooltip(job_uid)
 
             # Model name (and notes indicator)
-            with ui.element('div').classes('flex-1 min-w-0 overflow-hidden flex items-center gap-2'):
-                ui.label(plugin_name or 'Unknown').classes('truncate block')
-                if job.get('caseNotes'):
-                    notes_preview = (job['caseNotes'] or '')[:50]
-                    if len(job.get('caseNotes', '') or '') > 50:
-                        notes_preview += '…'
-                    ui.icon('description', size='sm').classes('text-zinc-500 shrink-0').tooltip(notes_preview)
-            
+            with ui.element("div").classes(
+                "flex-1 min-w-0 overflow-hidden flex items-center gap-2"
+            ):
+                ui.label(plugin_name or "Unknown").classes("truncate block")
+                if job.get("caseNotes"):
+                    notes_preview = (job["caseNotes"] or "")[:50]
+                    if len(job.get("caseNotes", "") or "") > 50:
+                        notes_preview += "…"
+                    ui.icon("description", size="sm").classes(
+                        "text-zinc-500 shrink-0"
+                    ).tooltip(notes_preview)
+
             # Times (start / end)
-            with ui.column().classes('w-64 shrink-0'):
-                ui.label(start_time_str).classes('text-sm')
-                ui.label(end_time_str).classes('text-xs text-zinc-600')
-            
+            with ui.column().classes("w-64 shrink-0"):
+                ui.label(start_time_str).classes("text-sm")
+                ui.label(end_time_str).classes("text-xs text-zinc-600")
+
             # Status
-            with ui.row().classes('w-32 shrink-0 items-center gap-1'):
-                ui.label(status).classes(f'{status_color} font-semibold')
-                if status == 'Running':
-                    ui.spinner(color='primary', size='xs')
-            
+            with ui.row().classes("w-32 shrink-0 items-center gap-1"):
+                ui.label(status).classes(f"{status_color} font-semibold")
+                if status == "Running":
+                    ui.spinner(color="primary", size="xs")
+
             # Actions
-            with ui.row().classes('gap-2 w-48 shrink-0'):
+            with ui.row().classes("gap-2 w-48 shrink-0"):
                 if on_view:
                     ui.button(
-                        'View',
-                        on_click=lambda: on_view(job['uid']) if on_view else None
+                        "View",
+                        on_click=lambda: on_view(job["uid"]) if on_view else None,
                     ).classes(Design.BTN_PRIMARY_TIGHT)
-                
-                if status == 'Running' and on_cancel:
+
+                if status == "Running" and on_cancel:
                     ui.button(
-                        'Cancel',
-                        on_click=lambda: on_cancel(job['uid']) if on_cancel else None
-                    ).classes('bg-red-600 text-white text-sm')
-                elif status != 'Running' and on_delete:
+                        "Cancel",
+                        on_click=lambda: on_cancel(job["uid"]) if on_cancel else None,
+                    ).classes("bg-red-600 text-white text-sm")
+                elif status != "Running" and on_delete:
                     ui.button(
-                        'Delete',
-                        on_click=lambda: on_delete(job['uid']) if on_delete else None
+                        "Delete",
+                        on_click=lambda: on_delete(job["uid"]) if on_delete else None,
                     ).classes(Design.BTN_PRIMARY_TIGHT)
-                    #logger.debug("Delete button added")
-    
-  
+                    # logger.debug("Delete button added")
+
 
 """Compact pipeline stepper for the job detail page."""
+
 
 def short_endpoint_label(endpoint: Optional[str]) -> str:
     if not endpoint:
@@ -457,7 +538,9 @@ def render_pipeline_run_banner(
         ui.link(
             f"Run {root_job_id[:11]}…",
             f"/jobs/{root_job_id}",
-        ).classes("text-xs font-mono text-white/90 hover:underline shrink-0").tooltip(root_job_id)
+        ).classes(
+            "text-xs font-mono text-white/90 hover:underline shrink-0"
+        ).tooltip(root_job_id)
         ui.label("·").classes("text-white/50 shrink-0")
         for i, step in enumerate(steps):
             if i:
@@ -466,11 +549,14 @@ def render_pipeline_run_banner(
             jid = (step.get("job_id") or "").strip()
             label = f"{i + 1}. {ep}"
             if jid == current_job_id:
-                ui.label(label).classes("text-sm font-semibold text-white shrink-0").tooltip(jid)
+                ui.label(label).classes(
+                    "text-sm font-semibold text-white shrink-0"
+                ).tooltip(jid)
             else:
                 ui.link(label, f"/jobs/{jid}").classes(
                     "text-sm text-white/90 hover:underline shrink-0"
                 ).tooltip(jid)
+
 
 def _readonly_value_block(value: str, *, monospace: bool = False) -> None:
     """Full-width read-only field that wraps long lines (paths, text) instead of horizontal scroll."""
@@ -478,12 +564,14 @@ def _readonly_value_block(value: str, *, monospace: bool = False) -> None:
     ui.textarea(
         label="",
         value=value,
-    ).classes(f"w-full min-w-0 max-w-full {extra} break-all").props(
-        "readonly outlined dense autogrow"
-    )
+    ).classes(
+        f"w-full min-w-0 max-w-full {extra} break-all"
+    ).props("readonly outlined dense autogrow")
 
 
-def render_readonly_form(container: ui.element, task_schema: Any, request_body: Any) -> None:
+def render_readonly_form(
+    container: ui.element, task_schema: Any, request_body: Any
+) -> None:
     """
     Render read-only form for job inputs and parameters inside `container`.
 

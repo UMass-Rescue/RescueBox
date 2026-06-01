@@ -7,7 +7,10 @@ from frontend.chatbot.granite import parse_fine_tune_tool_response
 
 def test_three_separate_tool_code_tags():
     calls = [
-        {"name": "age-gender/predict", "arguments": {"image_directory": "/evidence/batch2"}},
+        {
+            "name": "age-gender/predict",
+            "arguments": {"image_directory": "/evidence/batch2"},
+        },
         {
             "name": "image_summary/summarize-images",
             "arguments": {
@@ -16,7 +19,10 @@ def test_three_separate_tool_code_tags():
                 "model": "gemma3:4b",
             },
         },
-        {"name": "text_embeddings/search", "arguments": {"input_dir": "/evidence/batch2/summary", "query": "boy"}},
+        {
+            "name": "text_embeddings/search",
+            "arguments": {"input_dir": "/evidence/batch2/summary", "query": "boy"},
+        },
     ]
     text = "".join(f"<tool_code>{json.dumps(c)}</tool_code>\n" for c in calls)
     out = parse_fine_tune_tool_response(text)
@@ -26,7 +32,12 @@ def test_three_separate_tool_code_tags():
 
 
 def test_single_tool_code_with_calls_array():
-    payload = {"calls": [{"name": "a", "arguments": {"x": 1}}, {"name": "b", "arguments": {"y": 2}}]}
+    payload = {
+        "calls": [
+            {"name": "a", "arguments": {"x": 1}},
+            {"name": "b", "arguments": {"y": 2}},
+        ]
+    }
     text = f"<tool_code>{json.dumps(payload)}</tool_code>"
     out = parse_fine_tune_tool_response(text)
     assert out is not None
@@ -36,7 +47,10 @@ def test_single_tool_code_with_calls_array():
 def test_single_tool_code_with_top_level_array():
     payload = [
         {"name": "age-gender/predict", "arguments": {"image_directory": "/tmp"}},
-        {"name": "text_embeddings/search", "arguments": {"input_dir": "/tmp/s", "query": "q"}},
+        {
+            "name": "text_embeddings/search",
+            "arguments": {"input_dir": "/tmp/s", "query": "q"},
+        },
     ]
     text = f"<tool_code>{json.dumps(payload)}</tool_code>"
     out = parse_fine_tune_tool_response(text)
@@ -47,7 +61,14 @@ def test_single_tool_code_with_top_level_array():
 def test_raw_json_calls_no_tags():
     payload = {
         "calls": [
-            {"name": "image_summary/summarize-images", "arguments": {"input_dir": "/a", "output_dir": "/a/o", "model": "gemma3:4b"}}
+            {
+                "name": "image_summary/summarize-images",
+                "arguments": {
+                    "input_dir": "/a",
+                    "output_dir": "/a/o",
+                    "model": "gemma3:4b",
+                },
+            }
         ]
     }
     out = parse_fine_tune_tool_response(json.dumps(payload))

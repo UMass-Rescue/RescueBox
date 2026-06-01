@@ -72,7 +72,10 @@ async def _run() -> int:
         try:
             lr = await probe.get(liveness)
             if lr.status_code != 200:
-                print(f"Liveness check failed: GET {liveness} -> {lr.status_code}", file=sys.stderr)
+                print(
+                    f"Liveness check failed: GET {liveness} -> {lr.status_code}",
+                    file=sys.stderr,
+                )
                 return 1
         except Exception as e:
             print(f"Server not reachable at {liveness}: {e}", file=sys.stderr)

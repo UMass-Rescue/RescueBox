@@ -68,7 +68,9 @@ def _summarize_request(req: Any) -> Dict[str, Any]:
                     out[f"input:{k}"] = v.get("path")
                 elif isinstance(v, dict) and "text" in v:
                     t = v.get("text")
-                    out[f"input:{k}"] = (t[:200] + "…") if isinstance(t, str) and len(t) > 200 else t
+                    out[f"input:{k}"] = (
+                        (t[:200] + "…") if isinstance(t, str) and len(t) > 200 else t
+                    )
                 else:
                     out[f"input:{k}"] = str(v)[:300]
         if isinstance(params, dict):
@@ -78,7 +80,9 @@ def _summarize_request(req: Any) -> Dict[str, Any]:
     return {"repr": str(req)[:500]}
 
 
-def _parse_request_structure(request: Any) -> Tuple[List[str], List[Tuple[str, str]], Dict[str, Any]]:
+def _parse_request_structure(
+    request: Any,
+) -> Tuple[List[str], List[Tuple[str, str]], Dict[str, Any]]:
     """
     Return (directory_paths, (input_key, full_text) pairs, flat parameters dict).
     Text inputs are not truncated.
@@ -299,7 +303,9 @@ def _local_file_forensics(path: str) -> Dict[str, Any]:
     return out
 
 
-def _file_facet(path: str, *, is_dir: bool, forensics: Optional[Dict[str, Any]] = None) -> FileFacet:
+def _file_facet(
+    path: str, *, is_dir: bool, forensics: Optional[Dict[str, Any]] = None
+) -> FileFacet:
     p = Path(path)
     name = p.name or path
     ext = p.suffix.lstrip(".") if p.suffix else None
@@ -394,7 +400,11 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     req_summary = _summarize_request(request)
     out_summary = _output_summary(response)
     batch_rows = _parse_batch_file_rows(response)
-    output_paths = [r["path"] for r in batch_rows] if batch_rows else _extract_output_paths(response)
+    output_paths = (
+        [r["path"] for r in batch_rows]
+        if batch_rows
+        else _extract_output_paths(response)
+    )
     input_dir_paths, text_inputs, params_flat = _parse_request_structure(request)
 
     result_id = f"kb:result-{uid}"
@@ -468,7 +478,13 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     output_rows: List[Dict[str, Any]] = list(batch_rows)
     if not output_rows and output_paths:
         output_rows = [
-            {"path": p, "rank": i + 1, "similarity": None, "model_name": None, "metadata": {}}
+            {
+                "path": p,
+                "rank": i + 1,
+                "similarity": None,
+                "model_name": None,
+                "metadata": {},
+            }
             for i, p in enumerate(output_paths)
         ]
 
@@ -518,7 +534,9 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     seen_out: Set[int] = set()
     for r in output_rows:
         p = str(r["path"])
-        o = _ensure_file_observable(p, as_input=(p in input_file_path_set), as_output=True)
+        o = _ensure_file_observable(
+            p, as_input=(p in input_file_path_set), as_output=True
+        )
         oid = id(o)
         if oid in seen_out:
             continue
@@ -582,7 +600,11 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         else:
             iid = f"kb:inv-{uid}-step{step_i}"
         ep = pipeline_eps[step_i]
-        name = f"RescueBox job step {step_i + 1}/{n_steps}: {ep}" if n_steps > 1 else f"RescueBox job: {ep or 'unknown'}"
+        name = (
+            f"RescueBox job step {step_i + 1}/{n_steps}: {ep}"
+            if n_steps > 1
+            else f"RescueBox job: {ep or 'unknown'}"
+        )
         ia_kwargs: Dict[str, Any] = {
             "id": iid,
             "name": name,
@@ -659,7 +681,9 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         ProvenanceRecord,
         id=prov_id,
         exhibit_number=f"RB-JOB-{uid}",
-        description=["Provenance bundle linking RescueBox investigative actions to observables."],
+        description=[
+            "Provenance bundle linking RescueBox investigative actions to observables."
+        ],
         object=prov_objects,
     )
 

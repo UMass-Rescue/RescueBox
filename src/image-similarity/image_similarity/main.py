@@ -5,6 +5,7 @@ import os
 import threading
 
 from pathlib import Path
+
 os.environ["HF_HUB_DISABLE_XET"] = "1"
 import numpy as np
 import onnxruntime as ort
@@ -70,6 +71,7 @@ class Parameters(TypedDict):
 #  ONNX Runtime helpers  (same pattern as deepfake-detection / face-match)
 # ---------------------------------------------------------------------------
 
+
 def _get_ort_providers() -> list[str]:
     available = ort.get_available_providers()
     providers: list[str] = []
@@ -89,7 +91,8 @@ def _load_onnx_vision_model() -> tuple[ort.InferenceSession, "AutoImageProcessor
             f"Download the vision ONNX export of {_DEFAULT_MODEL} into the onnx_models/ directory."
         )
     session = ort.InferenceSession(
-        str(_DEFAULT_ONNX_PATH), providers=_get_ort_providers(),
+        str(_DEFAULT_ONNX_PATH),
+        providers=_get_ort_providers(),
     )
     processor = AutoImageProcessor.from_pretrained(_MODELS_DIR)
     return session, processor
@@ -102,7 +105,9 @@ def _embed_image(
 ) -> np.ndarray:
     """Compute a normalised image embedding via ONNX Runtime."""
     image = Image.open(image_path).convert("RGB")
-    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(np.float32)
+    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(
+        np.float32
+    )
     outputs = ort_session.run(None, {"pixel_values": pixel_values})
     # Vision tower returns (last_hidden_state, pooler_output); pooler_output is the per-image vector.
     output_names = [o.name for o in ort_session.get_outputs()]
@@ -115,6 +120,7 @@ def _embed_image(
 # ---------------------------------------------------------------------------
 #  Task schema
 # ---------------------------------------------------------------------------
+
 
 def task_schema() -> TaskSchema:
     top_k_desc = RangedIntParameterDescriptor(
@@ -172,7 +178,9 @@ server.add_app_metadata(
 )
 
 
-def _paths_already_embedded(session: Session, paths: list[str], model_name: str) -> set[str]:
+def _paths_already_embedded(
+    session: Session, paths: list[str], model_name: str
+) -> set[str]:
     if not paths:
         return set()
     rows = session.exec(
@@ -192,7 +200,9 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor, model_name):
+def _embed_and_store_images(
+    session, storage, file_paths, path_to_hash, ort_session, processor, model_name
+):
     """Ensure every path has an embedding row for ``model_name``. Returns paths ready for search."""
     already = _paths_already_embedded(session, file_paths, model_name)
     file_paths_set = set(file_paths)
@@ -224,7 +234,9 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_sess
                     try:
                         embedding = _embed_image(ort_session, processor, path)
                         storage.save_embedding(
-                            path, embedding.tolist(), content_sha256=h,
+                            path,
+                            embedding.tolist(),
+                            content_sha256=h,
                         )
                         paths_for_search.append(path)
                         newly_embedded += 1
@@ -247,12 +259,21 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_sess
                     .values(path=path)
                 )
                 relocated += 1
-                logger.info("Reused embedding by content hash (path updated): %s -> %s", row.path, path)
+                logger.info(
+                    "Reused embedding by content hash (path updated): %s -> %s",
+                    row.path,
+                    path,
+                )
             else:
                 emb = list(row.embedding) if row.embedding is not None else []
-                session.add(ImageSimilarityEmbedding(
-                    path=path, embedding=emb, content_sha256=h, model_name=model_name,
-                ))
+                session.add(
+                    ImageSimilarityEmbedding(
+                        path=path,
+                        embedding=emb,
+                        content_sha256=h,
+                        model_name=model_name,
+                    )
+                )
                 cloned += 1
             paths_for_search.append(path)
             already.add(path)
@@ -286,7 +307,10 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     file_paths: list[str] = []
     for name in sorted(os.listdir(input_dir)):
         path = os.path.join(input_dir, name)
-        if os.path.isfile(path) and os.path.splitext(path)[1].lower() in ALLOWED_IMAGE_EXTS:
+        if (
+            os.path.isfile(path)
+            and os.path.splitext(path)[1].lower() in ALLOWED_IMAGE_EXTS
+        ):
             file_paths.append(path)
 
     query_in_dir = query_image_path in set(file_paths)
@@ -305,7 +329,13 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     with Session(engine) as session:
         storage = ImageSimilarityEmbeddingStorage(session, model_name=model_name)
         paths_for_search = _embed_and_store_images(
-            session, storage, all_paths, path_to_hash, ort_session, processor, model_name,
+            session,
+            storage,
+            all_paths,
+            path_to_hash,
+            ort_session,
+            processor,
+            model_name,
         )
 
         query_row = session.exec(
@@ -324,19 +354,18 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
         search_results: list[dict] = []
         if search_paths:
             qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
-            stmt = (
-                text(
-                    """
+            stmt = text(
+                """
                     SELECT id, path, 1 - (embedding <=> CAST(:qvec AS vector)) AS similarity
                     FROM image_similarity_embeddings
                     WHERE path IN :paths AND model_name = :model_name
                     ORDER BY embedding <=> CAST(:qvec AS vector)
                     LIMIT :top_k
                     """
-                ).bindparams(bindparam("paths", expanding=True))
-            )
+            ).bindparams(bindparam("paths", expanding=True))
             rows = session.execute(
-                stmt, {
+                stmt,
+                {
                     "qvec": qvec_literal,
                     "paths": search_paths,
                     "top_k": top_k,
@@ -345,10 +374,14 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
             ).fetchall()
             for row in rows:
                 sim = float(row.similarity)
-                search_results.append({
-                    "id": row.id, "path": row.path,
-                    "similarity": round(sim, 4), "is_match": sim >= min_similarity,
-                })
+                search_results.append(
+                    {
+                        "id": row.id,
+                        "path": row.path,
+                        "similarity": round(sim, 4),
+                        "is_match": sim >= min_similarity,
+                    }
+                )
 
     query_label = f"Similar to {os.path.basename(query_image_path)}"
     file_responses: list[FileResponse] = []
@@ -374,7 +407,9 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
 
 def inputs_cli_parse(value: str) -> Inputs:
     if "|||" not in value:
-        raise ValueError("Expected 'input_dir|||query_image_path' (use ||| between folder and query image).")
+        raise ValueError(
+            "Expected 'input_dir|||query_image_path' (use ||| between folder and query image)."
+        )
     dir_part, img_part = value.split("|||", 1)
     return Inputs(
         input_dir=DirectoryInput(path=dir_part.strip()),

@@ -51,6 +51,7 @@ class DeepfakeImageDirectory(FileFilterDirectory):
     path: DirectoryPath
     file_extensions: List[str] = list(DEEPFAKE_IMAGE_EXTENSIONS)
 
+
 print("start")
 
 
@@ -206,6 +207,7 @@ def param_parser(facecrop: str = "false") -> Parameters:
 
 _PREDICT_LOCK = threading.Lock()
 
+
 # @server.route(
 #     "/predict",
 #     task_schema_func=create_transform_case_task_schema,
@@ -222,7 +224,9 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         logger.info(f"Input path: {input_path}")
         logger.info(f"Output path: {out}")
         logger.info(f"Parameters: {parameters}")
-        preview_crop = _preview_face_crop_in_results(parameters.get("facecrop", "false"))
+        preview_crop = _preview_face_crop_in_results(
+            parameters.get("facecrop", "false")
+        )
         logger.info(
             "Result preview: %s",
             "face crop image" if preview_crop else "full image",
@@ -284,7 +288,7 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             model_name = model_results[0]["model_name"]
             predictions = model_results[1:]
             model_data.append({"name": model_name, "predictions": predictions})
-        
+
         file_responses: List[FileResponse] = []
         if model_data and model_data[0]["predictions"]:
             num_images = len(model_data[0]["predictions"])
@@ -293,13 +297,15 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                 # Use the full image_path instead of just the basename
                 full_image_path = model_data[0]["predictions"][i]["image_path"]
                 os.path.basename(full_image_path)
-                
-                crop_preview_path = model_data[0]["predictions"][i].get("crop_preview_path")
+
+                crop_preview_path = model_data[0]["predictions"][i].get(
+                    "crop_preview_path"
+                )
                 if preview_crop and crop_preview_path:
                     display_path = crop_preview_path
                     title = "Face crop"
                     row_metadata["Image path"] = full_image_path
-                    
+
                 elif preview_crop:
                     display_path = full_image_path
                     title = "Full image"
@@ -323,10 +329,12 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                     )
                 )
         if not file_responses:
-            return ResponseBody(root=TextResponse(value="No predictions generated or no images found."))
-        
+            return ResponseBody(
+                root=TextResponse(value="No predictions generated or no images found.")
+            )
+
         return ResponseBody(root=BatchFileResponse(files=file_responses))
-    
+
 
 # ----------------------------
 # Server Setup Below
