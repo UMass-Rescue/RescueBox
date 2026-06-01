@@ -56,7 +56,7 @@ def create_db_and_tables():
                         "SELECT format_type(a.atttypid, a.atttypmod) AS t "
                         "FROM pg_attribute a "
                         "JOIN pg_class c ON a.attrelid = c.oid "
-                        f"WHERE c.relname = :tname AND a.attname = 'embedding' "
+                        "WHERE c.relname = :tname AND a.attname = 'embedding' "
                         "AND NOT a.attisdropped"
                     ),
                     {"tname": table},
@@ -148,6 +148,17 @@ class ImageEmbedding(SQLModel, table=True):
     # CLIP ViT-L/14 @336px joint embedding size (must match image_embeddings plugin default projection_dim).
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(512)))
 
+class ImageSimilarityEmbedding(SQLModel, table=True):
+    """Image embeddings used by the image-to-image similarity search plugin."""
+
+    __tablename__ = "image_similarity_embeddings"
+
+    id: int | None = Field(default=None, primary_key=True)
+    path: str = Field(index=True)
+    content_sha256: str = Field(default="", index=True)
+    model_name: str = Field(default="google/siglip2-so400m-patch14-384", index=True)
+    embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
+    
 # TODO: There is probably a way to do this without this try kludge
 try:
     # Create an HNSW index
@@ -178,5 +189,5 @@ try:
         postgresql_ops={"embedding": "vector_l2_ops"},
     )
     img_index.create(engine)
-except:
+except Exception:
     print("Index probably already exists")

@@ -5,9 +5,9 @@ This module provides an abstract interface and implementations for
 persisting embeddings to various storage backends.
 """
 
-from abc import ABC, abstractmethod
-from typing import Protocol
-from rb.api.database import TextEmbedding, ImageEmbedding
+from abc import abstractmethod
+from typing import Any, Protocol, cast
+from rb.api.database import TextEmbedding, ImageEmbedding, ImageSimilarityEmbedding
 
 
 class EmbeddingStorage(Protocol):
@@ -100,7 +100,7 @@ class TextEmbeddingStorage(DatabaseEmbeddingStorage):
         from sqlmodel import select
         existing = self.session.exec(
             select(TextEmbedding.path).where(
-                TextEmbedding.path.in_(paths),
+                cast(Any, TextEmbedding.__table__.c.path).in_(paths),
                 TextEmbedding.model_name == self.model_name,
             )
         ).all()
@@ -111,7 +111,7 @@ class TextEmbeddingStorage(DatabaseEmbeddingStorage):
         from sqlmodel import delete
         self.session.execute(
             delete(TextEmbedding).where(
-                TextEmbedding.path.in_(paths),
+                cast(Any, TextEmbedding.__table__.c.path).in_(paths),
                 TextEmbedding.model_name == self.model_name,
             )
         )
@@ -130,6 +130,29 @@ class ImageEmbeddingStorage(DatabaseEmbeddingStorage):
 
     def _create_record(self, path: str, embedding: list[float]):
         return ImageEmbedding(path=path, embedding=embedding)
+
+
+class ImageSimilarityEmbeddingStorage(DatabaseEmbeddingStorage):
+    """Persists image embeddings for the image-similarity plugin, keyed by path and content hash."""
+
+    def __init__(self, session, model_name: str = "google/siglip2-so400m-patch14-384"):
+        super().__init__(session)
+        self.model_name = model_name
+
+    def save_embedding(
+        self, path: str, embedding: list[float], *, content_sha256: str = ""
+    ) -> None:
+        self.session.add(ImageSimilarityEmbedding(
+            path=path,
+            embedding=embedding,
+            content_sha256=content_sha256,
+            model_name=self.model_name,
+        ))
+
+    def _create_record(self, path: str, embedding: list[float]):
+        return ImageSimilarityEmbedding(
+            path=path, embedding=embedding, model_name=self.model_name
+        )
 
 
 class NoOpEmbeddingStorage:

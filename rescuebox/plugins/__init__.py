@@ -21,6 +21,7 @@ from image_summary.main import app as image_summary_app, APP_NAME as IMAGE_SUM_A
 
 from text_embeddings.main import app as text_embeddings_app, APP_NAME as TEXT_EMB_APP_NAME # type: ignore
 from image_embeddings.main import app as image_embeddings_app, APP_NAME as IMAGE_EMB_APP_NAME # type: ignore
+from image_similarity.main import app as image_similarity_app, APP_NAME as IMAGE_SIM_APP_NAME  # type: ignore
 
 ufdr_app = None
 try:
@@ -56,6 +57,7 @@ plugins: list[RescueBoxPlugin] = [
     ),
     RescueBoxPlugin(text_embeddings_app, TEXT_EMB_APP_NAME, "Text Embeddings"),
     RescueBoxPlugin(image_embeddings_app, IMAGE_EMB_APP_NAME, "Image Embeddings"),
+    RescueBoxPlugin(image_similarity_app, IMAGE_SIM_APP_NAME, "Image Similarity Search"),
 ]
 
 if ufdr_app:

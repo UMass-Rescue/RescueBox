@@ -2,8 +2,6 @@
 
 import pytest
 from rb.api.embedding_storage import (
-    TextEmbeddingStorage,
-    ImageEmbeddingStorage,
     NoOpEmbeddingStorage,
 )
 
