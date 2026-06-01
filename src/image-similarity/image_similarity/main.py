@@ -10,7 +10,7 @@ import numpy as np
 import onnxruntime as ort
 import typer
 from PIL import Image
-from transformers import AutoProcessor
+from transformers import AutoImageProcessor
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     InputSchema,
@@ -81,7 +81,7 @@ def _get_ort_providers() -> list[str]:
     return providers
 
 
-def _load_onnx_vision_model() -> tuple[ort.InferenceSession, "AutoProcessor"]:
+def _load_onnx_vision_model() -> tuple[ort.InferenceSession, "AutoImageProcessor"]:
     """Load the bundled vision ONNX model and its image processor."""
     if not _DEFAULT_ONNX_PATH.exists():
         raise FileNotFoundError(
@@ -91,7 +91,7 @@ def _load_onnx_vision_model() -> tuple[ort.InferenceSession, "AutoProcessor"]:
     session = ort.InferenceSession(
         str(_DEFAULT_ONNX_PATH), providers=_get_ort_providers(),
     )
-    processor = AutoProcessor.from_pretrained(_DEFAULT_MODEL)
+    processor = AutoImageProcessor.from_pretrained(_MODELS_DIR)
     return session, processor
 
 
