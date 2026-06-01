@@ -1355,6 +1355,7 @@ def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
 #     task_schema_func=list_collections_task_schema,
 # )
 
+
 def __getattr__(name: str):
     """Lazy ``DB`` for tests/tooling; avoids import-time Chroma init on partial imports."""
     if name == "DB":
