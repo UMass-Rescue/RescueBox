@@ -17,6 +17,9 @@ jobs:
       - name: Install ffmpeg and libfuse-for-ufdr
         run: sudo apt-get update && sudo apt-get install -y ffmpeg && sudo apt install fuse
 
+      - name: docker comose for pgvector
+        run: ./startup/pgvector_start.sh
+        
       - name: pull onnx model for deepfake
         run: |
           pip install gdown
