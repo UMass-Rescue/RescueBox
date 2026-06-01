@@ -3,21 +3,14 @@ Unit tests for table helper utilities
 """
 
 import pytest
-from nicegui.testing import User
 from nicegui import ui
-from typing import List, Dict
-from pathlib import Path
-import sys
-
-# Add backend models to path
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
+from nicegui.testing import User
 
 from frontend.components.results import (
-    create_sortable_table,
-    create_metadata_table_columns,
-    create_file_row_click_handler,
     create_directory_row_click_handler,
+    create_file_row_click_handler,
+    create_metadata_table_columns,
+    create_sortable_table,
 )
 
 

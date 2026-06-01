@@ -6,14 +6,13 @@ import logging
 
 from nicegui import ui
 
-from frontend.components.demo import render_walkthrough_samples_panel
 from frontend.components.demo import (
     load_markdown_file,
     render_guided_markdown_body,
     schedule_hash_fragment_scroll,
 )
 from frontend.components.shared import create_navbar
-from frontend.constants import NAV_LINKS, UI_TITLES, demo_samples_url
+from frontend.constants import NAV_LINKS, demo_samples_url
 
 logger = logging.getLogger(__name__)
 

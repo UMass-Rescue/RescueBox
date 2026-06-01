@@ -7,9 +7,7 @@ testing framework.
 """
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from nicegui import ui
-from nicegui.testing import User
+from unittest.mock import MagicMock
 
 from frontend.tests.unit.chatbot_test_utils import TestUtilities
 
@@ -31,7 +29,6 @@ class TestChatbotUIIntegration:
 
         try:
             # Test that imports work
-            from frontend.pages.chatbot import ChatbotPage
             from frontend.pages.chatbot import create_chat_ui
 
             # Test that classes can be instantiated (without UI context)
@@ -83,7 +80,6 @@ class TestChatbotUIIntegration:
             from frontend.pages.chatbot import MessageFlowCoordinator
             from frontend.pages.chatbot import MessageProcessor
             from frontend.pages.chatbot import ResultProcessor
-            from frontend.pages.chatbot import ChatMessage
             from frontend.chatbot.utils import get_rejection_message
 
             # Create mock components

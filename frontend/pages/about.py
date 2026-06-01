@@ -11,7 +11,6 @@ from frontend.components.about import render_license_documents_section
 from frontend.components.shared import create_navbar
 from frontend.config import (
     ABOUT_AUTHORS,
-    ABOUT_REPO_DESKTOP_URL,
     ABOUT_REPO_URL,
     APP_TITLE,
     APP_VERSION,

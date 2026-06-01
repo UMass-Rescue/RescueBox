@@ -39,7 +39,8 @@ class JobSubmissionOrchestrator(BaseHandler):
         loading_row = None
         if target_container:
             with target_container:
-                if form_element and hasattr(form_element, 'clear'): form_element.clear()
+                if form_element and hasattr(form_element, 'clear'):
+                    form_element.clear()
                 loading_row = render_loading_row(f"Processing {ToolRegistry.display_name_for_endpoint(endpoint)}...")
 
         async def do_submit():
@@ -69,15 +70,19 @@ class JobSubmissionOrchestrator(BaseHandler):
                     await DatabaseService.complete_job(job_id, response_body)
 
                 if loading_row and hasattr(loading_row, 'delete'):
-                    try: loading_row.delete()
-                    except: pass
+                    try:
+                        loading_row.delete()
+                    except Exception:
+                        pass
                 
                 await self._handle_success(request_body, endpoint, task_schema, target_container, core, remaining_calls, conversation_id, response_body, {'job_id': job_id})
             except Exception as e:
                 self.logger.error(f"Job submission failed: {e}")
                 if loading_row and hasattr(loading_row, 'delete'):
-                    try: loading_row.delete()
-                    except: pass
+                    try:
+                        loading_row.delete()
+                    except Exception:
+                        pass
                 message = str(e)
                 if "demo_???" in message:
                     from frontend.pages.chatbot.ui import UIOperations
@@ -201,7 +206,8 @@ class AnalysisPicker(BaseHandler):
 
 def _compose_age_gender_pipeline_filter(gender, age_op, age_val):
     parts = []
-    if gender: parts.append(f"Gender={gender}")
+    if gender:
+        parts.append(f"Gender={gender}")
     if age_val is not None:
         sym = {"lt":"<", "lte":"<=", "eq":"=", "gt":">", "gte":">="}.get(age_op, "<")
         parts.append(f"Age {sym} {age_val}")
@@ -227,10 +233,3 @@ async def show_case_notes_dialog() -> Optional[str]:
     dialog.open()
     return await future
 
-from frontend.chatbot.multi_tool_handler import (
-    apply_metadata_filter,
-    batch_items_have_age_gender_metadata,
-    chain_output_to_input,
-    coerce_pipeline_response,
-    extract_batch_file_items,
-)

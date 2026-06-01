@@ -16,8 +16,7 @@ from frontend.chatbot.tool_config import (
     create_advanced_granite_prompt,
     parse_tool_calls_response,
     RescueBoxToolCall,
-    ToolCallList,
-    SCHEMA_MAP
+    ToolCallList
 )
 
 # Test constants

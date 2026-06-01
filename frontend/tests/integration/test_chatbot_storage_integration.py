@@ -7,8 +7,6 @@ All dependencies are real - no mocks used.
 import pytest
 from nicegui.testing import User
 import uuid
-from frontend.chatbot.config import ChatbotConfig
-from frontend.database.chat_history_db import ChatHistoryDB, ConversationRecord
 from frontend.utils import (
     get_current_conversation_id,
     set_current_conversation_id,
@@ -25,7 +23,6 @@ class TestChatbotStorageIntegration:
     def mock_chatbot_page(self):
         """Create a mock chatbot page"""
         from frontend.pages.chatbot import ChatbotPage
-        from frontend.chatbot.config import ChatbotConfig
         
         page = ChatbotPage()
         return page
@@ -34,7 +31,6 @@ class TestChatbotStorageIntegration:
     async def test_conversation_id_persisted_in_storage(self, user: User):
         """Test that conversation ID is stored in NiceGUI storage"""
         from frontend.pages.chatbot import ChatbotPage
-        from frontend.chatbot.config import ChatbotConfig
         
         route = f'/test_chatbot_{uuid.uuid4().hex}'
         @user.app.page(route)
@@ -55,7 +51,6 @@ class TestChatbotStorageIntegration:
     async def test_conversation_id_loaded_from_storage(self, user: User):
         """Test that conversation ID is loaded from NiceGUI storage on page load"""
         from frontend.pages.chatbot import ChatbotPage
-        from frontend.chatbot.config import ChatbotConfig
         
         test_conv_id = "test-conversation-123"
         
@@ -65,7 +60,7 @@ class TestChatbotStorageIntegration:
             # Set conversation ID in storage before creating page
             set_current_conversation_id(test_conv_id)
             
-            page = ChatbotPage()
+            ChatbotPage()
             
             # Render should load conversation from storage if URL params don't override
             # (This depends on implementation - may need to mock URL params)
@@ -78,7 +73,6 @@ class TestChatbotStorageIntegration:
     async def test_new_conversation_updates_storage(self, user: User):
         """Test that creating new conversation updates NiceGUI storage"""
         from frontend.pages.chatbot import ChatbotPage
-        from frontend.chatbot.config import ChatbotConfig
         
         initial_conv_id = "initial-conversation"
         
@@ -105,9 +99,7 @@ class TestChatbotStorageIntegration:
     async def test_user_message_saved_to_history(self, user: User):
         """Test that user messages are saved to chat history with user ID"""
         from frontend.pages.chatbot import ChatbotPage
-        from frontend.chatbot.config import ChatbotConfig
         from frontend.database import get_chat_history_db
-        from frontend.utils import get_user_id
         
         route = f'/test_chatbot_{uuid.uuid4().hex}'
         @user.app.page(route)
@@ -118,7 +110,7 @@ class TestChatbotStorageIntegration:
             await page.new_conversation()
             
             # Get user ID
-            user_id = get_user_id()
+            get_user_id()
             
             # Verify conversation was created with user_id (if implemented)
             # This test depends on implementation details
@@ -136,7 +128,6 @@ class TestChatbotStorageIntegration:
     async def test_tool_call_saved_to_history(self, user: User):
         """Test that tool calls are saved to chat history"""
         from frontend.pages.chatbot import ChatbotPage
-        from frontend.chatbot.config import ChatbotConfig
         from frontend.database import get_chat_history_db
         
         route = f'/test_chatbot_{uuid.uuid4().hex}'
@@ -171,10 +162,8 @@ class TestChatHistoryPersistence:
     async def test_conversation_persists_across_navigation(self, user: User):
         """Test that conversation persists when navigating away and back"""
         from frontend.pages.chatbot import ChatbotPage
-        from frontend.chatbot.config import ChatbotConfig
         from frontend.utils import (
-            get_current_conversation_id,
-            set_current_conversation_id
+            get_current_conversation_id
         )
         from frontend.database import get_chat_history_db
         
@@ -213,7 +202,6 @@ class TestChatHistoryPersistence:
     async def test_messages_persist_in_database(self, user: User):
         """Test that messages persist in database even after page reload"""
         from frontend.pages.chatbot import ChatbotPage
-        from frontend.chatbot.config import ChatbotConfig
         from frontend.database import get_chat_history_db
         from frontend.utils import get_current_conversation_id
         

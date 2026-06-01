@@ -6,29 +6,17 @@ to task schema requirements, including parameter ranges, input types,
 and data integrity checks.
 """
 
-import pytest
 from pathlib import Path
-from pydantic import ValidationError
-import sys
-
-# Add backend models to path for imports
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
-
-from frontend.utils import (
-    validate_form_data,
-    validate_request_body,
-    validate_response_body,
-    _create_input_model,
-    _validate_parameter_value,
-    _format_validation_error,
-)
 from typing import cast
 
-# Import required backend models
-from rb.api.models import (
-    DirectoryInput,
-    ResponseBody,
+import pytest
+from rb.api.models import DirectoryInput, ResponseBody
+
+from frontend.utils import (
+    _create_input_model,
+    _validate_parameter_value,
+    validate_form_data,
+    validate_response_body,
 )
 
 
@@ -553,7 +541,7 @@ class TestValidateResponseBody:
     
     def test_validate_valid_response(self):
         """Test validation of valid response body"""
-        from rb.api.models import FileResponse, FileType
+        from rb.api.models import FileResponse
         
         response_data = {
             'output_type': 'file',

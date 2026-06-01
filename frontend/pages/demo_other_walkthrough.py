@@ -6,7 +6,6 @@ import logging
 
 from nicegui import ui
 
-from frontend.components.demo import render_walkthrough_samples_panel
 from frontend.components.demo import (
     load_markdown_file,
     render_guided_markdown_body,

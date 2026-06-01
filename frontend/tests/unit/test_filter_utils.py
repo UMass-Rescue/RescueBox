@@ -1,13 +1,11 @@
-import json
 from pathlib import Path
 import pytest
 
-from frontend.database.job_db import init_database, get_job_db
+from frontend.database.job_db import init_database
 from frontend.database.file_filter_store import (
     create_filter,
     load_filter,
     resolve_filter_for_job,
-    resolve_output_filter_for_job,
 )
 from frontend.database.file_filter_utils import (
     process_prompt_for_filters,

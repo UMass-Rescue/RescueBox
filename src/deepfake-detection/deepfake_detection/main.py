@@ -27,7 +27,6 @@ from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 import onnxruntime as ort
 import os
 from deepfake_detection.sim_data import defaultDataset
-from collections import defaultdict
 import logging
 from datetime import datetime
 import threading
@@ -293,27 +292,27 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                 row_metadata: Dict[str, Any] = {}
                 # Use the full image_path instead of just the basename
                 full_image_path = model_data[0]["predictions"][i]["image_path"]
-                path_basename = os.path.basename(full_image_path)
+                os.path.basename(full_image_path)
                 
                 crop_preview_path = model_data[0]["predictions"][i].get("crop_preview_path")
                 if preview_crop and crop_preview_path:
                     display_path = crop_preview_path
-                    title = f"Face crop"
-                    row_metadata[f"Image path"] = full_image_path
+                    title = "Face crop"
+                    row_metadata["Image path"] = full_image_path
                     
                 elif preview_crop:
                     display_path = full_image_path
-                    title = f"Full image"
+                    title = "Full image"
                 else:
                     display_path = full_image_path
-                    title = f"Full image"
+                    title = "Full image"
 
                 for m_idx, m in enumerate(model_data):
                     pred = m["predictions"][i]["prediction"]
                     conf = m["predictions"][i]["confidence"]
                     model_name = m["name"]
-                    row_metadata[f"Prediction"] = pred
-                    row_metadata[f"Confidence"] = f"{conf * 100:.0f}%"
+                    row_metadata["Prediction"] = pred
+                    row_metadata["Confidence"] = f"{conf * 100:.0f}%"
 
                 file_responses.append(
                     FileResponse(

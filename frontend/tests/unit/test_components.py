@@ -22,18 +22,9 @@ to interact with the UI, hence they are marked as integration tests.
 
 from pathlib import Path
 from nicegui.testing import User
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
 from frontend.components.results import ResultsPreview
-from frontend.components.results import (
-    render_file,
-    render_directory,
-    render_batch_file,
-    render_text,
-    render_markdown,
-    render_batch_text,
-    render_batch_directory,
-)
 import pytest
 
 # Test constants

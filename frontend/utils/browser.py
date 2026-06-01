@@ -35,7 +35,8 @@ def _add_windows_drives_toggle(container, on_drive_change, current_path):
                 ui.toggle(drives, value=initial if initial in drives else None, on_change=lambda e: on_drive_change(e.value)) \
                     .props('unelevated color=grey-4 text-color=dark toggle-color=primary toggle-text-color=white') \
                     .classes('w-full mb-2')
-        except: pass
+        except Exception:
+            pass
 
 class DirectoryBrowser:
     def __init__(self, on_select, initial_path=None):
@@ -46,7 +47,8 @@ class DirectoryBrowser:
 
     def _get_start_path(self) -> str:
         cand = _resolved_existing_directory(self.initial_path)
-        if cand: return cand
+        if cand:
+            return cand
         demo = resolve_demo_folder_for_browser()
         return demo if demo else os.getcwd()
 
@@ -56,7 +58,8 @@ class DirectoryBrowser:
         try:
             # restrict navigation
             p_obj = Path(path).resolve()
-            if not p_obj.exists(): return
+            if not p_obj.exists():
+                return
             from .storage import get_user_id
             user_id = get_user_id()
             user_root = (DEMO_FOLDERS_BASE / user_id).resolve()
@@ -148,7 +151,8 @@ class FileBrowser:
 
     def _get_start_path(self) -> str:
         cand = _resolved_file_browser_folder(self.initial_path)
-        if cand: return cand
+        if cand:
+            return cand
         demo = resolve_demo_folder_for_browser()
         return demo if demo else os.getcwd()
 
@@ -161,7 +165,8 @@ class FileBrowser:
         
         try:
             p_obj = Path(path).resolve()
-            if not p_obj.exists(): return
+            if not p_obj.exists():
+                return
             
             # Update path display
             self.path_display.set_text(str(p_obj))
@@ -246,16 +251,22 @@ def browse_file(on_select, initial_path=None, filetypes=None):
 
 def browse_directory_simple(input_field, initial_path=None, on_after_select=None):
     def on_select(path):
-        try: input_field.set_value(path)
-        except: input_field.value = path
-        if on_after_select: on_after_select()
+        try:
+            input_field.set_value(path)
+        except Exception:
+            input_field.value = path
+        if on_after_select:
+            on_after_select()
     browse_directory(on_select, initial_path)
 
 def browse_file_simple(input_field, initial_path=None, filetypes=None, on_after_select=None):
     def on_select(path):
-        try: input_field.set_value(path)
-        except: input_field.value = path
-        if on_after_select: on_after_select()
+        try:
+            input_field.set_value(path)
+        except Exception:
+            input_field.value = path
+        if on_after_select:
+            on_after_select()
     browse_file(on_select, initial_path, filetypes)
 
 def get_assigned_demo_folder() -> Optional[str]:

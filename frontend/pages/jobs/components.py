@@ -6,7 +6,6 @@ from frontend.utils import (
     generate_audit_trail_for_job,
     notify_info, notify_success, notify_error
 )
-from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,8 @@ def render_error_status(status: str, status_text: Optional[str] = None):
     with ui.card().classes('bg-red-50 border border-red-300 p-6'):
         ui.label('Job Failed').classes('text-2xl font-bold text-red-800 mb-2')
         ui.label(f'Status: {status}').classes('text-lg text-red-600')
-        if status_text: ui.label(status_text).classes('text-sm text-red-500 mt-2')
+        if status_text:
+            ui.label(status_text).classes('text-sm text-red-500 mt-2')
 
 async def render_model_info(api_client, job_fields: Dict[str, Any]):
     model_uid = job_fields.get('modelUid')

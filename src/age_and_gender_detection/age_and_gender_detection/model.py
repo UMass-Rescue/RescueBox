@@ -3,15 +3,16 @@
 import argparse
 import logging
 import os
+from pathlib import Path
+from pprint import pprint
+
 import cv2
+import numpy as np
 import onnxruntime as ort
+from age_and_gender_detection.box_utils import predict
 
 # Suppress "Initializer appears in graph inputs" warnings (harmless, model still works)
 ort.set_default_logger_severity(3)
-import numpy as np
-from pathlib import Path
-from age_and_gender_detection.box_utils import predict
-from pprint import pprint
 
 logger = logging.getLogger(__name__)
 

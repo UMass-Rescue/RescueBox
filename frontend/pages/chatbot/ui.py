@@ -2,9 +2,20 @@ from __future__ import annotations
 import logging
 import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from nicegui import ui
+
+from frontend.chatbot.config import ChatbotConfig, ToolRegistry
+from frontend.chatbot.core import ChatbotCore
 from frontend.components.errors import render_error_message
+from frontend.components.shared import create_navbar
+from frontend.design_tokens import Design
+from frontend.pages.chatbot.state import ChatbotStateManager, ChatMessage
+from frontend.utils import (
+    get_conversation_to_load,
+    handle_api_error as _handle_api_error,
+    show_error_to_user as _show_error_to_user,
+)
 
 separator = ui.separator
 label = ui.label
@@ -54,17 +65,6 @@ page = ui.page
 chat_message = ui.chat_message
 code = ui.code
 
-from frontend.chatbot.config import ChatbotConfig, ToolRegistry
-from frontend.chatbot.core import ChatbotCore
-from frontend.design_tokens import Design
-from frontend.pages.chatbot.state import ChatbotStateManager, ChatMessage
-from frontend.components.shared import create_navbar
-from frontend.utils import (
-    show_error_to_user as _show_error_to_user,
-    handle_api_error as _handle_api_error,
-    get_conversation_to_load,
-)
-
 def show_error_to_user(*args, **kwargs):
     return _show_error_to_user(*args, **kwargs)
 
@@ -85,14 +85,18 @@ class UIOperations:
     @staticmethod
     def scroll_to_bottom(client=None):
         js = "window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});"
-        if client: client.run_javascript(js)
-        else: ui.run_javascript(js)
+        if client:
+            client.run_javascript(js)
+        else:
+            ui.run_javascript(js)
 
     @staticmethod
     def scroll_form_into_view(client=None):
         js = "const el = document.querySelector('.rb-form-wrapper'); if(el) el.scrollIntoView({behavior: 'smooth', block: 'center'});"
-        if client: client.run_javascript(js)
-        else: ui.run_javascript(js)
+        if client:
+            client.run_javascript(js)
+        else:
+            ui.run_javascript(js)
 
     @staticmethod
     def scroll_form_into_view_with_retries(client=None):
@@ -101,13 +105,17 @@ class UIOperations:
 
     @staticmethod
     def safe_notify(message: str, type: str = 'info', **kwargs):
-        try: ui.notify(message, type=type, **kwargs)
-        except Exception: pass
+        try:
+            ui.notify(message, type=type, **kwargs)
+        except Exception:
+            pass
 
     @staticmethod
     async def safe_container_update(container):
-        try: container.update()
-        except Exception: pass
+        try:
+            container.update()
+        except Exception:
+            pass
 
 def render_message(container: element, message: ChatMessage):
     """Render a message in the chat container."""
@@ -448,7 +456,8 @@ class ChatUIBuilder:
             )
         
         def _on_cancel():
-            if self.state_manager: self.state_manager.set_input_enabled(True)
+            if self.state_manager:
+                self.state_manager.set_input_enabled(True)
 
         # Stage 1: Grey out input area while form is being filled
         if self.state_manager:
@@ -505,7 +514,8 @@ class ChatbotPage:
         
     async def _handle_send_message(self):
         msg = self.input_field.value.strip()
-        if not msg: return
+        if not msg:
+            return
         await self.message_flow_coordinator.process_user_message(
             message_text=msg,
             input_field=self.input_field,
@@ -519,7 +529,8 @@ class ChatbotPage:
     def _add_message(self, message: ChatMessage, scroll_after: bool = True):
         self.state_manager.add_message(message)
         render_message(self.chat_container, message)
-        if scroll_after: UIOperations.scroll_to_bottom()
+        if scroll_after:
+            UIOperations.scroll_to_bottom()
 
     async def _show_error(self, error_message: str):
         show_error_message(self.chat_container, error_message)
@@ -527,8 +538,10 @@ class ChatbotPage:
     def _update_status(self, status: str, scroll_after: bool = True, scroll_to_form: bool = False):
         self.state_manager.set_status(status)
         if scroll_after:
-            if scroll_to_form: UIOperations.scroll_form_into_view_with_retries()
-            else: UIOperations.scroll_to_bottom()
+            if scroll_to_form:
+                UIOperations.scroll_form_into_view_with_retries()
+            else:
+                UIOperations.scroll_to_bottom()
 
     async def _handle_new_conversation(self):
         self.state_manager.reset_conversation()
@@ -592,17 +605,20 @@ class ChatbotPage:
     async def load_conversation_from_data(self, conversation_data: dict):
         """Legacy helper for loading conversation from a data dict."""
         cid = conversation_data.get('conversation_id')
-        if cid: await self._handle_conversation_select(cid)
+        if cid:
+            await self._handle_conversation_select(cid)
 
     async def _poll_job_status(self, job_id: str, endpoint: str, interval: float | None = None):
         """Poll for job status updates and trigger result rendering."""
         from frontend.pages.chatbot import get_job_db, show_results
         import asyncio
-        if interval is None: interval = 2.0
+        if interval is None:
+            interval = 2.0
         job_db = get_job_db()
         while True:
             job = await job_db.get_job_by_uid(job_id)
-            if not job: break
+            if not job:
+                break
             status = getattr(job, 'status', '').lower()
             if status in ('completed', 'failed', 'finished'):
                 if status == 'completed' or status == 'finished':
@@ -706,11 +722,21 @@ async def chatbot_page(load_conversation: Optional[str] = None, rerun: Optional[
     # Global CSS injection for compact UI
     ui.add_head_html('''
         <style>
-            .q-header { min-height: 16px !important; }
-            .q-toolbar { min-height: 16px !important; padding: 0 8px !important; }
-            .q-toolbar__title { font-size: 0.85rem !important; min-height: unset !important; line-height: 32px !important; }
-            .q-btn { font-size: 0.7rem !important; padding: 2px 6px !important; min-height: unset !important; }
-            body { font-size: 0.8rem !important; }
+            .q-header { min-height: 16px !important
+            }
+            .q-toolbar { min-height: 16px !important
+            padding: 0 8px !important
+            }
+            .q-toolbar__title { font-size: 0.85rem !important
+            min-height: unset !important
+            line-height: 32px !important
+            }
+            .q-btn { font-size: 0.7rem !important
+            padding: 2px 6px !important
+            min-height: unset !important
+            }
+            body { font-size: 0.8rem !important
+            }
         </style>
     ''')
     

@@ -7,7 +7,6 @@ all test modules to reduce duplication and ensure consistency.
 
 import pytest
 import pytest_asyncio
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from nicegui import app
 
@@ -202,7 +201,6 @@ async def user():
     """NiceGUI User fixture for integration testing."""
     import httpx
     from nicegui.testing import User
-    from nicegui import ui
 
     # Ensure app.config has required attributes to avoid AttributeErrors during page resolution
     if not hasattr(app.config, 'title'):
@@ -225,7 +223,7 @@ async def user():
     # Initialize NiceGUI app context properly
     # Import the main module to ensure all pages are registered
     try:
-        from frontend import main
+        pass
     except Exception:
         pass
 

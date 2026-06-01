@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, List, TypedDict
+from typing import Iterable, List
 import logging
 import threading
 

@@ -236,11 +236,9 @@ class TestIndexPageIntegration:
         await asyncio.sleep(0.5)
         
         # Check that navigation links exist
-        nav_found = False
         for label in ['Browse Plugins', 'Plugins', 'Models', 'Open Assistant', 'Assistant', 'Chatbot']:
             try:
                 if user.find(label):
-                    nav_found = True
                     break
             except AssertionError:
                 continue

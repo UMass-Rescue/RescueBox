@@ -77,7 +77,8 @@ _IMAGE_PREVIEW_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tif',
 
 def _ensure_serve_route():
     global _SERVE_ROUTE_REGISTERED
-    if _SERVE_ROUTE_REGISTERED: return
+    if _SERVE_ROUTE_REGISTERED:
+        return
     async def _serve_file(_req: Request, token: str, filename: str):
         info = _SERVED_FILES.get(token)
         if not info or time.time() - info.get('created', 0) > _SERVE_TTL:
@@ -90,7 +91,8 @@ def _ensure_serve_route():
     try:
         app.add_api_route('/_serve/{token}/{filename}', _serve_file, methods=['GET'])
         _SERVE_ROUTE_REGISTERED = True
-    except Exception as e: logger.error("Serve route error: %s", e)
+    except Exception as e: 
+        logger.error("Serve route error: %s", e)
 
 def _serve_path(file_path: str) -> str:
     _ensure_serve_route()
@@ -98,7 +100,8 @@ def _serve_path(file_path: str) -> str:
     for t in [t for t, i in _SERVED_FILES.items() if now - i.get('created', 0) > _SERVE_TTL]:
         _SERVED_FILES.pop(t, None)
     for t, i in _SERVED_FILES.items():
-        if i.get('path') == file_path: return f"/_serve/{t}/{os.path.basename(file_path)}"
+        if i.get('path') == file_path:
+            return f"/_serve/{t}/{os.path.basename(file_path)}"
     t = uuid.uuid4().hex
     _SERVED_FILES[t] = {'path': file_path, 'created': now}
     return f"/_serve/{t}/{os.path.basename(file_path)}"
@@ -133,9 +136,12 @@ def open_folder(path: str):
         ui.notify('Path is not a folder', type='negative')
         return
     try:
-        if platform.system() == 'Windows': os.startfile(path)
-        elif platform.system() == 'Darwin': subprocess.run(['open', path])
-        else: subprocess.run(['xdg-open', path])
+        if platform.system() == 'Windows': 
+            os.startfile(path)
+        elif platform.system() == 'Darwin':
+            subprocess.run(['open', path], check=False)
+        else:
+            subprocess.run(['xdg-open', path], check=False)
     except Exception as e:
         logger.error("Open folder error: %s", e)
         ui.notify(f'Failed to open folder: {e}', type='negative')
@@ -151,36 +157,47 @@ def create_metadata_table_columns(base_columns: List[Dict], metadata_keys: List[
 def resolve_table_row_index(e, rows: List[Dict]) -> Optional[int]:
     try:
         candidate = e.args[1] if len(e.args) > 1 else None
-        if isinstance(candidate, int): return candidate
+        if isinstance(candidate, int):
+            return candidate
         if isinstance(candidate, dict):
-            try: return rows.index(candidate)
+            try:
+                return rows.index(candidate)
             except ValueError:
                 for key in ('index', 'rowIndex', 'row_idx'):
                     maybe = candidate.get(key)
-                    if isinstance(maybe, int): return maybe
+                    if isinstance(maybe, int):
+                        return maybe
         for i, r in enumerate(rows):
-            if candidate == r or (isinstance(r, dict) and (candidate == r.get('id') or candidate == r.get('uid'))): return i
-    except Exception: pass
+            if candidate == r or (isinstance(r, dict) and (candidate == r.get('id') or candidate == r.get('uid'))):
+                return i
+    except Exception:
+        pass
     return None
 
 _IMAGE_EXT = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
 _MAX_PREVIEW_SIDE = 1600
 
 def parse_int_bbox(value: object) -> Optional[Tuple[int, int, int, int]]:
-    if value is None: return None
+    if value is None:
+        return None
     if isinstance(value, (list, tuple)) and len(value) == 4:
         try:
             t = tuple(int(round(float(x))) for x in value)
-            if all(x >= 0 for x in t): return t
-        except (TypeError, ValueError): return None
+            if all(x >= 0 for x in t):
+                return t
+        except (TypeError, ValueError):
+            return None
     s = str(value).strip()
-    if not s: return None
+    if not s:
+        return None
     try:
         v = ast.literal_eval(s)
         if isinstance(v, (list, tuple)) and len(v) == 4:
             t = tuple(int(round(float(x))) for x in v)
-            if all(x >= 0 for x in t): return t
-    except (SyntaxError, ValueError, TypeError): pass
+            if all(x >= 0 for x in t):
+                return t
+    except (SyntaxError, ValueError, TypeError):
+        pass
     return None
 
 def _pil_image_with_bbox_drawn(source: Image.Image, bbox: Tuple[int, int, int, int]) -> Image.Image:
@@ -221,16 +238,19 @@ def open_image_bbox_preview_dialog(abs_path: str, bbox: Tuple[int, int, int, int
 def create_bbox_preview_row_click_handler(rows: List[Dict], open_file_func):
     def on_row_click(e):
         idx = resolve_table_row_index(e, rows)
-        if idx is None: return
+        if idx is None:
+            return
         row = rows[idx]
         file_path = row.get('path_full') or row.get('path')
         if not file_path or not os.path.isfile(file_path):
-            if file_path: open_file_func(file_path)
+            if file_path:
+                open_file_func(file_path)
             return
         bb = parse_int_bbox(row.get('bounding_box'))
         if bb and os.path.splitext(file_path)[1].lower() in _IMAGE_EXT:
             open_image_bbox_preview_dialog(file_path, bb, row)
-        else: open_file_func(file_path)
+        else:
+            open_file_func(file_path)
     return on_row_click
 
 def _resolve_row_idx(e, rows):
@@ -246,8 +266,10 @@ def create_sortable_table(container, columns, rows, row_key='id', on_row_click=N
                     for col in columns:
                         field = col.get('field') or col.get('name')
                         ui.label(str(r.get(field, ''))).classes('text-xs text-zinc-600 whitespace-pre-wrap break-words')
-        if on_row_click: table.on('rowClick', on_row_click)
-        if tip_message: ui.label(f'💡 {tip_message}').classes(tip_message_classes)
+        if on_row_click:
+            table.on('rowClick', on_row_click)
+        if tip_message:
+            ui.label(f'💡 {tip_message}').classes(tip_message_classes)
         return table
 
 def open_text_markdown_modal(filename: str, body: str) -> None:
@@ -257,7 +279,8 @@ def open_text_markdown_modal(filename: str, body: str) -> None:
         with ui.scroll_area().classes('w-full min-h-[50vh] max-h-[75vh] border border-zinc-200 rounded-lg bg-white'):
             if text.strip():
                 ui.textarea(value=text).props('readonly outlined dense input-class=font-mono').classes('w-full min-h-[48vh]').style('white-space: pre-wrap')
-            else: ui.label('No content').classes('text-zinc-500 italic p-4')
+            else:
+                ui.label('No content').classes('text-zinc-500 italic p-4')
         with ui.row().classes('justify-end shrink-0'):
             ui.button('Close', on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
     dialog.open()
@@ -270,13 +293,15 @@ def render_batch_directory(container, response):
             {'name': 'subtitle', 'label': 'Subtitle', 'field': 'subtitle', 'align': 'left', 'sortable': True}]
     def on_click(e):
         idx = _resolve_row_idx(e, rows)
-        if idx is not None: open_folder(rows[idx]['path_full'])
+        if idx is not None:
+            open_folder(rows[idx]['path_full'])
     with container, ui.card().classes('w-full p-4 bg-white border rounded-xl shadow-sm'):
         ui.label(f'Batch Directory Result ({len(dirs)})').classes('font-bold mb-2 text-zinc-900')
         create_sortable_table(ui.column().classes('w-full'), cols, rows, row_key='path', on_row_click=on_click, tip_message="Click a row to open the folder.")
         # Test visibility labels
         with ui.column().classes('hidden'):
-            for d in dirs: ui.label(d.title or os.path.basename(d.path))
+            for d in dirs:
+                ui.label(d.title or os.path.basename(d.path))
 
 def render_batch_file(container, response):
     files = response.files
@@ -287,10 +312,12 @@ def render_batch_file(container, response):
                 {'name': 'path', 'label': 'Path', 'field': 'path', 'align': 'left', 'sortable': True},
                 {'name': 'title', 'label': 'Title', 'field': 'title', 'align': 'left', 'sortable': True},
                 {'name': 'subtitle', 'label': 'Subtitle', 'field': 'subtitle', 'align': 'left', 'sortable': True}]
-        on_click = lambda e: open_file(rows[resolve_table_row_index(e, rows)]['path_full'])
+        def on_click(e):
+            return open_file(rows[resolve_table_row_index(e, rows)]["path_full"])
         with ui.column().classes('hidden'):
             ui.label('Type')
-            for r in rows: ui.label(r['type'])
+            for r in rows:
+                ui.label(r['type'])
     else:
         meta_keys = sorted(list(set().union(*(f.metadata.keys() for f in files if f.metadata))))
         cols = create_metadata_table_columns([
@@ -300,7 +327,8 @@ def render_batch_file(container, response):
         rows = []
         for f in files:
             r = {'path': os.path.basename(f.path), 'path_full': f.path, 'title': f.title or ''}
-            for k in meta_keys: r[k.lower().replace(' ', '_')] = str(f.metadata.get(k, '')) if f.metadata else ''
+            for k in meta_keys:
+                r[k.lower().replace(' ', '_')] = str(f.metadata.get(k, '')) if f.metadata else ''
             rows.append(r)
         on_click = create_bbox_preview_row_click_handler(rows, open_file)
 
@@ -308,7 +336,8 @@ def render_batch_file(container, response):
         ui.label(f'Batch File Result ({len(files)})').classes('font-bold mb-2 text-zinc-900')
         create_sortable_table(ui.column().classes('w-full'), cols, rows, row_key='path', on_row_click=on_click, tip_message="Click a row to open the file.")
         with ui.column().classes('hidden'):
-            for f in files: ui.label(f.title or os.path.basename(f.path))
+            for f in files:
+                ui.label(f.title or os.path.basename(f.path))
 
 def render_directory(container, response):
     try:
@@ -319,7 +348,8 @@ def render_directory(container, response):
             with ui.row().classes('items-center justify-between w-full'):
                 ui.label(display_title).classes('text-xl font-semibold text-zinc-900')
                 ui.button('Open Folder', icon='folder_open', on_click=lambda: open_folder(path)).classes(Design.BTN_PRIMARY_COMPACT)
-            if path: ui.label(path).classes('text-sm font-mono text-zinc-600 mt-2 break-all')
+            if path:
+                ui.label(path).classes('text-sm font-mono text-zinc-600 mt-2 break-all')
             
             # File listing for unit tests
             if path and os.path.isdir(path):
@@ -332,15 +362,18 @@ def render_directory(container, response):
                     create_sortable_table(ui.column().classes('w-full mt-4'), cols, rows, row_key='filename', on_row_click=lambda e: open_file(rows[resolve_table_row_index(e, rows)]['path']))
                     with ui.column().classes('hidden'):
                         ui.label('Filename')
-                        for r in rows: ui.label(r['filename'])
+                        for r in rows:
+                            ui.label(r['filename'])
     except Exception as e:
-        with container: ui.label(f"Error rendering directory: {e}").classes('text-red-600 p-2')
+        with container:
+            ui.label(f"Error rendering directory: {e}").classes('text-red-600 p-2')
 
 def render_file(container, response):
     try:
         path = getattr(response, 'path', None)
         if path and not os.path.exists(path):
-            with container: ui.label(f"File not found: {path}").classes('text-red-600 p-2')
+            with container:
+                ui.label(f"File not found: {path}").classes('text-red-600 p-2')
             return
         title = getattr(response, 'title', None)
         ext = os.path.splitext(path)[1].lower() if path else ''
@@ -353,11 +386,13 @@ def render_file(container, response):
                     if path:
                         ui.button('Open File', icon='visibility', on_click=lambda: open_file(path)).classes(Design.BTN_PRIMARY_COMPACT)
                         ui.button('Open Folder', icon='folder', on_click=lambda: open_folder(os.path.dirname(path))).classes(Design.BTN_SECONDARY_NEUTRAL)
-            if path: ui.label(path).classes('text-sm font-mono text-zinc-600 mt-2 break-all')
+            if path:
+                ui.label(path).classes('text-sm font-mono text-zinc-600 mt-2 break-all')
             if path and ext in _IMAGE_PREVIEW_EXTS:
                 ui.image(_serve_path(path)).classes('w-full h-64 object-contain mt-4 bg-zinc-50 rounded-lg border cursor-pointer hover:ring-2 hover:ring-[#881c1c] transition-all').on('click', lambda: open_file(path))
     except Exception as e:
-        with container: ui.label(f"Error rendering file: {e}").classes('text-red-600 p-2')
+        with container:
+            ui.label(f"Error rendering file: {e}").classes('text-red-600 p-2')
 
 _RENDERERS_MAP = {
     'file': 'render_file', 'directory': 'render_directory', 'batchfile': 'render_batch_file',
@@ -369,42 +404,51 @@ class ResultDispatcher:
     def __init__(self): self._renderers = None
     @property
     def renderers(self):
-        if self._renderers is None: self._renderers = {k: globals()[v] for k, v in _RENDERERS_MAP.items()}
+        if self._renderers is None:
+            self._renderers = {k:
+            globals()[v] for k, v in _RENDERERS_MAP.items()}
         return self._renderers
     def render(self, container, root):
         try:
             otype = root.get('output_type')
             renderer = self.renderers.get(otype)
-            if not renderer: return
+            if not renderer:
+                return
             try:
                 from rb.api import models as m
                 cls = {'file': m.FileResponse, 'directory': m.DirectoryResponse, 'batchfile': m.BatchFileResponse,
                        'text': m.TextResponse, 'markdown': m.MarkdownResponse, 'batchtext': m.BatchTextResponse,
                        'batchdirectory': m.BatchDirectoryResponse}.get(otype)
                 renderer(container, cls(**root) if cls else root)
-            except Exception: renderer(container, root)
-        except Exception as e: logger.error("Dispatch error: %s", e)
+            except Exception:
+                renderer(container, root)
+        except Exception as e:
+            logger.error("Dispatch error: %s", e)
 
 dispatcher = ResultDispatcher()
 
 def _pick(d: dict, *keys: str, default: Any = "") -> Any:
     for k in keys:
-        if k in d: return d[k]
+        if k in d:
+            return d[k]
     return default
 
 def render_text_search_json(container, data, title="Text Search Results"):
     query, model, results = _pick(data, "query"), _pick(data, "model"), data.get("results") or []
     if data.get("error"):
-        with container: ui.label(str(data["error"])).classes("text-red-700")
+        with container:
+            ui.label(str(data["error"])).classes("text-red-700")
         return
     if not results:
-        with container: ui.label("No results.").classes("text-zinc-500 italic")
+        with container:
+            ui.label("No results.").classes("text-zinc-500 italic")
         return
     
     rows = []
     show_text_snippet = any(str(_pick(r, "matching_text", "matchingtext")).strip() for r in results if isinstance(r, dict))
     for i, r in enumerate(results):
-        if not isinstance(r, dict): continue
+        if not isinstance(r, dict):
+            continue
         sim = _pick(r, "similarity", default=0)
         row = {'id': _pick(r, "id", default=i), 'match': "Yes" if _pick(r, "is_match", default=False) else "No",
                'similarity': f"{float(sim):.4f}" if isinstance(sim, (int, float)) else str(sim), 'path': str(_pick(r, "path"))}
@@ -416,7 +460,8 @@ def render_text_search_json(container, data, title="Text Search Results"):
     cols = [{'name': 'match', 'label': 'Match', 'field': 'match', 'align': 'center', 'sortable': True},
             {'name': 'similarity', 'label': 'Similarity', 'field': 'similarity', 'align': 'right', 'sortable': True},
             {'name': 'path', 'label': 'File', 'field': 'path', 'align': 'left', 'sortable': True}]
-    if show_text_snippet: cols.append({'name': 'preview', 'label': 'Matching Text', 'field': 'preview', 'align': 'left'})
+    if show_text_snippet:
+        cols.append({'name': 'preview', 'label': 'Matching Text', 'field': 'preview', 'align': 'left'})
 
     with container, ui.card().classes('w-full min-w-0 max-w-full flex flex-col rounded-3xl shadow-xl border border-zinc-100 p-0 overflow-hidden bg-white'):
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
@@ -424,17 +469,21 @@ def render_text_search_json(container, data, title="Text Search Results"):
         with ui.column().classes('w-full p-4 gap-3'):
             with ui.column().classes('gap-1 text-sm text-zinc-800'):
                 ui.label(f"Query string: {query}").classes("font-medium text-zinc-900")
-                if model: ui.label(f"Plugin: {model}").classes("text-zinc-600")
+                if model:
+                    ui.label(f"Plugin: {model}").classes("text-zinc-600")
             
             def _on_click(e):
                 idx = _resolve_row_idx(e, rows)
                 if idx is not None and rows[idx]['path']:
                     p = rows[idx]['path']
                     if os.path.isfile(p):
-                        try: body = Path(p).read_text(encoding='utf-8', errors='replace')
-                        except Exception: body = f"Could not read file at {p}"
+                        try:
+                            body = Path(p).read_text(encoding='utf-8', errors='replace')
+                        except Exception:
+                            body = f"Could not read file at {p}"
                         open_text_markdown_modal(os.path.basename(p), body)
-                    else: open_file(p)
+                    else:
+                        open_file(p)
 
             with ui.scroll_area().classes('w-full max-h-[70vh]'):
                 create_sortable_table(ui.column().classes('w-full'), cols, rows, row_key='id', on_row_click=_on_click,
@@ -446,24 +495,37 @@ _IMAGE_SUFFIXES = ('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff', '.gif')
 
 def _ensure_image_summary_modal_css() -> None:
     global _IMAGE_SUMMARY_MODAL_CSS_DONE
-    if _IMAGE_SUMMARY_MODAL_CSS_DONE: return
+    if _IMAGE_SUMMARY_MODAL_CSS_DONE:
+        return
     _IMAGE_SUMMARY_MODAL_CSS_DONE = True
     ui.add_head_html('''
         <style>
-        .q-dialog.image-summary-side-dialog .q-dialog__backdrop { opacity: 0.35 !important; }
+        .q-dialog.image-summary-side-dialog .q-dialog__backdrop { opacity: 0.35 !important
+        }
         .image-summary-md-modal, .image-summary-md-modal .q-markdown, .image-summary-md-modal p,
         .image-summary-md-modal li, .image-summary-md-modal ul, .image-summary-md-modal ol {
-            font-size: 1.25rem !important; line-height: 1.75 !important;
+            font-size: 1.25rem !important
+            line-height: 1.75 !important
         }
-        .image-summary-md-modal h1 { font-size: 1.875rem !important; }
-        .image-summary-md-modal h2 { font-size: 1.5rem !important; }
-        .image-summary-md-modal h3 { font-size: 1.25rem !important; }
-        .image-summary-md-modal pre, .image-summary-md-modal code { font-size: 1rem !important; line-height: 1.5 !important; }
-        .rb-image-summary-search-field.q-field--outlined .q-field__control:before { border-color: #505759 !important; }
-        .rb-image-summary-search-field.q-field--outlined:hover .q-field__control:before { border-color: #505759 !important; }
-        .rb-image-summary-search-field.q-field--focused .q-field__control:before { border-color: #505759 !important; }
-        .rb-image-summary-search-field .q-field__label, .rb-image-summary-search-field.q-field--float .q-field__label { color: #505759 !important; }
-        .rb-image-summary-search-field .q-field__marginal .q-icon, .rb-image-summary-search-field .q-field__append .q-icon { color: #505759 !important; }
+        .image-summary-md-modal h1 { font-size: 1.875rem !important
+        }
+        .image-summary-md-modal h2 { font-size: 1.5rem !important
+        }
+        .image-summary-md-modal h3 { font-size: 1.25rem !important
+        }
+        .image-summary-md-modal pre, .image-summary-md-modal code { font-size: 1rem !important
+        line-height: 1.5 !important
+        }
+        .rb-image-summary-search-field.q-field--outlined .q-field__control:before { border-color: #505759 !important
+        }
+        .rb-image-summary-search-field.q-field--outlined:hover .q-field__control:before { border-color: #505759 !important
+        }
+        .rb-image-summary-search-field.q-field--focused .q-field__control:before { border-color: #505759 !important
+        }
+        .rb-image-summary-search-field .q-field__label, .rb-image-summary-search-field.q-field--float .q-field__label { color: #505759 !important
+        }
+        .rb-image-summary-search-field .q-field__marginal .q-icon, .rb-image-summary-search-field .q-field__append .q-icon { color: #505759 !important
+        }
         </style>
     ''', shared=True)
 
@@ -494,15 +556,18 @@ def _open_image_summary_markdown_modal(file_info: Dict[str, Any]) -> None:
             with ui.column().classes('overflow-y-auto flex-1 min-h-0 w-full image-summary-md-modal'):
                 ui.markdown(txt or '_(empty)_').classes(_MD_MODAL)
             with ui.row().classes('gap-2 mt-4 shrink-0 justify-end flex-wrap'):
-                if path_full: ui.button('Open raw file', on_click=lambda: open_file(path_full)).props('flat outline')
+                if path_full:
+                    ui.button('Open raw file', on_click=lambda: open_file(path_full)).props('flat outline')
                 ui.button('Close', on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
     dialog.open()
 
 def _source_image_path_from_summary(summary_txt_path: str, input_dir: str) -> Optional[str]:
     name = Path(summary_txt_path).name
-    if not name.endswith('.txt'): return None
+    if not name.endswith('.txt'):
+        return None
     base = name[:-4]
-    if not any(base.lower().endswith(ext) for ext in _IMAGE_SUFFIXES): return None
+    if not any(base.lower().endswith(ext) for ext in _IMAGE_SUFFIXES):
+        return None
     candidate = str(Path(input_dir) / base)
     return candidate if os.path.isfile(candidate) else None
 
@@ -519,10 +584,12 @@ def render_image_summary_json(container, data):
                 content = Path(fp).read_text(encoding='utf-8')
                 img = out_to_in.get(fp) or (_source_image_path_from_summary(fp, input_dir) if input_dir else None)
                 file_data.append({'path': fp, 'filename': os.path.basename(fp), 'content': content, 'content_lower': content.lower(), 'image_path': img})
-            except Exception: pass
+            except Exception:
+                pass
             
     if not file_data:
-        with container: ui.label("No image summaries found.").classes("text-zinc-500 italic")
+        with container:
+            ui.label("No image summaries found.").classes("text-zinc-500 italic")
         return
 
     _ensure_image_summary_modal_css()
@@ -542,14 +609,16 @@ def render_image_summary_json(container, data):
                     with ui.element('div').classes('grid min-w-[720px] grid-cols-[12rem_minmax(0,1fr)] gap-3 pb-1 mb-1 border-b text-xs font-semibold text-zinc-600'):
                         ui.label('Image').classes('text-center')
                         with ui.element('div').classes('grid grid-cols-[12rem_minmax(0,1fr)] gap-3'):
-                            ui.label('Summary file'); ui.label('Description')
+                            ui.label('Summary file')
+                            ui.label('Description')
                     for fi in filtered:
                         with ui.element('div').classes('grid min-w-[720px] grid-cols-[12rem_minmax(0,1fr)] gap-3 py-2 border-b border-zinc-100'):
                             with ui.column().classes('w-48 items-center gap-1'):
                                 if fi['image_path']:
                                     ui.image(_serve_path(fi['image_path'])).classes('w-48 h-48 object-cover rounded border cursor-pointer hover:ring-2 hover:ring-[#505759]').on('click', lambda _e, p=fi['image_path']: open_file(p))
                                     ui.label('Click to enlarge').classes('text-[10px] uppercase text-zinc-500')
-                                else: ui.icon('image_not_supported', size='3rem').classes('text-zinc-400 mt-10')
+                                else:
+                                    ui.icon('image_not_supported', size='3rem').classes('text-zinc-400 mt-10')
                             with ui.element('div').classes('grid grid-cols-[12rem_minmax(0,1fr)] gap-3 cursor-pointer hover:bg-zinc-50 p-1').on('click', lambda _e, f=fi: _open_image_summary_markdown_modal(f)):
                                 ui.label(fi['filename']).classes('text-sm font-mono break-all pt-1')
                                 with ui.column().classes('border-l pl-2 max-h-56 overflow-y-auto'):
@@ -561,7 +630,8 @@ def render_image_summary_json(container, data):
 def render_batch_text(container, response):
     texts = getattr(response, 'texts', [])
     if not texts:
-        with container: ui.label('No text found').classes('text-zinc-500 italic')
+        with container:
+            ui.label('No text found').classes('text-zinc-500 italic')
         return
     with container, ui.card().classes('w-full p-0 shadow-sm border rounded-xl overflow-hidden bg-white'):
         with ui.row().classes('w-full px-4 py-3 items-center gap-2 border-b border-zinc-200 bg-gradient-to-r from-zinc-50 to-white'):
@@ -589,9 +659,11 @@ def render_searchable_file_list(container, file_paths, title):
             try:
                 content = Path(fp).read_text(encoding='utf-8', errors='replace')
                 file_data.append({'path': fp, 'filename': os.path.basename(fp), 'content': content, 'content_lower': content.lower()})
-            except Exception: pass
+            except Exception:
+                pass
     if not file_data:
-        with container: ui.label('No valid files found').classes('text-red-600')
+        with container:
+            ui.label('No valid files found').classes('text-red-600')
         return
     _ensure_image_summary_modal_css()
     with container, ui.card().classes('w-full bg-white border border-zinc-300 rounded-xl p-4 shadow-sm'):
@@ -625,11 +697,14 @@ def render_text(container, response):
     try:
         data = json.loads(val)
         if isinstance(data, dict):
-            if data.get('results') or data.get('query'): return render_text_search_json(container, data, title=title)
-            if data.get('image_summary'): return render_image_summary_json(container, data)
+            if data.get('results') or data.get('query'):
+                return render_text_search_json(container, data, title=title)
+            if data.get('image_summary'):
+                return render_image_summary_json(container, data)
         if isinstance(data, list) and all(isinstance(x, str) for x in data):
             return render_searchable_file_list(container, data, title)
-    except Exception: pass
+    except Exception:
+        pass
     with container, ui.card().classes('w-full p-0 shadow-lg border rounded-xl overflow-hidden bg-white'):
         with ui.row().classes('w-full p-4 items-center border-b border-zinc-100'):
             ui.label('Text Result').classes('text-lg font-bold text-zinc-900')
@@ -644,7 +719,8 @@ class ResultsPreview:
     def render(container, response):
         try:
             dispatcher.render(container, response.model_dump() if hasattr(response, 'model_dump') else response)
-        except Exception as e: logger.error("Preview render failed: %s", e)
+        except Exception as e:
+            logger.error("Preview render failed: %s", e)
 
 def augment_response_model_dump_for_image_summary(
     dump: Dict[str, Any], job_fields: Dict[str, Any]
@@ -652,16 +728,20 @@ def augment_response_model_dump_for_image_summary(
     """Inject image-summary metadata into response dump for thumbnail rendering."""
     try:
         root = dump.get('root')
-        if not root or not isinstance(root, dict): return dump
+        if not root or not isinstance(root, dict):
+            return dump
         val = root.get('value')
-        if not val or not isinstance(val, str): return dump
+        if not val or not isinstance(val, str):
+            return dump
         try:
             data = json.loads(val)
             if isinstance(data, dict) and data.get('image_summary'):
                 data['input_dir'] = job_fields.get('request', {}).get('inputs', {}).get('input_dir', {}).get('path', '')
                 root['value'] = json.dumps(data)
-        except Exception: pass
-    except Exception as e: logger.error("Augmentation error: %s", e)
+        except Exception:
+            pass
+    except Exception as e:
+        logger.error("Augmentation error: %s", e)
     return dump
 
 # Backward compatibility aliases for unit tests

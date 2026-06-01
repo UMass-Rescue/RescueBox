@@ -201,8 +201,7 @@ class TestChatbotCore:
     @pytest.mark.asyncio
     async def test_submit_job_success(self, core):
         """Test successful job submission"""
-        import httpx
-        from rb.api.models import RequestBody, DirectoryInput, TextInput, ResponseBody, TextResponse
+        from rb.api.models import RequestBody, DirectoryInput, TextInput, ResponseBody
 
         # Create a temporary directory for testing
         with tempfile.TemporaryDirectory() as temp_dir:

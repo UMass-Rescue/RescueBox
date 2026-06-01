@@ -11,7 +11,7 @@ import pytest
 import asyncio
 import uuid
 from nicegui.testing import User  # type: ignore
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 import frontend.database
 import frontend.database.job_db
 
@@ -51,11 +51,9 @@ class TestIndexPage:
         
         # Check that navigation links exist
         # (ui.open is called, not actual navigation in test environment)
-        nav_found = False
         for label in ['Browse Plugins', 'Plugins', 'Models', 'Open Assistant', 'Assistant', 'Chatbot']:
             try:
                 if user.find(label):
-                    nav_found = True
                     break
             except AssertionError:
                 continue

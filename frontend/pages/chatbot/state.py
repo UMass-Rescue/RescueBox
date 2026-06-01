@@ -106,7 +106,6 @@ class ChatbotStateManager:
                              If False and enabled is False, it is greyed out (Stage 1).
         """
         try:
-            from nicegui import ui
             area = self.input_area or (self.input_field and getattr(self.input_field, 'parent', None))
             composer = (
                 getattr(self.input_area, "composer_strip", None) if self.input_area else None

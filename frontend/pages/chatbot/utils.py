@@ -53,14 +53,19 @@ def safe_ui_call(func, *args, **kwargs):
     import asyncio
     
     def handle_error(e):
-        if is_ephemeral_ui_error(e): return None
+        if is_ephemeral_ui_error(e):
+            return None
         raise e
 
     if asyncio.iscoroutinefunction(func):
         async def async_wrapper():
-            try: return await func(*args, **kwargs)
-            except Exception as e: return handle_error(e)
+            try:
+                return await func(*args, **kwargs)
+            except Exception as e:
+                return handle_error(e)
         return async_wrapper()
     
-    try: return func(*args, **kwargs)
-    except Exception as e: return handle_error(e)
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        return handle_error(e)

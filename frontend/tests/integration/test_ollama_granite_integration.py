@@ -24,7 +24,6 @@ import httpx
 import logging
 import os
 import json
-from typing import Optional, Dict, Any
 
 # Configure logging for tests
 logger = logging.getLogger(__name__)

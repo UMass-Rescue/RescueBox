@@ -1,7 +1,3 @@
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 """
 Models Page
 
@@ -10,32 +6,29 @@ their server statuses, and actions (inspect, run, connect).
 """
 
 import logging
+from typing import Any, Dict, List
+
+from fastapi import HTTPException
 from nicegui import ui
-import asyncio
-import httpx
-from typing import List, Dict, Optional
+from rb.api.models import AppMetadata
 
-import sys
-from pathlib import Path
-
-def setup_models_path():
-    """Setup backend path for models module imports."""
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
-
-setup_models_path()
-
-from frontend.components.shared import create_navbar
-from frontend.components.models import render_model_card
 from frontend.api_client import api_client
-from frontend.constants import UI_TITLES, UI_BUTTONS, STATUS_MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, NAV_LINKS
-from frontend.utils import handle_api_error
-# Assuming a database module exists for retrieving cached models
-# This function would read the data pre-fetched by main.py on startup.
-from frontend.database import get_cached_models
 from frontend.chatbot.config import ToolRegistry
+from frontend.components.shared import create_navbar
+from frontend.constants import (
+    ERROR_MESSAGES,
+    NAV_LINKS,
+    STATUS_MESSAGES,
+    UI_BUTTONS,
+    UI_TITLES,
+)
+from frontend.database import get_cached_model_by_uid, get_cached_models
+from frontend.utils import handle_api_error
+from frontend.utils.paths import setup_backend_path
 
-# Configure logging for this module
+setup_backend_path()
 
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
@@ -210,24 +203,6 @@ async def models_page():
         ui.label(f"Error loading models page: {str(e)}").classes('text-red-600')
 
 
-"""
-Models Utilities
-
-This module provides shared utilities and common setup for the models package.
-"""
-
-import logging
-from pathlib import Path
-import sys
-from typing import Dict, Any, Optional
-
-
-
-# Configure logging for models package
-
-logger.setLevel(logging.DEBUG)
-
-
 def extract_model_info(model_info, model_info_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Extract model information from various sources. Provides a standardized way to extract model metadata from AppMetadata objects"""
     if model_info:
@@ -246,33 +221,6 @@ def extract_model_info(model_info, model_info_dict: Dict[str, Any]) -> Dict[str,
             'name': model_info_dict.get('name', 'Unknown'),
             'description': model_info_dict.get('description', ''),
         }
-
-
-"""
-Model Details Page
-
-This module provides the model details page for displaying model documentation,
-metadata, version information, and server status.
-"""
-
-import logging
-from nicegui import ui
-from typing import Optional
-from datetime import datetime
-
-# Setup backend path for imports
-
-setup_models_path()
-from frontend.database import get_cached_model_by_uid
-from rb.api.models import AppMetadata
-from frontend.components.shared import create_navbar
-from frontend.api_client import api_client
-from frontend.constants import UI_TITLES, STATUS_MESSAGES, ERROR_MESSAGES
-from frontend.utils import handle_api_error
-from fastapi import HTTPException
-
-# Configure logging for this module
-
 
 
 @ui.page('/models/{model_uid}/details')
@@ -332,8 +280,8 @@ async def model_details_page(model_uid: str):
                 # Render markdown documentation
                 model_data = extract_model_info(model_info, model_info_dict)
                 info_text = model_data['info']
-                version = model_data['version']
-                author = model_data['author']
+                model_data['version']
+                model_data['author']
                 
                 with ui.card().classes('bg-white p-6'):
                     ui.markdown(info_text).classes('prose max-w-none')

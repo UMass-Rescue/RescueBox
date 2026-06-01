@@ -7,11 +7,9 @@ all test modules to reduce duplication and ensure consistency.
 
 import pytest
 import pytest_asyncio
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from nicegui import app
 import asyncio
-import inspect
 
 # Test constants
 TEST_CONVERSATION_ID = "conv-123"
@@ -258,7 +256,9 @@ async def user():
     # Initialize NiceGUI app context properly
     # Import the main module to ensure all pages are registered
     try:
-        from frontend import main
+        import importlib
+
+        importlib.import_module("frontend.main")
     except ImportError:
         pass
     # Provide fake storage objects for tests so get_user_id and other storage helpers work
@@ -368,7 +368,6 @@ async def user():
 def _patch_nicegui_background_tasks():
     try:
         import nicegui.background_tasks as _bg
-        import nicegui.core as _core
         _orig_create = _bg.create
 
         def _wrapped_create(coroutine, *, name: str = 'unnamed task', handle_exceptions: bool = True):
@@ -394,7 +393,7 @@ def _patch_nicegui_background_tasks():
                         _ = t.result()
                     except asyncio.CancelledError:
                         pass
-                    except Exception as exc:
+                    except Exception:
                         try:
                             import logging
                             logging.getLogger('nicegui').exception('Background task exception')

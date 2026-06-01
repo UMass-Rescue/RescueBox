@@ -18,7 +18,6 @@ These components are critical for ensuring consistent, reliable chatbot
 behavior and providing users with clear, discoverable tool access patterns.
 """
 
-import pytest
 from frontend.chatbot.config import ChatbotConfig, ToolRegistry
 
 # Configuration constants

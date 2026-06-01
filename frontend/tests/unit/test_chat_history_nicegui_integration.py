@@ -8,13 +8,9 @@ import pytest
 import tempfile
 import shutil
 from pathlib import Path
-from unittest.mock import patch
 from frontend.database.chat_history_db import (
-    ChatHistoryDB,
-    ChatMessageRecord,
-    get_chat_history_db
+    ChatHistoryDB
 )
-from frontend.utils import get_user_id
 
 
 class TestChatHistoryNiceGUIIntegration:

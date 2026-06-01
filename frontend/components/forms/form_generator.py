@@ -28,18 +28,23 @@ def render_form_actions(container: ui.element, on_cancel: Callable, on_submit: C
             def _cancel_wrapper():
                 outer = getattr(container, '_outer_form_container', None)
                 if outer:
-                    try: outer.delete(); return
-                    except: pass
+                    try:
+                        outer.delete()
+                    except Exception:
+                        pass
+                    return
                 on_cancel()
             ui.button('Cancel', on_click=_cancel_wrapper).classes(Design.BTN_MEDIUM_GRAY)
             
             btn_ref = [None]
             async def _submit_wrapper():
                 btn = btn_ref[0]
-                if not btn: return
+                if not btn:
+                    return
                 btn.props['loading'] = True
                 try:
-                    if await on_submit() is True: btn.disable()
+                    if await on_submit() is True:
+                        btn.disable()
                 finally:
                     btn.props['loading'] = False
             submit_btn = ui.button('▶ Submit Job', on_click=_submit_wrapper).classes('rb-brand-primary text-white rounded-xl')
@@ -71,8 +76,10 @@ class FormGenerator:
                     inputs_list = list(schema.inputs)
                     for idx, inp in enumerate(inputs_list):
                         await create_input_field(inp, self.form_widgets, self.form_data.get('inputs', {}), paired_output_directory_field_id(inputs_list, idx), paired_ufdr_mount_name_field_id(inputs_list, idx))
-                    try: apply_ufdr_mount_autofill_after_inputs_built(inputs_list, self.form_widgets)
-                    except: pass
+                    try: 
+                      apply_ufdr_mount_autofill_after_inputs_built(inputs_list, self.form_widgets)
+                    except Exception:
+                        pass
 
                 if schema.parameters:
                     ui.label('Parameters').classes('font-semibold text-lg mt-4' if not compact else 'font-semibold text-base mt-2')
@@ -80,11 +87,13 @@ class FormGenerator:
                         await create_parameter_field(param, self.form_widgets, self.form_data.get('parameters', {}))
 
                 def _on_cancel():
-                    if onCancel: onCancel()
+                    if onCancel:
+                        onCancel()
                     container.clear()
                 
                 async def _on_submit():
-                    if not onSubmit: return False
+                    if not onSubmit:
+                        return False
                     return await handle_form_submit(schema, self.form_widgets, onSubmit, endpoint=endpoint)
 
                 action_col = ui.column()
@@ -120,24 +129,32 @@ def collect_form_data(schema_dict, widgets, initial_inputs=None):
     for inp in schema_dict.get('inputs', []):
         fid = inp['key']
         w = widgets.get(fid)
-        if not w: continue
+        if not w:
+            continue
         val = getattr(w, 'value', None)
         raw_it = inp.get('inputType') or inp.get('input_type')
         if not raw_it:
             inputs_data[fid] = val
             continue
         it = str(raw_it.value if hasattr(raw_it, 'value') else raw_it)
-        if it in ['directory', 'file']: inputs_data[fid] = {'path': val}
-        elif it in ['text', 'textarea']: inputs_data[fid] = {'text': val}
-        elif it == 'batchfile': inputs_data[fid] = {'files': val if isinstance(val, list) else []}
-        elif it == 'batchtext': inputs_data[fid] = {'texts': val if isinstance(val, list) else []}
-        elif it == 'batchdirectory': inputs_data[fid] = {'directories': val if isinstance(val, list) else []}
-        else: inputs_data[fid] = val
+        if it in ['directory', 'file']:
+            inputs_data[fid] = {'path': val}
+        elif it in ['text', 'textarea']:
+            inputs_data[fid] = {'text': val}
+        elif it == 'batchfile':
+            inputs_data[fid] = {'files': val if isinstance(val, list) else []}
+        elif it == 'batchtext':
+            inputs_data[fid] = {'texts': val if isinstance(val, list) else []}
+        elif it == 'batchdirectory':
+            inputs_data[fid] = {'directories': val if isinstance(val, list) else []}
+        else:
+            inputs_data[fid] = val
 
     for param in schema_dict.get('parameters', []):
         pid = param['key']
         w = widgets.get(pid)
-        if not w: continue
+        if not w:
+            continue
         if isinstance(w, dict) and 'widget' in w:
             params_data[pid] = w['label_to_key'].get(w['widget'].value, w['widget'].value)
         else:
@@ -145,7 +162,8 @@ def collect_form_data(schema_dict, widgets, initial_inputs=None):
             
     if initial_inputs:
         for k, v in initial_inputs.items():
-            if k not in inputs_data: inputs_data[k] = v
+            if k not in inputs_data:
+                inputs_data[k] = v
     return {'inputs': inputs_data, 'parameters': params_data}
 
 def validate_form(schema, widgets, initial_inputs=None, endpoint=None):

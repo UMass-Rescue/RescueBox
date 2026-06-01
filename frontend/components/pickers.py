@@ -1,17 +1,11 @@
 import logging
+from typing import Any, Callable, Dict
+from nicegui import ui
+from frontend.design_tokens import Design
+from frontend.chatbot.config import ToolRegistry
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-import logging
-from typing import Any, Callable, Dict
-
-from nicegui import ui
-
-from frontend.design_tokens import Design
-
-
-
-
 
 def show_analysis_picker_dialog(
     container: ui.element,
@@ -39,18 +33,6 @@ def show_analysis_picker_dialog(
                         "bg-zinc-100 text-zinc-800 border border-zinc-200 hover:bg-zinc-200 w-full"
                     )
     return container
-
-
-import logging
-from typing import Any, Callable, Dict
-
-from nicegui import ui
-
-from frontend.chatbot.config import ToolRegistry
-
-
-
-
 
 def show_tool_picker_dialog(
     container: ui.element,

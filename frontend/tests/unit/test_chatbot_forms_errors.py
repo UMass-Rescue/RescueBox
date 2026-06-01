@@ -25,7 +25,7 @@ exposing sensitive technical details.
 """
 
 import pytest
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock
 from nicegui import ui
 
 # Mock ui.ref before importing modules that use it
@@ -200,7 +200,7 @@ class TestChatbotFormsErrorHandling:
                         with patch.object(core, 'create_input_form', new_callable=AsyncMock, return_value=MagicMock()):
                             with patch('frontend.pages.chatbot.ui.show_error_to_user', return_value=None):
                                 try:
-                                    result = await load_and_show_form(container, core, TEST_ENDPOINT, {}, MagicMock())
+                                    await load_and_show_form(container, core, TEST_ENDPOINT, {}, MagicMock())
                                 except Exception:
                                     pass
     

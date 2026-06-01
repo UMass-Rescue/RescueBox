@@ -25,13 +25,13 @@ environments where external dependencies may fail intermittently.
 from unittest.mock import AsyncMock
 
 import pytest
-from unittest.mock import AsyncMock, patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 import httpx
 import tempfile
 from pathlib import Path
 from frontend.chatbot.core import ChatbotCore
 from frontend.chatbot.config import ChatbotConfig
-from rb.api.models import TaskSchema, InputSchema, ParameterSchema, InputType, RequestBody, DirectoryInput
+from rb.api.models import RequestBody, DirectoryInput
 
 # HTTP status codes
 HTTP_404_NOT_FOUND = 404

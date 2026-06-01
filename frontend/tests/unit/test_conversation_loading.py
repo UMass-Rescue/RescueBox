@@ -7,7 +7,6 @@ conversations from history into the active chat interface.
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from nicegui import app
 
 # Import the modules we're testing
 from frontend.utils import (

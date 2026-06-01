@@ -36,15 +36,20 @@ _PIPELINE_DIAG_INFO_NAMES = (
 )
 
 def set_logging_context(job_id=None, model_id=None, session_id=None):
-    if job_id is not None: _job_id.set(job_id)
-    if model_id is not None: _model_id.set(model_id)
-    if session_id is not None: _session_id.set(session_id)
+    if job_id is not None:
+        _job_id.set(job_id)
+    if model_id is not None:
+        _model_id.set(model_id)
+    if session_id is not None:
+        _session_id.set(session_id)
 
 def get_logging_context():
     return {'job_id': _job_id.get(None), 'model_id': _model_id.get(None), 'session_id': _session_id.get(None)}
 
 def clear_logging_context():
-    _job_id.set(None); _model_id.set(None); _session_id.set(None)
+    _job_id.set(None)
+    _model_id.set(None)
+    _session_id.set(None)
 
 class ContextFilter(logging.Filter):
     def filter(self, record):
@@ -52,12 +57,16 @@ class ContextFilter(logging.Filter):
             jid, mid, sid = _job_id.get(None), _model_id.get(None), _session_id.get(None)
             record.job_id, record.model_id, record.session_id = jid or '-', mid or '-', sid or '-'
             parts = []
-            if jid: parts.append(f"job_id={jid}")
-            if mid: parts.append(f"model_id={mid}")
-            if sid: parts.append(f"session_id={sid}")
+            if jid:
+                parts.append(f"job_id={jid}")
+            if mid:
+                parts.append(f"model_id={mid}")
+            if sid:
+                parts.append(f"session_id={sid}")
             record.context = f" | {' | '.join(parts)}" if parts else ""
-        except:
-            record.job_id = record.model_id = record.session_id = '-'; record.context = ""
+        except Exception:
+            record.job_id = record.model_id = record.session_id = '-'
+            record.context = ""
         return True
 
 def configure_logging_with_context(log_file_path=None, log_level='DEBUG'):
@@ -68,15 +77,18 @@ def configure_logging_with_context(log_file_path=None, log_level='DEBUG'):
     
     ch = logging.StreamHandler()
     ch.setLevel(getattr(logging, log_level.upper()))
-    ch.setFormatter(formatter); ch.addFilter(ContextFilter())
+    ch.setFormatter(formatter)
+    ch.addFilter(ContextFilter())
     root.addHandler(ch)
     
     fh = None
     if log_file_path:
-        lp = Path(log_file_path); lp.parent.mkdir(parents=True, exist_ok=True)
+        lp = Path(log_file_path)
+        lp.parent.mkdir(parents=True, exist_ok=True)
         fh = logging.FileHandler(lp, encoding='utf-8')
         fh.setLevel(getattr(logging, log_level.upper()))
-        fh.setFormatter(formatter); fh.addFilter(ContextFilter())
+        fh.setFormatter(formatter)
+        fh.addFilter(ContextFilter())
         root.addHandler(fh)
     
     if log_level.upper() == 'DEBUG' or (Path(log_file_path).name if log_file_path else ''): # simplified
@@ -92,7 +104,8 @@ def apply_per_logger_levels_for_verbose_root(level):
 async def generate_audit_trail_for_job(job_id: str) -> Dict[str, Any]:
     job_db = get_job_db()
     job = await job_db.get_job_by_uid(job_id)
-    if not job: return {'error': f'Job {job_id} not found'}
+    if not job:
+        return {'error': f'Job {job_id} not found'}
     
     job_dict = job.model_dump() if hasattr(job, 'model_dump') else job
     related_messages = []
@@ -104,7 +117,8 @@ async def generate_audit_trail_for_job(job_id: str) -> Dict[str, Any]:
             for m in msgs:
                 if m.tool_call_endpoint == job_dict.get('endpoint'):
                     related_messages.append({'conversation_id': c.conversation_id, 'role': m.role, 'content': m.content, 'timestamp': m.timestamp})
-    except: pass
+    except Exception:
+        pass
     
     audit = {
         'job_id': job_id, 'generated_at': datetime.now().isoformat(),
@@ -112,25 +126,32 @@ async def generate_audit_trail_for_job(job_id: str) -> Dict[str, Any]:
     }
     try:
         audit['logs'] = await read_logs_filtered(job_id=job_id)
-    except: audit['logs'] = []
+    except Exception:
+        audit['logs'] = []
     return audit
 
 async def read_logs_filtered(log_file_path=None, job_id=None, model_id=None, session_id=None, start_time=None, end_time=None):
     path = Path(log_file_path or LOG_FILE)
-    if not path.exists(): return []
+    if not path.exists():
+        return []
     try:
-        with open(path, 'r', encoding='utf-8') as f: lines = f.readlines()
-        parsed = [p for p in (parse_log_line(l) for l in lines) if p]
+        with open(path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        parsed = [p for p in (parse_log_line(line) for line in lines) if p]
         return [e for e in parsed if (not job_id or e.get('job_id') == job_id) and (not start_time or not e.get('timestamp') or e['timestamp'] >= start_time)]
-    except: return []
+    except Exception:
+        return []
 
 def parse_log_line(line):
     pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \| (\w+)\s*\| (.*?) \| (\S+) \| (.+)'
     match = re.match(pattern, line)
-    if not match: return None
+    if not match:
+        return None
     ts_str, level, ctx_str, logger_name, message = match.groups()
-    try: ts = datetime.strptime(ts_str, '%Y-%m-%d %H:%M:%S')
-    except: ts = None
+    try:
+        ts = datetime.strptime(ts_str, '%Y-%m-%d %H:%M:%S')
+    except Exception:
+        ts = None
     jid = re.search(r'job_id=([^\s|]+)', ctx_str)
     return {'timestamp': ts, 'level': level, 'job_id': jid.group(1) if jid else None, 'message': message}
 
@@ -143,5 +164,6 @@ def format_audit_trail_markdown(audit_trail: Dict[str, Any]) -> str:
 
 def parse_log_level(level_str: str) -> int:
     """Convert string log level to logging constant."""
-    if not level_str: return logging.INFO
+    if not level_str:
+        return logging.INFO
     return getattr(logging, level_str.upper(), logging.INFO)

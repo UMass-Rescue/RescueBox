@@ -1,7 +1,3 @@
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 """
 Logs Page
 
@@ -11,20 +7,17 @@ It allows users to view the contents of the RescueBox log file in real-time.
 
 import logging
 from pathlib import Path
+
 from nicegui import ui
 
-# Setup backend path for imports
-from frontend.utils import setup_backend_path
+from frontend.components.shared import create_navbar
+from frontend.config import LOG_FILE
+from frontend.constants import UI_TITLES
+from frontend.utils.paths import setup_backend_path
+
 setup_backend_path()
 
-from frontend.components.shared import create_navbar
-
-from frontend.config import LOG_FILE
-from frontend.constants import UI_TITLES, ERROR_MESSAGES
-from frontend.design_tokens import Design
-
-# Configure logging for this module
-
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
@@ -96,21 +89,6 @@ async def logs_page():
         return
     logs_page_instance = LogsPage()
     await logs_page_instance.render()
-
-
-"""
-Logs Utilities
-
-This module provides utilities for log file processing and display.
-"""
-
-import logging
-from pathlib import Path
-from typing import List, Optional
-
-# Configure logging for logs package
-
-logger.setLevel(logging.DEBUG)
 
 
 def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:

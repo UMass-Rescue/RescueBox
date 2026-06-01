@@ -1263,7 +1263,7 @@ def delete_collection_endpoint(
 ) -> ResponseBody:
     with _FACE_MATCH_LOCK:
         responseValue = ""
-        collection_name = parameters["collection_name"]
+        parameters["collection_name"]
         _db = vector_db_for_current_request(None)
         full_collection_name = _db.create_full_collection_name(
             parameters["collection_name"],

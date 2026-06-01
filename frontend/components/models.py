@@ -1,13 +1,11 @@
 import logging
+from typing import List, Dict, Callable, Optional, Any
+from datetime import datetime
+from nicegui import ui 
+from frontend.constants import UI_BUTTONS
+# Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-import logging
-from nicegui import ui
-from typing import List, Dict, Callable, Optional, Any
-from frontend.constants import UI_BUTTONS
-from datetime import datetime
-# Configure logging for this module
 
 def render_models_list(container: ui.element, models: List[Dict[str, Any]], server_statuses: Dict[str, str], on_inspect: Callable[[str], None], on_connect: Callable[[str], None]) -> None:
     """

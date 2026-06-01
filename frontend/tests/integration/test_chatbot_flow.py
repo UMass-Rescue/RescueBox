@@ -139,7 +139,7 @@ class TestChatbotFlow:
     @pytest.mark.asyncio
     async def test_job_submission_flow(self, mock_core, config, sample_task_schema):
         """Test job submission flow"""
-        from rb.api.models import RequestBody, DirectoryInput, TextInput, ResponseBody, TextResponse
+        from rb.api.models import RequestBody, DirectoryInput, TextInput, ResponseBody
         
         # Mock schema fetch
         mock_schema_response = AsyncMock()

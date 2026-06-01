@@ -24,8 +24,10 @@ def render_message_card(container: ui.element, role: str, content: str, timestam
             bubble = Design.CHAT_USER_BUBBLE if role == "user" else Design.CHAT_ASSISTANT_BUBBLE
             with row().classes(f"w-full {alignment}"):
                 with card().classes(f"{bubble} max-w-2xl"):
-                    if role == "user": label("YOU:").classes(Design.CHAT_USER_LABEL)
-                    else: label("Assistant").classes("font-medium !text-xs text-zinc-500 uppercase tracking-wide")
+                    if role == "user": 
+                        label("YOU:").classes(Design.CHAT_USER_LABEL)
+                    else:
+                        label("Assistant").classes("font-medium !text-xs text-zinc-500 uppercase tracking-wide")
                     
                     if isinstance(content, str) and content.startswith('##') and role != 'user':
                         markdown(content).classes(ASSISTANT_MARKDOWN_CLASSES)

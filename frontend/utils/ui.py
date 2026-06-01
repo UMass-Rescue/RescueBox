@@ -12,8 +12,10 @@ def _safe_ui_call(func, *args, **kwargs):
     # Otherwise, check for slot stack safety
     if not context.slot_stack:
         return None
-    try: return func(*args, **kwargs)
-    except: return None
+    try:
+        return func(*args, **kwargs)
+    except Exception:
+        return None
 
 def notify_success(message: str, duration: float = 3.0, position: str = 'top', close_button: bool = True, **kwargs):
     logger.debug(f"Success notification shown: {message}")
@@ -33,7 +35,8 @@ def notify_warning(message: str, duration: float = 4.0, position: str = 'top', c
 
 async def handle_api_error(error: Exception, context_str: str, show_to_user: bool = True):
     logger.error(f"{context_str}: {error}", exc_info=True)
-    if show_to_user: notify_error(f"Error: {error}")
+    if show_to_user:
+        notify_error(f"Error: {error}")
 
 def show_error_to_user(message: str):
     notify_error(message)

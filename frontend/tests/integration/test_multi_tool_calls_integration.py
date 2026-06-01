@@ -49,7 +49,7 @@ async def test_multiple_tool_calls_extraction_with_ollama():
 @pytest.mark.api
 async def test_chain_output_to_input_integration():
     """Test output chaining with real schema"""
-    from frontend.chatbot.multi_tool_handler import extract_output_path, chain_output_to_input
+    from frontend.chatbot.multi_tool_handler import chain_output_to_input
     from frontend.chatbot.core import ChatbotCore
     from frontend.chatbot.config import ChatbotConfig
     from rb.api.models import ResponseBody, DirectoryResponse

@@ -5,7 +5,6 @@ open_file serves files via in-app routes and ui.navigate; open_folder uses
 platform-specific explorers. Tests patch the module under test (results_utils.ui).
 """
 
-import pytest
 import subprocess
 from unittest.mock import patch
 

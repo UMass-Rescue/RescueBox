@@ -17,7 +17,6 @@ import httpx
 import logging
 import os
 from typing import List, Dict, Any, AsyncGenerator
-from urllib.parse import urlparse
 
 # Configure logging for tests
 logger = logging.getLogger(__name__)
@@ -183,7 +182,7 @@ class TestModelsEndpoints:
         
         model_info = response.json()
         assert isinstance(model_info, dict), f"Expected dict, got {type(model_info)}"
-        assert model_info['uid'] == model_uid, f"UID mismatch"
+        assert model_info['uid'] == model_uid, "UID mismatch"
         
         # Verify it matches the /models/{model_uid} endpoint
         direct_response = await api_client.get(f'/api/models/{model_uid}')
@@ -276,7 +275,7 @@ class TestServersEndpoints:
         assert isinstance(status_data, dict), f"Expected dict, got {type(status_data)}"
         assert 'status' in status_data, "Status response missing 'status' field"
         assert status_data['status'] in ['Online', 'Offline'], f"Invalid status value: {status_data['status']}"
-        assert status_data['modelUid'] == model_uid, f"Model UID mismatch"
+        assert status_data['modelUid'] == model_uid, "Model UID mismatch"
         
         logger.info(f"Server status for {model_uid}: {status_data['status']}")
     

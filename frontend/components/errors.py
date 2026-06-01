@@ -1,13 +1,10 @@
 import logging
+from typing import Optional, Any, List
+from nicegui import ui
+from frontend.design_tokens import Design
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-import logging
-from nicegui import ui
-from typing import Optional, Any, List
-
-
-
 
 
 def render_error_boundary(
@@ -46,16 +43,6 @@ def render_error_boundary(
     except Exception as e:
         logger.exception("Error rendering error boundary: %s", e)
 
-
-
-import logging
-from nicegui import ui
-from typing import Any, Optional
-
-
-
-
-
 def render_error_message(container: ui.element, message: str, details: Optional[str] = None, debug_data: Any = None) -> None:
     """
     Render a compact error message into the given container.
@@ -77,19 +64,6 @@ def render_error_message(container: ui.element, message: str, details: Optional[
                 ui.label(f'Error: {message}').classes('text-red-600')
         except Exception:
             logger.debug("Failed to render fallback simple error label")
-
-
-
-import logging
-from typing import List
-
-from nicegui import ui
-
-from frontend.design_tokens import Design
-
-
-
-
 
 def show_validation_dialog(primary_error: str, additional_errors: List[str] | None = None) -> ui.dialog:
     """

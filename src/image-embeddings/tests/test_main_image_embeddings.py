@@ -9,7 +9,7 @@ from image_embeddings.main import (
     Inputs,
     Parameters,
 )
-from rb.api.models import TextInput, ResponseBody
+from rb.api.models import TextInput
 
 
 def test_task_schema():

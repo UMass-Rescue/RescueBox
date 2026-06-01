@@ -24,7 +24,7 @@ through the web interface.
 
 import pytest
 import platform
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch
 from pathlib import Path
 from nicegui.testing import User
 
@@ -32,7 +32,6 @@ from frontend.utils import (
     browse_directory,
     browse_file,
     browse_directory_simple,
-    browse_file_simple,
     is_outputs_results_directory,
 )
 

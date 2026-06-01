@@ -19,25 +19,17 @@ NOTE: These tests require a running NiceGUI server and use HTTP requests
 to interact with the UI, hence they are marked as integration tests.
 """
 
-import pytest
-from nicegui.testing import User
-from nicegui import ui
-from pathlib import Path
-import tempfile
 import json
-import sys
+import tempfile
+from pathlib import Path
 
-# Add backend models to path
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
+import pytest
+from nicegui import ui
+from nicegui.testing import User
+from rb.api.models import BatchTextResponse, MarkdownResponse, TextResponse
 
-from frontend.components.results import (
-    render_text,
-    render_markdown,
-    render_batch_text,
-)
 from frontend.chatbot.utils import calculate_text_area_height
-from rb.api.models import TextResponse, MarkdownResponse, BatchTextResponse
+from frontend.components.results import render_batch_text, render_markdown, render_text
 
 # Test constants
 TEST_TEXT_CONTENT = 'This is test text content'

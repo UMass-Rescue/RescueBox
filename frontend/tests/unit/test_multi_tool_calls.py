@@ -14,33 +14,28 @@ The tests ensure that complex tool chains work reliably and that outputs
 are properly routed between sequential tool executions.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from pathlib import Path
-import sys
+from unittest.mock import AsyncMock, MagicMock, patch
 
-# Add backend models to path for imports
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
+import pytest
 
-from frontend.chatbot.core import ChatbotCore
-from frontend.chatbot.multi_tool_handler import (
-    extract_output_path,
-    chain_output_to_input,
-    MultiToolCallResult
-)
-from frontend.chatbot.config import ChatbotConfig
-
-# Import required backend models
 from rb.api.models import (
-    ResponseBody,
     DirectoryResponse,
-    TextResponse,
-    TaskSchema,
+    FloatParameterDescriptor,
     InputSchema,
     InputType,
     ParameterSchema,
-    FloatParameterDescriptor
+    ResponseBody,
+    TaskSchema,
+    TextResponse,
+)
+
+from frontend.chatbot.config import ChatbotConfig
+from frontend.chatbot.core import ChatbotCore
+from frontend.chatbot.multi_tool_handler import (
+    MultiToolCallResult,
+    chain_output_to_input,
+    extract_output_path,
 )
 
 # Test constants

@@ -2,9 +2,7 @@ import pytest
 import threading
 import time
 from unittest.mock import MagicMock
-from typing import Any, Dict, TypedDict
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from typing import TypedDict
 
 from rb.lib.ml_service import MLService
 from rb.api.models import ResponseBody, TextResponse, TaskSchema
@@ -85,7 +83,7 @@ def test_ml_service_thread_lock_sequential_execution(ml_service_with_lock: MLSer
 
     def make_request():
        try:
-           response = run_callback(inputs={}, parameters={})
+           run_callback(inputs={}, parameters={})
            results.append(200)
        except Exception:
            results.append(500)

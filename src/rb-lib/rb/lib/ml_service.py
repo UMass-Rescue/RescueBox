@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from logging import getLogger
-from typing import Any, Callable, Dict, List, Optional, TypedDict, get_type_hints, Annotated
+from typing import Any, Callable, Dict, List, Optional, get_type_hints, Annotated
 from contextlib import nullcontext
 
 from fastapi import Body
@@ -10,22 +10,11 @@ import threading
 from rb.api.models import (
     APIRoutes,
     AppMetadata,
+    PipelineFileFilterInputMixin,
     ResponseBody,
     SchemaAPIRoute,
     TaskSchema,
 )
-
-try:
-    from rb.api.models import PipelineFileFilterInputMixin
-except ImportError:
-    from rb.api.models import BatchFileInput
-
-
-    class PipelineFileFilterInputMixin(TypedDict, total=False):
-        """Optional pipeline inputs used for HTTP request bodies."""
-
-        file_filter: BatchFileInput
-
 from rb.lib.utils import (
     ensure_ml_func_hinting_and_task_schemas_are_valid,
     ensure_ml_func_parameters_are_typed_dict,

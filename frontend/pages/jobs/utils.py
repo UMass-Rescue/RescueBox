@@ -34,7 +34,8 @@ def extract_job_fields(job) -> Dict[str, Any]:
 
 async def get_plugin_name(api_client: APIClient, model_uid: Optional[str]) -> Optional[str]:
     """Get model name by model UID."""
-    if not model_uid: return None
+    if not model_uid:
+        return None
     try:
         response = await api_client.get(f'/models/{model_uid}')
         if response.status_code == 200:
@@ -45,14 +46,17 @@ async def get_plugin_name(api_client: APIClient, model_uid: Optional[str]) -> Op
 
 def partition_jobs_by_pipeline(jobs: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
     """Split flat job rows into display groups."""
-    if not jobs: return []
+    if not jobs:
+        return []
     referred_roots = {j.get("pipelineRootJobId") for j in jobs if j.get("pipelineRootJobId")}
 
     def bucket_key(j: Dict[str, Any]) -> str:
         pr = j.get("pipelineRootJobId")
-        if pr: return str(pr)
+        if pr:
+            return str(pr)
         uid = j.get("uid") or ""
-        if uid in referred_roots: return uid
+        if uid in referred_roots:
+            return uid
         return f"__single:{uid}"
 
     buckets: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
@@ -68,12 +72,16 @@ def partition_jobs_by_pipeline(jobs: List[Dict[str, Any]]) -> List[List[Dict[str
     return groups
 
 def pipeline_group_root_id(group: List[Dict[str, Any]]) -> str:
-    if not group: return ""
+    if not group:
+        return ""
     return group[0].get("pipelineRootJobId") or group[0].get("uid") or ""
 
 def compute_job_results_title(endpoint_name: Optional[str], endpoint_name_chain: Optional[List[str]]) -> str:
     chain = endpoint_name_chain if isinstance(endpoint_name_chain, list) and endpoint_name_chain else None
-    if not chain and endpoint_name: chain = [endpoint_name]
-    if chain and len(chain) > 1: return "Results for: " + " → ".join(chain)
-    if chain: return "Results for " + chain[0]
+    if not chain and endpoint_name:
+        chain = [endpoint_name]
+    if chain and len(chain) > 1:
+        return "Results for: " + " → ".join(chain)
+    if chain:
+        return "Results for " + chain[0]
     return endpoint_name or "Results"

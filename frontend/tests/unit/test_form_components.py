@@ -5,8 +5,7 @@ This module tests the form generation, handling, and builder components.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
-from nicegui import ui
+from unittest.mock import patch, MagicMock
 
 from frontend.components.forms import FormGenerator
 from frontend.components.forms import handle_form_submit
@@ -60,8 +59,8 @@ class TestFormGenerator:
     @patch('frontend.components.forms.ui')
     def test_generate_form_basic_structure(self, mock_ui, form_generator, mock_task_schema):
         """Test basic form generation structure."""
-        mock_container = MagicMock()
-        mock_core = MagicMock()
+        MagicMock()
+        MagicMock()
 
         # Mock UI components
         mock_column = MagicMock()

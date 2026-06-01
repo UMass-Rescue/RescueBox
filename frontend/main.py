@@ -18,10 +18,7 @@ from nicegui import app, Client, ui
 from frontend.config import (
     API_BASE_URL,
     API_TIMEOUT,
-    APP_DARK_MODE,
-    APP_FAVICON,
     APP_PORT,
-    APP_SHOW_BROWSER,
     APP_TITLE,
     APP_VERSION,
     BACKEND_URL,
@@ -265,7 +262,9 @@ if __name__ in {"__main__", "__mp_main__"}:
     # Register brand + readability CSS before ui.run so it is not lost vs. on_startup ordering.
     inject_global_readability_css()
 
-    import frontend.pages  # noqa: F401 — register @ui.page handlers (models, jobs, chatbot, …)
+    import importlib
+
+    importlib.import_module("frontend.pages")  # register @ui.page handlers
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request, exc):

@@ -22,12 +22,8 @@ import pytest
 import tempfile
 import shutil
 from pathlib import Path
-from datetime import datetime
 from frontend.database.chat_history_db import (
-    ChatHistoryDB,
-    ConversationRecord,
-    ChatMessageRecord,
-    get_chat_history_db
+    ChatHistoryDB
 )
 
 # Test constants
@@ -222,8 +218,8 @@ class TestChatHistoryDB:
         updated first, which provides users with the most relevant and
         recent conversations at the top of their conversation list.
         """
-        conv1 = await temp_db.create_conversation(title=FIRST_CONVERSATION_TITLE)
-        conv2 = await temp_db.create_conversation(title=SECOND_CONVERSATION_TITLE)
+        await temp_db.create_conversation(title=FIRST_CONVERSATION_TITLE)
+        await temp_db.create_conversation(title=SECOND_CONVERSATION_TITLE)
 
         conversations = await temp_db.get_all_conversations()
 

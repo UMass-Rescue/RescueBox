@@ -17,7 +17,7 @@ and configurable duration settings.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Test constants
 TEST_SUCCESS_MESSAGE = "Job completed successfully"
@@ -177,7 +177,7 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_success
 
-        with patch('nicegui.ui.notify') as mock_notify:
+        with patch('nicegui.ui.notify'):
             with patch('frontend.components.shared.logger') as mock_logger:
                 notify_success("Test message")
 

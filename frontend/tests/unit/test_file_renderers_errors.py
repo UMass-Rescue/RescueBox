@@ -9,16 +9,11 @@ The tests ensure that users receive appropriate error messages and that
 the application remains stable even when file operations fail.
 """
 
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
-import sys
+from unittest.mock import MagicMock, Mock, patch
 
-# Add backend models to path for imports
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
+from rb.api.models import FileResponse, FileType
 
 from frontend.components.results import render_file
-from rb.api.models import FileResponse, FileType
 
 # Test constants
 TEST_FILE_TITLE = "Test File"

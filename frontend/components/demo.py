@@ -1,6 +1,11 @@
 from __future__ import annotations
-
 import logging
+import re
+from pathlib import Path
+from typing import FrozenSet, List, Optional, Tuple, Callable
+from nicegui import ui
+from frontend.config import DEMO_FILES_BROWSE_ROOT
+from frontend.components.results import open_file
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -9,21 +14,6 @@ Read-only explorer for the demo sample directory (e.g. Documents/demo) on the /d
 and on individual walkthrough pages (filtered to folders relevant to each guide).
 Paths are constrained to DEMO_FILES_BROWSE_ROOT to avoid directory traversal.
 """
-
-
-
-import logging
-from pathlib import Path
-from typing import FrozenSet, List, Optional, Tuple
-
-from nicegui import ui
-
-from frontend.config import DEMO_FILES_BROWSE_ROOT
-from frontend.components.results import open_file
-
-
-
-
 
 class _WalkthroughPreset:
     """Per-walkthrough browsing: optional start folder under demo root, filters on top-level listing."""
@@ -257,15 +247,6 @@ Shared Markdown rendering for in-app guides (quick start, walkthroughs).
 
 Screenshots: lines `{{SCREENSHOT:filename.png}}` load from `/demo/<filename>` (files in frontend/demo/).
 """
-
-
-
-import logging
-import re
-from typing import Callable
-
-
-
 
 _FRONTEND_DEMO_DIR = Path(__file__).resolve().parent.parent / "demo"
 

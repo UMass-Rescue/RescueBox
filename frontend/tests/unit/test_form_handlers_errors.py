@@ -7,13 +7,11 @@ gracefully with appropriate user feedback and error reporting.
 """
 
 
-from unittest.mock import Mock, patch, MagicMock
-from pydantic import ValidationError
+from unittest.mock import Mock, patch
 
 from frontend.components.forms import (
     handle_form_submit,
-    collect_form_data,
-    validate_form
+    collect_form_data
 )
 import pytest
 
@@ -59,7 +57,6 @@ class TestFormHandlersErrorHandling:
         appropriate validation error handler without proceeding to
         data submission.
         """
-        from frontend.components.forms import form_handlers
 
         with patch('frontend.components.forms.form_generator.validate_form_data', return_value={'is_valid': False, 'errors': {"input_dir": "Invalid path"}}):
             with patch('frontend.components.forms.form_generator.handle_validation_error') as mock_handle_error:
@@ -142,7 +139,6 @@ class TestFormHandlersErrorHandling:
     @pytest.mark.asyncio
     async def test_handle_form_submit_unexpected_error(self, sample_task_schema, mock_form_widgets):
         """Test handling of unexpected error during form submission"""
-        from frontend.components.forms import form_handlers
 
         with patch('frontend.components.forms.form_generator.validate_form_data', side_effect=Exception("Unexpected error")):
             with patch('frontend.components.forms.form_generator.show_error_to_user') as mock_show_error:

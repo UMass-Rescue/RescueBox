@@ -22,7 +22,7 @@ class TestStepperUI:
         @ui.page('/test')
         async def test_page():
             container = ui.column().classes('w-full')
-            stepper = create_workflow_stepper(steps, current_step=0, container=container)
+            create_workflow_stepper(steps, current_step=0, container=container)
         
         await user.open('/test')
         
@@ -71,7 +71,7 @@ class TestStepperUI:
         @ui.page('/test')
         async def test_page():
             container = ui.column().classes('w-full')
-            stepper = create_workflow_stepper(chatbot_steps, current_step=0, container=container)
+            create_workflow_stepper(chatbot_steps, current_step=0, container=container)
         
         await user.open('/test')
         
@@ -93,7 +93,7 @@ class TestStepperUI:
         @ui.page('/test')
         async def test_page():
             container = ui.column().classes('w-full')
-            stepper = create_workflow_stepper(steps, current_step=0, container=container)
+            create_workflow_stepper(steps, current_step=0, container=container)
         
         await user.open('/test')
         

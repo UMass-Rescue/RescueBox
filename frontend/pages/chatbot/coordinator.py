@@ -10,14 +10,16 @@ from frontend.chatbot.message_handler import MessageHandler
 from frontend.database.chat_history_db import get_chat_history_db
 from frontend.pages.chatbot.state import ChatbotStateManager, ChatMessage
 from frontend.pages.chatbot.database_service import DatabaseService
-from frontend.pages.chatbot.handlers import (
-    JobSubmissionOrchestrator,
-    _compose_age_gender_pipeline_filter,
+from frontend.chatbot.multi_tool_handler import (
     apply_metadata_filter,
     batch_items_have_age_gender_metadata,
     chain_output_to_input,
     coerce_pipeline_response,
     extract_batch_file_items,
+)
+from frontend.pages.chatbot.handlers import (
+    JobSubmissionOrchestrator,
+    _compose_age_gender_pipeline_filter,
 )
 from frontend.pages.chatbot.ui import UIOperations, load_and_show_form, show_tool_picker, show_analysis_picker
 from frontend.utils import notify_info, notify_warning
@@ -249,8 +251,10 @@ class ResultProcessor:
         
         def _set_input(enabled: bool):
             if set_input_enabled_callback:
-                try: set_input_enabled_callback(enabled)
-                except Exception: pass
+                try:
+                    set_input_enabled_callback(enabled)
+                except Exception:
+                    pass
 
         try:
             if result_type == 'show_form':
@@ -261,7 +265,8 @@ class ResultProcessor:
                     await load_form_callback(endpoint, arguments)
                 else:
                     def _on_cancel():
-                        if self.state_manager: self.state_manager.set_input_enabled(True)
+                        if self.state_manager:
+                            self.state_manager.set_input_enabled(True)
                     await load_and_show_form(container, core, endpoint, arguments, self._create_form_submit_handler(container, core), on_form_cancel=_on_cancel)
                 update_status_callback("Ready", scroll_after=False)
             elif result_type == 'multi_tool_calls':
@@ -327,7 +332,8 @@ class PipelineHandler:
         self.logger = logging.getLogger(__name__)
 
     async def handle_remaining_calls(self, remaining_calls, response_body, container, core, load_form_func=None, accumulated_endpoint_chain=None, pipeline_total_steps=None, pipeline_root_job_id=None, completed_step_job_id=None):
-        if not remaining_calls: return
+        if not remaining_calls:
+            return
         try:
             response_body = coerce_pipeline_response(response_body)
             next_call = remaining_calls[0]
@@ -351,7 +357,8 @@ class PipelineHandler:
                         from frontend.database import get_job_db
                         jdb = get_job_db()
                         await jdb.update_job_pipeline_metadata_filter_criteria(completed_step_job_id, criteria)
-                    except Exception: pass
+                    except Exception:
+                        pass
             
             def _on_cancel():
                 if self.orchestrator.form_handler.state_manager:
@@ -364,18 +371,20 @@ class PipelineHandler:
                     notify_info(f"Proceeding to next operation: {next_endpoint}")
                 
                 await load_and_show_form(container, core, next_endpoint, next_arguments, self._create_next_form_handler(remaining_calls[1:] if len(remaining_calls) > 1 else None, container, core, filtered_paths, accumulated_endpoint_chain, pipeline_total_steps, pipeline_root_job_id), on_form_cancel=_on_cancel)
-                try: await UIOperations.safe_container_update(container)
-                except Exception: pass
+                try:
+                    await UIOperations.safe_container_update(container)
+                except Exception:
+                    pass
                 UIOperations.scroll_form_into_view_with_retries(client=getattr(container, 'client', None))
         except Exception as e:
             self.logger.error("Error handling remaining calls: %s", str(e))
 
     async def _show_filter_criteria_dialog(self, container) -> str:
-        from frontend.pages.chatbot.handlers import _compose_age_gender_pipeline_filter
         loop = asyncio.get_running_loop()
         future: asyncio.Future[str] = loop.create_future()
         def _finish(value: str):
-            if not future.done(): future.set_result(value.strip())
+            if not future.done():
+                future.set_result(value.strip())
         with container:
             with ui.dialog() as dialog, ui.card().classes('w-[400px]'):
                 ui.label('Filter files before next step').classes('text-lg font-semibold')
@@ -383,21 +392,29 @@ class PipelineHandler:
                 with ui.row().classes('w-full items-end gap-2 flex-wrap'):
                     age_op_select = ui.select(options={'lt':'Less than','lte':'At most','eq':'Equals','gt':'Greater than','gte':'At least'}, value='lt', label='Compare').classes('min-w-[9rem] flex-1')
                     age_number = ui.number(label='Years', value=None, min=0, max=120, format='%.0f').classes('min-w-[6rem] flex-1')
-                def _use_all(): _finish(''); dialog.close()
+                def _use_all():
+                    _finish('')
+                    dialog.close()
                 def _apply_filter():
                     raw = age_number.value
                     age_val = None
                     if raw is not None and raw != '':
-                        try: age_val = float(raw)
-                        except: notify_warning('Enter a valid age number, or leave age empty.'); return
+                        try:
+                            age_val = float(raw)
+                        except Exception:
+                            notify_warning('Enter a valid age number, or leave age empty.')
+                            return
                     crit = _compose_age_gender_pipeline_filter(str(gender_select.value or ''), str(age_op_select.value or 'lt'), age_val)
-                    _finish(crit.strip()); dialog.close()
+                    _finish(crit.strip())
+                    dialog.close()
                 with ui.row().classes('mt-4 gap-2'):
                     ui.button('Use all', on_click=_use_all)
                     ui.button('Apply filter', on_click=_apply_filter)
             dialog.open()
-        try: return await asyncio.wait_for(future, timeout=120.0)
-        except: return ''
+        try:
+            return await asyncio.wait_for(future, timeout=120.0)
+        except Exception:
+            return ''
 
     def _create_next_form_handler(self, remaining_calls, container, core, filtered_paths=None, accumulated_endpoint_chain=None, pipeline_total_steps=None, pipeline_root_job_id=None):
         async def handle_next_form(request_body, endpoint=None, task_schema=None, **kwargs):
@@ -410,10 +427,13 @@ class PipelineHandler:
                     request_body.setdefault("inputs", {})["file_filter"] = ff_value
                 else:
                     inputs = getattr(request_body, "inputs", None)
-                    if isinstance(inputs, dict): inputs["file_filter"] = ff_value
+                    if isinstance(inputs, dict):
+                        inputs["file_filter"] = ff_value
                     elif inputs is not None:
-                        try: setattr(inputs, "file_filter", ff_value)
-                        except: pass
+                        try:
+                            setattr(inputs, "file_filter", ff_value)
+                        except Exception:
+                            pass
             conversation_id = self.orchestrator.form_handler.state_manager.conversation_id
             chain = list(accumulated_endpoint_chain or []) + [effective_endpoint]
             await self.orchestrator.submit_job(request_body, effective_endpoint, task_schema, container, core, remaining_calls, conversation_id, endpoint_chain=chain, pipeline_total_steps=pipeline_total_steps, pipeline_root_job_id=pipeline_root_job_id)

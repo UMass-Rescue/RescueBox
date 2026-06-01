@@ -16,7 +16,8 @@ class DatabaseService:
         """
         Guarantee a persisted conversation exists and is bound to ``state_manager``.
 
-        Chat persistence and job history writes require ``conversation_id``; without it,
+        Chat persistence and job history writes require ``conversation_id``
+        without it,
         Menu-only flows (pick tool → Submit) never create a conversation row so History
         stays empty despite successful jobs.
         """
@@ -74,9 +75,11 @@ class DatabaseService:
         from frontend.utils import set_logging_context
         job_db = get_job_db()
         job_record = await job_db.create_job(request_body=request_body, endpoint=endpoint, task_schema=task_schema, **kwargs)
-        if not job_record: return None
+        if not job_record:
+            return None
         job_id = getattr(job_record, 'uid', None)
-        if job_id: set_logging_context(job_id=job_id)
+        if job_id:
+            set_logging_context(job_id=job_id)
         return {'job_id': job_id, 'status': 'RUNNING'} if job_id else None
 
     @staticmethod

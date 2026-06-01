@@ -1,14 +1,10 @@
 import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-import logging
-from nicegui import ui
 from pathlib import Path
-
+from nicegui import ui
 from frontend.design_tokens import Design
 
-
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 

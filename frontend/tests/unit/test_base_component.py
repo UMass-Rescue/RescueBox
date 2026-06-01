@@ -5,9 +5,7 @@ This module tests the base component infrastructure including BaseComponent,
 ComponentRegistry, and component utilities.
 """
 
-import pytest
 from unittest.mock import patch, MagicMock
-from nicegui import ui
 
 from frontend.components.base_component import BaseComponent, ComponentRegistry
 from frontend.components.component_utils import (
@@ -63,7 +61,7 @@ class TestBaseComponent:
         mock_card_context.__exit__ = MagicMock()
         mock_ui.card.return_value = mock_card_context
 
-        result = component.create_error_display("Test error")
+        component.create_error_display("Test error")
 
         mock_ui.card.assert_called_once()
         mock_ui.label.assert_any_call('Error')
@@ -86,7 +84,7 @@ class TestBaseComponent:
         mock_row_context.__exit__ = MagicMock()
         mock_ui.row.return_value = mock_row_context
 
-        result = component.create_loading_display("Custom loading...")
+        component.create_loading_display("Custom loading...")
 
         mock_ui.row.assert_called_once()
         mock_ui.spinner.assert_called_once_with(size='sm')
@@ -109,7 +107,7 @@ class TestBaseComponent:
         mock_card_context.__exit__ = MagicMock()
         mock_ui.card.return_value = mock_card_context
 
-        result = component.create_success_display("Operation successful")
+        component.create_success_display("Operation successful")
 
         mock_ui.card.assert_called_once()
         mock_ui.label.assert_any_call('Success')
@@ -207,21 +205,21 @@ class TestComponentUtils:
         config = {'key1': 'value1', 'key2': 42}
         required = ['key1', 'key2']
 
-        assert validate_component_config(config, required) == True
+        assert validate_component_config(config, required) is True
 
     def test_validate_component_config_missing_key(self):
         """Test validating config with missing required key."""
         config = {'key1': 'value1'}
         required = ['key1', 'key2']
 
-        assert validate_component_config(config, required) == False
+        assert validate_component_config(config, required) is False
 
     def test_validate_component_config_none_value(self):
         """Test validating config with None value for required key."""
         config = {'key1': None}
         required = ['key1']
 
-        assert validate_component_config(config, required) == False
+        assert validate_component_config(config, required) is False
 
     def test_get_component_theme_colors(self):
         """Test getting theme colors for components."""

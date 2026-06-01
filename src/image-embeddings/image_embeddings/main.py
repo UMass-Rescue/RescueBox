@@ -33,7 +33,7 @@ from rb.api.models import (
 from rb.api.database import ImageEmbedding, engine
 from rb.api.embedding_storage import ImageEmbeddingStorage
 from sqlmodel import Session, select
-from sqlalchemy import bindparam, text, update
+from sqlalchemy import bindparam, text
 
 
 APP_NAME = "image_embeddings"

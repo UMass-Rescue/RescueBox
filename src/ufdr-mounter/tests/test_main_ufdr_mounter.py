@@ -9,7 +9,6 @@ from ufdr_mounter.ufdr_server import (
     validate_mount_name_tmp,
 )
 from rb.lib.common_tests import RBAppTest
-from rb.api.models import AppMetadata, ResponseBody
 from pathlib import Path
 import os
 

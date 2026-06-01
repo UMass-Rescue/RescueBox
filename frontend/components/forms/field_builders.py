@@ -113,14 +113,21 @@ def create_directory_input(field_id, initial_value, form_widgets, autofill_outpu
             v_icon = ui.icon('').classes('text-zinc-400 shrink-0')
             def validate():
                 p = dir_input.value.strip()
-                if not p: v_icon.name = ''; return
+                if not p: 
+                    v_icon.name = '' 
+                    return
                 try:
                     DirectoryInput(path=Path(p))
-                    v_icon.name = 'check_circle'; v_icon.classes('text-green-500', remove='text-red-500 text-zinc-400')
-                    if autofill_output_key: maybe_autofill_output_dir_field(form_widgets, autofill_output_key, p)
-                except: v_icon.name = 'error'; v_icon.classes('text-red-500', remove='text-green-500 text-zinc-400')
+                    v_icon.name = 'check_circle'
+                    v_icon.classes('text-green-500', remove='text-red-500 text-zinc-400')
+                    if autofill_output_key:
+                        maybe_autofill_output_dir_field(form_widgets, autofill_output_key, p)
+                except Exception:
+                    v_icon.name = 'error' 
+                    v_icon.classes('text-red-500', remove='text-green-500 text-zinc-400')
             dir_input.on('change', validate)
-            if dir_input.value: validate()
+            if dir_input.value:
+                validate()
             ui.button('Browse', on_click=lambda: browse_directory_simple(dir_input, on_after_select=validate)).classes(Design.BTN_MEDIUM_GRAY)
     form_widgets[field_id] = dir_input
 
@@ -132,14 +139,21 @@ def create_file_input(field_id, initial_value, form_widgets, autofill_mount_key=
             v_icon = ui.icon('').classes('text-zinc-400 shrink-0')
             def validate():
                 p = file_input.value.strip()
-                if not p: v_icon.name = ''; return
+                if not p:
+                    v_icon.name = '' 
+                    return
                 try:
                     FileInput(path=Path(p))
-                    v_icon.name = 'check_circle'; v_icon.classes('text-green-500', remove='text-red-500 text-zinc-400')
-                    if autofill_mount_key: maybe_autofill_ufdr_mount_name_field(form_widgets, autofill_mount_key, p)
-                except: v_icon.name = 'error'; v_icon.classes('text-red-500', remove='text-green-500 text-zinc-400')
+                    v_icon.name = 'check_circle'
+                    v_icon.classes('text-green-500', remove='text-red-500 text-zinc-400')
+                    if autofill_mount_key:
+                        maybe_autofill_ufdr_mount_name_field(form_widgets, autofill_mount_key, p)
+                except Exception:
+                    v_icon.name = 'error'
+                    v_icon.classes('text-red-500', remove='text-green-500 text-zinc-400')
             file_input.on('change', validate)
-            if file_input.value: validate()
+            if file_input.value:
+                validate()
             ui.button('Browse', on_click=lambda: browse_file_simple(file_input, on_after_select=validate)).classes(Design.BTN_MEDIUM_GRAY)
     form_widgets[field_id] = file_input
 
@@ -147,12 +161,16 @@ def _is_ranged_float_descriptor(desc: Any) -> bool:
     return isinstance(desc, RangedFloatParameterDescriptor) or (isinstance(desc, dict) and (desc.get('parameter_type') or desc.get('parameterType')) == 'ranged_float')
 
 def _get_ranged_float_values(desc: Any) -> tuple:
-    if isinstance(desc, RangedFloatParameterDescriptor): return (float(desc.range.min), float(desc.range.max), float(desc.default))
-    r = desc.get('range', {}); return (float(r.get('min', 0)), float(r.get('max', 1)), float(desc.get('default', 0.5)))
+    if isinstance(desc, RangedFloatParameterDescriptor):
+        return (float(desc.range.min), float(desc.range.max), float(desc.default))
+    r = desc.get('range', {})
+    return (float(r.get('min', 0)), float(r.get('max', 1)), float(desc.get('default', 0.5)))
 
 def _is_ranged_int_descriptor(desc: Any) -> bool:
     return isinstance(desc, RangedIntParameterDescriptor) or (isinstance(desc, dict) and (desc.get('parameter_type') or desc.get('parameterType')) == 'ranged_int')
 
 def _get_ranged_int_values(desc: Any) -> tuple:
-    if isinstance(desc, RangedIntParameterDescriptor): return (int(desc.range.min), int(desc.range.max), int(desc.default))
-    r = desc.get('range', {}); return (int(r.get('min', 0)), int(r.get('max', 100)), int(desc.get('default', 0)))
+    if isinstance(desc, RangedIntParameterDescriptor):
+        return (int(desc.range.min), int(desc.range.max), int(desc.default))
+    r = desc.get('range', {})
+    return (int(r.get('min', 0)), int(r.get('max', 100)), int(desc.get('default', 0)))

@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 from frontend.chatbot.orchestrator import submit_job_orchestrator
 from frontend.chatbot.config import ChatbotConfig
 from frontend.database.file_filter_store import create_filter
@@ -38,7 +37,7 @@ async def test_orchestrator_posts_filter_meta_and_plugin_honors(tmp_path):
 
     @app.post("/image_summary/summarize-images")
     async def run_plugin(payload: dict = Body(...)):
-        inputs = payload.get("inputs", {})
+        payload.get("inputs", {})
         parameters = payload.get("parameters", {})
         received_meta.clear()
         received_meta.update(parameters.get("_meta") or {})

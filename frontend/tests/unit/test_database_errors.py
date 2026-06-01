@@ -18,7 +18,6 @@ and preventing application crashes during database operations.
 import pytest
 import sqlite3
 from unittest.mock import Mock, patch
-from pathlib import Path
 from frontend.database.chat_history_db import ChatHistoryDB
 
 # Test constants

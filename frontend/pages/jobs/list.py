@@ -1,12 +1,11 @@
 import logging
 from nicegui import ui
-from typing import List, Dict
 from frontend.chatbot.config import ToolRegistry
 from frontend.components.shared import create_navbar
 from frontend.components.jobs import render_job_row
 from frontend.database import get_job_db, JobStatus
 from frontend.api_client import api_client
-from frontend.constants import UI_TITLES, SUCCESS_MESSAGES, ERROR_MESSAGES
+from frontend.constants import UI_TITLES, SUCCESS_MESSAGES
 from frontend.utils import handle_api_error, show_success_to_user, show_error_to_user, ensure_user_id, apply_saved_theme
 from .utils import (
     partition_jobs_by_pipeline, pipeline_group_root_id, 
@@ -84,7 +83,8 @@ class JobsPage:
 
 @ui.page('/jobs')
 async def jobs_page_route():
-    if ensure_user_id() is None: return
+    if ensure_user_id() is None:
+        return
     apply_saved_theme()
     create_navbar()
     await JobsPage().render()

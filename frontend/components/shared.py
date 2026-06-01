@@ -1,4 +1,17 @@
 import logging
+from typing import List, Dict, Optional
+import sys
+from nicegui import ui
+from frontend.utils.ui import notify_success as _ns, notify_error as _ne
+from frontend.utils.ui import notify_info as _ni, notify_warning as _nw
+from frontend.config import APP_TITLE, APP_VERSION
+import frontend.constants as constants
+from frontend.design_tokens import Design
+from frontend.utils import (
+    get_user_id_for_jobs
+)
+
+# Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -9,11 +22,7 @@ This module provides breadcrumb navigation for better UX and quick navigation
 between related pages (e.g., Jobs > Job Details > Results > Submit).
 """
 
-import logging
-from nicegui import ui
-from typing import List, Dict, Optional
-import sys
-from frontend.utils.ui import notify_success as _ns, notify_error as _ne, notify_info as _ni, notify_warning as _nw
+
 def notify_success(message: str, **kwargs):
     logger.debug(f"Success notification shown: {message}")
     return _ns(message, **kwargs)
@@ -102,19 +111,6 @@ Key features:
 - Accessible navigation links
 - Consistent branding
 """
-
-import logging
-
-from frontend.config import APP_TITLE, APP_VERSION
-import frontend.constants as constants
-from frontend.design_tokens import Design
-from frontend.utils import (
-    get_user_id_for_jobs
-)
-
-# Configure logging for this module
-
-
 
 
 def create_navbar():
@@ -214,21 +210,13 @@ def create_navbar():
                 # Session display removed for demo safety (avoids accidental user actions)
 
                 # Clear Session button removed to avoid accidental data loss
-    
- 
-
-import logging
-from typing import Optional
-
-
-
-
 
 def render_loading_row(message: str = "Loading..."):
     """Render a small loading row with spinner and label."""
     from frontend.utils.ui import _safe_ui_call
     row = _safe_ui_call(ui.row)
-    if not row: return None
+    if not row:
+        return None
     with row.classes('items-center gap-2'):
         ui.spinner(size='sm')
         ui.label(message).classes('text-sm text-zinc-600')
@@ -266,23 +254,6 @@ Usage:
     notify_info("Processing your request...")
 """
 
-import logging
-from typing import Optional
-
-
-
-
-
-
-
-
-import logging
-from typing import Optional
-
-
-
-
-
 def render_page_header(title: str, actions_callable: Optional[callable] = None):
     """Render a standardized page header with title and optional action buttons area."""
     with ui.row().classes('items-center justify-between w-full mb-6'):
@@ -311,13 +282,6 @@ Usage:
     steps = ['Step 1', 'Step 2', 'Step 3']
     stepper = create_workflow_stepper(steps, current_step=0)
 """
-
-import logging
-from typing import List, Optional
-
-
-
-
 
 class WorkflowStepper:
     """
@@ -536,13 +500,6 @@ Workflow Steps:
 Usage:
     See chatbot.py for integration example
 """
-
-import logging
-from nicegui import ui
-
-
-
-
 
 # Define workflow steps for chatbot
 CHATBOT_WORKFLOW_STEPS = [

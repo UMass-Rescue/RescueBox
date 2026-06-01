@@ -22,7 +22,6 @@ processing tasks where clear progress indication is critical.
 
 import pytest
 from unittest.mock import patch, MagicMock
-from nicegui import ui
 
 # Test constants for step names
 STEP_1_NAME = 'Step 1'

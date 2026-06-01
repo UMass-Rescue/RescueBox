@@ -207,6 +207,7 @@ class TestPartitionJobsByPipeline:
         mock_db.update_job_status.assert_called()
         call_kw = mock_db.update_job_status.call_args
         actual_status = call_kw[1]["status"]
-        if hasattr(actual_status, "value"): actual_status = actual_status.value
+        if hasattr(actual_status, "value"):
+            actual_status = actual_status.value
         assert str(actual_status).lower() == JobStatus.COMPLETED.value.lower()
 

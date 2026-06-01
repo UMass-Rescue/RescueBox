@@ -17,13 +17,11 @@ These utilities are critical for ensuring consistent, safe, and
 user-friendly interactions with the RescueBox AI assistant.
 """
 
-import pytest
 from frontend.chatbot.utils import (
     normalize_arguments,
     is_rescuebox_request,
     get_rejection_message,
 )
-from frontend.chatbot.config import ChatbotConfig
 
 # Test constants for argument normalization
 INPUT_DIRECTORY_KEY = "input_directory"

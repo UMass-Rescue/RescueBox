@@ -5,8 +5,7 @@ from frontend.components.shared import create_navbar, create_breadcrumbs
 from frontend.database import get_job_db
 from frontend.components.chat import UIOperations
 from frontend.utils import apply_saved_theme, require_demo_user_session
-from .utils import extract_job_fields, get_plugin_name
-from .components import render_job_outputs_card, render_job_details_panel
+from .utils import extract_job_fields
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +15,11 @@ async def _maybe_render_pipeline_stepper(job_fields: dict) -> None:
     try:
         from frontend.utils import get_user_id_for_jobs
         user_id = get_user_id_for_jobs()
-        if not user_id: return
+        if not user_id:
+            return
         siblings = await get_job_db().list_jobs_for_pipeline_root(user_id, root)
-        if len(siblings) < 2: return
+        if len(siblings) < 2:
+            return
         from frontend.components.jobs import render_pipeline_run_banner
         steps = [{"job_id": s.uid, "endpoint": s.endpoint or ""} for s in siblings]
         render_pipeline_run_banner(root_job_id=siblings[0].uid if siblings else root, current_job_id=uid, steps=steps)
@@ -29,7 +30,8 @@ async def _maybe_render_pipeline_stepper(job_fields: dict) -> None:
 async def job_details_page_route(job_id: str):
     apply_saved_theme()
     create_navbar()
-    if not require_demo_user_session(): return
+    if not require_demo_user_session():
+        return
 
     try:
         job = await get_job_db().get_job_by_uid(job_id)
@@ -47,10 +49,11 @@ async def job_details_page_route(job_id: str):
         await _maybe_render_pipeline_stepper(jf)
         
         from frontend.components.shared import render_page_header
-        render_page_header(f'Job Results')
+        render_page_header('Job Results')
         
         with ui.tabs().classes('w-full mb-4') as tabs:
-            ui.tab('Outputs'); ui.tab('Details')
+            ui.tab('Outputs')
+            ui.tab('Details')
         
         open_details = (str(jf.get("status")) == "Failed" and not jf.get("response"))
         tab_panels = ui.tab_panels(tabs, value="Details" if open_details else "Outputs").classes("w-full")

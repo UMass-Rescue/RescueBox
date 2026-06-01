@@ -1,13 +1,7 @@
 import logging
+from nicegui import ui
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-import logging
-from nicegui import ui
-
-
-
-
 
 def render_file_browser_header(
     title: str = "Select Directory",

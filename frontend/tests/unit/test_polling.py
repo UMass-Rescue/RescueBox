@@ -18,10 +18,14 @@ async def test_polling_triggers_show_results(monkeypatch):
         async def get_job_by_uid(self, uid):
             self.calls += 1
             if self.calls < 2:
-                class J: status = 'Running'; response = None
+                class J:
+                    status = 'Running'
+                    response = None
                 return J()
             else:
-                class J: status = 'Completed'; response = {'root': {'output_type': 'text', 'value': 'done'}}
+                class J:
+                    status = 'Completed'
+                    response = {'root': {'output_type': 'text', 'value': 'done'}}
                 return J()
 
     monkeypatch.setattr('frontend.pages.chatbot.get_job_db', lambda: FakeJobDB())

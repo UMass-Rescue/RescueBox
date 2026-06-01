@@ -17,23 +17,15 @@ displayed to users with appropriate visual formatting and interaction
 capabilities for exploring file system contents.
 """
 
-import pytest
-from nicegui.testing import User
-from nicegui import ui
-from pathlib import Path
 import tempfile
-import os
-import sys
+from pathlib import Path
 
-# Add backend models to path
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root / 'src' / 'rb-api' / 'rb'))
+import pytest
+from nicegui import ui
+from nicegui.testing import User
+from rb.api.models import BatchDirectoryResponse, DirectoryResponse
 
-from frontend.components.results import (
-    render_directory,
-    render_batch_directory,
-)
-from rb.api.models import DirectoryResponse, BatchDirectoryResponse
+from frontend.components.results import render_batch_directory, render_directory
 
 # Test constants
 TEST_FILE_1_NAME = 'file1.txt'

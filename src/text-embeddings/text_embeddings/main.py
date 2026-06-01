@@ -20,10 +20,12 @@ from rb.api.models import (
     TaskSchema,
     TextInput,
     TextResponse,
-    BatchFileInput,
 )
 from llama_index.core.node_parser import SentenceSplitter
 from langchain_text_splitters import RecursiveCharacterTextSplitter  # type: ignore
+from rb.api.database import TextEmbeddingChunk, engine
+from sqlalchemy import bindparam, text as sql_text, update
+from sqlmodel import Session, delete, select
 
 #_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 _MODEL_NAME = "BAAI/bge-m3"
@@ -38,10 +40,6 @@ _CHUNK_OVERLAP = 60
 _MAX_READ_BYTES_PER_FILE = 50 * 1024 * 1024  # 50 MiB per file (truncate with warning)
 # GPU batching: one encode() over all chunks; raise on high-end GPUs (e.g. Spark / Blackwell).
 _EMBED_BATCH_SIZE = 256
-from rb.api.database import engine, TextEmbeddingChunk
-from sqlalchemy import bindparam, text as sql_text, update
-from sqlmodel import Session
-from sqlmodel import delete, select
 
 APP_NAME = "text_embeddings"
 logger = logging.getLogger(__name__)

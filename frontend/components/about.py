@@ -1,13 +1,4 @@
 from __future__ import annotations
-
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-"""Load and render License&Copyright documents (shared by About and /licenses redirect)."""
-
-
-
 import logging
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -21,6 +12,8 @@ from frontend.components.demo import (
     strip_editor_comment,
 )
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent

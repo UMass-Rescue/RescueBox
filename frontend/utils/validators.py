@@ -29,35 +29,51 @@ def _input_schema_is_text_or_textarea(input_schema: InputSchema) -> bool:
 def _coerce_input_type(schema: Any) -> Optional[Any]:
     from rb.api.models import InputType
     it = getattr(schema, "input_type", None)
-    if it is None: return None
-    if isinstance(it, InputType): return it
-    try: return InputType(it)
-    except: return None
+    if it is None:
+        return None
+    if isinstance(it, InputType):
+        return it
+    try:
+        return InputType(it)
+    except Exception:
+        return None
 
 def paired_output_directory_field_id(inputs_list: List[Any], index: int) -> Optional[str]:
     from rb.api.models import InputType
-    if not inputs_list or index < 0 or index >= len(inputs_list): return None
+    if not inputs_list or index < 0 or index >= len(inputs_list):
+        return None
     cur = inputs_list[index]
-    if _coerce_input_type(cur) != InputType.DIRECTORY: return None
+    if _coerce_input_type(cur) != InputType.DIRECTORY:
+        return None
     key = getattr(cur, "key", None)
-    if key not in ("input_dir", "input_dataset"): return None
-    if index + 1 >= len(inputs_list): return None
+    if key not in ("input_dir", "input_dataset"):
+        return None
+    if index + 1 >= len(inputs_list):
+        return None
     nxt = inputs_list[index + 1]
-    if _coerce_input_type(nxt) != InputType.DIRECTORY: return None
+    if _coerce_input_type(nxt) != InputType.DIRECTORY:
+        return None
     nxt_key = getattr(nxt, "key", None)
-    if nxt_key not in ("output_dir", "output_file"): return None
+    if nxt_key not in ("output_dir", "output_file"):
+        return None
     return nxt_key
 
 def paired_ufdr_mount_name_field_id(inputs_list: List[Any], index: int) -> Optional[str]:
     from rb.api.models import InputType
-    if not inputs_list or index < 0 or index >= len(inputs_list): return None
+    if not inputs_list or index < 0 or index >= len(inputs_list):
+        return None
     cur = inputs_list[index]
-    if getattr(cur, "key", None) != "ufdr_file": return None
-    if _coerce_input_type(cur) != InputType.FILE: return None
-    if index + 1 >= len(inputs_list): return None
+    if getattr(cur, "key", None) != "ufdr_file":
+        return None
+    if _coerce_input_type(cur) != InputType.FILE:
+        return None
+    if index + 1 >= len(inputs_list):
+        return None
     nxt = inputs_list[index + 1]
-    if getattr(nxt, "key", None) != "mount_name": return None
-    if _coerce_input_type(nxt) != InputType.TEXT: return None
+    if getattr(nxt, "key", None) != "mount_name":
+        return None
+    if _coerce_input_type(nxt) != InputType.TEXT:
+        return None
     return "mount_name"
 
 def validate_form_data(
@@ -121,21 +137,25 @@ def validate_form_data(
 
 def _create_input_model(input_schema, value):
     it = input_schema.input_type
-    if it == InputType.FILE: return FileInput(path=_resolve_input_path(value))
-    if it == InputType.DIRECTORY: return DirectoryInput(path=_resolve_input_path(value))
+    if it == InputType.FILE:
+        return FileInput(path=_resolve_input_path(value))
+    if it == InputType.DIRECTORY:
+        return DirectoryInput(path=_resolve_input_path(value))
     if it in (InputType.TEXT, InputType.TEXTAREA):
         text = value.get('text') if isinstance(value, dict) else str(value)
         return TextInput(text=text)
     raise ValueError(f"Unsupported type: {it}")
 
 def validate_response_body(data: Dict) -> Union[ResponseBody, Dict[str, Any]]:
-    try: return ResponseBody(**data)
+    try:
+        return ResponseBody(**data)
     except ValidationError as e:
         return {'is_valid': False, 'errors': {'response': str(e)}}
 
 def validate_request_body(data: Dict, task_schema: Optional[TaskSchema] = None, endpoint: str = "") -> Union[RequestBody, Dict[str, Any]]:
     """Validate a request body dictionary against the RequestBody model."""
-    try: return RequestBody(**data)
+    try:
+        return RequestBody(**data)
     except ValidationError as e:
         return {'is_valid': False, 'errors': {'request': str(e)}}
 
@@ -152,7 +172,8 @@ def _is_empty_input_value(input_schema: InputSchema, value: Any) -> bool:
 
 def _validate_parameter_value(value: Any, param_schema: Any) -> None:
     """Validate a single parameter value against its schema."""
-    if value is None: return
+    if value is None:
+        return
     from rb.api.models import RangedFloatParameterDescriptor, EnumParameterDescriptor
     desc = param_schema.value
     if isinstance(desc, RangedFloatParameterDescriptor):
@@ -166,7 +187,8 @@ def _validate_parameter_value(value: Any, param_schema: Any) -> None:
 def _format_validation_error(e: ValidationError) -> str:
     """Format a Pydantic ValidationError into a user-friendly string."""
     errors = e.errors()
-    if not errors: return str(e)
+    if not errors:
+        return str(e)
     messages = []
     for err in errors:
         loc = " -> ".join(str(item) for item in err['loc'])
