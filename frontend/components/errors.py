@@ -41,7 +41,7 @@ def render_error_boundary(
                             try:
                                 # action should be a tuple (label, on_click_callable, classes)
                                 label, callback, classes = action
-                                ui.button(label, on_click=callback).classes(classes)
+                                ui.button(label, color=None, on_click=callback).classes(classes)
                             except Exception as e:
                                 logger.exception(
                                     "Error rendering error message component: %s", e
@@ -97,7 +97,7 @@ def show_validation_dialog(
                 ui.label("Additional errors:").classes("font-semibold mb-2")
                 for additional_error in additional_errors:
                     ui.label(f"• {additional_error}").classes("mb-1")
-            ui.button("OK", on_click=error_dialog.close).classes(
+            ui.button("OK", color=None, on_click=error_dialog.close).classes(
                 f"mt-4 {Design.BTN_MEDIUM_GRAY}"
             )
     error_dialog.open()

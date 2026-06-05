@@ -42,10 +42,12 @@ async def demo_image_search_walkthrough_page():
 
     text = load_markdown_file(_MD_FILE, _fallback_markdown)
 
-    with ui.column().classes("container mx-auto p-8 max-w-4xl w-full min-w-0 pb-16"):
-        ui.label("Search Image — Assistant prompt walkthrough").classes(
-            "text-3xl font-bold mb-2"
-        )
+    with ui.column().classes("container mx-auto px-4 sm:px-8 py-8 w-full max-w-4xl pb-16"):
+        with ui.row().classes("items-center gap-2 mb-2"):
+            ui.icon("image", size="lg").classes("text-[#881c1c]")
+            ui.label("Search Image — Assistant prompt walkthrough").classes(
+                "text-4xl font-bold text-slate-800"
+            )
 
         render_guided_markdown_body(ui.column().classes("w-full min-w-0"), text)
 
@@ -54,8 +56,9 @@ async def demo_image_search_walkthrough_page():
         with ui.row().classes("gap-4 flex-wrap items-center mt-8"):
             ui.button(
                 "Back to Demo",
+                icon="arrow_back",
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
-            ).classes("rb-brand-primary text-white")
+            ).classes("bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200")
 
             # ui.link("Open Assistant", NAV_LINKS["chatbot"]).classes("text-[#881c1c] hover:underline")
             # ui.link(UI_TITLES["jobs"], NAV_LINKS["jobs"]).classes("text-[#881c1c] hover:underline")
