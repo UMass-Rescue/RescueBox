@@ -285,6 +285,38 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     # Generate Dynamic Schema for the prompt
     tools_definitions = generate_tool_definitions()
 
+    from frontend.utils import get_active_case
+    from nicegui import app
+
+    active_case = get_active_case()
+    context_prefix = ""
+    if active_case:
+        context_prefix += f"ACTIVE CASE CONTEXT:\n- Case Number: {active_case.caseNumber}\n- Evidence Path: {active_case.evidencePath}\n"
+        context_prefix += "- Use the evidence path as the default input directory/file path for all tools if not specified otherwise.\n"
+
+    pipeline_job_id = None
+    try:
+        pipeline_job_id = app.storage.user.get("pipeline_job_id")
+    except Exception:
+        pass
+
+    if pipeline_job_id:
+        try:
+            from frontend.database import get_job_db
+            job = get_job_db().get_job_by_uid_sync(pipeline_job_id)
+            if job and job.response:
+                from frontend.chatbot.multi_tool_handler import extract_output_path
+                from rb.api.models import ResponseBody
+                response_body = job.response
+                if not isinstance(response_body, ResponseBody):
+                    response_body = ResponseBody(**response_body)
+                output_path = extract_output_path(response_body)
+                if output_path:
+                    context_prefix += f"PIPELINED JOB CONTEXT:\n- Source Job ID: {pipeline_job_id}\n- Source Job Output Path: {output_path}\n"
+                    context_prefix += "- Use this output path as the input directory/file path for the next tool call if the user asks to analyze/pipeline/use the results of the previous job.\n"
+        except Exception as e:
+            logger.error("Error extracting pipeline job output path in prompt: %s", e)
+
     # ==========================================
     # FEW-SHOT PROMPTING (The Secret Sauce)
     # ==========================================
@@ -293,6 +325,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     system_msg = {
         "role": "system",
         "content": (
+            f"{context_prefix}\n"
             "You are a forensic analysis assistant for RescueBox.\n"
             "RULES:\n"
             "1. CHAINING: If the user requests multiple actions, generate a LIST of tools in execution order.\n"

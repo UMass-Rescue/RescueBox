@@ -26,7 +26,7 @@ async def create_input_form(
         form_card = ui.card().classes(
             "w-full max-w-full min-w-0 text-sm "
             "bg-white ring-1 ring-zinc-200 rounded-2xl rounded-tl-none shadow-sm "
-            "border-0 rb-form-wrapper"
+            "border-0 rb-form-wrapper !p-0"
         )
     with form_card:
         form_generator = FormGenerator()

@@ -175,17 +175,26 @@ async def create_parameter_field(
 def create_directory_input(
     field_id, initial_value, form_widgets, autofill_output_key=None
 ):
+    from frontend.utils import get_active_case
+    active_case = get_active_case()
+    default_path = active_case.evidencePath if active_case else ""
+
+    val = ""
+    if isinstance(initial_value, dict):
+        val = initial_value.get("path", "")
+    elif isinstance(initial_value, str):
+        val = initial_value
+
+    if not val:
+        val = default_path
+
     with ui.column().classes("w-full min-w-0 gap-1"):
         ui.label("Directory path").classes("text-sm font-medium text-zinc-700")
         with ui.row().classes("w-full min-w-0 items-center gap-2 flex-nowrap"):
             dir_input = (
                 ui.input(
                     placeholder="/path/to/directory",
-                    value=(
-                        initial_value.get("path", "")
-                        if isinstance(initial_value, dict)
-                        else ""
-                    ),
+                    value=val,
                 )
                 .classes("flex-1 min-w-0")
                 .props("outlined dense")
@@ -219,24 +228,30 @@ def create_directory_input(
             ui.button(
                 "Browse",
                 on_click=lambda: browse_directory_simple(
-                    dir_input, on_after_select=validate
+                    dir_input, initial_path=default_path or None, on_after_select=validate
                 ),
             ).classes(Design.BTN_MEDIUM_GRAY)
     form_widgets[field_id] = dir_input
 
 
 def create_file_input(field_id, initial_value, form_widgets, autofill_mount_key=None):
+    from frontend.utils import get_active_case
+    active_case = get_active_case()
+    default_path = active_case.evidencePath if active_case else ""
+
+    val = ""
+    if isinstance(initial_value, dict):
+        val = initial_value.get("path", "")
+    elif isinstance(initial_value, str):
+        val = initial_value
+
     with ui.column().classes("w-full min-w-0 gap-1"):
         ui.label("File path").classes("text-sm font-medium text-zinc-700")
         with ui.row().classes("w-full min-w-0 items-center gap-2 flex-nowrap"):
             file_input = (
                 ui.input(
                     placeholder="/path/to/file",
-                    value=(
-                        initial_value.get("path", "")
-                        if isinstance(initial_value, dict)
-                        else ""
-                    ),
+                    value=val,
                 )
                 .classes("flex-1 min-w-0")
                 .props("outlined dense")
@@ -270,7 +285,7 @@ def create_file_input(field_id, initial_value, form_widgets, autofill_mount_key=
             ui.button(
                 "Browse",
                 on_click=lambda: browse_file_simple(
-                    file_input, on_after_select=validate
+                    file_input, initial_path=default_path or None, on_after_select=validate
                 ),
             ).classes(Design.BTN_MEDIUM_GRAY)
     form_widgets[field_id] = file_input

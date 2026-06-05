@@ -42,7 +42,7 @@ def render_form_actions(
                     return
                 on_cancel()
 
-            ui.button("Cancel", on_click=_cancel_wrapper).classes(
+            ui.button("Cancel", color=None, on_click=_cancel_wrapper).classes(
                 Design.BTN_MEDIUM_GRAY
             )
 
@@ -59,7 +59,7 @@ def render_form_actions(
                 finally:
                     btn.props["loading"] = False
 
-            submit_btn = ui.button("▶ Submit Job", on_click=_submit_wrapper).classes(
+            submit_btn = ui.button("▶ Submit Job", color=None, on_click=_submit_wrapper).classes(
                 "rb-brand-primary text-white rounded-xl"
             )
             btn_ref[0] = submit_btn
