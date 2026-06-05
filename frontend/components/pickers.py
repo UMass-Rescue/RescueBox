@@ -28,6 +28,7 @@ def show_analysis_picker_dialog(
                 for num, option in options.items():
                     ui.button(
                         f'{num}. {option["name"]} - {option["desc"]}',
+                        color=None,
                         on_click=lambda *a, opt=option: on_selected(opt["name"]),
                     ).classes(
                         "text-left p-2 h-auto whitespace-normal justify-start text-sm "
