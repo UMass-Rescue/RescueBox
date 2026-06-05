@@ -108,6 +108,7 @@ NAV_LINKS = {
     "demo": "/demo",
     "about": "/about",
     "home": "/",
+    "case": "/case",
 }
 
 # Legacy: License & Copyright UI lives on ``/about``; ``/licenses`` redirects there.
