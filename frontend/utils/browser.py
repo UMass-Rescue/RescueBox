@@ -196,11 +196,12 @@ class DirectoryBrowser:
 
             # Footer
             with ui.row().classes(Design.PANEL_SHELL_FOOTER + " justify-end"):
-                ui.button("Cancel", on_click=self.dialog.close).classes(
+                ui.button("Cancel", color=None, on_click=self.dialog.close).classes(
                     Design.BTN_MEDIUM_GRAY
                 ).props("outline")
                 ui.button(
                     "Select This Folder",
+                    color=None,
                     on_click=lambda: (
                         self.on_select(self.state["current_path"]),
                         self.dialog.close(),
@@ -343,11 +344,12 @@ class FileBrowser:
                         "text-sm font-medium text-[#881c1c] truncate"
                     )
 
-                ui.button("Cancel", on_click=self.dialog.close).classes(
+                ui.button("Cancel", color=None, on_click=self.dialog.close).classes(
                     Design.BTN_MEDIUM_GRAY
                 ).props("outline")
                 self.confirm_btn = ui.button(
                     "Confirm Selection",
+                    color=None,
                     on_click=lambda: (
                         self.on_select(self.state["selected_file"]),
                         self.dialog.close(),
