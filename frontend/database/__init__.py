@@ -15,6 +15,7 @@ from frontend.config import DATA_DIR
 
 from .job_db import JobRecord, JobStatus, get_job_db, init_database as init_job_database
 from .chat_history_db import ConversationRecord, ChatMessageRecord, get_chat_history_db
+from .case_db import CaseRecord, CaseDB, get_case_db, init_case_database
 
 logger = logging.getLogger(__name__)
 
@@ -144,4 +145,8 @@ __all__ = [
     "ConversationRecord",
     "ChatMessageRecord",
     "get_chat_history_db",  # Chat History DB
+    "CaseRecord",
+    "CaseDB",
+    "get_case_db",
+    "init_case_database",  # Case DB
 ]

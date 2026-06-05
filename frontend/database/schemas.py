@@ -85,6 +85,16 @@ class JobDatabaseSchema(DatabaseSchema):
                 updated_at TEXT NOT NULL
             )
             """,
+            """
+            CREATE TABLE IF NOT EXISTS cases (
+                caseId TEXT PRIMARY KEY,
+                caseNumber TEXT NOT NULL UNIQUE,
+                investigators TEXT,
+                evidencePath TEXT NOT NULL,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+            )
+            """,
         ]
 
     def get_index_statements(self) -> List[str]:
@@ -98,6 +108,7 @@ class JobDatabaseSchema(DatabaseSchema):
             "CREATE INDEX IF NOT EXISTS filterID ON jobs(filterId)",
             "CREATE INDEX IF NOT EXISTS idx_file_filters_input_dir ON file_filters(input_dir)",
             "CREATE INDEX IF NOT EXISTS idx_file_filters_owner_id ON file_filters(owner_id)",
+            "CREATE INDEX IF NOT EXISTS idx_cases_case_number ON cases(caseNumber)",
         ]
 
 
