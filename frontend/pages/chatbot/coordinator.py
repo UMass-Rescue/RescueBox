@@ -604,8 +604,8 @@ class PipelineHandler:
                     dialog.close()
 
                 with ui.row().classes("mt-4 gap-2"):
-                    ui.button("Use all", on_click=_use_all)
-                    ui.button("Apply filter", on_click=_apply_filter)
+                    ui.button("Use all", on_click=_use_all, color=None).classes(Design.BTN_MEDIUM_GRAY)
+                    ui.button("Apply filter", on_click=_apply_filter, color=None).classes(Design.BTN_PRIMARY_COMPACT)
             dialog.open()
         try:
             return await asyncio.wait_for(future, timeout=120.0)

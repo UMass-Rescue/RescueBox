@@ -10,17 +10,17 @@ def create_chat_header(on_show_history: Optional[Callable] = None):
         "rb-chat-toolbar-floating items-center justify-end w-full px-4 py-3 sticky top-0 z-10 gap-3"
     ):
         models_btn = (
-            ui.button("Menu")
+            ui.button("Menu", icon="menu", color=None)
             .classes(Design.BTN_PRIMARY_COMPACT)
             .props("unelevated no-caps")
         )
         analyze_btn = (
-            ui.button("Chat")
+            ui.button("Chat", icon="chat", color=None)
             .classes(Design.BTN_PRIMARY_COMPACT)
             .props("unelevated no-caps")
         )
         history_btn = (
-            ui.button("History", on_click=on_show_history)
+            ui.button("History", icon="history", color=None, on_click=on_show_history)
             .classes(Design.BTN_PRIMARY_COMPACT)
             .props("unelevated no-caps")
         )
@@ -30,7 +30,7 @@ def create_chat_header(on_show_history: Optional[Callable] = None):
 def create_chat_window() -> Any:
     # Use flex-1 to ensure it expands to available space in the card
     container = ui.column().classes(
-        "rb-chat-messages-scroll w-full flex-1 overflow-y-auto p-6 space-y-4 bg-white"
+        "rb-chat-messages-scroll w-full flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 min-w-0"
     )
     render_welcome_message(container)
     return container
@@ -38,7 +38,7 @@ def create_chat_window() -> Any:
 
 def create_input_area(status_text_ref: Optional[object], on_send: Callable):
     input_area = ui.column().classes(
-        "rb-chat-input-area w-full flex-none bg-white border-t p-4"
+        "rb-chat-input-area w-full flex-none bg-white border-t border-slate-200 p-4"
     )
     set_latest_input_area(input_area)
     with input_area:
@@ -56,7 +56,7 @@ def create_input_area(status_text_ref: Optional[object], on_send: Callable):
                 if status_text_ref:
                     status_label.bind_text_from(status_text_ref, "status_text")
                     # Add a spinner that only shows while processing
-                # Use explicit maroon hex for spinner to avoid indigo defaults
+                # Use explicit UMass Maroon hex for spinner to avoid indigo defaults
                 spinner = ui.spinner(color="#881c1c", size="sm").classes("ml-1")
                 status_text_ref.attach_processing_strip(spinner)
 

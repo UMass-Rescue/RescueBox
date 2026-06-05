@@ -131,9 +131,9 @@ def render_message(container: element, message: ChatMessage):
     """Render a message in the chat container."""
     with container:
         if message.role == "user":
-            chat_message(message.content, name="You", sent=True)
+            chat_message(message.content, name="You", sent=True, bg_color="blue-grey-1", text_color="dark")
         else:
-            chat_message(message.content, name="Assistant")
+            chat_message(message.content, name="RescueBox Assistant", bg_color="primary", text_color="white")
 
 
 def _history_record_to_chat_message(msg: Any) -> ChatMessage:
@@ -190,15 +190,15 @@ def render_merged_job_tool_results(
     """
     with container:
         with card().classes(
-            "w-full max-w-3xl border border-zinc-200 rounded-xl p-4 bg-white "
-            "shadow-sm space-y-2"
+            "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
+            "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
         ):
-            label("Assistant").classes("text-xs font-semibold text-zinc-500 uppercase")
+            label("Assistant").classes("text-sm font-semibold text-slate-500 uppercase tracking-wider")
             label((getattr(started_msg, "content", "") or "").strip()).classes(
-                "text-sm text-zinc-900 whitespace-pre-wrap break-words"
+                "text-base text-slate-800 whitespace-pre-wrap break-words font-medium"
             )
             label((getattr(completed_msg, "content", "") or "").strip()).classes(
-                "text-sm text-green-800 font-medium whitespace-pre-wrap break-words"
+                "text-base text-emerald-700 font-semibold whitespace-pre-wrap break-words"
             )
             ep = getattr(started_msg, "tool_call_endpoint", None)
             if ep:
@@ -206,7 +206,7 @@ def render_merged_job_tool_results(
                     dn = ToolRegistry.display_name_for_endpoint(ep)
                 except Exception:
                     dn = ep
-                label(f"Plugin: {dn}").classes("text-xs text-zinc-500")
+                label(f"Plugin: {dn}").classes("text-sm text-slate-500")
             args = getattr(started_msg, "tool_call_arguments", None)
             if isinstance(args, dict) and (
                 args.get("inputs") is not None or args.get("parameters") is not None
@@ -225,7 +225,7 @@ def render_merged_job_tool_results(
                     navigate.to(f"/jobs/{jid}")
 
                 button(
-                    "Open job details", icon="open_in_new", on_click=_open_job
+                    "Open job details", icon="open_in_new", color=None, on_click=_open_job
                 ).classes(f"mt-1 {Design.BTN_MEDIUM_GRAY}")
 
 
@@ -243,14 +243,14 @@ def render_persisted_history_message(container: element, msg: Any) -> None:
     if mt == "tool_result":
         with container:
             with card().classes(
-                "w-full max-w-3xl border border-zinc-200 rounded-xl p-4 bg-white "
-                "shadow-sm space-y-2"
+                "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
+                "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
             ):
                 label("Assistant").classes(
-                    "text-xs font-semibold text-zinc-500 uppercase"
+                    "text-sm font-semibold text-slate-500 uppercase tracking-wider"
                 )
                 label(content).classes(
-                    "text-sm text-zinc-900 whitespace-pre-wrap break-words"
+                    "text-base text-slate-800 whitespace-pre-wrap break-words font-medium"
                 )
                 ep = getattr(msg, "tool_call_endpoint", None)
                 if ep:
@@ -258,7 +258,7 @@ def render_persisted_history_message(container: element, msg: Any) -> None:
                         dn = ToolRegistry.display_name_for_endpoint(ep)
                     except Exception:
                         dn = ep
-                    label(f"Plugin: {dn}").classes("text-xs text-zinc-500")
+                    label(f"Plugin: {dn}").classes("text-sm text-slate-500")
                 args = getattr(msg, "tool_call_arguments", None)
                 if isinstance(args, dict) and (
                     args.get("inputs") is not None or args.get("parameters") is not None
@@ -277,24 +277,24 @@ def render_persisted_history_message(container: element, msg: Any) -> None:
                         navigate.to(f"/jobs/{jid}")
 
                     button(
-                        "Open job details", icon="open_in_new", on_click=_open_job
+                        "Open job details", icon="open_in_new", color=None, on_click=_open_job
                     ).classes(f"mt-1 {Design.BTN_MEDIUM_GRAY}")
         return
 
     if mt == "tool_call":
         with container:
             with card().classes(
-                "w-full max-w-3xl border border-zinc-200 rounded-xl p-4 "
-                "bg-amber-50/80 space-y-2"
+                "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 "
+                "bg-amber-50/80 space-y-2 border-l-4 border-l-[#881c1c]"
             ):
-                label("Tool call").classes("text-xs font-semibold text-[#881c1c]")
+                label("Tool call").classes("text-sm font-semibold text-[#881c1c] uppercase tracking-wider")
                 tcalls = getattr(msg, "tool_calls", None) or []
                 if tcalls:
                     code(json.dumps(tcalls, indent=2, default=str)).classes(
                         "text-xs w-full whitespace-pre-wrap"
                     )
                 elif content:
-                    label(content).classes("text-sm text-zinc-800")
+                    label(content).classes("text-base text-slate-800")
                 message_id = getattr(msg, "message_id", None)
                 if message_id:
                     from frontend.components.chat import rerun_tool_call
@@ -302,7 +302,7 @@ def render_persisted_history_message(container: element, msg: Any) -> None:
                     async def _do_rerun(mid: str = message_id) -> None:
                         await rerun_tool_call(mid)
 
-                    button("Re-run Job", icon="replay", on_click=_do_rerun).classes(
+                    button("Re-run Job", icon="replay", color=None, on_click=_do_rerun).classes(
                         f"mt-1 {Design.BTN_MEDIUM_GRAY}"
                     )
         return
@@ -312,15 +312,15 @@ def render_persisted_history_message(container: element, msg: Any) -> None:
             with card().classes(
                 "w-full max-w-3xl border border-red-200 bg-red-50 p-4 space-y-1"
             ):
-                label("Error").classes("text-xs font-semibold text-red-800")
-                label(content).classes("text-sm text-red-900 whitespace-pre-wrap")
+                label("Error").classes("text-sm font-semibold text-red-800")
+                label(content).classes("text-base text-red-900 whitespace-pre-wrap")
         return
 
     with container:
         if role == "user":
-            chat_message(content, name="You", sent=True)
+            chat_message(content, name="You", sent=True, bg_color="blue-grey-1", text_color="dark")
         else:
-            chat_message(content, name="Assistant")
+            chat_message(content, name="RescueBox Assistant", bg_color="primary", text_color="white")
 
 
 def show_error_message(container: element, message: str):
@@ -349,7 +349,7 @@ async def show_tool_selection(container: element, endpoint: str):
         render_tool_selection_message(container, endpoint)
     except Exception:
         with container:
-            label(f"Running {endpoint}...").classes("text-sm text-zinc-500 italic")
+            label(f"Running {endpoint}...").classes("text-sm text-slate-500 italic")
 
 
 async def load_and_show_form(
@@ -364,6 +364,45 @@ async def load_and_show_form(
             )
             return
 
+        # Inject pipelined job output if present
+        pipeline_job_id = None
+        try:
+            pipeline_job_id = app.storage.user.get("pipeline_job_id")
+        except Exception:
+            pass
+
+        if pipeline_job_id:
+            try:
+                from frontend.database import get_job_db
+                job = get_job_db().get_job_by_uid_sync(pipeline_job_id)
+                if job and job.response:
+                    from frontend.chatbot.multi_tool_handler import extract_output_path
+                    from rb.api.models import ResponseBody
+                    response_body = job.response
+                    if not isinstance(response_body, ResponseBody):
+                        response_body = ResponseBody(**response_body)
+                    output_path = extract_output_path(response_body)
+                    if output_path:
+                        from rb.api.models import InputType
+                        input_dir_key = None
+                        for input_schema in task_schema.inputs:
+                            if input_schema.input_type == InputType.DIRECTORY:
+                                key_lower = input_schema.key.lower()
+                                if "input" in key_lower and "dir" in key_lower:
+                                    input_dir_key = input_schema.key
+                                    break
+                        if not input_dir_key:
+                            for input_schema in task_schema.inputs:
+                                if input_schema.input_type == InputType.DIRECTORY:
+                                    input_dir_key = input_schema.key
+                                    break
+                        if input_dir_key:
+                            arguments = arguments.copy() if arguments else {}
+                            arguments[input_dir_key] = output_path
+                            logger.info("Pipelining: injected output path '%s' into '%s'", output_path, input_dir_key)
+            except Exception as e:
+                logger.error("Error auto-injecting pipeline path: %s", e)
+
         initial_values = core.convert_arguments_to_initial_values(
             arguments, task_schema, endpoint
         )
@@ -375,7 +414,7 @@ async def load_and_show_form(
                 form_data, endpoint=endpoint, task_schema=task_schema, **kwargs
             )
 
-        await core.create_input_form(
+        return await core.create_input_form(
             task_schema,
             endpoint,
             initial_values=initial_values,
@@ -456,6 +495,7 @@ class ChatUIBuilder:
         self.models_btn = None
         self.analyze_btn = None
         self.history_btn = None
+        self.active_form = None
 
     def build_ui(self):
         from frontend.components.chat import (
@@ -464,28 +504,88 @@ class ChatUIBuilder:
             create_input_area,
         )
 
-        with column().classes(
-            "rb-chat-layout-core min-h-screen w-full flex flex-col -mt-16 bg-zinc-50 relative"
-        ):
-            self.models_btn, self.analyze_btn, self.history_btn = create_chat_header(
-                on_show_history=self._show_history_dialog
-            )
+        pipeline_job_id = None
+        try:
+            pipeline_job_id = app.storage.user.get("pipeline_job_id")
+        except Exception:
+            pass
 
+        with column().classes(
+            "rb-chat-layout-core min-h-screen w-full flex flex-col bg-slate-50 relative"
+        ):
+            # We integrate the buttons directly into the card header below, so we don't need the floating header row here anymore.
             with column().classes(
-                "container mx-auto w-full px-4 flex-1 flex flex-col min-h-0 pb-4"
+                "container mx-auto w-full max-w-6xl px-4 sm:px-8 py-8 flex-1 flex flex-col min-h-0 pb-16"
             ):
+                # Page Header (Matches Jobs, Logs, Models pages)
+                from frontend.constants import UI_TITLES
+                with row().classes("items-center gap-2 mb-6"):
+                    icon("forum", size="lg").classes("text-[#881c1c]")
+                    label(UI_TITLES.get("chatbot", "RescueBox Assistant")).classes(
+                        "text-4xl font-bold text-slate-800"
+                    )
+
+                if pipeline_job_id:
+                    from frontend.database import get_job_db
+                    job = get_job_db().get_job_by_uid_sync(pipeline_job_id)
+                    if job:
+                        endpoint = job.endpoint or "Unknown"
+                        pname = job.plugin_name or endpoint
+                        from frontend.chatbot.multi_tool_handler import extract_output_path
+                        from rb.api.models import ResponseBody
+                        response_body = job.response
+                        if response_body:
+                            if not isinstance(response_body, ResponseBody):
+                                response_body = ResponseBody(**response_body)
+                            output_path = extract_output_path(response_body)
+                        else:
+                            output_path = "N/A"
+
+                        with row().classes("w-full bg-rose-50 border border-rose-200 p-3 rounded-xl items-center justify-between mb-4 shadow-sm"):
+                            with row().classes("items-center gap-2"):
+                                icon("link").classes("text-[#881c1c]")
+                                with column().classes("gap-0.5"):
+                                    label(f"Pipelining from Job {pipeline_job_id} ({pname})").classes("font-bold text-rose-900 text-sm")
+                                    label(f"Output Path: {output_path}").classes("font-mono text-xs text-rose-700")
+                            
+                            def _clear_pipeline():
+                                app.storage.user.pop("pipeline_job_id", None)
+                                ui.notify("Pipeline cleared.", type="info")
+                                ui.timer(0.1, lambda: ui.navigate.reload(), once=True)
+
+                            button("Clear Pipeline", on_click=_clear_pipeline).classes("bg-red-50 hover:bg-red-100 text-[#881c1c] px-3 py-1 rounded text-xs transition-colors")
+
                 with card().classes(Design.PANEL_SHELL_CHAT_CARD):
                     with row().classes(Design.PANEL_SHELL_HEADER):
-                        label("RescueBox Assistant").classes(
-                            Design.PANEL_SHELL_HEADER_TITLE
-                        )
-                        self.mode_indicator = badge("Chat mode", color=None).classes(
-                            "text-xs font-medium rb-chat-mode-badge"
-                        )
+                        with row().classes("items-center gap-3"):
+                            icon("settings_suggest", size="sm").classes("text-[#881c1c]")
+                            label("Active Mode:").classes(
+                                "text-base font-bold text-slate-700"
+                            )
+                            self.mode_indicator = badge("Chat mode", color=None).classes(
+                                "text-sm font-semibold rb-chat-mode-badge px-3 py-1 rounded-full"
+                            )
+
+                        with row().classes("items-center gap-2"):
+                            self.analyze_btn = (
+                                button("Chat", icon="chat", color=None)
+                                .classes("rb-chatbot-tab-btn px-4 py-2 rounded-lg font-semibold transition-all text-base")
+                                .props("unelevated no-caps")
+                            )
+                            self.models_btn = (
+                                button("Menu", icon="menu", color=None)
+                                .classes("rb-chatbot-tab-btn px-4 py-2 rounded-lg font-semibold transition-all text-base")
+                                .props("unelevated no-caps")
+                            )
+                            self.history_btn = (
+                                button("History", icon="history", color=None, on_click=self._show_history_dialog)
+                                .classes("rb-chatbot-tab-btn px-4 py-2 rounded-lg font-semibold transition-all text-base")
+                                .props("unelevated no-caps")
+                            )
 
                     chat_container = create_chat_window()
-                    input_area = create_input_area(self.status_text_ref, self.on_send)
-                    self.input_field = input_area.input_field
+                    self.input_area = create_input_area(self.status_text_ref, self.on_send)
+                    self.input_field = self.input_area.input_field
 
                 below_input_area = column().classes(
                     "rb-chat-below-input-area w-full max-w-none space-y-4 mt-2 mb-4"
@@ -498,14 +598,24 @@ class ChatUIBuilder:
             chat_container,
             self.input_field,
             self.status_text_ref,
-            input_area,
+            self.input_area,
             below_input_area,
         )
 
     def _setup_mode_handlers(self, chat_container):
+        # Initial active state: Chat mode
+        self.analyze_btn.classes("rb-tab-active")
+
         async def handle_models_click():
             self.mode_indicator.set_text("Menu mode")
+            self.models_btn.classes("rb-tab-active")
+            self.analyze_btn.classes(remove="rb-tab-active")
             chat_container.clear()
+            
+            # Hide the chat input area completely in Menu Mode
+            if hasattr(self, "input_area") and self.input_area:
+                self.input_area.classes("hidden")
+                
             await asyncio.sleep(0.01)  # Give NiceGUI a moment
             from .handlers import ToolPicker
 
@@ -516,7 +626,16 @@ class ChatUIBuilder:
 
         async def handle_analyze_click():
             self.mode_indicator.set_text("Chat mode")
+            self.analyze_btn.classes("rb-tab-active")
+            self.models_btn.classes(remove="rb-tab-active")
             chat_container.clear()
+            
+            # Show and enable the chat input area in Chat Mode
+            if hasattr(self, "input_area") and self.input_area:
+                self.input_area.classes(remove="hidden")
+                if self.state_manager:
+                    self.state_manager.set_input_enabled(True)
+            
             from frontend.components.chat import render_welcome_message
 
             render_welcome_message(chat_container)
@@ -525,9 +644,20 @@ class ChatUIBuilder:
         self.analyze_btn.on_click(handle_analyze_click)
 
     async def _on_tool_selected(self, endpoint, arguments):
+        # Delete previous unsubmitted form if it exists
+        if hasattr(self, "active_form") and self.active_form:
+            try:
+                self.active_form.delete()
+            except Exception:
+                pass
+            self.active_form = None
+
         async def handle_form_submit(
             request_body, endpoint=None, task_schema=None, **kwargs
         ):
+            # Form is being submitted, so it's no longer an active unsubmitted form
+            if hasattr(self, "active_form"):
+                self.active_form = None
             return await self.form_submit_handler.submit_form(
                 request_body,
                 endpoint,
@@ -540,12 +670,17 @@ class ChatUIBuilder:
         def _on_cancel():
             if self.state_manager:
                 self.state_manager.set_input_enabled(True)
+            if hasattr(self, "active_form") and self.active_form:
+                form_to_delete = self.active_form
+                self.active_form = None
+                # Delete the form card in the next event loop tick to let container.clear() finish safely
+                ui.timer(0.01, lambda: form_to_delete.delete(), once=True)
 
         # Stage 1: Grey out input area while form is being filled
         if self.state_manager:
             self.state_manager.set_input_enabled(False, hide_completely=False)
 
-        await load_and_show_form(
+        self.active_form = await load_and_show_form(
             self.chat_container,
             self.core,
             endpoint,
@@ -687,7 +822,7 @@ class ChatbotPage:
         with self.chat_container:
             separator()
             label("Conversation history").classes(
-                "text-xs font-medium text-zinc-500 uppercase tracking-wide"
+                "text-xs font-semibold text-slate-500 uppercase tracking-wider"
             )
 
         i = 0
@@ -850,20 +985,20 @@ async def chatbot_page(
     ui.add_head_html(
         """
         <style>
-            .q-header { min-height: 16px !important
+            .q-header { min-height: 54px !important
             }
-            .q-toolbar { min-height: 16px !important
-            padding: 0 8px !important
+            .q-toolbar { min-height: 54px !important
+            padding: 0 16px !important
             }
-            .q-toolbar__title { font-size: 0.85rem !important
+            .q-toolbar__title { font-size: 1.2rem !important
             min-height: unset !important
-            line-height: 32px !important
+            line-height: 54px !important
             }
-            .q-btn { font-size: 0.7rem !important
-            padding: 2px 6px !important
+            .q-btn { font-size: 0.95rem !important
+            padding: 6px 12px !important
             min-height: unset !important
             }
-            body { font-size: 0.8rem !important
+            body { font-size: 1.05rem !important
             }
         </style>
     """
