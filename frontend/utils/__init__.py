@@ -52,6 +52,10 @@ from .storage import (
     set_draft_message,
     set_conversation_to_load,
     get_conversation_to_load,
+    get_active_case_id,
+    set_active_case_id,
+    clear_active_case_id,
+    get_active_case,
 )
 from .ui import (
     notify_success,
@@ -132,6 +136,10 @@ __all__ = [
     "set_draft_message",
     "set_conversation_to_load",
     "get_conversation_to_load",
+    "get_active_case_id",
+    "set_active_case_id",
+    "clear_active_case_id",
+    "get_active_case",
     "notify_success",
     "notify_error",
     "notify_info",

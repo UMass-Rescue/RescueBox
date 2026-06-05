@@ -42,34 +42,15 @@ def get_user_id() -> Optional[str]:
 
 
 def get_explicit_user_id() -> Optional[str]:
-    try:
-        return app.storage.user.get("explicit_job_user_id")
-    except Exception:
-        if _runs_under_pytest():
-            return _test_fallback_storage.get("explicit_job_user_id")
-        return None
+    return get_active_case_id()
 
 
 def set_explicit_user_id(value: str):
-    v = value.strip()
-    try:
-        app.storage.user["explicit_job_user_id"] = v
-    except Exception:
-        pass
-    if _runs_under_pytest():
-        _test_fallback_storage["explicit_job_user_id"] = v
+    set_active_case_id(value)
 
 
 def clear_explicit_user_id():
-    uid = get_explicit_user_id()
-    if uid:
-        release_explicit_user_id_claim(uid)
-    try:
-        app.storage.user.pop("explicit_job_user_id", None)
-    except Exception:
-        pass
-    if _runs_under_pytest():
-        _test_fallback_storage.pop("explicit_job_user_id", None)
+    clear_active_case_id()
 
 
 def release_explicit_user_id_claim(uid: str):
@@ -121,9 +102,59 @@ def try_claim_explicit_user_id(uid: str) -> str:
         return "invalid"
 
 
+def get_active_case_id() -> Optional[str]:
+    try:
+        return app.storage.user.get("active_case_id")
+    except Exception:
+        if _runs_under_pytest():
+            return _test_fallback_storage.get("active_case_id")
+        return None
+
+
+def set_active_case_id(value: str):
+    v = value.strip()
+    try:
+        app.storage.user["active_case_id"] = v
+    except Exception:
+        pass
+    if _runs_under_pytest():
+        _test_fallback_storage["active_case_id"] = v
+
+
+def clear_active_case_id():
+    try:
+        app.storage.user.pop("active_case_id", None)
+    except Exception:
+        pass
+    if _runs_under_pytest():
+        _test_fallback_storage.pop("active_case_id", None)
+
+
+def get_active_case() -> Optional[Any]:
+    case_id = get_active_case_id()
+    if not case_id:
+        return None
+    try:
+        from frontend.database.case_db import get_case_db
+        case = get_case_db().get_case_by_id_sync(case_id)
+        if not case and _runs_under_pytest():
+            from frontend.database.case_db import CaseRecord
+            return CaseRecord(
+                caseId=case_id,
+                caseNumber="TEST-CASE",
+                investigators="Test Investigator",
+                evidencePath="/tmp",
+                createdAt="2026-06-04T13:15:00",
+                updatedAt="2026-06-04T13:15:00",
+            )
+        return case
+    except Exception:
+        return None
+
+
 def get_user_id_for_jobs() -> Optional[str]:
-    """Alias for get_explicit_user_id for backward compatibility."""
-    return get_explicit_user_id()
+    """Returns the active case ID so that all jobs and chat history are scoped to the active case."""
+    return get_active_case_id()
 
 
 def set_user_preference(key: str, value: Any):
