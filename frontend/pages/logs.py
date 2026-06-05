@@ -34,12 +34,14 @@ class LogsPage:
         logger.info("Rendering logs page")
 
         with ui.column().classes(
-            "w-full max-w-full min-w-0 p-4 gap-4 flex flex-col flex-1"
+            "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16 gap-4 flex flex-col flex-1"
         ):
             # Page header
-            ui.label(UI_TITLES.get("logs", "Application Logs")).classes(
-                "text-2xl font-bold mb-4"
-            )
+            with ui.row().classes("items-center gap-2 mb-4"):
+                ui.icon("terminal", size="lg").classes("text-[#881c1c]")
+                ui.label(UI_TITLES.get("logs", "Application Logs")).classes(
+                    "text-4xl font-bold text-slate-800"
+                )
 
             # Use extracted log viewer component (full width, fill available space)
             try:
@@ -61,9 +63,19 @@ class LogsPage:
     async def _load_logs(self):
         """Load and display log file contents. Reads the log file, limits to max_lines, and displays in the UI."""
         self.log_content = read_log_file(LOG_FILE, self.max_lines)
-        formatted_content = format_log_content(self.log_content)
-
-        self.log_display.content = formatted_content
+        
+        # Cache raw content in log_display and apply search filter if available
+        if hasattr(self, "log_display") and self.log_display is not None:
+            self.log_display.raw_content = self.log_content
+            if hasattr(self.log_display, "apply_filter"):
+                self.log_display.apply_filter()
+            else:
+                formatted_content = format_log_content(self.log_content)
+                self.log_display.content = formatted_content
+        else:
+            formatted_content = format_log_content(self.log_content)
+            if hasattr(self, "log_display") and self.log_display is not None:
+                self.log_display.content = formatted_content
 
         # Auto-scroll to bottom
         await ui.run_javascript(

@@ -32,8 +32,8 @@ async def create_audit_trail_button(job_id: str):
             logger.error("Error exporting audit trail: %s", e)
             notify_error(f"Error exporting audit trail: {str(e)}")
 
-    return ui.button("📋 Export Audit Trail", on_click=export_audit).classes(
-        "rb-brand-primary text-white rounded-xl"
+    return ui.button("Export Audit Trail", icon="assignment_turned_in", color=None, on_click=export_audit).classes(
+        "bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200"
     )
 
 
@@ -43,10 +43,13 @@ def render_job_action_buttons(job_fields: Dict[str, Any]):
         if model_uid:
             ui.button(
                 "Model Doc",
+                color=None,
                 on_click=lambda: ui.navigate.to(f"/models/{model_uid}/details"),
             ).classes("rb-brand-primary text-white")
             ui.button(
-                "Run Model", on_click=lambda: ui.navigate.to(f"/models/{model_uid}/run")
+                "Run Model",
+                color=None,
+                on_click=lambda: ui.navigate.to(f"/models/{model_uid}/run")
             ).classes("rb-brand-primary text-white rounded-xl")
 
 
@@ -73,11 +76,13 @@ def render_readonly_form(task_schema, request_body):
 
 
 def render_error_status(status: str, status_text: Optional[str] = None):
-    with ui.card().classes("bg-red-50 border border-red-300 p-6"):
-        ui.label("Job Failed").classes("text-2xl font-bold text-red-800 mb-2")
-        ui.label(f"Status: {status}").classes("text-lg text-red-600")
+    with ui.card().classes("bg-rose-50 border border-rose-200 p-6 rounded-2xl shadow-sm border-t-4 border-t-rose-500"):
+        with ui.row().classes("items-center gap-2 mb-2"):
+            ui.icon("error", size="md").classes("text-rose-600")
+            ui.label("Job Failed").classes("text-2xl font-bold text-rose-800")
+        ui.label(f"Status: {status}").classes("text-lg text-rose-700 font-medium")
         if status_text:
-            ui.label(status_text).classes("text-sm text-red-500 mt-2")
+            ui.label(status_text).classes("text-sm text-rose-600 mt-2 bg-white/50 p-3 rounded-lg border border-rose-100 whitespace-pre-wrap")
 
 
 async def render_model_info(api_client, job_fields: Dict[str, Any]):

@@ -29,9 +29,10 @@ class JobsPage:
         self.jobs = []
 
     async def render(self):
-        with ui.column().classes("container mx-auto p-8"):
-            with ui.row().classes("items-center justify-between mb-6"):
-                ui.label(UI_TITLES["jobs"]).classes("text-4xl font-bold")
+        with ui.column().classes("container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"):
+            with ui.row().classes("items-center gap-2 mb-6"):
+                ui.icon("view_list", size="lg").classes("text-[#881c1c]")
+                ui.label(UI_TITLES["jobs"]).classes("text-4xl font-bold text-slate-800")
             self.jobs_container = ui.column().classes("space-y-2 w-full")
             await self.load_jobs()
 
@@ -50,7 +51,7 @@ class JobsPage:
         self.jobs_container.clear()
         with self.jobs_container:
             with ui.row().classes(
-                "bg-[#505759] border-b border-[#3d4442] p-4 font-semibold text-white w-full"
+                "bg-[#1c1c1c] text-white p-4 font-semibold w-full rounded-t-xl items-center"
             ):
                 ui.label("Job ID").classes("w-40 shrink-0")
                 ui.label("Plugin").classes("flex-1 min-w-0")
@@ -63,14 +64,15 @@ class JobsPage:
                 if len(group) > 1:
                     root_id = pipeline_group_root_id(group)
                     with ui.row().classes(
-                        "w-full items-center gap-2 py-2 px-3 mb-1 rounded-md bg-[#505759] text-white"
+                        "w-full items-center gap-2 py-2 px-3 mb-1 rounded-md bg-[#881c1c] text-white"
                     ):
+                        ui.icon("layers").classes("text-white")
                         ui.label("Pipeline").classes("font-semibold")
                         ui.link(root_id, f"/jobs/{root_id}").classes(
-                            "text-white/90 hover:underline"
+                            "text-white/90 hover:underline font-mono"
                         )
                     group_wrap = ui.column().classes(
-                        "w-full border-l-2 border-[#505759]/50 pl-3 mb-3"
+                        "w-full border-l-2 border-[#881c1c]/50 pl-3 mb-3"
                     )
                 else:
                     group_wrap = self.jobs_container
@@ -116,4 +118,14 @@ async def jobs_page_route():
         return
     apply_saved_theme()
     create_navbar()
-    await JobsPage().render()
+    
+    page = JobsPage()
+    await page.render()
+    
+    # Auto-refresh if there are any running or pending jobs in the list
+    has_active_jobs = any(
+        str(job.get("status", "")).lower() in ("running", "pending")
+        for job in page.jobs
+    )
+    if has_active_jobs:
+        ui.timer(3.0, lambda: ui.navigate.reload(), once=True)

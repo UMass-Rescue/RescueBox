@@ -684,6 +684,46 @@ class JobDB(BaseDatabase):
         )
         raise RuntimeError("Failed to create job due to database errors")
 
+    def get_job_by_uid_sync(self, uid: str) -> Optional[JobRecord]:
+        """
+        Get job by UID synchronously.
+        """
+        conn = self.connect()
+        try:
+            self._ensure_userid_column(conn)
+            self._ensure_caseNotes_column(conn)
+            self._ensure_endpoint_chain_column(conn)
+            self._ensure_pipeline_root_job_id_column(conn)
+            self._ensure_pipeline_metadata_filter_criteria_column(conn)
+        except Exception:
+            pass
+
+        cursor = conn.execute("SELECT * FROM jobs WHERE uid = ?", (uid,))
+        row = cursor.fetchone()
+
+        if row:
+            job_dict = self._row_to_dict(row)
+            try:
+                from frontend.utils import get_user_id_for_jobs
+                current_user_id = get_user_id_for_jobs()
+            except Exception:
+                current_user_id = None
+
+            if (
+                current_user_id
+                and job_dict.get("userId")
+                and job_dict.get("userId") != current_user_id
+            ):
+                logger.warning("Access denied for job %s: session mismatch", uid)
+                return None
+            try:
+                job_record = JobRecord(**job_dict)
+                return job_record
+            except Exception as e:
+                logger.error("Failed to validate job %s as JobRecord: %s", uid, e)
+                return None
+        return None
+
     async def get_job_by_uid(self, uid: str) -> Optional[JobRecord]:
         """
         Get job by UID.
@@ -948,6 +988,16 @@ class JobDB(BaseDatabase):
         else:
             logger.warning("Job %s not found for update", uid)
             return False
+
+    async def disassociate_job_from_case(self, uid: str) -> bool:
+        """
+        Disassociate a job from its case by setting its userId to None.
+        """
+        conn = self.connect()
+        logger.info("Disassociating job %s from case", uid)
+        cursor = conn.execute("UPDATE jobs SET userId = NULL WHERE uid = ?", (uid,))
+        conn.commit()
+        return cursor.rowcount > 0
 
     async def delete_job(self, uid: str) -> bool:
         """
