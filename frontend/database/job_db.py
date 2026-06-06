@@ -705,6 +705,7 @@ class JobDB(BaseDatabase):
             job_dict = self._row_to_dict(row)
             try:
                 from frontend.utils import get_user_id_for_jobs
+
                 current_user_id = get_user_id_for_jobs()
             except Exception:
                 current_user_id = None

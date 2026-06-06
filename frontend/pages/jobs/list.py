@@ -29,7 +29,9 @@ class JobsPage:
         self.jobs = []
 
     async def render(self):
-        with ui.column().classes("container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"):
+        with ui.column().classes(
+            "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
+        ):
             with ui.row().classes("items-center gap-2 mb-6"):
                 ui.icon("view_list", size="lg").classes("text-[#881c1c]")
                 ui.label(UI_TITLES["jobs"]).classes("text-4xl font-bold text-slate-800")
@@ -118,10 +120,10 @@ async def jobs_page_route():
         return
     apply_saved_theme()
     create_navbar()
-    
+
     page = JobsPage()
     await page.render()
-    
+
     # Auto-refresh if there are any running or pending jobs in the list
     has_active_jobs = any(
         str(job.get("status", "")).lower() in ("running", "pending")

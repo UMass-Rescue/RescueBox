@@ -48,9 +48,9 @@ def render_case_export_button(job_fields: Dict[str, Any]) -> None:
         icon="download",
         color=None,
         on_click=_download,
-    ).classes(
-        Design.BTN_MEDIUM_GRAY
-    ).props("dense").tooltip("Download a JSON-LD fragment (UCO-oriented) for this job")
+    ).classes(Design.BTN_MEDIUM_GRAY).props("dense").tooltip(
+        "Download a JSON-LD fragment (UCO-oriented) for this job"
+    )
 
 
 def render_compact_inputs_summary(
@@ -427,7 +427,9 @@ def render_job_row(
         "Failed": "bg-rose-50 text-rose-700 border border-rose-200",
         "Canceled": "bg-slate-100 text-slate-600 border border-slate-200",
     }
-    pill_cls = status_pill_classes.get(status, "bg-slate-50 text-slate-500 border border-slate-200")
+    pill_cls = status_pill_classes.get(
+        status, "bg-slate-50 text-slate-500 border border-slate-200"
+    )
 
     # Format timestamps
     start_time_str = "N/A"
@@ -457,7 +459,9 @@ def render_job_row(
         ):
             # Job ID - truncated with ellipsis, full ID on hover
             with ui.element("div").classes("w-40 min-w-0 shrink-0"):
-                id_label = ui.label(job_uid).classes("font-mono text-sm truncate block text-slate-800")
+                id_label = ui.label(job_uid).classes(
+                    "font-mono text-sm truncate block text-slate-800"
+                )
                 id_label.tooltip(job_uid)
 
             # Model name (and notes indicator)
@@ -476,10 +480,14 @@ def render_job_row(
             # Times (start / end)
             with ui.column().classes("w-64 shrink-0 gap-0.5"):
                 ui.label(start_time_str).classes("text-sm text-slate-700")
-                ui.label(f"Ended: {end_time_str}" if end_time_str != "N/A" else "Active").classes("text-xs text-slate-500")
+                ui.label(
+                    f"Ended: {end_time_str}" if end_time_str != "N/A" else "Active"
+                ).classes("text-xs text-slate-500")
 
             # Status Pill Badge
-            with ui.row().classes(f"w-32 shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold {pill_cls}"):
+            with ui.row().classes(
+                f"w-32 shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold {pill_cls}"
+            ):
                 if status == "Completed":
                     ui.icon("check_circle", size="14px")
                 elif status == "Running":
@@ -506,14 +514,18 @@ def render_job_row(
                         icon="cancel",
                         color=None,
                         on_click=lambda: on_cancel(job["uid"]) if on_cancel else None,
-                    ).classes("bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1 rounded text-sm transition-colors border border-rose-200")
+                    ).classes(
+                        "bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1 rounded text-sm transition-colors border border-rose-200"
+                    )
                 elif status != "Running" and on_delete:
                     ui.button(
                         "Delete",
                         icon="delete",
                         color=None,
                         on_click=lambda: on_delete(job["uid"]) if on_delete else None,
-                    ).classes("bg-rose-50 hover:bg-rose-100 text-[#881c1c] px-3 py-1 rounded text-sm transition-colors border border-rose-200")
+                    ).classes(
+                        "bg-rose-50 hover:bg-rose-100 text-[#881c1c] px-3 py-1 rounded text-sm transition-colors border border-rose-200"
+                    )
                     # logger.debug("Delete button added")
 
 

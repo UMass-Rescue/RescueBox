@@ -52,12 +52,16 @@ async def demo_page(walkthrough: Optional[str] = None):
     preset = normalize_demo_walkthrough_query(walkthrough)
     samples_only = preset != "all"
 
-    with ui.column().classes("container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"):
+    with ui.column().classes(
+        "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
+    ):
         if samples_only:
             with ui.column().props("id=sample-inputs").classes("scroll-mt-24 w-full"):
                 with ui.row().classes("items-center gap-2 mb-1"):
                     ui.icon("folder_zip", size="sm").classes("text-[#881c1c]")
-                    ui.label("Sample inputs & outputs").classes("text-2xl font-bold text-slate-800")
+                    ui.label("Sample inputs & outputs").classes(
+                        "text-2xl font-bold text-slate-800"
+                    )
                 if preset in _SAMPLE_FILTER_BLURB:
                     ui.label(_SAMPLE_FILTER_BLURB[preset]).classes(
                         "text-zinc-600 text-sm mb-3"

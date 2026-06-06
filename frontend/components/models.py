@@ -118,8 +118,10 @@ def render_model_card(
                             )
                         )
                         logger.debug("Selected icon: %s for model category", icon_name)
-                        ui.icon(icon_name, size='sm').classes('text-[#881c1c]')
-                        ui.label(model["name"]).classes("text-2xl font-bold text-slate-800")
+                        ui.icon(icon_name, size="sm").classes("text-[#881c1c]")
+                        ui.label(model["name"]).classes(
+                            "text-2xl font-bold text-slate-800"
+                        )
                         logger.debug("Model name label added: %s", model["name"])
 
                     # Version, author, GPU info
@@ -130,13 +132,21 @@ def render_model_card(
                         ui.label("•")
                         ui.label(model.get("author", "Unknown"))
                         if model.get("gpu"):
-                            ui.badge("GPU Required", color="orange").classes("text-xs font-semibold px-2 py-0.5 rounded")
+                            ui.badge("GPU Required", color="orange").classes(
+                                "text-xs font-semibold px-2 py-0.5 rounded"
+                            )
 
                 # Right section - Status and actions
                 with ui.column().classes("items-end gap-3"):
                     # Status Badge
-                    status_pill_cls = "bg-emerald-50 text-emerald-700 border border-emerald-200" if is_online else "bg-rose-50 text-rose-700 border border-rose-200"
-                    with ui.row().classes(f"items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold {status_pill_cls}"):
+                    status_pill_cls = (
+                        "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        if is_online
+                        else "bg-rose-50 text-rose-700 border border-rose-200"
+                    )
+                    with ui.row().classes(
+                        f"items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold {status_pill_cls}"
+                    ):
                         ui.icon("check_circle" if is_online else "error", size="14px")
                         ui.label(status_text)
 
@@ -162,7 +172,9 @@ def render_model_card(
                                 on_click=lambda: (
                                     on_connect(model["uid"]) if on_connect else None
                                 ),
-                            ).classes("bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200")
+                            ).classes(
+                                "bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200"
+                            )
                             logger.debug("Connect button added (model is offline)")
 
     logger.debug("Model card rendered successfully")

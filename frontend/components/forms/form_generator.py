@@ -59,9 +59,9 @@ def render_form_actions(
                 finally:
                     btn.props["loading"] = False
 
-            submit_btn = ui.button("▶ Submit Job", color=None, on_click=_submit_wrapper).classes(
-                "rb-brand-primary text-white rounded-xl"
-            )
+            submit_btn = ui.button(
+                "▶ Submit Job", color=None, on_click=_submit_wrapper
+            ).classes("rb-brand-primary text-white rounded-xl")
             btn_ref[0] = submit_btn
             return submit_btn
 

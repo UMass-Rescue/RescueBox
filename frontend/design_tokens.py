@@ -34,7 +34,9 @@ class Design:
     BTN_PRIMARY_TIGHT = (
         "rb-brand-primary text-white px-3 py-1 rounded text-sm transition-colors"
     )
-    BTN_GHOST = "text-slate-600 hover:bg-slate-100 px-4 py-2 rounded-lg transition-colors"
+    BTN_GHOST = (
+        "text-slate-600 hover:bg-slate-100 px-4 py-2 rounded-lg transition-colors"
+    )
     BTN_SECONDARY_NEUTRAL = (
         "bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg "
         "font-medium transition-colors border border-slate-200"
@@ -80,8 +82,12 @@ class Design:
     )
 
     # --- Tool invocation / result (chat tool cards) ---
-    CARD_TOOL_CALL = "p-4 my-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
-    CARD_TOOL_RESULT = "p-4 my-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
+    CARD_TOOL_CALL = (
+        "p-4 my-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
+    )
+    CARD_TOOL_RESULT = (
+        "p-4 my-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
+    )
     LABEL_TOOL_CALL_TITLE = "font-semibold text-slate-800 mt-3"
     LABEL_TOOL_CALL_ARGS = "font-medium text-slate-700 mt-3"
     LABEL_TOOL_RESULT_TITLE = "font-medium text-slate-800 mt-3"

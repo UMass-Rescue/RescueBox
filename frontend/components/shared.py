@@ -4,7 +4,6 @@ import sys
 from nicegui import ui
 from frontend.utils.ui import notify_success as _ns, notify_error as _ne
 from frontend.utils.ui import notify_info as _ni, notify_warning as _nw
-from frontend.config import APP_TITLE, APP_VERSION
 import frontend.constants as constants
 from frontend.design_tokens import Design
 from frontend.utils import get_user_id_for_jobs
@@ -136,6 +135,7 @@ def create_navbar():
             )
 
         from frontend.utils import get_active_case
+
         active_case = get_active_case()
 
         with ui.row().classes(
@@ -145,24 +145,35 @@ def create_navbar():
             # logger.debug("Creating navbar container with responsive layout")
 
             with ui.row().classes("shrink-0 items-center gap-2 min-w-0"):
-                with ui.row().classes("items-center cursor-pointer").on("click", lambda _: ui.navigate.to("/")):
-                    ui.html('<img src="/icons/logo.png" class="h-8 sm:h-9 md:h-10 w-auto object-contain shrink-0" />', sanitize=False)
+                with ui.row().classes("items-center cursor-pointer").on(
+                    "click", lambda _: ui.navigate.to("/")
+                ):
+                    ui.html(
+                        '<img src="/icons/logo.png" class="h-8 sm:h-9 md:h-10 w-auto object-contain shrink-0" />',
+                        sanitize=False,
+                    )
                 if active_case:
                     from frontend.database import get_case_db
                     from frontend.utils import set_active_case_id, clear_active_case_id
-                    
+
                     try:
                         all_cases = get_case_db().get_all_cases_sync()
-                        other_cases = [c for c in all_cases if c.caseId != active_case.caseId]
+                        other_cases = [
+                            c for c in all_cases if c.caseId != active_case.caseId
+                        ]
                     except Exception:
                         all_cases = [active_case]
                         other_cases = []
 
                     if len(all_cases) <= 1:
                         # Just show a clean static badge if there is only one case in the system
-                        with ui.row().classes("items-center gap-1 bg-black/20 px-2.5 py-1 rounded-lg border border-white/20 ml-2 cursor-pointer").on("click", lambda _: ui.navigate.to("/case")):
+                        with ui.row().classes(
+                            "items-center gap-1 bg-black/20 px-2.5 py-1 rounded-lg border border-white/20 ml-2 cursor-pointer"
+                        ).on("click", lambda _: ui.navigate.to("/case")):
                             ui.icon("folder", size="xs").classes("text-white")
-                            ui.label(f"Case: {active_case.caseNumber}").classes("text-xs font-semibold text-white")
+                            ui.label(f"Case: {active_case.caseNumber}").classes(
+                                "text-xs font-semibold text-white"
+                            )
                     else:
                         # Show the interactive dropdown if there are multiple cases to switch between
                         with ui.dropdown_button(
@@ -172,25 +183,45 @@ def create_navbar():
                             auto_close=True,
                         ).classes(
                             "text-xs font-semibold text-white bg-black/20 px-2.5 py-1 rounded-lg border border-white/20 ml-2 cursor-pointer"
-                        ).props("flat dense no-caps split").on("click", lambda _: ui.navigate.to("/case")):
-                            ui.menu_item("Case Overview", on_click=lambda: ui.navigate.to("/case")).classes("font-semibold text-[#881c1c]")
+                        ).props(
+                            "flat dense no-caps split"
+                        ).on(
+                            "click", lambda _: ui.navigate.to("/case")
+                        ):
+                            ui.menu_item(
+                                "Case Overview",
+                                on_click=lambda: ui.navigate.to("/case"),
+                            ).classes("font-semibold text-[#881c1c]")
                             ui.separator()
                             if other_cases:
-                                ui.label("Switch Case:").classes("text-[10px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider")
-                                for c in other_cases[:5]: # Show up to 5 other cases
+                                ui.label("Switch Case:").classes(
+                                    "text-[10px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider"
+                                )
+                                for c in other_cases[:5]:  # Show up to 5 other cases
+
                                     def _switch_case(cid=c.caseId):
                                         set_active_case_id(cid)
-                                        ui.notify(f"Switched to case {c.caseNumber}.", type="positive")
-                                        ui.timer(0.3, lambda: ui.navigate.to("/case"), once=True)
+                                        ui.notify(
+                                            f"Switched to case {c.caseNumber}.",
+                                            type="positive",
+                                        )
+                                        ui.timer(
+                                            0.3,
+                                            lambda: ui.navigate.to("/case"),
+                                            once=True,
+                                        )
+
                                     ui.menu_item(c.caseNumber, on_click=_switch_case)
                                 ui.separator()
-                            
+
                             def _close_active_case():
                                 clear_active_case_id()
                                 ui.notify("Case closed.", type="info")
                                 ui.timer(0.2, lambda: ui.navigate.to("/"), once=True)
-                            
-                            ui.menu_item("Close Case", on_click=_close_active_case).classes("text-rose-500 font-semibold")
+
+                            ui.menu_item(
+                                "Close Case", on_click=_close_active_case
+                            ).classes("text-rose-500 font-semibold")
 
             with ui.row().classes("min-w-0 flex-1 justify-end items-center"):
                 with ui.row().classes(

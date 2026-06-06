@@ -303,10 +303,12 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     if pipeline_job_id:
         try:
             from frontend.database import get_job_db
+
             job = get_job_db().get_job_by_uid_sync(pipeline_job_id)
             if job and job.response:
                 from frontend.chatbot.multi_tool_handler import extract_output_path
                 from rb.api.models import ResponseBody
+
                 response_body = job.response
                 if not isinstance(response_body, ResponseBody):
                     response_body = ResponseBody(**response_body)

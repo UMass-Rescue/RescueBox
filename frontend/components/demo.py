@@ -194,7 +194,9 @@ def render_demo_files_explorer(
                         on_click=lambda: go_to(str(root)),
                     ).classes(
                         "text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded border border-slate-200 transition-colors"
-                    ).props("dense")
+                    ).props(
+                        "dense"
+                    )
                     if cur != root:
                         parent = cur.parent
                         if parent == root or _is_under_root(parent, root):
@@ -204,7 +206,9 @@ def render_demo_files_explorer(
                                 on_click=lambda: go_to(str(parent)),
                             ).classes(
                                 "text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded border border-slate-200 transition-colors"
-                            ).props("dense")
+                            ).props(
+                                "dense"
+                            )
 
                 for path, is_dir in _list_entries(
                     cur,

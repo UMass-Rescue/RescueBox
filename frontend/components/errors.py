@@ -41,7 +41,9 @@ def render_error_boundary(
                             try:
                                 # action should be a tuple (label, on_click_callable, classes)
                                 label, callback, classes = action
-                                ui.button(label, color=None, on_click=callback).classes(classes)
+                                ui.button(label, color=None, on_click=callback).classes(
+                                    classes
+                                )
                             except Exception as e:
                                 logger.exception(
                                     "Error rendering error message component: %s", e

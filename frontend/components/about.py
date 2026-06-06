@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import List, Optional, Tuple
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 from nicegui import ui
 from starlette.requests import Request
@@ -132,9 +132,7 @@ def render_license_documents_section(
     with ui.card().classes(
         "w-full max-w-3xl p-6 bg-white border border-slate-200 rounded-2xl shadow-md border-t-4 border-t-[#881c1c] flex flex-col gap-4"
     ):
-        ui.label("License & Copyright").classes(
-            "text-xl font-semibold text-slate-800"
-        )
+        ui.label("License & Copyright").classes("text-xl font-semibold text-slate-800")
         ui.label(
             "Select a document below to view RescueBox LICENSE, COPYRIGHT, NOTICE, or bundled third-party notices."
         ).classes("text-sm text-zinc-600")
@@ -143,7 +141,9 @@ def render_license_documents_section(
             ui.label(f"Folder not found: {root}").classes("text-red-600")
             return
         if not files:
-            ui.label("No license documents found in that folder.").classes("text-zinc-600")
+            ui.label("No license documents found in that folder.").classes(
+                "text-zinc-600"
+            )
             return
 
         primary_entries, third_party_files = _primary_and_third_party_paths(files)
@@ -173,15 +173,21 @@ def render_license_documents_section(
             third_select.visible = False
 
         # Closable & Scrollable Viewer Container (hidden by default)
-        with ui.card().classes("w-full p-4 bg-slate-50 border border-slate-200 rounded-xl shadow-sm flex flex-col gap-3") as viewer_card:
+        with ui.card().classes(
+            "w-full p-4 bg-slate-50 border border-slate-200 rounded-xl shadow-sm flex flex-col gap-3"
+        ) as viewer_card:
             viewer_card.visible = False
-            
+
             # Viewer Header
-            with ui.row().classes("w-full justify-between items-center border-b pb-2 border-slate-200"):
+            with ui.row().classes(
+                "w-full justify-between items-center border-b pb-2 border-slate-200"
+            ):
                 with ui.row().classes("items-center gap-2"):
                     ui.icon("article", size="sm").classes("text-[#881c1c]")
-                    viewer_title = ui.label("").classes("text-sm font-bold text-slate-700 font-mono")
-                
+                    viewer_title = ui.label("").classes(
+                        "text-sm font-bold text-slate-700 font-mono"
+                    )
+
                 # Close button
                 ui.button(
                     "Close",
@@ -194,7 +200,9 @@ def render_license_documents_section(
                 )
 
             # Scrollable body
-            viewer_body = ui.column().classes("w-full max-h-[350px] overflow-y-auto pr-2")
+            viewer_body = ui.column().classes(
+                "w-full max-h-[350px] overflow-y-auto pr-2"
+            )
 
         # Helper to render document content
         def _show_document(rel_path: str):

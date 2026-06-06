@@ -71,16 +71,28 @@ def render_conversation_card(
     container: ui.column, conversation: Any, view_callback, load_callback
 ) -> None:
     with container:
-        with card().classes("p-4 cursor-pointer hover:bg-slate-50 border border-slate-200 rounded-xl shadow-sm transition-all"):
+        with card().classes(
+            "p-4 cursor-pointer hover:bg-slate-50 border border-slate-200 rounded-xl shadow-sm transition-all"
+        ):
             with row().classes("items-center justify-between mb-2"):
                 label(conversation.title).classes("font-semibold flex-1 text-slate-800")
             with row().classes("gap-2"):
                 button(
-                    "View", icon="visibility", color=None, on_click=lambda: view_callback(conversation.conversation_id)
-                ).classes("text-sm bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1 rounded transition-colors")
+                    "View",
+                    icon="visibility",
+                    color=None,
+                    on_click=lambda: view_callback(conversation.conversation_id),
+                ).classes(
+                    "text-sm bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1 rounded transition-colors"
+                )
                 button(
-                    "Load", icon="login", color=None, on_click=lambda: load_callback(conversation.conversation_id)
-                ).classes("text-sm rb-brand-primary text-white px-3 py-1 rounded transition-colors")
+                    "Load",
+                    icon="login",
+                    color=None,
+                    on_click=lambda: load_callback(conversation.conversation_id),
+                ).classes(
+                    "text-sm rb-brand-primary text-white px-3 py-1 rounded transition-colors"
+                )
 
 
 def render_message_in_dialog(message: Any) -> None:
@@ -88,5 +100,7 @@ def render_message_in_dialog(message: Any) -> None:
     role = getattr(message, "role", "assistant")
     content = getattr(message, "content", "")
     with column().classes("w-full border-b border-slate-100 pb-2 mb-2"):
-        label(role.upper()).classes("text-xs font-bold text-slate-400 uppercase tracking-wider")
+        label(role.upper()).classes(
+            "text-xs font-bold text-slate-400 uppercase tracking-wider"
+        )
         label(content).classes("text-sm text-slate-800 whitespace-pre-wrap")

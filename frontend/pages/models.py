@@ -56,7 +56,9 @@ class ModelsPage:
         """Render the models page UI. Creates the page layout with header, refresh button, loading indicator,"""
         logger.debug("Rendering models page")
         try:
-            with ui.column().classes("container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"):
+            with ui.column().classes(
+                "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
+            ):
                 # Header
                 logger.debug("Creating page header")
                 try:
@@ -309,7 +311,9 @@ async def model_details_page(model_uid: str):
         )
         return
 
-    with ui.column().classes("container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"):
+    with ui.column().classes(
+        "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
+    ):
         # Two-column layout
         with ui.row().classes("gap-6 w-full"):
             # Left column - Documentation

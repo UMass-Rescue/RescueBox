@@ -140,7 +140,9 @@ def open_file(path: str):
                         color=None,
                         on_click=lambda: open_folder(os.path.dirname(path)),
                     ).classes(Design.BTN_SECONDARY_NEUTRAL)
-                    ui.button("Close", color=None, on_click=d.close).classes(Design.BTN_MEDIUM_GRAY)
+                    ui.button("Close", color=None, on_click=d.close).classes(
+                        Design.BTN_MEDIUM_GRAY
+                    )
             d.open()
         else:
             ui.navigate.to(route)
@@ -306,7 +308,9 @@ def open_image_bbox_preview_dialog(
                 color=None,
                 on_click=lambda: open_folder(os.path.dirname(abs_path)),
             ).classes(Design.BTN_SECONDARY_NEUTRAL)
-            ui.button("Close", color=None, on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
+            ui.button("Close", color=None, on_click=dialog.close).classes(
+                Design.BTN_MEDIUM_GRAY
+            )
     dialog.open()
 
 
@@ -903,12 +907,15 @@ def _open_image_summary_markdown_modal(file_info: Dict[str, Any]) -> None:
             with ui.row().classes("gap-2 mt-4 shrink-0 justify-end flex-wrap"):
                 if path_full:
                     ui.button(
-                        "Open raw file", color=None, on_click=lambda: open_file(path_full)
+                        "Open raw file",
+                        color=None,
+                        on_click=lambda: open_file(path_full),
                     ).classes(Design.BTN_SECONDARY_NEUTRAL)
-                    
+
                     def _download_raw():
                         try:
                             import os
+
                             with open(path_full, "rb") as f:
                                 data = f.read()
                             ui.download(data, os.path.basename(path_full))

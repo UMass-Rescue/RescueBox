@@ -2,6 +2,7 @@ from __future__ import annotations
 import logging
 import asyncio
 from typing import Dict, Any, Callable, Optional, List
+from frontend.design_tokens import Design
 from nicegui import ui
 
 from frontend.chatbot.config import ToolRegistry
@@ -604,8 +605,12 @@ class PipelineHandler:
                     dialog.close()
 
                 with ui.row().classes("mt-4 gap-2"):
-                    ui.button("Use all", on_click=_use_all, color=None).classes(Design.BTN_MEDIUM_GRAY)
-                    ui.button("Apply filter", on_click=_apply_filter, color=None).classes(Design.BTN_PRIMARY_COMPACT)
+                    ui.button("Use all", on_click=_use_all, color=None).classes(
+                        Design.BTN_MEDIUM_GRAY
+                    )
+                    ui.button(
+                        "Apply filter", on_click=_apply_filter, color=None
+                    ).classes(Design.BTN_PRIMARY_COMPACT)
             dialog.open()
         try:
             return await asyncio.wait_for(future, timeout=120.0)

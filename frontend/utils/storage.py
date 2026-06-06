@@ -136,9 +136,11 @@ def get_active_case() -> Optional[Any]:
         return None
     try:
         from frontend.database.case_db import get_case_db
+
         case = get_case_db().get_case_by_id_sync(case_id)
         if not case and _runs_under_pytest():
             from frontend.database.case_db import CaseRecord
+
             return CaseRecord(
                 caseId=case_id,
                 caseNumber="TEST-CASE",

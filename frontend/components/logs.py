@@ -15,7 +15,9 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
     try:
         with container:
             # Controls row with Refresh and Search Input (instant typing filter)
-            with ui.row().classes("gap-4 items-center mb-4 w-full flex-wrap sm:flex-nowrap"):
+            with ui.row().classes(
+                "gap-4 items-center mb-4 w-full flex-wrap sm:flex-nowrap"
+            ):
                 refresh_btn = (
                     ui.button("Refresh")
                     .props("icon=refresh")
@@ -23,9 +25,13 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
                 )
 
                 # Search input with prepended search icon, clearable prop, and debounce
-                search_input = ui.input(
-                    placeholder="Search/filter logs...",
-                ).props("outlined dense clearable debounce=300").classes("w-64 bg-white")
+                search_input = (
+                    ui.input(
+                        placeholder="Search/filter logs...",
+                    )
+                    .props("outlined dense clearable debounce=300")
+                    .classes("w-64 bg-white")
+                )
                 with search_input.add_slot("prepend"):
                     ui.icon("search").classes("text-slate-400")
 
@@ -41,6 +47,7 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
                         @property
                         def content(self) -> str:
                             return self.text
+
                         @content.setter
                         def content(self, value: str):
                             self.set_text(value)
@@ -69,8 +76,10 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
 
                 # Filter lines
                 lines = log_display.raw_content.splitlines()
-                matching_lines = [line for line in lines if query.lower() in line.lower()]
-                
+                matching_lines = [
+                    line for line in lines if query.lower() in line.lower()
+                ]
+
                 if matching_lines:
                     header = f"[Found {len(matching_lines)} matching lines for '{query}']\n\n"
                     log_display.content = header + "\n".join(matching_lines)
@@ -84,6 +93,7 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
             def _refresh():
                 try:
                     from frontend.pages.logs import read_log_file
+
                     content = read_log_file(log_file, max_lines)
                     log_display.raw_content = content
                     _apply_filter(search_input.value)

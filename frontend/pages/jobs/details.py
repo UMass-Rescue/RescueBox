@@ -52,13 +52,15 @@ async def job_details_page_route(job_id: str):
         return
 
     jf = extract_job_fields(job)
-    
+
     # Auto-refresh if the job is running or pending
     status = str(jf.get("status", "")).lower()
     if status in ("running", "pending"):
         ui.timer(3.0, lambda: ui.navigate.reload(), once=True)
 
-    with ui.column().classes("container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16 items-stretch"):
+    with ui.column().classes(
+        "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16 items-stretch"
+    ):
         create_breadcrumbs(
             [{"label": "Jobs", "link": "/jobs"}, {"label": f"Job {job_id}"}]
         )

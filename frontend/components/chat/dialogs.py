@@ -8,7 +8,9 @@ def show_help_dialog(help_text: str, title: Optional[str] = "RescueBox Help") ->
     with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_WIDE):
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
             ui.label(title or "Help").classes(Design.PANEL_SHELL_HEADER_TITLE)
-            ui.button(icon="close", color=None, on_click=dialog.close).props("flat round dense")
+            ui.button(icon="close", color=None, on_click=dialog.close).props(
+                "flat round dense"
+            )
         with ui.column().classes("w-full flex-1 overflow-y-auto p-6"):
             ui.markdown(help_text or "No help available.")
     dialog.open()
@@ -26,7 +28,9 @@ async def show_history_dialog(
     with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_WIDE):
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
             ui.label("Chat History").classes(Design.PANEL_SHELL_HEADER_TITLE)
-            ui.button(icon="close", color=None, on_click=dialog.close).props("flat round dense")
+            ui.button(icon="close", color=None, on_click=dialog.close).props(
+                "flat round dense"
+            )
 
         with ui.column().classes(
             f"{Design.PANEL_SHELL_BODY} gap-3 overflow-y-auto max-h-[60vh] w-full"
@@ -99,5 +103,7 @@ def show_conversation_view_dialog(
         ):
             for msg in messages:
                 _render_message_card(msg)
-        ui.button("Close", color=None, on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
+        ui.button("Close", color=None, on_click=dialog.close).classes(
+            Design.BTN_MEDIUM_GRAY
+        )
     dialog.open()

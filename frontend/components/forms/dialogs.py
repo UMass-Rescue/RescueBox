@@ -21,9 +21,9 @@ async def show_case_notes_dialog() -> Optional[str]:
             ).classes(f"w-full min-h-24 {Design.INPUT_OUTLINED}")
 
         with ui.row().classes(f"{Design.PANEL_SHELL_FOOTER} justify-end flex-wrap"):
-            ui.button("Cancel", color=None, on_click=lambda: dialog.submit(None)).classes(
-                Design.BTN_MEDIUM_GRAY
-            )
+            ui.button(
+                "Cancel", color=None, on_click=lambda: dialog.submit(None)
+            ).classes(Design.BTN_MEDIUM_GRAY)
             ui.button(
                 "Submit Job",
                 color=None,

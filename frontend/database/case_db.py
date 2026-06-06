@@ -9,7 +9,7 @@ import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import List, Optional
 import uuid
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,7 @@ logger.setLevel(logging.INFO)
 
 class CaseRecord(BaseModel):
     """Pydantic model for case records in the database."""
+
     caseId: str = Field(..., description="Unique case identifier")
     caseNumber: str = Field(..., description="Case number or ID")
     investigators: Optional[str] = Field(None, description="Names of investigators")
@@ -47,7 +48,6 @@ class CaseDB(BaseDatabase):
 
     async def initialize_schema(self):
         """Initialize database schema (create cases table if it doesn't exist)."""
-        conn = self.connect()
         logger.info("Initializing database schema for cases")
         self._create_schema()
 
@@ -119,7 +119,9 @@ class CaseDB(BaseDatabase):
     async def get_case_by_number(self, case_number: str) -> Optional[CaseRecord]:
         """Get a case by its case number."""
         conn = self.connect()
-        cursor = conn.execute("SELECT * FROM cases WHERE caseNumber = ?", (case_number.strip(),))
+        cursor = conn.execute(
+            "SELECT * FROM cases WHERE caseNumber = ?", (case_number.strip(),)
+        )
         row = cursor.fetchone()
         if row:
             return CaseRecord(**dict(row))

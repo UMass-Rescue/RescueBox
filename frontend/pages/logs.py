@@ -63,7 +63,7 @@ class LogsPage:
     async def _load_logs(self):
         """Load and display log file contents. Reads the log file, limits to max_lines, and displays in the UI."""
         self.log_content = read_log_file(LOG_FILE, self.max_lines)
-        
+
         # Cache raw content in log_display and apply search filter if available
         if hasattr(self, "log_display") and self.log_display is not None:
             self.log_display.raw_content = self.log_content

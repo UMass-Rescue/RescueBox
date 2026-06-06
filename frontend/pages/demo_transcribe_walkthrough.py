@@ -42,10 +42,14 @@ async def demo_transcribe_walkthrough_page():
 
     text = load_markdown_file(_MD_FILE, _fallback_markdown)
 
-    with ui.column().classes("container mx-auto px-4 sm:px-8 py-8 w-full max-w-4xl pb-16"):
+    with ui.column().classes(
+        "container mx-auto px-4 sm:px-8 py-8 w-full max-w-4xl pb-16"
+    ):
         with ui.row().classes("items-center gap-2 mb-2"):
             ui.icon("audiotrack", size="lg").classes("text-[#881c1c]")
-            ui.label("Transcribe — menu walkthrough").classes("text-4xl font-bold text-slate-800")
+            ui.label("Transcribe — menu walkthrough").classes(
+                "text-4xl font-bold text-slate-800"
+            )
 
         render_guided_markdown_body(ui.column().classes("w-full min-w-0"), text)
 
@@ -56,7 +60,9 @@ async def demo_transcribe_walkthrough_page():
                 "Back to Demo",
                 icon="arrow_back",
                 on_click=lambda: ui.navigate.to(NAV_LINKS["demo"]),
-            ).classes("bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200")
+            ).classes(
+                "bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200"
+            )
 
     schedule_hash_fragment_scroll()
     logger.debug("Transcribe walkthrough page rendered")

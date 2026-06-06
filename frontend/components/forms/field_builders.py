@@ -176,6 +176,7 @@ def create_directory_input(
     field_id, initial_value, form_widgets, autofill_output_key=None
 ):
     from frontend.utils import get_active_case
+
     active_case = get_active_case()
     default_path = active_case.evidencePath if active_case else ""
 
@@ -228,7 +229,9 @@ def create_directory_input(
             ui.button(
                 "Browse",
                 on_click=lambda: browse_directory_simple(
-                    dir_input, initial_path=default_path or None, on_after_select=validate
+                    dir_input,
+                    initial_path=default_path or None,
+                    on_after_select=validate,
                 ),
             ).classes(Design.BTN_MEDIUM_GRAY)
     form_widgets[field_id] = dir_input
@@ -236,6 +239,7 @@ def create_directory_input(
 
 def create_file_input(field_id, initial_value, form_widgets, autofill_mount_key=None):
     from frontend.utils import get_active_case
+
     active_case = get_active_case()
     default_path = active_case.evidencePath if active_case else ""
 
@@ -285,7 +289,9 @@ def create_file_input(field_id, initial_value, form_widgets, autofill_mount_key=
             ui.button(
                 "Browse",
                 on_click=lambda: browse_file_simple(
-                    file_input, initial_path=default_path or None, on_after_select=validate
+                    file_input,
+                    initial_path=default_path or None,
+                    on_after_select=validate,
                 ),
             ).classes(Design.BTN_MEDIUM_GRAY)
     form_widgets[field_id] = file_input
