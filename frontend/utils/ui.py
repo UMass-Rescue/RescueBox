@@ -139,7 +139,9 @@ def require_demo_user_session():
     if get_user_id_for_jobs():
         return True
 
-    with ui.column().classes("container mx-auto p-8 max-w-2xl w-full"):
+    with ui.column().classes(
+        "container mx-auto px-4 sm:px-8 py-8 max-w-2xl w-full pb-16"
+    ):
         ui.label(HOME_USER_ID["title"]).classes("text-2xl font-semibold mb-2")
         ui.label(HOME_USER_ID["blurb"]).classes("text-zinc-600 mb-4")
         ui.link("Go to Home", NAV_LINKS["home"]).classes(

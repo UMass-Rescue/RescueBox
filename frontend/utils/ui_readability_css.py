@@ -25,6 +25,7 @@ def inject_global_readability_css() -> None:
     _READABILITY_CSS_DONE = True
     ui.add_head_html(
         """
+        <link rel="icon" href="/icons/favicon.png?v=5" type="image/png">
         <style>
         /* --- Quasar notifications (ui.notify everywhere) --- */
         .q-notifications__list .q-notification,
@@ -32,6 +33,7 @@ def inject_global_readability_css() -> None:
             font-size: 1rem !important;
             line-height: 1.5 !important;
         }
+        .q-notifications__list .q-notification .q-notification__message,
         .q-notification__message {
             font-size: 1rem !important;
             line-height: 1.5 !important;
@@ -42,51 +44,51 @@ def inject_global_readability_css() -> None:
         .q-notification .q-btn {
             font-size: 0.9375rem !important;
         }
-        /* Optional toast skin (classes="rb-notify-505759" on ui.notify).
-           Brand gray #505759 reserved for icons / accents; panel is light so body text stays dark (readable).
+        /* Optional toast skin (classes="rb-notify-1e293b" on ui.notify).
+           Brand charcoal #1e293b reserved for icons / accents; panel is light so body text stays dark (readable).
            Quasar Notify builds the root as: q-notification … bg-{color} text-{textColor} … + your classes;
            type=warning adds bg-warning + text-dark — override both.
            Use .q-notifications … (not only .q-notifications__list) so portaled / transition wrappers still match. */
-        .q-notifications .q-notification.rb-notify-505759,
-        .q-notifications .q-notification.rb-notify-505759.bg-positive,
-        .q-notifications .q-notification.rb-notify-505759.bg-negative,
-        .q-notifications .q-notification.rb-notify-505759.bg-warning,
-        .q-notifications .q-notification.rb-notify-505759.bg-info,
-        .q-notifications .q-notification.rb-notify-505759.bg-primary,
-        .q-notifications .q-notification.rb-notify-505759.bg-grey-8,
-        .q-notifications .q-notification.rb-notify-505759.text-dark,
-        .q-notifications .q-notification.rb-notify-505759.text-white,
-        div.q-notifications__list div.q-notification.rb-notify-505759,
-        div.q-notifications__list div.q-notification.rb-notify-505759.bg-positive,
-        div.q-notifications__list div.q-notification.rb-notify-505759.bg-negative,
-        div.q-notifications__list div.q-notification.rb-notify-505759.bg-warning,
-        div.q-notifications__list div.q-notification.rb-notify-505759.bg-info,
-        div.q-notifications__list div.q-notification.rb-notify-505759.bg-primary,
-        div.q-notifications__list div.q-notification.rb-notify-505759.bg-grey-8,
-        div.q-notifications__list div.q-notification.rb-notify-505759.text-dark,
-        div.q-notifications__list div.q-notification.rb-notify-505759.text-white {
+        .q-notifications .q-notification.rb-notify-1e293b,
+        .q-notifications .q-notification.rb-notify-1e293b.bg-positive,
+        .q-notifications .q-notification.rb-notify-1e293b.bg-negative,
+        .q-notifications .q-notification.rb-notify-1e293b.bg-warning,
+        .q-notifications .q-notification.rb-notify-1e293b.bg-info,
+        .q-notifications .q-notification.rb-notify-1e293b.bg-primary,
+        .q-notifications .q-notification.rb-notify-1e293b.bg-grey-8,
+        .q-notifications .q-notification.rb-notify-1e293b.text-dark,
+        .q-notifications .q-notification.rb-notify-1e293b.text-white,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b.bg-positive,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b.bg-negative,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b.bg-warning,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b.bg-info,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b.bg-primary,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b.bg-grey-8,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b.text-dark,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b.text-white {
             background: #e4e7e9 !important;
             background-color: #e4e7e9 !important;
             background-image: none !important;
             color: #18181b !important;
             box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2), 0 2px 2px rgba(0, 0, 0, 0.14), 0 3px 1px -2px rgba(0, 0, 0, 0.12) !important;
         }
-        .q-notifications .q-notification.rb-notify-505759 .q-notification__message,
-        .q-notifications .q-notification.rb-notify-505759 .q-notification__caption,
-        div.q-notifications__list div.q-notification.rb-notify-505759 .q-notification__message,
-        div.q-notifications__list div.q-notification.rb-notify-505759 .q-notification__caption {
+        .q-notifications .q-notification.rb-notify-1e293b .q-notification__message,
+        .q-notifications .q-notification.rb-notify-1e293b .q-notification__caption,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b .q-notification__message,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b .q-notification__caption {
             color: #18181b !important;
         }
-        .q-notifications .q-notification.rb-notify-505759 .q-icon,
-        div.q-notifications__list div.q-notification.rb-notify-505759 .q-icon {
-            color: #505759 !important;
+        .q-notifications .q-notification.rb-notify-1e293b .q-icon,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b .q-icon {
+            color: #1e293b !important;
         }
-        .q-notifications .q-notification.rb-notify-505759 .q-notification__actions .q-btn,
-        div.q-notifications__list div.q-notification.rb-notify-505759 .q-notification__actions .q-btn {
+        .q-notifications .q-notification.rb-notify-1e293b .q-notification__actions .q-btn,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b .q-notification__actions .q-btn {
             color: #18181b !important;
         }
-        .q-notifications .q-notification.rb-notify-505759 .q-notification__progress,
-        div.q-notifications__list div.q-notification.rb-notify-505759 .q-notification__progress {
+        .q-notifications .q-notification.rb-notify-1e293b .q-notification__progress,
+        div.q-notifications__list div.q-notification.rb-notify-1e293b .q-notification__progress {
             background: rgba(24, 24, 27, 0.22) !important;
             color: #18181b !important;
         }
@@ -124,7 +126,7 @@ def inject_global_readability_css() -> None:
         }
         .q-notifications .q-notification.rb-notify-a2aaad .q-icon,
         div.q-notifications__list div.q-notification.rb-notify-a2aaad .q-icon {
-            color: #505759 !important;
+            color: #1e293b !important;
         }
         .q-notifications .q-notification.rb-notify-a2aaad .q-notification__actions .q-btn,
         div.q-notifications__list div.q-notification.rb-notify-a2aaad .q-notification__actions .q-btn {
@@ -138,16 +140,69 @@ def inject_global_readability_css() -> None:
 
         /* --- RescueBox brand colors (UMass Maroon #881c1c for primary actions app-wide)
             Default ui.button uses Quasar color=primary; setting --q-primary on :root makes every
-            primary-styled control maroon. .rb-brand-primary keeps explicit fill/hover for markers.
-            Navbar uses UMass Medium Gray #505759 via .rb-brand-nav (--q-primary matches bar for header chrome). --- */
+            primary-styled control UMass Maroon. .rb-brand-primary keeps explicit fill/hover for markers.
+            Navbar uses Dark Charcoal #1c1c1c via .rb-brand-nav. --- */
         :root {
             --q-primary: #881c1c !important;
         }
+
+        /* Global premium light theme overrides for body and Quasar components */
+        body {
+            background-color: #f8fafc !important; /* Slate 50 - soft off-white background */
+            color: #0f172a !important; /* Slate 900 - dark text */
+        }
+        .q-layout, .q-page-container {
+            background-color: #f8fafc !important;
+        }
+        .q-card {
+            background-color: #ffffff !important; /* Pure white cards */
+            color: #0f172a !important;
+            border: 1px solid #e2e8f0 !important; /* Slate 200 - thin elegant border */
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05) !important;
+        }
+        .q-field__control {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+        .q-field__native, .q-field__prefix, .q-field__suffix, .q-field__input {
+            color: #0f172a !important;
+        }
+        .q-field__label {
+            color: #64748b !important; /* Slate 500 */
+        }
+        .q-field--focused .q-field__label {
+            color: #881c1c !important;
+        }
+        .q-dialog__inner .q-card {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+        .q-menu {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+        .q-item {
+            color: #0f172a !important;
+        }
+        .q-item:hover {
+            background-color: #f1f5f9 !important; /* Slate 100 on hover */
+        }
+
         .q-header.rb-brand-nav {
-            --q-primary: #505759 !important;
-            background-color: #505759 !important;
+            --q-primary: #881c1c !important;
+            background-color: #881c1c !important;
             background-image: none !important;
-            color: #fff !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+        }
+        .q-header.rb-brand-nav .q-btn,
+        .q-header.rb-brand-nav .q-icon,
+        .q-header.rb-brand-nav a,
+        .q-header.rb-brand-nav span,
+        .q-header.rb-brand-nav div {
+            color: #ffffff !important;
         }
         button.q-btn.rb-brand-primary,
         a.q-btn.rb-brand-primary,
@@ -169,12 +224,12 @@ def inject_global_readability_css() -> None:
         .q-btn.rb-brand-primary .q-icon {
             color: inherit;
         }
-        /* Medium Gray #505759 — Browse, Cancel, secondary solid actions */
+        /* UMass Maroon #881c1c — Browse, Cancel, secondary solid actions */
         button.q-btn.rb-btn-medium-gray,
         a.q-btn.rb-btn-medium-gray,
         .q-btn.rb-btn-medium-gray {
-            --q-primary: #505759 !important;
-            background-color: #505759 !important;
+            --q-primary: #881c1c !important;
+            background-color: #881c1c !important;
             color: #fff !important;
             border-color: transparent !important;
         }
@@ -184,8 +239,8 @@ def inject_global_readability_css() -> None:
         button.q-btn.rb-btn-medium-gray:focus-visible,
         a.q-btn.rb-btn-medium-gray:focus-visible,
         .q-btn.rb-btn-medium-gray:focus-visible {
-            --q-primary: #3d4442 !important;
-            background-color: #3d4442 !important;
+            --q-primary: #6a1616 !important;
+            background-color: #6a1616 !important;
             color: #fff !important;
         }
         .q-btn.rb-btn-medium-gray .q-icon {
@@ -209,7 +264,7 @@ def inject_global_readability_css() -> None:
             color: #18181b !important;
         }
         .rb-select-directory-header .q-icon {
-            color: #505759 !important;
+            color: #1e293b !important;
         }
 
         /* Job Text Result card: no forced fill (inherit page / theme) */
@@ -220,12 +275,12 @@ def inject_global_readability_css() -> None:
             border: none !important;
             box-shadow: none !important;
         }
-        /* Browse Plugins (/models): UMass Light Gray surface + Medium Gray #505759 border */
+        /* Browse Plugins (/models): Light Gray surface + UMass Maroon #881c1c border */
         .q-card.rb-models-plugin-card,
         .rb-models-plugin-card.q-card {
             background-color: #e4e4e7 !important;
             background-image: none !important;
-            border: 2px solid #505759 !important;
+            border: 2px solid #881c1c !important;
             box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08) !important;
         }
         /* Text Result header: no filled band (inherits page / card surface) */
@@ -238,22 +293,49 @@ def inject_global_readability_css() -> None:
             color: #3f3f46 !important;
         }
 
-        /* Chatbot Menu/Chat/History: transparent strip behind solid maroon buttons */
+        /* Chatbot Menu/Chat/History: transparent strip behind solid Steel Blue buttons */
         .rb-chat-toolbar-floating {
             background: transparent !important;
             background-color: transparent !important;
+        }
+        /* Chatbot Tab Buttons (Menu, Chat, History) */
+        .q-btn.rb-chatbot-tab-btn {
+            background-color: #f1f5f9 !important; /* bg-slate-100 */
+            color: #334155 !important; /* text-slate-700 */
+            transition: all 0.2s ease-in-out !important;
+        }
+        .q-btn.rb-chatbot-tab-btn:hover {
+            background-color: #e2e8f0 !important; /* bg-slate-200 */
+            color: #334155 !important; /* text-slate-700 */
+        }
+        /* Active state */
+        .q-btn.rb-chatbot-tab-btn.rb-tab-active {
+            background-color: #881c1c !important; /* UMass Maroon */
+            color: #ffffff !important; /* white text */
+        }
+        .q-btn.rb-chatbot-tab-btn.rb-tab-active:hover {
+            background-color: #6a1616 !important; /* Darker Maroon hover */
+            color: #ffffff !important; /* white text */
+        }
+        /* Ensure icons and text inside follow the color and disable focus helper */
+        .q-btn.rb-chatbot-tab-btn .q-icon,
+        .q-btn.rb-chatbot-tab-btn span {
+            color: inherit !important;
+        }
+        .q-btn.rb-chatbot-tab-btn .q-focus-helper {
+            display: none !important;
         }
 
         /* --- Chat input strip (parent has .rb-chat-input-area) --- */
         .rb-chat-input-area .q-field__label {
             font-size: 1rem !important;
         }
-        .rb-image-summary-search-field .q-field__marginal .q-icon, .rb-image-summary-search-field .q-field__append .q-icon { color: #505759 !important; }
+        .rb-image-summary-search-field .q-field__marginal .q-icon, .rb-image-summary-search-field .q-field__append .q-icon { color: #1e293b !important; }
 
         /* Case Notes field specific overrides to ensure no blue/indigo remains */
         .rb-case-notes-field .q-field__label,
         .rb-case-notes-field.q-field--float .q-field__label {
-            color: #505759 !important;
+            color: #1e293b !important;
         }
         .rb-case-notes-field.q-field--focused .q-field__label {
             color: #881c1c !important;
@@ -262,14 +344,14 @@ def inject_global_readability_css() -> None:
             border-color: #d4d4d8 !important;
         }
         .rb-case-notes-field.q-field--outlined:hover .q-field__control:before {
-            border-color: #505759 !important;
+            border-color: #1e293b !important;
         }
         .rb-case-notes-field.q-field--focused .q-field__control:after {
             border-color: #881c1c !important;
             border-width: 2px !important;
         }
         .rb-case-notes-field .q-field__native, .rb-case-notes-field textarea {
-            color: #18181b !important;
+            color: #0f172a !important;
         }
         .rb-chat-input-area .q-textarea .q-field__native,
         .rb-chat-input-area textarea.q-field__native {

@@ -3,6 +3,7 @@ from typing import List, Dict, Callable, Optional, Any
 from datetime import datetime
 from nicegui import ui
 from frontend.constants import UI_BUTTONS
+from frontend.design_tokens import Design
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ def render_model_card(
     with container:
         logger.debug("Creating model card container")
         with ui.card().classes(
-            "rb-models-plugin-card w-full p-6 hover:shadow-lg transition-shadow"
+            "rb-models-plugin-card w-full p-6 hover:shadow-md transition-all border-l-4 border-l-[#881c1c] border-y border-r border-slate-200 rounded-xl bg-white"
         ):
             with ui.row().classes("items-center justify-between w-full"):
                 # Left section - Model info
@@ -103,7 +104,7 @@ def render_model_card(
                     # Icon and name row
                     with ui.row().classes("items-center gap-3"):
                         # Model icon based on category (you can enhance this)
-                        icon = (
+                        icon_name = (
                             "image"
                             if "image" in model.get("name", "").lower()
                             else (
@@ -112,28 +113,42 @@ def render_model_card(
                                 else (
                                     "description"
                                     if "text" in model.get("name", "").lower()
-                                    else "category"
+                                    else "extension"
                                 )
                             )
                         )
-                        logger.debug("Selected icon: %s for model category", icon)
-                        # ui.icon(icon, size='lg').classes('text-indigo-600')
-                        ui.label(model["name"]).classes("text-2xl font-bold")
+                        logger.debug("Selected icon: %s for model category", icon_name)
+                        ui.icon(icon_name, size="sm").classes("text-[#881c1c]")
+                        ui.label(model["name"]).classes(
+                            "text-2xl font-bold text-slate-800"
+                        )
                         logger.debug("Model name label added: %s", model["name"])
 
                     # Version, author, GPU info
                     with ui.row().classes(
-                        "gap-4 mt-2 text-sm text-zinc-600 items-center"
+                        "gap-4 mt-2 text-sm text-slate-500 items-center"
                     ):
                         ui.label(f"v{model['version']}")
                         ui.label("•")
                         ui.label(model.get("author", "Unknown"))
                         if model.get("gpu"):
-                            ui.badge("GPU Required", color="black").classes("text-xs")
+                            ui.badge("GPU Required", color="orange").classes(
+                                "text-xs font-semibold px-2 py-0.5 rounded"
+                            )
 
                 # Right section - Status and actions
-                with ui.column().classes("items-end gap-2"):
-                    # Status badge
+                with ui.column().classes("items-end gap-3"):
+                    # Status Badge
+                    status_pill_cls = (
+                        "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        if is_online
+                        else "bg-rose-50 text-rose-700 border border-rose-200"
+                    )
+                    with ui.row().classes(
+                        f"items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold {status_pill_cls}"
+                    ):
+                        ui.icon("check_circle" if is_online else "error", size="14px")
+                        ui.label(status_text)
 
                     # Action buttons
                     with ui.row().classes("gap-2"):
@@ -141,19 +156,25 @@ def render_model_card(
                         if on_inspect:
                             ui.button(
                                 UI_BUTTONS["plugin_readme"],
+                                icon="menu_book",
+                                color=None,
                                 on_click=lambda: (
                                     on_inspect(model["uid"]) if on_inspect else None
                                 ),
-                            ).classes("rb-brand-primary text-white")
+                            ).classes(Design.BTN_PRIMARY_COMPACT)
                             logger.debug("README button added")
 
                         if not is_online and on_connect:
                             ui.button(
-                                "🔌 Connect",
+                                "Connect",
+                                icon="power",
+                                color=None,
                                 on_click=lambda: (
                                     on_connect(model["uid"]) if on_connect else None
                                 ),
-                            ).classes("bg-zinc-600 text-white")
+                            ).classes(
+                                "bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200"
+                            )
                             logger.debug("Connect button added (model is offline)")
 
     logger.debug("Model card rendered successfully")

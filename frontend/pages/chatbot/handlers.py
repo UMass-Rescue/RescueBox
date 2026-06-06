@@ -3,7 +3,7 @@ import logging
 import asyncio
 from typing import Any, Optional
 from nicegui import ui
-
+from frontend.utils.ui import _safe_ui_call
 from frontend.utils import get_user_id_for_jobs
 from .database_service import DatabaseService
 
@@ -78,23 +78,30 @@ class JobSubmissionOrchestrator(BaseHandler):
                     f"Processing {ToolRegistry.display_name_for_endpoint(endpoint)}..."
                 )
 
+        pipeline_total = (1 + len(remaining_calls)) if remaining_calls else None
+        db_kwargs = {k: v for k, v in kwargs.items() if k not in ("form_element",)}
+
+        # Create and track job in the main thread (so we get the job_id and can redirect immediately)
+        job_id = None
+        try:
+            job_record = await DatabaseService.create_and_track_job(
+                request_body,
+                endpoint,
+                task_schema,
+                user_id=get_user_id_for_jobs(),
+                pipeline_total_steps=pipeline_total,
+                **db_kwargs,
+            )
+            job_id = job_record.get("job_id") if job_record else None
+        except Exception as e:
+            self.logger.error(f"Failed to create and track job in DB: {e}")
+
+        if job_id:
+            # Redirect immediately to the general jobs view so the user can see the list of jobs
+            _safe_ui_call(ui.timer, 0.1, lambda: ui.navigate.to("/jobs"), once=True)
+
         async def do_submit():
             try:
-                pipeline_total = (1 + len(remaining_calls)) if remaining_calls else None
-                db_kwargs = {
-                    k: v for k, v in kwargs.items() if k not in ("form_element",)
-                }
-
-                job_record = await DatabaseService.create_and_track_job(
-                    request_body,
-                    endpoint,
-                    task_schema,
-                    user_id=get_user_id_for_jobs(),
-                    pipeline_total_steps=pipeline_total,
-                    **db_kwargs,
-                )
-                job_id = job_record.get("job_id") if job_record else None
-
                 if conversation_id and job_id:
                     await DatabaseService.save_job_started_to_history(
                         conversation_id,
@@ -114,36 +121,66 @@ class JobSubmissionOrchestrator(BaseHandler):
                     except Exception:
                         pass
 
-                await self._handle_success(
-                    request_body,
-                    endpoint,
-                    task_schema,
-                    target_container,
-                    core,
-                    remaining_calls,
-                    conversation_id,
-                    response_body,
-                    {"job_id": job_id},
-                )
+                try:
+                    await self._handle_success(
+                        request_body,
+                        endpoint,
+                        task_schema,
+                        target_container,
+                        core,
+                        remaining_calls,
+                        conversation_id,
+                        response_body,
+                        {"job_id": job_id},
+                    )
+                except Exception as ui_err:
+                    self.logger.debug(
+                        f"UI update skipped (likely navigated away): {ui_err}"
+                    )
             except Exception as e:
                 self.logger.error(f"Job submission failed: {e}")
+                message = str(e)
+                if job_id:
+                    try:
+                        await DatabaseService.update_job_status(
+                            job_uid=job_id, status="Failed", status_text=message
+                        )
+                    except Exception as db_err:
+                        self.logger.error(
+                            f"Failed to update job status to Failed in DB: {db_err}"
+                        )
+                if conversation_id:
+                    try:
+                        await DatabaseService.save_error_to_history(
+                            conversation_id, endpoint, message
+                        )
+                    except Exception as hist_err:
+                        self.logger.error(
+                            f"Failed to save error to chat history: {hist_err}"
+                        )
                 if loading_row and hasattr(loading_row, "delete"):
                     try:
                         loading_row.delete()
                     except Exception:
                         pass
-                message = str(e)
-                if "demo_???" in message:
-                    from frontend.pages.chatbot.ui import UIOperations
 
-                    UIOperations.safe_notify(message, type="warning")
-                else:
-                    self.error_handler.display_error_boundary(
-                        target_container, "Submission Failed", message
-                    )
+                try:
+                    if "demo_???" in message:
+                        from frontend.pages.chatbot.ui import UIOperations
+
+                        UIOperations.safe_notify(message, type="warning")
+                    else:
+                        self.error_handler.display_error_boundary(
+                            target_container, "Submission Failed", message
+                        )
+                except Exception as ui_err:
+                    self.logger.debug(f"Could not display error to UI: {ui_err}")
             finally:
-                self.state_manager.set_processing(False)
-                self.state_manager.set_input_enabled(True)
+                try:
+                    self.state_manager.set_processing(False)
+                    self.state_manager.set_input_enabled(True)
+                except Exception:
+                    pass
 
         background_tasks.create(do_submit())
         return True
@@ -235,25 +272,50 @@ class ToolPicker(BaseHandler):
             f"ToolPicker.show menu source: {'Instance' if hasattr(self.tool_registry, 'TOOL_MENU') else 'Class'}. Items: {len(menu)}"
         )
 
-        with self.container:
-            # Replicating original TOOL_PICKER_CLASSES
-            picker_classes = (
-                "w-full max-w-3xl min-w-0 mx-auto bg-gradient-to-br from-zinc-50 via-white to-zinc-100 "
-                "border-2 border-[#505759]/40 shadow-lg rounded-xl text-base"
-            )
-            with ui.card().classes(picker_classes):
-                with ui.row().classes(Design.PANEL_SHELL_HEADER):
-                    ui.label("RescueBox Plugin Selector").classes(
-                        Design.PANEL_SHELL_HEADER_TITLE
-                    )
+        def get_tool_icon(name: str) -> str:
+            name_lower = name.lower()
+            if "transcribe" in name_lower or "audio" in name_lower:
+                return "mic"
+            if "describe" in name_lower or "summarize images" in name_lower:
+                return "visibility"
+            if "search images" in name_lower:
+                return "image_search"
+            if "age" in name_lower or "gender" in name_lower:
+                return "face_retouching_natural"
+            if "deepfake" in name_lower:
+                return "security"
+            if "upload face" in name_lower:
+                return "cloud_upload"
+            if "find face" in name_lower or "face match" in name_lower:
+                return "person_search"
+            if "summarize text" in name_lower or "text_summarization" in name_lower:
+                return "summarize"
+            if "search text" in name_lower:
+                return "find_in_page"
+            if "mount" in name_lower or "ufdr" in name_lower:
+                return "folder_open"
+            if "similar" in name_lower:
+                return "photo_library"
+            return "extension"
 
-                with ui.column().classes("p-4 gap-3 w-full"):
+        with self.container:
+            with ui.card().classes(
+                "w-full max-w-full bg-white border border-slate-200 shadow-md rounded-2xl overflow-hidden p-0"
+            ):
+                with ui.row().classes(Design.PANEL_SHELL_HEADER):
+                    with ui.row().classes("items-center gap-2"):
+                        ui.icon("extension", size="sm").classes("text-[#881c1c]")
+                        ui.label("RescueBox Plugin Selector").classes(
+                            Design.PANEL_SHELL_HEADER_TITLE
+                        )
+
+                with ui.column().classes("p-6 gap-3 w-full bg-slate-50"):
                     ui.label("Choose a plugin to run:").classes(
-                        "text-sm font-semibold text-zinc-700"
+                        "text-sm font-semibold text-slate-500 uppercase tracking-wider"
                     )
                     if not menu:
                         ui.label("No plugins available in TOOL_MENU.").classes(
-                            "text-sm text-red-500"
+                            "text-sm text-rose-500 font-medium"
                         )
                     else:
                         for num, tool in menu.items():
@@ -261,7 +323,9 @@ class ToolPicker(BaseHandler):
                                 f"Adding tool to UI: {num} - {tool.get('name')}"
                             )
                             row = ui.row().classes(
-                                f"w-full min-w-0 py-2 px-3 rounded-lg {Design.CHATBOT_PLUGIN_MENU_ROW} cursor-pointer"
+                                "w-full min-w-0 py-4 px-5 rounded-xl border border-slate-200 bg-white shadow-sm "
+                                "hover:bg-slate-50 hover:border-[#881c1c] cursor-pointer transition-all duration-150 "
+                                "items-center justify-between gap-4 border-l-4 border-l-[#881c1c]"
                             )
                             row.on(
                                 "click",
@@ -270,12 +334,35 @@ class ToolPicker(BaseHandler):
                                 ),
                             )
                             with row:
-                                ui.label(
-                                    f'{num}. {tool["name"]} — {tool.get("desc", "No description")}'
-                                ).classes(
-                                    "w-full text-left text-sm leading-snug font-medium text-zinc-900 "
-                                    "whitespace-normal break-words"
-                                )
+                                # Left side: Icon and Text
+                                with ui.row().classes(
+                                    "items-center gap-4 flex-1 min-w-0"
+                                ):
+                                    # Beautiful icon container
+                                    with ui.element("div").classes(
+                                        "w-12 h-12 rounded-xl bg-[#881c1c]/5 flex items-center justify-center shrink-0 border border-[#881c1c]/10"
+                                    ):
+                                        ui.icon(
+                                            get_tool_icon(tool["name"]), size="24px"
+                                        ).classes("text-[#881c1c]")
+
+                                    # Text column
+                                    with ui.column().classes("flex-1 min-w-0 gap-0.5"):
+                                        ui.label(f'{num}. {tool["name"]}').classes(
+                                            "text-lg font-bold text-slate-800 leading-snug"
+                                        )
+                                        ui.label(
+                                            tool.get("desc", "No description")
+                                        ).classes(
+                                            "text-sm sm:text-base text-slate-500 whitespace-normal break-words leading-relaxed"
+                                        )
+
+                                # Right side: Launch action indicator
+                                with ui.row().classes(
+                                    "items-center gap-1 shrink-0 text-[#881c1c] font-semibold text-sm bg-[#881c1c]/5 hover:bg-[#881c1c]/10 px-3 py-1.5 rounded-lg transition-all"
+                                ):
+                                    ui.label("Launch")
+                                    ui.icon("arrow_forward", size="16px")
 
         self.logger.info("ToolPicker.show finished building UI.")
 
@@ -291,29 +378,75 @@ class AnalysisPicker(BaseHandler):
 
         self.logger.info("AnalysisPicker.show started")
         with self.container:
-            # Replicating original ANALYSIS_PICKER_CLASSES
-            picker_classes = "w-full max-w-2xl mx-auto bg-zinc-50 border-2 border-[#505759]/40 text-sm shadow-lg rounded-xl"
-            with ui.card().classes(picker_classes):
+            with ui.card().classes(
+                "w-full max-w-full bg-white border border-slate-200 shadow-md rounded-2xl overflow-hidden p-0"
+            ):
                 with ui.row().classes(Design.PANEL_SHELL_HEADER):
-                    ui.label("Analysis Mode").classes(Design.PANEL_SHELL_HEADER_TITLE)
+                    with ui.row().classes("items-center gap-2"):
+                        ui.icon("analytics", size="sm").classes("text-[#881c1c]")
+                        ui.label("Analysis Mode").classes(
+                            Design.PANEL_SHELL_HEADER_TITLE
+                        )
 
-                with ui.column().classes("p-4 gap-3 w-full"):
+                with ui.column().classes("p-6 gap-3 w-full bg-slate-50"):
                     ui.label("Select an analysis type:").classes(
-                        "text-sm text-zinc-600"
+                        "text-sm font-semibold text-slate-500 uppercase tracking-wider"
                     )
                     options = ["Surface Scan", "Deep Forensic", "AI Content Analysis"]
+                    analysis_details = {
+                        "Surface Scan": {
+                            "desc": "Quickly analyze metadata, file headers, and basic structures",
+                            "icon": "radar",
+                        },
+                        "Deep Forensic": {
+                            "desc": "Comprehensive, byte-level analysis of all partitions and hidden data",
+                            "icon": "biotech",
+                        },
+                        "AI Content Analysis": {
+                            "desc": "Leverage machine learning models to detect objects, faces, and transcribe media",
+                            "icon": "psychology",
+                        },
+                    }
                     for a_type in options:
+                        details = analysis_details.get(
+                            a_type,
+                            {"desc": "Run automated analysis", "icon": "analytics"},
+                        )
                         self.logger.info(f"Adding analysis option: {a_type}")
                         row = ui.row().classes(
-                            f"w-full min-w-0 py-3 px-3 rounded-lg {Design.CHATBOT_PLUGIN_MENU_ROW} cursor-pointer"
+                            "w-full min-w-0 py-4 px-5 rounded-xl border border-slate-200 bg-white shadow-sm "
+                            "hover:bg-slate-50 hover:border-[#881c1c] cursor-pointer transition-all duration-150 "
+                            "items-center justify-between gap-4 border-l-4 border-l-[#881c1c]"
                         )
                         row.on(
                             "click", lambda *a, t=a_type: self.on_analysis_selected(t)
                         )
                         with row:
-                            ui.label(a_type).classes(
-                                "w-full text-left text-sm leading-snug font-medium text-zinc-900"
-                            )
+                            # Left side: Icon and Text
+                            with ui.row().classes("items-center gap-4 flex-1 min-w-0"):
+                                # Beautiful icon container
+                                with ui.element("div").classes(
+                                    "w-12 h-12 rounded-xl bg-[#881c1c]/5 flex items-center justify-center shrink-0 border border-[#881c1c]/10"
+                                ):
+                                    ui.icon(details["icon"], size="24px").classes(
+                                        "text-[#881c1c]"
+                                    )
+
+                                # Text column
+                                with ui.column().classes("flex-1 min-w-0 gap-0.5"):
+                                    ui.label(a_type).classes(
+                                        "text-lg font-bold text-slate-800 leading-snug"
+                                    )
+                                    ui.label(details["desc"]).classes(
+                                        "text-sm sm:text-base text-slate-500 whitespace-normal break-words leading-relaxed"
+                                    )
+
+                            # Right side: Launch action indicator
+                            with ui.row().classes(
+                                "items-center gap-1 shrink-0 text-[#881c1c] font-semibold text-sm bg-[#881c1c]/5 hover:bg-[#881c1c]/10 px-3 py-1.5 rounded-lg transition-all"
+                            ):
+                                ui.label("Analyze")
+                                ui.icon("arrow_forward", size="16px")
         self.logger.info("AnalysisPicker.show finished building UI.")
 
 
@@ -336,14 +469,20 @@ async def show_case_notes_dialog() -> Optional[str]:
     future = loop.create_future()
     with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_NARROW):
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
-            ui.label("Job Submission Details").classes(Design.PANEL_SHELL_HEADER_TITLE)
+            with ui.row().classes("items-center gap-2"):
+                ui.icon("rate_review", size="sm").classes("text-[#881c1c]")
+                ui.label("Job Submission Details").classes(
+                    Design.PANEL_SHELL_HEADER_TITLE
+                )
             ui.button(
-                icon="close", on_click=lambda: (future.set_result(None), dialog.close())
+                icon="close",
+                color=None,
+                on_click=lambda: (future.set_result(None), dialog.close()),
             ).props("flat round dense").classes(Design.PANEL_SHELL_HEADER_ICON)
 
         with ui.column().classes(Design.PANEL_SHELL_BODY + " gap-4"):
             ui.label("Add optional notes for the case file:").classes(
-                "text-sm text-zinc-500"
+                "text-sm text-slate-500 font-medium"
             )
             # Use rb-case-notes-field to ensure maroon/gray brand colors and no blue/indigo
             notes = (
@@ -355,10 +494,12 @@ async def show_case_notes_dialog() -> Optional[str]:
         with ui.row().classes(Design.PANEL_SHELL_FOOTER + " justify-end"):
             ui.button(
                 "Skip & Submit",
+                color=None,
                 on_click=lambda: (future.set_result(""), dialog.close()),
             ).classes(Design.BTN_MEDIUM_GRAY).props("outline")
             ui.button(
                 "Submit with Notes",
+                color=None,
                 on_click=lambda: (future.set_result(notes.value), dialog.close()),
             ).classes(Design.BTN_PRIMARY)
     dialog.open()

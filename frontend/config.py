@@ -29,8 +29,8 @@ API_TIMEOUT = float(os.getenv("RESCUEBOX_API_TIMEOUT", "30.0"))
 APP_TITLE = os.getenv("RESCUEBOX_APP_TITLE", "RescueBox")
 APP_PORT = int(os.getenv("RESCUEBOX_PORT", "8080"))
 APP_VERSION = os.getenv("RESCUEBOX_VERSION", "3.0.0")
-# Tab icon: filesystem path so NiceGUI can serve it at /favicon.ico (webp is fine for modern browsers)
-APP_FAVICON = Path(__file__).resolve().parent / "icons" / "rb.webp"
+# Tab icon: filesystem path so NiceGUI can serve it at /favicon.ico
+APP_FAVICON = Path(__file__).resolve().parent / "icons" / "favicon.png"
 APP_DARK_MODE = os.getenv("RESCUEBOX_DARK_MODE", "false").lower() == "true"
 APP_SHOW_BROWSER = os.getenv("RESCUEBOX_SHOW_BROWSER", "false").lower() == "false"
 

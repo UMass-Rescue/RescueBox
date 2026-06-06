@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import List, Optional, Tuple
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 from nicegui import ui
 from starlette.requests import Request
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 LICENSE_ROOT = _REPO_ROOT / "License&Copyright"
 # Relative to LICENSE_ROOT — default document when ``?doc=`` is missing/invalid.
 DEFAULT_LICENSE_REL = "LICENSE"
@@ -114,7 +114,7 @@ def render_one_file(
             )
             ui.code(raw).classes(
                 "w-full max-w-none text-sm whitespace-pre-wrap break-words "
-                "block p-4 bg-zinc-50 rounded-lg border border-zinc-300"
+                "block p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-inner"
             )
 
 
@@ -124,92 +124,132 @@ def render_license_documents_section(
     static_url: str = "/license-copyright",
     page_path: str = "/about",
 ) -> None:
-    """License & Copyright picker and viewer; uses ``?doc=`` on ``page_path``."""
-    doc = request.query_params.get("doc")
+    """License & Copyright picker and viewer; uses dynamic, inline, closable, and scrollable rendering."""
     root = LICENSE_ROOT
     files = list_text_docs(root)
 
     ui.element("div").props('id="license-copyright"').classes("scroll-mt-24")
     with ui.card().classes(
-        "w-full max-w-3xl p-6 bg-white border border-zinc-300 rounded-xl shadow-sm"
+        "w-full max-w-3xl p-6 bg-white border border-slate-200 rounded-2xl shadow-md border-t-4 border-t-[#881c1c] flex flex-col gap-4"
     ):
-        ui.label("License & Copyright").classes(
-            "text-xl font-semibold text-[#505759] mb-2"
-        )
+        ui.label("License & Copyright").classes("text-xl font-semibold text-slate-800")
         ui.label(
-            "RescueBox LICENSE, COPYRIGHT, and NOTICE, see bundled third-party notices when you choose Third party."
-        ).classes("text-sm text-zinc-600 mb-4")
+            "Select a document below to view RescueBox LICENSE, COPYRIGHT, NOTICE, or bundled third-party notices."
+        ).classes("text-sm text-zinc-600")
 
-    if not root.is_dir():
-        ui.label(f"Folder not found: {root}").classes("text-red-600")
-        return
-    if not files:
-        ui.label("No license documents found in that folder.").classes("text-zinc-600")
-        return
-
-    primary_entries, third_party_files = _primary_and_third_party_paths(files)
-
-    rel = unquote(doc) if doc else ""
-    if rel not in files:
-        if DEFAULT_LICENSE_REL in files:
-            rel = DEFAULT_LICENSE_REL
-        elif primary_entries:
-            rel = primary_entries[0][1]
-        else:
-            rel = files[0]
-
-    base = page_path.rstrip("/") or "/about"
-
-    def _navigate_to_doc(new_rel: str) -> None:
-        if new_rel in files:
-            ui.navigate.to(f"{base}?doc={quote(new_rel, safe='')}")
-
-    # Main picker: primary docs + optional "Third party".
-    # NiceGUI dict options are {value: label} (keys are selected values; values are shown in the UI).
-    main_options: dict[str, str] = {path: label for label, path in primary_entries}
-    if third_party_files:
-        main_options[_THIRD_PARTY_SENTINEL] = "Third party"
-
-    if rel in third_party_files:
-        main_value = _THIRD_PARTY_SENTINEL
-    else:
-        main_value = next(
-            (path for label, path in primary_entries if path == rel),
-            primary_entries[0][1] if primary_entries else rel,
-        )
-
-    def _on_main_pick(e) -> None:
-        v = e.value
-        if not isinstance(v, str):
+        if not root.is_dir():
+            ui.label(f"Folder not found: {root}").classes("text-red-600")
             return
-        if v == _THIRD_PARTY_SENTINEL and third_party_files:
-            target = rel if rel in third_party_files else third_party_files[0]
-            _navigate_to_doc(target)
-        elif v != _THIRD_PARTY_SENTINEL:
-            _navigate_to_doc(v)
+        if not files:
+            ui.label("No license documents found in that folder.").classes(
+                "text-zinc-600"
+            )
+            return
 
-    ui.select(
-        options=main_options,
-        value=main_value,
-        label="Document",
-        on_change=_on_main_pick,
-    ).classes("w-full max-w-2xl")
+        primary_entries, third_party_files = _primary_and_third_party_paths(files)
 
-    if third_party_files:
-        with ui.column().classes("w-full max-w-2xl mt-2") as third_wrap:
-            third_wrap.visible = rel in third_party_files
+        # Main options for the select dropdown
+        main_options: dict[str, str] = {path: label for label, path in primary_entries}
+        if third_party_files:
+            main_options[_THIRD_PARTY_SENTINEL] = "Third party"
 
-            def _on_third_pick(e) -> None:
-                v = e.value
-                if isinstance(v, str) and v in third_party_files:
-                    _navigate_to_doc(v)
+        # Dropdowns row
+        with ui.row().classes("w-full gap-4 items-center flex-wrap sm:flex-nowrap"):
+            # Primary document selector
+            main_select = ui.select(
+                options=main_options,
+                label="Document",
+                value=None,
+                on_change=lambda e: _on_main_change(e),
+            ).classes("flex-1 min-w-[200px]")
 
-            ui.select(
+            # Third-party document selector (hidden by default)
+            third_select = ui.select(
                 options=third_party_files,
-                value=rel if rel in third_party_files else third_party_files[0],
                 label="Third-party document",
-                on_change=_on_third_pick,
-            ).classes("w-full")
+                value=None,
+                on_change=lambda e: _on_third_change(e),
+            ).classes("flex-1 min-w-[200px]")
+            third_select.visible = False
 
-    body = ui.column().classes("w-full min-w-0 mt-6")
-    render_one_file(body, root, rel, static_url=static_url)
+        # Closable & Scrollable Viewer Container (hidden by default)
+        with ui.card().classes(
+            "w-full p-4 bg-slate-50 border border-slate-200 rounded-xl shadow-sm flex flex-col gap-3"
+        ) as viewer_card:
+            viewer_card.visible = False
+
+            # Viewer Header
+            with ui.row().classes(
+                "w-full justify-between items-center border-b pb-2 border-slate-200"
+            ):
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon("article", size="sm").classes("text-[#881c1c]")
+                    viewer_title = ui.label("").classes(
+                        "text-sm font-bold text-slate-700 font-mono"
+                    )
+
+                # Close button
+                ui.button(
+                    "Close",
+                    icon="close",
+                    color=None,
+                    on_click=lambda: _close_viewer(),
+                ).props("flat dense no-caps").classes(
+                    "text-slate-600 hover:text-slate-800 hover:bg-slate-100 px-3 py-1 "
+                    "rounded-lg border border-slate-200 transition-colors text-sm font-medium"
+                )
+
+            # Scrollable body
+            viewer_body = ui.column().classes(
+                "w-full max-h-[350px] overflow-y-auto pr-2"
+            )
+
+        # Helper to render document content
+        def _show_document(rel_path: str):
+            viewer_body.clear()
+            viewer_title.text = rel_path
+            render_one_file(viewer_body, root, rel_path, static_url=static_url)
+            viewer_card.visible = True
+
+        # Close viewer action
+        def _close_viewer():
+            viewer_card.visible = False
+            main_select.value = None
+            third_select.value = None
+            third_select.visible = False
+
+        # On primary selection change
+        def _on_main_change(e):
+            val = e.value
+            if not val:
+                return
+            if val == _THIRD_PARTY_SENTINEL:
+                third_select.visible = True
+                # Automatically select and show the first third party file
+                first_third = third_party_files[0] if third_party_files else None
+                if first_third:
+                    third_select.value = first_third
+                    _show_document(first_third)
+            else:
+                third_select.visible = False
+                third_select.value = None
+                _show_document(val)
+
+        # On third-party selection change
+        def _on_third_change(e):
+            val = e.value
+            if val and val in third_party_files:
+                _show_document(val)
+
+        # Initial load from query param if present
+        doc = request.query_params.get("doc")
+        if doc:
+            rel = unquote(doc)
+            if rel in files:
+                if rel in third_party_files:
+                    main_select.value = _THIRD_PARTY_SENTINEL
+                    third_select.value = rel
+                    third_select.visible = True
+                else:
+                    main_select.value = rel
+                _show_document(rel)

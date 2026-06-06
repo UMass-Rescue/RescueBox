@@ -139,19 +139,19 @@ async def test_do_submit_error_enables_input(monkeypatch):
     core = MagicMock()
     core.config = MagicMock()
     core.config.RESCUEBOX_HOST = "http://localhost"
+    core.submit_job = AsyncMock(side_effect=Exception("Simulated API failure"))
 
     with patch(
-        "frontend.pages.chatbot.api_helpers.post_job", new_callable=AsyncMock
-    ) as mock_post, patch(
         "frontend.pages.chatbot.DatabaseService.create_and_track_job",
         new_callable=AsyncMock,
         return_value={"job_id": "job1"},
     ), patch(
         "frontend.pages.chatbot.DatabaseService.save_user_prompt_if_missing_from_form_submission",
         new_callable=AsyncMock,
+    ), patch(
+        "frontend.pages.chatbot.DatabaseService.update_job_status",
+        new_callable=AsyncMock,
     ):
-
-        mock_post.side_effect = Exception("Simulated API failure")
 
         request_body = MagicMock()
         request_body.inputs = {}

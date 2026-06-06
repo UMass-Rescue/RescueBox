@@ -137,9 +137,12 @@ def open_file(path: str):
                 with ui.row().classes("gap-2 mt-2"):
                     ui.button(
                         "Open folder",
+                        color=None,
                         on_click=lambda: open_folder(os.path.dirname(path)),
-                    ).props("outline")
-                    ui.button("Close", on_click=d.close).classes(Design.BTN_MEDIUM_GRAY)
+                    ).classes(Design.BTN_SECONDARY_NEUTRAL)
+                    ui.button("Close", color=None, on_click=d.close).classes(
+                        Design.BTN_MEDIUM_GRAY
+                    )
             d.open()
         else:
             ui.navigate.to(route)
@@ -302,9 +305,12 @@ def open_image_bbox_preview_dialog(
             ui.button(
                 "Open folder",
                 icon="folder_open",
+                color=None,
                 on_click=lambda: open_folder(os.path.dirname(abs_path)),
-            ).props("outline")
-            ui.button("Close", on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
+            ).classes(Design.BTN_SECONDARY_NEUTRAL)
+            ui.button("Close", color=None, on_click=dialog.close).classes(
+                Design.BTN_MEDIUM_GRAY
+            )
     dialog.open()
 
 
@@ -570,6 +576,7 @@ def render_directory(container, response):
                 ui.button(
                     "Open Folder",
                     icon="folder_open",
+                    color=None,
                     on_click=lambda: open_folder(path),
                 ).classes(Design.BTN_PRIMARY_COMPACT)
             if path:
@@ -636,11 +643,13 @@ def render_file(container, response):
                         ui.button(
                             "Open File",
                             icon="visibility",
+                            color=None,
                             on_click=lambda: open_file(path),
                         ).classes(Design.BTN_PRIMARY_COMPACT)
                         ui.button(
                             "Open Folder",
                             icon="folder",
+                            color=None,
                             on_click=lambda: open_folder(os.path.dirname(path)),
                         ).classes(Design.BTN_SECONDARY_NEUTRAL)
             if path:
@@ -887,10 +896,9 @@ def _open_image_summary_markdown_modal(file_info: Dict[str, Any]) -> None:
     )
     with ui.dialog() as dialog:
         dialog.props("position=right full-height").classes("image-summary-side-dialog")
-        dialog.style("width: min(520px, 48vw); max-width: 100vw;")
         with ui.card().classes(
-            "w-full h-full min-h-0 flex flex-col p-6 rounded-none shadow-2xl border-l border-zinc-200 bg-white"
-        ):
+            "h-full min-h-0 flex flex-col p-6 rounded-none shadow-2xl border-l border-zinc-200 bg-white"
+        ).style("width: min(520px, 48vw); max-width: 100vw;"):
             ui.label(name).classes("text-2xl font-semibold shrink-0 mb-4")
             with ui.column().classes(
                 "overflow-y-auto flex-1 min-h-0 w-full image-summary-md-modal"
@@ -899,9 +907,26 @@ def _open_image_summary_markdown_modal(file_info: Dict[str, Any]) -> None:
             with ui.row().classes("gap-2 mt-4 shrink-0 justify-end flex-wrap"):
                 if path_full:
                     ui.button(
-                        "Open raw file", on_click=lambda: open_file(path_full)
-                    ).props("flat outline")
-                ui.button("Close", on_click=dialog.close).classes(
+                        "Open raw file",
+                        color=None,
+                        on_click=lambda: open_file(path_full),
+                    ).classes(Design.BTN_SECONDARY_NEUTRAL)
+
+                    def _download_raw():
+                        try:
+                            import os
+
+                            with open(path_full, "rb") as f:
+                                data = f.read()
+                            ui.download(data, os.path.basename(path_full))
+                        except Exception as e:
+                            ui.notify(f"Error downloading file: {e}", type="negative")
+
+                    ui.button(
+                        "Download raw file", color=None, on_click=_download_raw
+                    ).classes(Design.BTN_SECONDARY_NEUTRAL)
+
+                ui.button("Close", color=None, on_click=dialog.close).classes(
                     Design.BTN_MEDIUM_GRAY
                 )
     dialog.open()

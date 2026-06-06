@@ -190,17 +190,25 @@ def render_demo_files_explorer(
                 with nav:
                     ui.button(
                         "Demo root",
+                        color=None,
                         on_click=lambda: go_to(str(root)),
                     ).classes(
-                        "text-xs"
-                    ).props("dense outline")
+                        "text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded border border-slate-200 transition-colors"
+                    ).props(
+                        "dense"
+                    )
                     if cur != root:
                         parent = cur.parent
                         if parent == root or _is_under_root(parent, root):
                             ui.button(
                                 "Up one level",
+                                color=None,
                                 on_click=lambda: go_to(str(parent)),
-                            ).classes("text-xs").props("dense outline")
+                            ).classes(
+                                "text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded border border-slate-200 transition-colors"
+                            ).props(
+                                "dense"
+                            )
 
                 for path, is_dir in _list_entries(
                     cur,

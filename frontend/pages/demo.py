@@ -52,10 +52,16 @@ async def demo_page(walkthrough: Optional[str] = None):
     preset = normalize_demo_walkthrough_query(walkthrough)
     samples_only = preset != "all"
 
-    with ui.column().classes("container mx-auto p-8 max-w-5xl w-full min-w-0"):
+    with ui.column().classes(
+        "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
+    ):
         if samples_only:
             with ui.column().props("id=sample-inputs").classes("scroll-mt-24 w-full"):
-                ui.label("Sample inputs & outputs").classes("text-2xl font-bold mb-1")
+                with ui.row().classes("items-center gap-2 mb-1"):
+                    ui.icon("folder_zip", size="sm").classes("text-[#881c1c]")
+                    ui.label("Sample inputs & outputs").classes(
+                        "text-2xl font-bold text-slate-800"
+                    )
                 if preset in _SAMPLE_FILTER_BLURB:
                     ui.label(_SAMPLE_FILTER_BLURB[preset]).classes(
                         "text-zinc-600 text-sm mb-3"
@@ -67,19 +73,22 @@ async def demo_page(walkthrough: Optional[str] = None):
                 )
                 if guide and label:
                     ui.link(label, guide).classes(
-                        "text-[#a2aaad] hover:text-[#8a9194] hover:underline text-sm mb-4 inline-block"
+                        "text-[#881c1c] hover:underline text-sm mb-4 inline-block"
                     )
 
         else:
-            ui.label("RescueBox Demo").classes("text-3xl font-bold mb-4")
+            with ui.row().classes("items-center gap-2 mb-2"):
+                ui.icon("school", size="lg").classes("text-[#881c1c]")
+                ui.label("RescueBox Demo").classes("text-4xl font-bold text-slate-800")
             ui.label("Follow the step-by-step guide to learn RescueBox.").classes(
-                "text-black-600 mb-6"
+                "text-slate-500 mb-6 pl-1 text-lg"
             )
-            with ui.column().classes("gap-3 items-start"):
+            with ui.column().classes("gap-3 items-stretch w-full max-w-2xl"):
                 # Neutral outline: no Quasar primary / no brand fill (color=None + flat outline).
                 _demo_btn = (
-                    "text-zinc-800 px-6 py-3 rounded-xl font-semibold "
-                    "bg-white border border-zinc-300 hover:bg-zinc-50 transition-colors"
+                    "text-slate-800 px-6 py-3 rounded-xl font-semibold "
+                    "bg-white border border-slate-200 hover:bg-slate-50 hover:shadow-md transition-all "
+                    "w-full text-left flex items-center gap-3 border-l-4 border-l-[#881c1c]"
                 )
                 _demo_btn_props = "flat unelevated no-caps"
                 ui.button(
