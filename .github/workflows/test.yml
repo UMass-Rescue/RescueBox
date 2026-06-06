@@ -40,4 +40,4 @@ jobs:
           poetry install --with api --with dev
 
       - name: Run tests
-        run: poetry run pytest --ignore=frontend/tests/integration/
+        run: HF_HUB_OFFLINE=1 poetry run pytest --ignore=frontend/tests/integration/
