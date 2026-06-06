@@ -98,9 +98,7 @@ class JobSubmissionOrchestrator(BaseHandler):
 
         if job_id:
             # Redirect immediately to the general jobs view so the user can see the list of jobs
-            _safe_ui_call(
-                ui.timer, 0.1, lambda: ui.navigate.to("/jobs"), once=True
-            )
+            _safe_ui_call(ui.timer, 0.1, lambda: ui.navigate.to("/jobs"), once=True)
 
         async def do_submit():
             try:
