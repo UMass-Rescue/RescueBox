@@ -17,9 +17,11 @@ from rb.api.models import (
     TextParameterDescriptor,
 )
 from frontend.design_tokens import Design
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.utils import (
     browse_directory_simple,
     browse_file_simple,
+    get_active_case,
     maybe_autofill_output_dir_field,
     maybe_autofill_ufdr_mount_name_field,
     select as safe_select,
@@ -175,8 +177,6 @@ async def create_parameter_field(
 def create_directory_input(
     field_id, initial_value, form_widgets, autofill_output_key=None
 ):
-    from frontend.utils import get_active_case
-
     active_case = get_active_case()
     default_path = active_case.evidencePath if active_case else ""
 
@@ -217,7 +217,7 @@ def create_directory_input(
                         maybe_autofill_output_dir_field(
                             form_widgets, autofill_output_key, p
                         )
-                except Exception:
+                except UI_RENDER_ERRORS:
                     v_icon.name = "error"
                     v_icon.classes(
                         "text-red-500", remove="text-green-500 text-zinc-400"
@@ -238,8 +238,6 @@ def create_directory_input(
 
 
 def create_file_input(field_id, initial_value, form_widgets, autofill_mount_key=None):
-    from frontend.utils import get_active_case
-
     active_case = get_active_case()
     default_path = active_case.evidencePath if active_case else ""
 
@@ -277,7 +275,7 @@ def create_file_input(field_id, initial_value, form_widgets, autofill_mount_key=
                         maybe_autofill_ufdr_mount_name_field(
                             form_widgets, autofill_mount_key, p
                         )
-                except Exception:
+                except UI_RENDER_ERRORS:
                     v_icon.name = "error"
                     v_icon.classes(
                         "text-red-500", remove="text-green-500 text-zinc-400"

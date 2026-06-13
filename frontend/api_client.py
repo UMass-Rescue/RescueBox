@@ -13,6 +13,7 @@ import httpx
 import asyncio
 import logging
 from frontend.config import API_BASE_URL, API_TIMEOUT
+from frontend.utils import exceptions as _fe_exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class ApiClient:
                     base_url=self.base_url, timeout=self.timeout
                 ) as sync_client:
                     return sync_client.get(full_path, **kwargs)
-            except Exception:
+            except _fe_exceptions.HTTP_CLIENT_ERRORS:
                 # fall back to async client
                 pass
         return await self._client.get(full_path, **kwargs)
@@ -71,26 +72,12 @@ class ApiClient:
                     base_url=self.base_url, timeout=self.timeout
                 ) as sync_client:
                     return sync_client.post(full_path, json=json, **kwargs)
-            except Exception:
+            except _fe_exceptions.HTTP_CLIENT_ERRORS:
                 pass
         return await self._client.post(full_path, json=json, **kwargs)
 
-    async def json(self, response: httpx.Response) -> Any:
-        """
-        Resolve response.json() robustly in case tests patch the response to return awaitables.
-        """
-        try:
-            result = response.json()
-        except Exception:
-            # Some mocked responses may raise; try awaiting .json if it's a coroutine
-            try:
-                maybe = getattr(response, "json", None)
-                if asyncio.iscoroutinefunction(maybe):
-                    return await maybe()
-            except Exception:
-                raise
-            raise
-        # If result is awaitable (AsyncMock), await it
+    async def _unwrap_json_payload(self, result: Any) -> Any:
+        """Await coroutine/future JSON mocks and unwrap callable return values."""
         if asyncio.iscoroutine(result) or asyncio.isfuture(result):
             return await result
         if callable(result) and not isinstance(result, dict):
@@ -99,9 +86,20 @@ class ApiClient:
                 if asyncio.iscoroutine(maybe) or asyncio.isfuture(maybe):
                     return await maybe
                 return maybe
-            except Exception:
+            except _fe_exceptions.HTTP_CLIENT_ERRORS:
                 return result
         return result
+
+    async def json(self, response: httpx.Response) -> Any:
+        """
+        Resolve response.json() robustly in case tests patch the response to return awaitables.
+        """
+        json_fn = getattr(response, "json", None)
+        if asyncio.iscoroutinefunction(json_fn):
+            result = await json_fn()
+        else:
+            result = response.json()
+        return await self._unwrap_json_payload(result)
 
     async def aclose(self) -> None:
         await self._client.aclose()

@@ -18,11 +18,17 @@ These components are critical for ensuring consistent, reliable chatbot
 behavior and providing users with clear, discoverable tool access patterns.
 """
 
-from frontend.chatbot.config import ChatbotConfig, ToolRegistry
+from frontend.chatbot.config import (
+    ChatbotConfig,
+    ToolRegistry,
+    normalize_ollama_host,
+    collect_ollama_model_names,
+    resolve_ollama_model_tag,
+)
 
 # Configuration constants
 DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
-DEFAULT_GRANITE_MODEL = "granite4:micro"
+DEFAULT_GRANITE_MODEL = "ibm/granite4.1:3b"
 DEFAULT_RESCUEBOX_HOST = "http://localhost:8000"
 DEFAULT_TIMEOUT = 604800
 DEFAULT_FILTER_ENABLED = True
@@ -96,6 +102,35 @@ class TestChatbotConfig:
         assert config.RESCUEBOX_HOST in expected_hosts
         assert config.TIMEOUT == 604800
         assert config.FILTER_ENABLED is DEFAULT_FILTER_ENABLED
+
+    def test_ollama_host_env_without_scheme(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_HOST", "127.0.0.1:11434")
+        config = ChatbotConfig()
+        assert config.OLLAMA_HOST == "http://127.0.0.1:11434"
+
+    def test_normalize_ollama_host_helper(self):
+        assert normalize_ollama_host("localhost:11434") == "http://localhost:11434"
+        assert (
+            normalize_ollama_host("https://ollama.example") == "https://ollama.example"
+        )
+
+    def test_resolve_ollama_model_tag(self):
+        tags = {
+            "models": [
+                {"name": "granite4-micro:latest", "model": "granite4-micro"},
+                {"name": "llama3.2", "model": "llama3.2"},
+            ]
+        }
+        names = collect_ollama_model_names(tags)
+        assert (
+            resolve_ollama_model_tag("ibm/granite4.1:3b", names)
+            == "granite4-micro:latest"
+        )
+        assert (
+            resolve_ollama_model_tag("granite4-micro", names) == "granite4-micro:latest"
+        )
+        assert resolve_ollama_model_tag("llama3.2", names) == "llama3.2"
+        assert resolve_ollama_model_tag("missing", names) is None
 
     def test_custom_config(self):
         """Test custom configuration values.

@@ -359,29 +359,53 @@ class TestRerunFunctionality:
         )
 
     @pytest.mark.asyncio
-    @patch("frontend.database.get_chat_history_db")
+    @patch("frontend.components.chat.view.get_chat_history_db")
     async def test_rerun_tool_call_success(self, mock_get_db, sample_tool_message):
-        """Test rerunning a tool call successfully."""
+        """Test rerunning a tool call when chatbot is not mounted (navigate with ?rerun=)."""
         mock_db = MagicMock()
         mock_db.get_tool_call_by_id = AsyncMock(return_value=sample_tool_message)
         mock_get_db.return_value = mock_db
 
-        with patch("frontend.components.chat.ui.navigate.to") as mock_navigate, patch(
-            "frontend.components.chat.ui.notify"
+        with patch(
+            "frontend.pages.chatbot.chat_page.ChatbotPage.get_instance",
+            return_value=None,
+        ), patch(
+            "frontend.components.chat.view.ui.navigate.to"
+        ) as mock_navigate, patch(
+            "frontend.components.chat.view.ui.notify"
         ) as mock_notify:
 
             await rerun_tool_call("msg-123")
 
-            # Verify database call
             mock_db.get_tool_call_by_id.assert_called_once_with("msg-123")
-
-            # Verify navigation with rerun parameter
             mock_navigate.assert_called_once_with("/chatbot?rerun=msg-123")
-
-            # Verify notification
             mock_notify.assert_called_once()
             assert mock_notify.call_args[0][0] == "Re-running: audio/transcribe"
             assert mock_notify.call_args[1].get("type") == "info"
+
+    @pytest.mark.asyncio
+    @patch("frontend.components.chat.view.get_chat_history_db")
+    async def test_rerun_tool_call_on_chatbot_page(
+        self, mock_get_db, sample_tool_message
+    ):
+        """Re-run Job button on /chatbot calls handle_rerun_parameter in-process."""
+        mock_db = MagicMock()
+        mock_db.get_tool_call_by_id = AsyncMock(return_value=sample_tool_message)
+        mock_get_db.return_value = mock_db
+
+        with patch(
+            "frontend.pages.chatbot.chat_page.ChatbotPage.get_instance",
+            return_value=MagicMock(),
+        ), patch(
+            "frontend.pages.chatbot.routes.handle_rerun_parameter",
+            new_callable=AsyncMock,
+        ) as mock_handle, patch(
+            "frontend.components.chat.view.ui.navigate.to"
+        ) as mock_navigate:
+            await rerun_tool_call("msg-123")
+
+            mock_handle.assert_awaited_once_with("msg-123")
+            mock_navigate.assert_not_called()
 
     @pytest.mark.asyncio
     @patch("frontend.database.get_chat_history_db")
@@ -391,7 +415,7 @@ class TestRerunFunctionality:
         mock_db.get_tool_call_by_id = AsyncMock(return_value=None)
         mock_get_db.return_value = mock_db
 
-        with patch("frontend.components.chat.ui.notify") as mock_notify:
+        with patch("frontend.components.chat.view.ui.notify") as mock_notify:
             await rerun_tool_call("nonexistent")
 
             mock_notify.assert_called_once()
@@ -524,7 +548,7 @@ class TestErrorHandling:
         mock_db.get_conversation = AsyncMock(return_value=mock_conv)
         mock_db.get_messages = AsyncMock(return_value=[])
         mock_get_db.return_value = mock_db
-        mock_js.side_effect = Exception("Storage error")
+        mock_js.side_effect = OSError("Storage error")
 
         await load_conversation(TEST_CONVERSATION_ID)
 

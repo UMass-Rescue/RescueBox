@@ -1,56 +1,54 @@
+"""Read-only explorer for demo sample files on /demo and walkthrough pages.
+
+Also includes shared Markdown rendering for in-app guides; screenshot placeholders
+``{{SCREENSHOT:filename.png}}`` load from ``/demo/<filename>`` (under ``frontend/demo/``).
+"""
+
 from __future__ import annotations
+
 import logging
 import re
 from pathlib import Path
-from typing import FrozenSet, List, Optional, Tuple, Callable
+from typing import FrozenSet, List, NamedTuple, Optional, Tuple, Callable
 from nicegui import ui
 from frontend.config import DEMO_FILES_BROWSE_ROOT
 from frontend.components.results import open_file
 
+_DEMO_NAV_BTN = (
+    "text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded "
+    "border border-slate-200 transition-colors"
+)
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-"""
-Read-only explorer for the demo sample directory (e.g. Documents/demo) on the /demo page
-and on individual walkthrough pages (filtered to folders relevant to each guide).
-Paths are constrained to DEMO_FILES_BROWSE_ROOT to avoid directory traversal.
-"""
 
+class WalkthroughPreset(NamedTuple):
+    """Per-walkthrough browsing: start folder and top-level filters under demo root."""
 
-class _WalkthroughPreset:
-    """Per-walkthrough browsing: optional start folder under demo root, filters on top-level listing."""
-
-    __slots__ = ("initial_subpath", "include_top_level", "exclude_dirs")
-
-    def __init__(
-        self,
-        initial_subpath: Optional[str] = None,
-        include_top_level: Optional[FrozenSet[str]] = None,
-        exclude_dirs: Optional[FrozenSet[str]] = None,
-    ) -> None:
-        self.initial_subpath = initial_subpath
-        self.include_top_level = include_top_level
-        self.exclude_dirs = exclude_dirs
+    initial_subpath: Optional[str] = None
+    include_top_level: Optional[FrozenSet[str]] = None
+    exclude_dirs: Optional[FrozenSet[str]] = None
 
 
 # Presets aligned with frontend/demo/*.md walkthroughs.
-_WALKTHROUGH_PRESETS: dict[str, _WalkthroughPreset] = {
+_WALKTHROUGH_PRESETS: dict[str, WalkthroughPreset] = {
     # transcribe_walkthrough.md — show transcribe-audio at demo root (do not start inside it, or only "inputs" shows)
-    "transcribe": _WalkthroughPreset(
+    "transcribe": WalkthroughPreset(
         include_top_level=frozenset({"transcribe-audio"}),
     ),
     # image_search_walkthrough.md — search-images only
-    "image_search": _WalkthroughPreset(
+    "image_search": WalkthroughPreset(
         include_top_level=frozenset({"search-images"}),
     ),
     # other_walkthrough.md — only age-gender-classifier and describe-images at demo root
-    "other": _WalkthroughPreset(
+    "other": WalkthroughPreset(
         include_top_level=frozenset({"age-gender-classifier", "describe-images"}),
     ),
     # quick_start.md — full demo tree
-    "quick_start": _WalkthroughPreset(),
+    "quick_start": WalkthroughPreset(),
     # Main /demo index — unfiltered
-    "all": _WalkthroughPreset(),
+    "all": WalkthroughPreset(),
 }
 
 
@@ -192,11 +190,7 @@ def render_demo_files_explorer(
                         "Demo root",
                         color=None,
                         on_click=lambda: go_to(str(root)),
-                    ).classes(
-                        "text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded border border-slate-200 transition-colors"
-                    ).props(
-                        "dense"
-                    )
+                    ).classes(_DEMO_NAV_BTN).props("dense")
                     if cur != root:
                         parent = cur.parent
                         if parent == root or _is_under_root(parent, root):
@@ -204,11 +198,7 @@ def render_demo_files_explorer(
                                 "Up one level",
                                 color=None,
                                 on_click=lambda: go_to(str(parent)),
-                            ).classes(
-                                "text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded border border-slate-200 transition-colors"
-                            ).props(
-                                "dense"
-                            )
+                            ).classes(_DEMO_NAV_BTN).props("dense")
 
                 for path, is_dir in _list_entries(
                     cur,
@@ -239,9 +229,6 @@ def render_demo_files_explorer(
                     else:
                         row.on("click", lambda *a, f=str(path): open_file(f))
                         with row:
-                            ui.icon("insert_drive_file", size="sm").classes(
-                                "text-[#a2aaad] shrink-0"
-                            )
                             ui.label(name).classes(
                                 "text-sm text-zinc-800 truncate flex-1 min-w-0"
                             )
@@ -267,12 +254,6 @@ def render_walkthrough_samples_panel(container: ui.element, walkthrough: str) ->
                     walkthrough=walkthrough,
                 )
 
-
-"""
-Shared Markdown rendering for in-app guides (quick start, walkthroughs).
-
-Screenshots: lines `{{SCREENSHOT:filename.png}}` load from `/demo/<filename>` (files in frontend/demo/).
-"""
 
 _FRONTEND_DEMO_DIR = Path(__file__).resolve().parent.parent / "demo"
 

@@ -5,9 +5,8 @@ from frontend.pages.jobs import jobs_page, job_details_page, JobsPage
 from frontend.pages.chatbot import chatbot_page, ChatbotPage
 from frontend.pages.logs import logs_page, LogsPage
 from frontend.pages.page_utils import (
-    get_page_title,
-    setup_common_imports,
     create_page_metadata,
+    get_page_title,
     log_page_action,
 )
 
@@ -19,6 +18,7 @@ from frontend.pages import (
     demo_other_walkthrough,
     demo_quick_start,
     demo_transcribe_walkthrough,
+    home,
     licenses_copyright,
 )
 
@@ -33,7 +33,6 @@ __all__ = [
     "logs_page",
     "LogsPage",
     "get_page_title",
-    "setup_common_imports",
     "create_page_metadata",
     "log_page_action",
     "about",
@@ -42,5 +41,6 @@ __all__ = [
     "demo_transcribe_walkthrough",
     "demo_image_summary_walkthrough",
     "demo_other_walkthrough",
+    "home",
     "licenses_copyright",
 ]

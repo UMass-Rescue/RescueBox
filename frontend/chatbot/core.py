@@ -2,68 +2,54 @@
 """
 Core Business Logic for Chatbot Operations
 
-This module contains the ChatbotCore class which handles all core chatbot operations
-including API interactions, form generation, job submission, and Granite model integration.
-
-Key Responsibilities:
-- Fetching task schemas from API endpoints
-- Converting tool call arguments to form initial values
-- Creating input forms dynamically
-- Submitting jobs to the RescueBox API
-- Calling Granite model for tool selection
+Coordinates API interactions, dynamic forms, job submission, and Granite (Ollama) tool selection.
 """
-from pathlib import Path
-import sys
 import json
-import httpx
+import logging
+from typing import Any, Dict, Optional
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+import httpx
+from nicegui import ui
+
+from rb.api.models import RequestBody, ResponseBody, TaskSchema
 from frontend.api_client import ApiClient
 from frontend.chatbot.api_helpers import fetch_task_schema
-from rb.api.models import TaskSchema, RequestBody, ResponseBody
+from frontend.chatbot.exceptions import CHATBOT_ERRORS
+from frontend.chatbot.forms import create_input_form as _create
+from frontend.chatbot.granite import parse_fine_tune_tool_response
+from frontend.chatbot.orchestrator import submit_job_orchestrator
 from frontend.chatbot.schema_utils import (
     convert_arguments_to_initial_values as _convert,
 )
-from frontend.chatbot.forms import create_input_form as _create
-from frontend.chatbot.orchestrator import submit_job_orchestrator
-from frontend.chatbot.granite import parse_fine_tune_tool_response
 from frontend.chatbot.tool_config import create_advanced_granite_prompt
-import logging
-from typing import Optional, Dict, Any
-from nicegui import ui
 
-
-# Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-# ---------------------------------------------------------------------------
-# Thin coordinator class (new) that replaces the runtime ChatbotCore symbol.
-# Appending instead of editing the original class body keeps history safe while
-# updating the public API used by the rest of the codebase/tests.
-# ---------------------------------------------------------------------------
-class ThinChatbotCore:
+class ChatbotCore:
     """
-    Thin coordinator that delegates to extracted helper modules.
+    RescueBox API + Ollama coordinator.
+
+    HTTP: ``self.api`` (ApiClient) is the primary entry; ``self.api_client`` is the
+    underlying ``httpx.AsyncClient`` used by ``api_helpers`` fallbacks.
     """
 
     def __init__(self, config):
         self.config = config
-        self.api_client = httpx.AsyncClient(
-            base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT
-        )
+        self.api = ApiClient(config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
+        self.api_client = self.api._client  # pylint: disable=protected-access
         self.ollama_url = config.OLLAMA_HOST
         logger.info("Granite tool OLLAMA_HOST: url=%s", self.ollama_url)
 
         self.ollama_client = httpx.AsyncClient(base_url=self.ollama_url, timeout=600.0)
-        self.api = ApiClient(config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
 
     async def get_task_schema_from_endpoint(
         self, endpoint: str
     ) -> Optional[TaskSchema]:
+        """Fetch and parse the TaskSchema for a plugin endpoint."""
         schema_dict = await fetch_task_schema(
-            self.api if hasattr(self, "api") else None,
+            self.api,
             self.api_client,
             self.config,
             endpoint,
@@ -73,6 +59,7 @@ class ThinChatbotCore:
     def convert_arguments_to_initial_values(
         self, arguments: Dict[str, Any], task_schema: TaskSchema, endpoint: str = ""
     ) -> Dict[str, Any]:
+        """Map tool arguments to form initial values."""
         return _convert(arguments, task_schema, endpoint)
 
     async def create_input_form(
@@ -84,6 +71,7 @@ class ThinChatbotCore:
         on_cancel: callable = None,
         container: Optional[ui.element] = None,
     ):
+        """Render a NiceGUI form for the given task schema."""
         return await _create(
             task_schema,
             endpoint,
@@ -96,6 +84,7 @@ class ThinChatbotCore:
     async def submit_job(
         self, request_body: RequestBody, endpoint: str
     ) -> ResponseBody:
+        """POST the job to RescueBox and return the normalized response body."""
         api_endpoint = f"{'' if endpoint.startswith('/') else '/'}{endpoint}"
         request_dict = {
             "inputs": {
@@ -105,7 +94,7 @@ class ThinChatbotCore:
             "parameters": request_body.parameters,
         }
         return await submit_job_orchestrator(
-            self.api if hasattr(self, "api") else None,
+            self.api,
             self.api_client,
             self.config,
             request_dict,
@@ -146,7 +135,6 @@ class ThinChatbotCore:
         try:
             if use_advanced:
                 messages = create_advanced_granite_prompt(prompt)
-                # Convert to Ollama format (role + content; flatten tool_calls into content)
                 ollama_messages = []
                 for m in messages:
                     role = m.get("role", "user")
@@ -208,19 +196,11 @@ class ThinChatbotCore:
                 )
             else:
                 logger.warning("Granite /api/chat returned empty message.content")
-        except Exception as e:
+        except CHATBOT_ERRORS as e:
             logger.error("Ollama connection or parsing error: %s", e, exc_info=True)
         return None
 
     async def close(self):
-        await self.api_client.aclose()
-        if hasattr(self, "api"):
-            await self.api.aclose()
+        """Close HTTP clients used by the chatbot core."""
+        await self.api.aclose()
         await self.ollama_client.aclose()
-        # Legacy attribute for test compatibility
-        if hasattr(self, "_llama_model"):
-            self._llama_model = None
-
-
-# Replace the exported symbol so external imports get the new thin coordinator.
-ChatbotCore = ThinChatbotCore

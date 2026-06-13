@@ -25,6 +25,7 @@ import json
 import logging
 import sqlite3
 from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -169,7 +170,6 @@ def insert_pipeline_job_step(
     conn = _connect(path)
     try:
         _ensure_schema(conn)
-        from datetime import datetime, timezone
 
         now = datetime.now(timezone.utc).isoformat()
         payload = json.dumps(detail, ensure_ascii=False)[:24000]
@@ -256,7 +256,6 @@ def insert_pipeline_response_rows(
     conn = _connect(path)
     try:
         _ensure_schema(conn)
-        from datetime import datetime, timezone
 
         now = datetime.now(timezone.utc).isoformat()
         conn.execute(
@@ -377,7 +376,6 @@ def insert_pipeline_io_links(
     conn = _connect(path)
     try:
         _ensure_schema(conn)
-        from datetime import datetime, timezone
 
         now = datetime.now(timezone.utc).isoformat()
         for r in rows:

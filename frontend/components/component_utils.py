@@ -5,12 +5,13 @@ This module provides shared utilities and helper functions for components.
 """
 
 import logging
-from pathlib import Path
-import sys
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
-# Configure logging for component utilities
+from nicegui import ui
+
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -21,10 +22,6 @@ def setup_component_imports():
 
     This function ensures backend models are available to components.
     """
-    # Add backend models to path if not already there
-    backend_path = Path(__file__).parent.parent / "src"
-    if str(backend_path) not in sys.path:
-        sys.path.insert(0, str(backend_path))
 
 
 def format_timestamp(timestamp: str, format_type: str = "relative") -> str:
@@ -48,31 +45,28 @@ def format_timestamp(timestamp: str, format_type: str = "relative") -> str:
             now = datetime.now()
             diff = now - dt.replace(tzinfo=None) if dt.tzinfo else now - dt
 
-            if diff.days == 0:
+            if not diff.days:
                 if diff.seconds < 60:
                     return "Just now"
-                elif diff.seconds < 3600:
+                if diff.seconds < 3600:
                     return f"{diff.seconds // 60} minutes ago"
-                else:
-                    return f"{diff.seconds // 3600} hours ago"
-            elif diff.days == 1:
+                return f"{diff.seconds // 3600} hours ago"
+            if diff.days == 1:
                 return "Yesterday"
-            elif diff.days < 7:
+            if diff.days < 7:
                 return f"{diff.days} days ago"
-            else:
-                return dt.strftime("%Y-%m-%d")
+            return dt.strftime("%Y-%m-%d")
 
-        elif format_type == "absolute":
+        if format_type == "absolute":
             return dt.strftime("%Y-%m-%d %H:%M:%S")
 
-        elif format_type == "short":
+        if format_type == "short":
             return dt.strftime("%m/%d %H:%M")
 
-        else:
-            return str(dt)
+        return str(dt)
 
-    except Exception as e:
-        logger.warning(f"Error formatting timestamp {timestamp}: {e}")
+    except UI_RENDER_ERRORS as e:
+        logger.warning("Error formatting timestamp %s: %s", timestamp, e)
         return str(timestamp)
 
 
@@ -87,8 +81,6 @@ def create_card_container(title: str = None, classes: str = "") -> Any:
     Returns:
         Card container context manager
     """
-    from nicegui import ui
-
     base_classes = "bg-white border border-zinc-200 rounded-lg shadow-sm"
     if classes:
         base_classes += f" {classes}"
@@ -114,11 +106,11 @@ def validate_component_config(config: Dict[str, Any], required_keys: list) -> bo
     """
     for key in required_keys:
         if key not in config:
-            logger.error(f"Missing required configuration key: {key}")
+            logger.error("Missing required configuration key: %s", key)
             return False
 
         if config[key] is None:
-            logger.error(f"Configuration key {key} cannot be None")
+            logger.error("Configuration key %s cannot be None", key)
             return False
 
     return True
@@ -180,3 +172,11 @@ def log_component_event(
         message += f" - {details}"
 
     logger.info(message)
+
+
+def create_success_card_element(message: str) -> ui.element:
+    """Standard green success card (shared by layout and base components)."""
+    with ui.card().classes("bg-green-50 border border-green-300 p-4") as success_card:
+        ui.label("Success").classes("text-lg font-semibold text-green-700 mb-2")
+        ui.label(message).classes("text-green-600")
+    return success_card

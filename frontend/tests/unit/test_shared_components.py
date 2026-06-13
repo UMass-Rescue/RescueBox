@@ -24,7 +24,7 @@ class TestNavbar:
 class TestBreadcrumbs:
     """Test breadcrumb component."""
 
-    @patch("frontend.components.shared.ui")
+    @patch("frontend.components.shared.breadcrumbs.ui")
     def test_create_breadcrumbs_structure(self, mock_ui):
         """Test breadcrumb creation."""
         mock_row = MagicMock()

@@ -4,8 +4,7 @@ Shared structures for plugin inputs/outputs.
 Use these TypedDicts in plugin code and in JSON payloads so clients (UI, pipelines)
 can pair source files to produced artifacts without inferring from filenames.
 
-See ``frontend/docs/plugin-output-contract.md`` (repo root) for the full backend
-plugin TODO: ``file_pairs`` / ``file_pair_rows`` + metadata per output row.
+See ``frontend/docs/ui-flow.md`` (repo root) for current end-to-end frontend flow.
 """
 
 from __future__ import annotations

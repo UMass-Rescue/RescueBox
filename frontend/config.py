@@ -32,7 +32,7 @@ APP_VERSION = os.getenv("RESCUEBOX_VERSION", "3.0.0")
 # Tab icon: filesystem path so NiceGUI can serve it at /favicon.ico
 APP_FAVICON = Path(__file__).resolve().parent / "icons" / "favicon.png"
 APP_DARK_MODE = os.getenv("RESCUEBOX_DARK_MODE", "false").lower() == "true"
-APP_SHOW_BROWSER = os.getenv("RESCUEBOX_SHOW_BROWSER", "false").lower() == "false"
+APP_SHOW_BROWSER = os.getenv("RESCUEBOX_SHOW_BROWSER", "true").lower() == "true"
 
 # About page (override for packaging / forks)
 ABOUT_AUTHORS = os.getenv("RESCUEBOX_ABOUT_AUTHORS", "RescueBox Team")
@@ -45,21 +45,23 @@ ABOUT_REPO_DESKTOP_URL = os.getenv(
 )
 
 # Database Configuration
-base_dir = None
-DATA_DIR = ""
-if os.getenv("HOME") is not None:
-    base_dir = Path(os.getenv("HOME"))
-    DATA_DIR = base_dir / ".rescuebox" / "data"
 if platform.system() == "Windows":
-    base_dir = Path(os.getenv("APPDATA"))
-    DATA_DIR = base_dir / "RescueBox-Desktop" / "data"
+    USER_DATA_ROOT = Path(os.getenv("APPDATA", str(Path.home())))
+    DATA_DIR = USER_DATA_ROOT / "RescueBox-Desktop" / "data"
+else:
+    USER_DATA_ROOT = Path(os.getenv("HOME", str(Path.home())))
+    DATA_DIR = USER_DATA_ROOT / ".rescuebox" / "data"
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DATA_DIR / "jobs.db"
 
 # Logging Configuration
 LOG_LEVEL = os.getenv("RESCUEBOX_LOG_LEVEL", "INFO")
-LOG_FILE = base_dir / "RescueBox-Desktop" / "logs" / "frontend.log"
+if platform.system() == "Windows":
+    LOG_FILE = USER_DATA_ROOT / "RescueBox-Desktop" / "logs" / "frontend.log"
+else:
+    LOG_FILE = USER_DATA_ROOT / ".rescuebox" / "logs" / "frontend.log"
+LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 # Demo folders: each browser session gets one folder from this pool (Option 1 auto-assign)
 DEMO_BASE = "."

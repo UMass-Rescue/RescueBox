@@ -2,6 +2,7 @@
 
 import logging
 from typing import Dict, Any, Optional
+
 from frontend.constants import UI_TITLES
 
 # Configure logging for page utilities
@@ -12,14 +13,6 @@ logger.setLevel(logging.INFO)
 def get_page_title(page_key: str, default: str = "Page") -> str:
     """Get the title for a page from constants. Args:"""
     return UI_TITLES.get(page_key, default)
-
-
-def setup_common_imports():
-    """Setup commonly used imports for pages. This function can be called by page modules to ensure"""
-    # Common imports that most pages need
-    from frontend.utils import setup_backend_path
-
-    setup_backend_path()
 
 
 def create_page_metadata(page_name: str) -> Dict[str, Any]:

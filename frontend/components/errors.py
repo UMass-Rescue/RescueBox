@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, Any, List
 from nicegui import ui
-from frontend.design_tokens import Design
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -38,17 +38,11 @@ def render_error_boundary(
                 if extra_actions:
                     with ui.row().classes("gap-2 mt-4"):
                         for action in extra_actions:
-                            try:
-                                # action should be a tuple (label, on_click_callable, classes)
-                                label, callback, classes = action
-                                ui.button(label, color=None, on_click=callback).classes(
-                                    classes
-                                )
-                            except Exception as e:
-                                logger.exception(
-                                    "Error rendering error message component: %s", e
-                                )
-    except Exception as e:
+                            label, callback, classes = action
+                            ui.button(label, color=None, on_click=callback).classes(
+                                classes
+                            )
+    except UI_RENDER_ERRORS as e:
         logger.exception("Error rendering error boundary: %s", e)
 
 
@@ -73,35 +67,10 @@ def render_error_message(
                         ui.code(str(debug_data), language="json").classes(
                             "text-xs max-h-32 overflow-auto"
                         )
-    except Exception as e:
+    except UI_RENDER_ERRORS as e:
         logger.exception("Error rendering error message component: %s", e)
         try:
             with container:
                 ui.label(f"Error: {message}").classes("text-red-600")
-        except Exception:
+        except UI_RENDER_ERRORS:
             logger.debug("Failed to render fallback simple error label")
-
-
-def show_validation_dialog(
-    primary_error: str, additional_errors: List[str] | None = None
-) -> ui.dialog:
-    """
-    Show a modal validation dialog listing primary and additional errors.
-    Returns the dialog instance (already opened).
-    """
-    with ui.dialog() as error_dialog:
-        with ui.card().classes("max-w-md"):
-            ui.label("Validation Error").classes(
-                "text-lg font-bold text-[#505759] mb-4"
-            )
-            ui.label(primary_error).classes("mb-4")
-            if additional_errors:
-                ui.label("Additional errors:").classes("font-semibold mb-2")
-                for additional_error in additional_errors:
-                    ui.label(f"• {additional_error}").classes("mb-1")
-            ui.button("OK", color=None, on_click=error_dialog.close).classes(
-                f"mt-4 {Design.BTN_MEDIUM_GRAY}"
-            )
-    error_dialog.open()
-    logger.debug("Validation dialog opened with primary_error: %s", primary_error)
-    return error_dialog

@@ -15,6 +15,7 @@ from frontend.config import (
     APP_TITLE,
     APP_VERSION,
 )
+from frontend.utils.ui import apply_saved_theme
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +24,6 @@ RESCUE_LAB_URL = "https://www.rescue-lab.org/"
 
 @ui.page("/about")
 async def about_page(request: Request):
-    from frontend.utils import apply_saved_theme
-
     apply_saved_theme()
     create_navbar()
 
@@ -41,7 +40,6 @@ async def about_page(request: Request):
                 "absolute -right-10 -bottom-10 w-40 h-40 bg-[#881c1c]/20 rounded-full blur-3xl"
             )
             with ui.row().classes("items-center gap-4 w-full relative z-10"):
-                ui.icon("info", size="2.5rem").classes("text-[#881c1c]")
                 with ui.column().classes("gap-1 flex-1"):
                     ui.label("About RescueBox").classes(
                         "text-2xl sm:text-3xl font-extrabold tracking-tight"
@@ -75,11 +73,9 @@ async def about_page(request: Request):
                     with ui.column().classes("w-full gap-3"):
                         for label_text, val, icon_name, is_url in _system_rows:
                             with ui.row().classes(
-                                "w-full gap-4 py-3 border-b border-slate-100 last:border-0 items-center hover:bg-slate-50/50 px-2 rounded-lg transition-colors"
+                                "w-full gap-4 py-3 border-b border-slate-100 last:border-0 "
+                                "items-center hover:bg-slate-50/50 px-2 rounded-lg transition-colors"
                             ):
-                                ui.icon(icon_name, size="sm").classes(
-                                    "text-[#881c1c] shrink-0"
-                                )
                                 with ui.column().classes("gap-0.5 flex-1 min-w-0"):
                                     ui.label(label_text).classes(
                                         "text-xs font-semibold text-slate-400 uppercase tracking-wider"
@@ -118,8 +114,9 @@ async def about_page(request: Request):
                             "text-xs font-semibold text-slate-500"
                         )
                     ui.label(
-                        "RescueLab conducts cutting-edge research in systems, security, and digital forensics. "
-                        "RescueBox is developed and maintained as part of our commitment to open-source investigative tools."
+                        "RescueLab conducts cutting-edge research in systems, security, "
+                        "and digital forensics. RescueBox is developed and maintained as part "
+                        "of our commitment to open-source investigative tools."
                     ).classes("text-slate-600 text-xs leading-relaxed")
                     ui.separator().classes("w-full my-1")
                     ui.link(
@@ -166,11 +163,10 @@ async def about_page(request: Request):
                     with ui.column().classes("w-full gap-2"):
                         for name, icon_name, path, desc in _resources:
                             with ui.row().classes(
-                                "w-full p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 cursor-pointer items-center gap-3 transition-all"
+                                "w-full p-2.5 rounded-xl border border-slate-100 "
+                                "hover:border-slate-200 hover:bg-slate-50 cursor-pointer "
+                                "items-center gap-3 transition-all"
                             ).on("click", lambda _, p=path: ui.navigate.to(p)):
-                                ui.icon(icon_name, size="sm").classes(
-                                    "text-[#881c1c] shrink-0"
-                                )
                                 with ui.column().classes("gap-0.5 flex-1 min-w-0"):
                                     ui.label(name).classes(
                                         "text-sm font-bold text-slate-800"

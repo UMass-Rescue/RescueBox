@@ -5,12 +5,12 @@ These tests make actual HTTP requests to the backend API and Ollama.
 They require:
 1. Backend API running at http://localhost:8000
 2. Ollama server running at http://localhost:11434
-3. Granite mode "granite4:micro" available in Ollama
+3. Granite mode "ibm/granite4.1:3b" available in Ollama
 
 To run these tests:
 1. Start backend: python -m rb.api.main
 2. Start Ollama: ollama serve
-3. Ensure Granite model: ollama pull granite4:micro
+3. Ensure Granite model: ollama pull ibm/granite4.1:3b
 4. Run: pytest frontend/tests/integration/test_chatbot_flow_integration.py -v -m "api and ollama"
 """
 
@@ -49,7 +49,7 @@ def _normalize_base_url(url: str) -> str:
 # Configuration
 API_BASE_URL = _normalize_base_url(os.getenv("API_BASE_URL", "http://localhost:8000"))
 OLLAMA_HOST = _normalize_base_url(os.getenv("OLLAMA_HOST", "http://localhost:11434"))
-GRANITE_MODEL = os.getenv("GRANITE_MODEL", "granite4:micro")
+GRANITE_MODEL = os.getenv("GRANITE_MODEL", "ibm/granite4.1:3b")
 
 
 @pytest_asyncio.fixture
@@ -309,7 +309,7 @@ class TestChatbotFlowIntegration:
 
         assert tool_calls is not None, (
             "Granite did not return tool calls; check Ollama and that GRANITE_MODEL matches "
-            "an installed model (default granite4:micro)."
+            "an installed model (default ibm/granite4.1:3b)."
         )
         assert isinstance(tool_calls, list), f"Expected list, got {type(tool_calls)}"
         assert len(tool_calls) > 0, "Expected at least one tool call"

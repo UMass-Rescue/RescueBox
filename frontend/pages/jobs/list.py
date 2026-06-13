@@ -13,6 +13,7 @@ from frontend.utils import (
     ensure_user_id,
     apply_saved_theme,
 )
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from .utils import (
     partition_jobs_by_pipeline,
     pipeline_group_root_id,
@@ -27,13 +28,13 @@ class JobsPage:
     def __init__(self):
         self.api_client = api_client
         self.jobs = []
+        self.jobs_container = None
 
     async def render(self):
         with ui.column().classes(
             "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
         ):
             with ui.row().classes("items-center gap-2 mb-6"):
-                ui.icon("view_list", size="lg").classes("text-[#881c1c]")
                 ui.label(UI_TITLES["jobs"]).classes("text-4xl font-bold text-slate-800")
             self.jobs_container = ui.column().classes("space-y-2 w-full")
             await self.load_jobs()
@@ -46,7 +47,7 @@ class JobsPage:
                 jobs_data, key=lambda j: j.get("startTime") or "", reverse=True
             )
             await self.render_jobs()
-        except Exception as e:
+        except UI_RENDER_ERRORS as e:
             await handle_api_error(e, "Error loading jobs")
 
     async def render_jobs(self):
@@ -68,7 +69,6 @@ class JobsPage:
                     with ui.row().classes(
                         "w-full items-center gap-2 py-2 px-3 mb-1 rounded-md bg-[#881c1c] text-white"
                     ):
-                        ui.icon("layers").classes("text-white")
                         ui.label("Pipeline").classes("font-semibold")
                         ui.link(root_id, f"/jobs/{root_id}").classes(
                             "text-white/90 hover:underline font-mono"
@@ -100,7 +100,7 @@ class JobsPage:
             )
             show_success_to_user(SUCCESS_MESSAGES["job_canceled"])
             await self.load_jobs()
-        except Exception as e:
+        except UI_RENDER_ERRORS as e:
             await handle_api_error(e, f"Error canceling job {job_id}")
 
     async def delete_job(self, job_id: str):
@@ -110,7 +110,7 @@ class JobsPage:
             else:
                 show_error_to_user("Job not found")
             await self.load_jobs()
-        except Exception as e:
+        except UI_RENDER_ERRORS as e:
             await handle_api_error(e, f"Error deleting job {job_id}")
 
 
@@ -130,4 +130,8 @@ async def jobs_page_route():
         for job in page.jobs
     )
     if has_active_jobs:
-        ui.timer(3.0, lambda: ui.navigate.reload(), once=True)
+
+        def _reload_jobs_page() -> None:
+            ui.navigate.reload()
+
+        ui.timer(3.0, _reload_jobs_page, once=True)

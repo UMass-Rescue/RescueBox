@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 from typing import Iterable, List, Optional, Union
 
+from frontend.database.db_exceptions import DB_ERRORS
 from frontend.database.file_filter_store import load_filter
 from frontend.database.file_filter_store import (
     resolve_filter_for_job,
@@ -25,7 +26,7 @@ def set_job_filter(
     job_uid: str,
     *,
     filter_id: Optional[str] = None,
-    owner_id: Optional[str] = None,
+    _owner_id: Optional[str] = None,
     clear: bool = False,
 ) -> bool:
     """
@@ -81,7 +82,7 @@ def get_job_filters(job_db, job_uid: str) -> dict:
         # Backcompat: keep request_json parse-valid; inline file_filter/output_filter are handled at submit time.
         try:
             json.loads(request_json)
-        except Exception:
+        except DB_ERRORS:
             pass
     return {
         "filter_id": filter_id,
@@ -96,15 +97,12 @@ def resolve_input_files(
     input_paths: Optional[List[Path]],
     supported_extensions: Optional[Iterable[str]] = None,
 ) -> List[Path]:
-    supported = set(
-        [
-            e.lower()
-            for e in (
-                supported_extensions
-                or [".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"]
-            )
-        ]
-    )
+    supported = {
+        e.lower()
+        for e in (
+            supported_extensions or [".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"]
+        )
+    }
     if not input_paths:
         return [
             p
@@ -118,7 +116,7 @@ def resolve_input_files(
             if input_dir.resolve() in pp.parents or pp == input_dir.resolve():
                 if pp.suffix.lower() in supported:
                     resolved.append(pp)
-        except Exception:
+        except DB_ERRORS:
             continue
     return resolved
 
@@ -145,10 +143,37 @@ def _match_numeric_range(value: float, pattern: str) -> bool:
                         return value < num
                     if op == "==":
                         return value == num
-                except Exception:
+                except DB_ERRORS:
                     return False
-    except Exception:
+    except DB_ERRORS:
         return False
+    return False
+
+
+def _pattern_matches_file_text(
+    txt: str,
+    pat: Union[str, int, float],
+    *,
+    mode: str,
+    case_sensitive: bool,
+) -> bool:
+    if isinstance(pat, (int, float)):
+        found = re.findall(r"[-+]?\d*\.\d+|\d+", txt)
+        if not found:
+            return False
+        val = float(found[0])
+        return _match_numeric_range(val, str(pat))
+    sp = str(pat)
+    if mode == "substring":
+        hay = txt if case_sensitive else txt.lower()
+        need = sp if case_sensitive else sp.lower()
+        return need in hay
+    if mode == "regex":
+        try:
+            flags = 0 if case_sensitive else re.IGNORECASE
+            return re.search(sp, txt, flags=flags) is not None
+        except re.error:
+            return False
     return False
 
 
@@ -168,39 +193,17 @@ def apply_output_filter(
     for f in output_files:
         try:
             txt = f.read_text(encoding="utf-8")
-        except Exception:
+        except DB_ERRORS:
             continue
         for pat in output_patterns:
-            if isinstance(pat, (int, float)):
-                try:
-                    # attempt to extract first float from text for comparison (best-effort)
-                    found = re.findall(r"[-+]?\d*\.\d+|\d+", txt)
-                    if not found:
-                        continue
-                    # use first number
-                    val = float(found[0])
-                    if _match_numeric_range(val, str(pat)):
-                        matched.append(f)
-                        break
-                except Exception:
-                    continue
-            else:
-                sp = str(pat)
-                if mode == "substring":
-                    hay = txt if case_sensitive else txt.lower()
-                    need = sp if case_sensitive else sp.lower()
-                    if need in hay:
-                        matched.append(f)
-                        break
-                elif mode == "regex":
-                    try:
-                        flags = 0 if case_sensitive else re.IGNORECASE
-                        if re.search(sp, txt, flags=flags):
-                            matched.append(f)
-                            break
-                    except re.error:
-                        continue
-        # end patterns loop
+            try:
+                if _pattern_matches_file_text(
+                    txt, pat, mode=mode, case_sensitive=case_sensitive
+                ):
+                    matched.append(f)
+                    break
+            except DB_ERRORS:
+                continue
     return matched
 
 
@@ -217,12 +220,12 @@ def parse_output_pattern(pattern_str: str) -> Union[dict, str, float, int]:
         if "." in s:
             return float(s)
         return int(s)
-    except Exception:
+    except DB_ERRORS:
         return {"type": "substring", "value": s}
 
 
 def process_prompt_for_filters(
-    prompt: str,
+    _prompt: str,
     tool_call: dict,
     input_dir: Optional[Path] = None,
     owner_id: Optional[str] = None,
@@ -243,7 +246,7 @@ def process_prompt_for_filters(
             persist_if_requested=False,
             owner_id=owner_id,
         )
-    except Exception:
+    except DB_ERRORS:
         input_paths, input_fid = ([], None)
 
     # Resolve output patterns
@@ -253,7 +256,7 @@ def process_prompt_for_filters(
             persist_if_requested=False,
             owner_id=owner_id,
         )
-    except Exception:
+    except DB_ERRORS:
         output_patterns, output_fid = ([], None)
 
     # If the tool_call already referenced persisted filters, prefer those ids
@@ -281,7 +284,7 @@ def process_prompt_for_filters(
     if output_fid:
         return output_fid
 
-    # No existing persisted filters; if persist requested and there are input_paths or output_patterns, persist accordingly
+    # No persisted filters; if persist requested and we have paths or patterns, save them
     if persist_if_requested and (input_paths or output_patterns):
         return create_composite_filter(
             paths=input_paths if input_paths else None,

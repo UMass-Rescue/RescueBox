@@ -1,12 +1,12 @@
-import sys
 import logging
 from pathlib import Path
 from typing import Optional, List, Any, Dict
+from rb.api.models import InputType
+
 from frontend.config import DEMO_FOLDERS_BASE
+from frontend.utils.exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
-
-_path_setup_done = False
 
 _COMMON_RASTER_IMAGE_SUFFIXES = (
     ".png",
@@ -20,18 +20,6 @@ _COMMON_RASTER_IMAGE_SUFFIXES = (
     ".heic",
     ".heif",
 )
-
-
-def setup_backend_path(backend_path: Optional[Path] = None):
-    global _path_setup_done
-    if _path_setup_done:
-        return
-    if backend_path is None:
-        backend_path = Path(__file__).parent.parent.parent / "src"
-    bp_str = str(backend_path.resolve())
-    if backend_path.exists() and bp_str not in sys.path:
-        sys.path.insert(0, bp_str)
-    _path_setup_done = True
 
 
 def _resolve_input_path(path_value: Any) -> Path:
@@ -49,7 +37,7 @@ def _resolve_input_path(path_value: Any) -> Path:
         demo_p = DEMO_FOLDERS_BASE / path_str
         if demo_p.exists():
             return demo_p.resolve()
-    except Exception:
+    except UI_RENDER_ERRORS:
         pass
     return p.resolve()
 
@@ -59,7 +47,7 @@ def is_outputs_results_directory(path: str) -> bool:
         return False
     try:
         return Path(path).resolve().name.casefold() == "outputs"
-    except Exception:
+    except UI_RENDER_ERRORS:
         return Path(path).name.casefold() == "outputs"
 
 
@@ -81,7 +69,7 @@ def maybe_autofill_output_dir_field(form_widgets, output_field_id, valid_input_d
     if suggested:
         try:
             w.set_value(suggested)
-        except Exception:
+        except UI_RENDER_ERRORS:
             w.value = suggested
 
 
@@ -128,7 +116,7 @@ def maybe_autofill_ufdr_mount_name_field(
     name = p.rsplit(".", 1)[0]
     try:
         w.set_value(name)
-    except Exception:
+    except UI_RENDER_ERRORS:
         w.value = name
 
 
@@ -148,7 +136,7 @@ def _directory_contains_raster_image(
                 return False
             if any(p.name.lower().endswith(s) for s in _COMMON_RASTER_IMAGE_SUFFIXES):
                 return True
-    except Exception:
+    except UI_RENDER_ERRORS:
         pass
     return False
 
@@ -163,7 +151,7 @@ def _resolved_existing_directory(initial: Optional[str]) -> Optional[str]:
         rp = p.resolve()
         if rp.is_dir():
             return str(rp)
-    except Exception:
+    except UI_RENDER_ERRORS:
         pass
     return None
 
@@ -180,17 +168,18 @@ def _resolved_file_browser_folder(initial: Optional[str]) -> Optional[str]:
             return str(rp)
         if rp.is_file():
             return str(rp.parent.resolve())
-    except Exception:
+    except UI_RENDER_ERRORS:
         pass
     return None
 
 
 def _input_schema_directory_requires_raster_image_corpus(
-    input_schema: Any,  # Using Any to avoid circular import if InputSchema is not available
+    input_schema: Any,
     all_inputs: List[Any] = None,
     input_index: int = -1,
 ) -> bool:
     """True when the given directory input likely needs to contain raster images."""
+    _ = (all_inputs, input_index)
     label = (input_schema.label or "").strip().lower()
     key = (input_schema.key or "").strip().lower()
     if "image" in label or "photo" in label or "picture" in label:
@@ -201,6 +190,4 @@ def _input_schema_directory_requires_raster_image_corpus(
 
 
 def _input_schema_is_text_or_textarea(input_schema: Any) -> bool:
-    from rb.api.models import InputType
-
     return input_schema.input_type in (InputType.TEXT, InputType.TEXTAREA)

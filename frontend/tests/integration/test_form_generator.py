@@ -52,7 +52,7 @@ class TestFormGenerator:
             await form_gen.generate_form(
                 schema=sample_task_schema.model_dump(),
                 container=container,
-                onSubmit=test_submit,
+                on_submit=test_submit,
                 endpoint="test/endpoint",
             )
 

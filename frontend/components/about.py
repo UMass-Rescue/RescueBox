@@ -128,9 +128,12 @@ def render_license_documents_section(
     root = LICENSE_ROOT
     files = list_text_docs(root)
 
-    ui.element("div").props('id="license-copyright"').classes("scroll-mt-24")
+    ui.element("div").props(
+        f'id="license-copyright" data-page-path="{page_path}"'
+    ).classes("scroll-mt-24")
     with ui.card().classes(
-        "w-full max-w-3xl p-6 bg-white border border-slate-200 rounded-2xl shadow-md border-t-4 border-t-[#881c1c] flex flex-col gap-4"
+        "w-full max-w-3xl p-6 bg-white border border-slate-200 rounded-2xl shadow-md "
+        "border-t-4 border-t-[#881c1c] flex flex-col gap-4"
     ):
         ui.label("License & Copyright").classes("text-xl font-semibold text-slate-800")
         ui.label(
@@ -153,79 +156,68 @@ def render_license_documents_section(
         if third_party_files:
             main_options[_THIRD_PARTY_SENTINEL] = "Third party"
 
-        # Dropdowns row
+        # Dropdowns row (handlers defined below; lambdas defer binding)
         with ui.row().classes("w-full gap-4 items-center flex-wrap sm:flex-nowrap"):
-            # Primary document selector
             main_select = ui.select(
                 options=main_options,
                 label="Document",
                 value=None,
-                on_change=lambda e: _on_main_change(e),
             ).classes("flex-1 min-w-[200px]")
 
-            # Third-party document selector (hidden by default)
             third_select = ui.select(
                 options=third_party_files,
                 label="Third-party document",
                 value=None,
-                on_change=lambda e: _on_third_change(e),
             ).classes("flex-1 min-w-[200px]")
             third_select.visible = False
 
-        # Closable & Scrollable Viewer Container (hidden by default)
         with ui.card().classes(
             "w-full p-4 bg-slate-50 border border-slate-200 rounded-xl shadow-sm flex flex-col gap-3"
         ) as viewer_card:
             viewer_card.visible = False
 
-            # Viewer Header
             with ui.row().classes(
                 "w-full justify-between items-center border-b pb-2 border-slate-200"
             ):
                 with ui.row().classes("items-center gap-2"):
-                    ui.icon("article", size="sm").classes("text-[#881c1c]")
                     viewer_title = ui.label("").classes(
                         "text-sm font-bold text-slate-700 font-mono"
                     )
 
-                # Close button
-                ui.button(
-                    "Close",
-                    icon="close",
-                    color=None,
-                    on_click=lambda: _close_viewer(),
-                ).props("flat dense no-caps").classes(
-                    "text-slate-600 hover:text-slate-800 hover:bg-slate-100 px-3 py-1 "
-                    "rounded-lg border border-slate-200 transition-colors text-sm font-medium"
+                close_btn = (
+                    ui.button(
+                        "Close",
+                        color=None,
+                    )
+                    .props("flat dense no-caps")
+                    .classes(
+                        "text-slate-600 hover:text-slate-800 hover:bg-slate-100 px-3 py-1 "
+                        "rounded-lg border border-slate-200 transition-colors text-sm font-medium"
+                    )
                 )
 
-            # Scrollable body
             viewer_body = ui.column().classes(
                 "w-full max-h-[350px] overflow-y-auto pr-2"
             )
 
-        # Helper to render document content
         def _show_document(rel_path: str):
             viewer_body.clear()
             viewer_title.text = rel_path
             render_one_file(viewer_body, root, rel_path, static_url=static_url)
             viewer_card.visible = True
 
-        # Close viewer action
-        def _close_viewer():
+        def _close_viewer(_event=None):
             viewer_card.visible = False
             main_select.value = None
             third_select.value = None
             third_select.visible = False
 
-        # On primary selection change
         def _on_main_change(e):
             val = e.value
             if not val:
                 return
             if val == _THIRD_PARTY_SENTINEL:
                 third_select.visible = True
-                # Automatically select and show the first third party file
                 first_third = third_party_files[0] if third_party_files else None
                 if first_third:
                     third_select.value = first_third
@@ -235,11 +227,22 @@ def render_license_documents_section(
                 third_select.value = None
                 _show_document(val)
 
-        # On third-party selection change
         def _on_third_change(e):
             val = e.value
             if val and val in third_party_files:
                 _show_document(val)
+
+        # NiceGUI event API: prefer `on_value_change` (newer), fall back to `on_change` (older).
+        if hasattr(main_select, "on_value_change"):
+            main_select.on_value_change(_on_main_change)
+        else:
+            main_select.on_change(_on_main_change)
+
+        if hasattr(third_select, "on_value_change"):
+            third_select.on_value_change(_on_third_change)
+        else:
+            third_select.on_change(_on_third_change)
+        close_btn.on_click(_close_viewer)
 
         # Initial load from query param if present
         doc = request.query_params.get("doc")

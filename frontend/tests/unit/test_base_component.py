@@ -94,7 +94,7 @@ class TestBaseComponent:
         mock_ui.spinner.assert_called_once_with(size="sm")
         mock_ui.label.assert_called_once_with("Custom loading...")
 
-    @patch("frontend.components.base_component.ui")
+    @patch("frontend.components.component_utils.ui")
     def test_create_success_display(self, mock_ui):
         """Test creating success display."""
 

@@ -3,6 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 from frontend.pages.chatbot import MessageFlowCoordinator
 
+# pylint: disable=protected-access
+
 
 @pytest.mark.asyncio
 async def test_coordinator_creates_result_processor_callback():
@@ -47,3 +49,14 @@ async def test_coordinator_creates_result_processor_callback():
     # Verify processing state was reset after routing completed
     assert is_processing_ref["value"] is False
     state_manager.set_processing.assert_called_with(False)
+
+
+def test_coordinator_uses_single_shared_form_submit_handler():
+    state_manager = MagicMock()
+    coordinator = MessageFlowCoordinator(state_manager)
+
+    assert coordinator.form_submit_handler is not None
+    assert (
+        coordinator.result_processor.form_submit_handler
+        is coordinator.form_submit_handler
+    )

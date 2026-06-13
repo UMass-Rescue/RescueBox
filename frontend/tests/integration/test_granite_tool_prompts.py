@@ -5,7 +5,7 @@ Each case sends a **short, distinct user prompt** through the same path as produ
 ``ChatbotCore.call_granite_model_direct`` → advanced Granite prompt → ``/api/chat``.
 
 **Requirements:** Ollama at ``OLLAMA_HOST`` (default http://localhost:11434) and
-``GRANITE_MODEL`` (default granite4:micro) pulled locally.
+``GRANITE_MODEL`` (default ibm/granite4.1:3b) pulled locally.
 
 **Run:**
   cd frontend && RUN_INTEGRATION=1 pytest tests/integration/test_granite_tool_prompts.py -v -m ollama
@@ -20,35 +20,16 @@ the prompt; the first returned tool must match ``expected_endpoint``.
 from __future__ import annotations
 
 import logging
-import os
 
 import pytest
-import pytest_asyncio
-import httpx
+
+from frontend.chatbot.config import ChatbotConfig
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-GRANITE_MODEL = os.getenv("GRANITE_MODEL", "granite4:micro")
-
-
-@pytest_asyncio.fixture
-async def ollama_client():
-    async with httpx.AsyncClient(base_url=OLLAMA_HOST, timeout=60.0) as client:
-        yield client
-
-
-@pytest_asyncio.fixture
-async def granite_model_available(ollama_client: httpx.AsyncClient) -> bool:
-    try:
-        response = await ollama_client.get("/api/tags")
-        if response.status_code != 200:
-            return False
-        models = response.json().get("models", [])
-        model_names = [m.get("name", "") for m in models]
-        return any(GRANITE_MODEL in name for name in model_names)
-    except Exception:
-        return False
+_integration_cfg = ChatbotConfig()
+OLLAMA_HOST = _integration_cfg.OLLAMA_HOST
+GRANITE_MODEL = _integration_cfg.GRANITE_MODEL
 
 
 # (expected_endpoint, short_user_prompt) — one clear forensic-style sentence per tool in SCHEMA_MAP
@@ -109,19 +90,16 @@ GRANITE_TOOL_PROMPTS = [
     ids=[row[0] for row in GRANITE_TOOL_PROMPTS],
 )
 async def test_granite_selects_expected_tool_first(
-    granite_model_available: bool,
+    granite_model_tag: str,
     expected_endpoint: str,
     short_prompt: str,
     caplog,
 ):
     """First tool call from Granite must match ``expected_endpoint`` for the given prompt."""
-    if not granite_model_available:
-        pytest.skip("Granite model not available in Ollama")
-
     from frontend.chatbot.core import ChatbotCore
     from frontend.chatbot.config import ChatbotConfig
 
-    config = ChatbotConfig(OLLAMA_HOST=OLLAMA_HOST, GRANITE_MODEL=GRANITE_MODEL)
+    config = ChatbotConfig(OLLAMA_HOST=OLLAMA_HOST, GRANITE_MODEL=granite_model_tag)
     core = ChatbotCore(config)
     try:
         caplog.set_level(logging.INFO, "frontend.chatbot.core")

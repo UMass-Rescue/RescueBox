@@ -1,10 +1,39 @@
 import logging
 from pathlib import Path
+
 from nicegui import ui
+
 from frontend.design_tokens import Design
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:
+    """Read and process log file contents."""
+    try:
+        if not log_file_path.exists():
+            return f"Log file does not exist: {log_file_path}"
+
+        logger.debug("Reading log file: %s", log_file_path)
+
+        with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+
+        if len(lines) > max_lines:
+            lines = lines[-max_lines:]
+            content = f"[Showing last {max_lines} lines of {len(lines) + (len(lines) - max_lines)} total lines]\n\n"
+        else:
+            content = ""
+
+        content += "".join(lines)
+        return content
+
+    except UI_RENDER_ERRORS as e:
+        error_msg = f"Error reading log file: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
 
 
 def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 1000):
@@ -32,8 +61,6 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
                     .props("outlined dense clearable debounce=300")
                     .classes("w-64 bg-white")
                 )
-                with search_input.add_slot("prepend"):
-                    ui.icon("search").classes("text-slate-400")
 
                 ui.label(f"Log file: {str(log_file)}").classes("text-sm text-zinc-600")
 
@@ -42,7 +69,7 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
                 with ui.scroll_area().classes(
                     "min-h-[calc(100vh-12rem)] w-full max-w-full"
                 ):
-                    # Use a custom lightweight label subclass instead of ui.code to prevent Prism.js DOM bloat and focus lag
+                    # Lightweight label (not ui.code) to avoid Prism.js lag on large logs
                     class LogDisplayLabel(ui.label):
                         @property
                         def content(self) -> str:
@@ -52,9 +79,14 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
                         def content(self, value: str):
                             self.set_text(value)
 
-                    log_display = LogDisplayLabel().classes(
-                        "w-full max-w-full text-xs font-mono whitespace-pre-wrap block p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-inner"
+                        def refresh_text(self, value: str) -> None:
+                            self.set_text(value)
+
+                    log_display_cls = (
+                        "w-full max-w-full text-xs font-mono whitespace-pre-wrap block "
+                        "p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-inner"
                     )
+                    log_display = LogDisplayLabel().classes(log_display_cls)
 
             # Initialize attributes on log_display
             log_display.search_input = search_input
@@ -92,12 +124,10 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
             # Attach simple refresh handler
             def _refresh():
                 try:
-                    from frontend.pages.logs import read_log_file
-
                     content = read_log_file(log_file, max_lines)
                     log_display.raw_content = content
                     _apply_filter(search_input.value)
-                except Exception as e:
+                except UI_RENDER_ERRORS as e:
                     logger.exception("Failed refreshing logs: %s", e)
 
             # Bind event handlers
@@ -106,7 +136,7 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
 
             # Return the element for callers to update
             return log_display
-    except Exception as e:
+    except UI_RENDER_ERRORS as e:
         logger.exception("Failed to render log viewer: %s", e)
         with container:
             ui.label(f"Error rendering log viewer: {e}").classes("text-red-600")

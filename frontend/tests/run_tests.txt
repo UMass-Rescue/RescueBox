@@ -1,13 +1,11 @@
 
 # run and fix failed tests
 
-RUN_INTEGRATION=1 poetry run pytest frontend/tests/integration/  -v --tb=short 
+# Unit (fast)
+poetry run pytest frontend/tests/unit -q --tb=short
 
+# Integration (backend / Ollama — see frontend/tests/integration/README.md)
+RUN_INTEGRATION=1 poetry run pytest frontend/tests/integration/ -v --tb=short
 
-
-
-
-
-
-
-
+# New refactor-focused unit modules (2026-06)
+poetry run pytest frontend/tests/unit/test_api_client.py frontend/tests/unit/test_utils_session_and_theme.py frontend/tests/unit/test_form_submit_handler.py frontend/tests/unit/test_chatbot_handlers_package.py frontend/tests/unit/test_storage_reads.py frontend/tests/unit/test_config_paths.py frontend/tests/unit/test_chat_view_load_conversation.py -q

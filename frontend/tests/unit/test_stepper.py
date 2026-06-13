@@ -79,7 +79,7 @@ class TestWorkflowStepper:
     analytical workflows in RescueBox.
     """
 
-    @patch("frontend.components.shared.ui.column")
+    @patch("frontend.components.shared.stepper.ui.column")
     def test_stepper_initialization(self, mock_column):
         """Test stepper initialization with steps.
 
@@ -197,7 +197,7 @@ class TestWorkflowStepper:
 
         stepper = WorkflowStepper(STEPS_TWO, current_step=SECOND_STEP_INDEX)
 
-        with patch("frontend.components.shared.logger") as mock_logger:
+        with patch("frontend.components.shared.stepper.logger") as mock_logger:
             stepper.next_step()
             # Should stay at last step
             assert stepper.current_step == SECOND_STEP_INDEX
@@ -233,7 +233,7 @@ class TestWorkflowStepper:
         steps = ["Step 1", "Step 2"]
         stepper = WorkflowStepper(steps, current_step=0)
 
-        with patch("frontend.components.shared.logger") as mock_logger:
+        with patch("frontend.components.shared.stepper.logger") as mock_logger:
             stepper.previous_step()
             # Should stay at first step
             assert stepper.current_step == 0

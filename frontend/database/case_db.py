@@ -9,12 +9,16 @@ import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 import uuid
 from pydantic import BaseModel, Field
 
 from frontend.database.base_db import BaseDatabase
-from frontend.database.schemas import JobDatabaseSchema, SchemaManager
+from frontend.database.db_exceptions import DB_ERRORS
+from frontend.database.schemas import (
+    cases_runtime_create_statements,
+    cases_runtime_index_statements,
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -39,12 +43,14 @@ class CaseDB(BaseDatabase):
 
     def __init__(self, db_path: Optional[Path] = None):
         super().__init__(db_path, "jobs.db")
-        schema = JobDatabaseSchema()
-        self.schema_manager = SchemaManager(schema)
 
     def _create_schema(self) -> None:
-        """Create database schema for cases (part of JobDatabaseSchema)."""
-        self.schema_manager.create_schema(self.conn)
+        """Create database schema for cases."""
+        conn = self.connect()
+        for statement in cases_runtime_create_statements():
+            conn.execute(statement.strip())
+        for statement in cases_runtime_index_statements():
+            conn.execute(statement.strip())
 
     async def initialize_schema(self):
         """Initialize database schema (create cases table if it doesn't exist)."""
@@ -93,8 +99,8 @@ class CaseDB(BaseDatabase):
             return case_record
         except sqlite3.IntegrityError as e:
             logger.error("Failed to create case due to integrity error: %s", e)
-            raise ValueError(f"Case number '{case_number}' already exists.")
-        except Exception as e:
+            raise ValueError(f"Case number '{case_number}' already exists.") from e
+        except DB_ERRORS as e:
             logger.error("Failed to create case: %s", e)
             raise
 
@@ -158,22 +164,20 @@ class CaseDB(BaseDatabase):
         return cursor.rowcount > 0
 
 
-_case_db: Optional[CaseDB] = None
+_CASE_DB_SINGLETON: Dict[str, Optional[CaseDB]] = {"instance": None}
 
 
 async def init_case_database(db_path: Optional[Path] = None) -> CaseDB:
     """Initialize case database and return CaseDB instance."""
-    global _case_db
-    if _case_db is None:
-        _case_db = CaseDB(db_path)
-        await _case_db.initialize_schema()
-    return _case_db
+    if _CASE_DB_SINGLETON["instance"] is None:
+        _CASE_DB_SINGLETON["instance"] = CaseDB(db_path)
+        await _CASE_DB_SINGLETON["instance"].initialize_schema()
+    return _CASE_DB_SINGLETON["instance"]
 
 
 def get_case_db() -> CaseDB:
     """Get global CaseDB instance, initializing it if needed."""
-    global _case_db
-    if _case_db is None:
-        _case_db = CaseDB()
-        _case_db.connect()
-    return _case_db
+    if _CASE_DB_SINGLETON["instance"] is None:
+        _CASE_DB_SINGLETON["instance"] = CaseDB()
+        _CASE_DB_SINGLETON["instance"].connect()
+    return _CASE_DB_SINGLETON["instance"]

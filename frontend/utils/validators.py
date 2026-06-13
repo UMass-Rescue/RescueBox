@@ -3,15 +3,18 @@ from typing import Dict, List, Optional, Any, Union
 from pydantic import ValidationError
 from rb.api.models import (
     DirectoryInput,
+    EnumParameterDescriptor,
     FileInput,
-    InputType,
-    TaskSchema,
     Input,
-    RequestBody,
     InputSchema,
-    TextInput,
+    InputType,
+    RangedFloatParameterDescriptor,
+    RequestBody,
     ResponseBody,
+    TaskSchema,
+    TextInput,
 )
+from frontend.utils.exceptions import UI_RENDER_ERRORS
 from .paths import (
     _resolve_input_path,
     _input_schema_directory_requires_raster_image_corpus,
@@ -41,8 +44,6 @@ def _input_schema_is_text_or_textarea(input_schema: InputSchema) -> bool:
 
 
 def _coerce_input_type(schema: Any) -> Optional[Any]:
-    from rb.api.models import InputType
-
     it = getattr(schema, "input_type", None)
     if it is None:
         return None
@@ -50,15 +51,13 @@ def _coerce_input_type(schema: Any) -> Optional[Any]:
         return it
     try:
         return InputType(it)
-    except Exception:
+    except UI_RENDER_ERRORS:
         return None
 
 
 def paired_output_directory_field_id(
     inputs_list: List[Any], index: int
 ) -> Optional[str]:
-    from rb.api.models import InputType
-
     if not inputs_list or index < 0 or index >= len(inputs_list):
         return None
     cur = inputs_list[index]
@@ -81,8 +80,6 @@ def paired_output_directory_field_id(
 def paired_ufdr_mount_name_field_id(
     inputs_list: List[Any], index: int
 ) -> Optional[str]:
-    from rb.api.models import InputType
-
     if not inputs_list or index < 0 or index >= len(inputs_list):
         return None
     cur = inputs_list[index]
@@ -100,10 +97,29 @@ def paired_ufdr_mount_name_field_id(
     return "mount_name"
 
 
+def paired_ufdr_mount_folder_field_id(
+    inputs_list: List[Any], index: int
+) -> Optional[str]:
+    """Directory field id (``mount_folder``) paired with ``ufdr_file`` for path autofill."""
+    if not inputs_list or index < 0 or index >= len(inputs_list):
+        return None
+    cur = inputs_list[index]
+    if getattr(cur, "key", None) != "ufdr_file":
+        return None
+    if _coerce_input_type(cur) != InputType.FILE:
+        return None
+    for inp in inputs_list:
+        if getattr(inp, "key", None) != "mount_folder":
+            continue
+        if _coerce_input_type(inp) == InputType.DIRECTORY:
+            return "mount_folder"
+    return None
+
+
 def validate_form_data(
     form_data: Dict,
     schema: Union[TaskSchema, Dict],
-    endpoint: Optional[str] = None,
+    _endpoint: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Validate form inputs against a TaskSchema using Pydantic models."""
     errors = {}
@@ -149,7 +165,7 @@ def validate_form_data(
             inputs_dict[field_id] = Input(root=input_model)
         except ValidationError as e:
             errors[field_id] = str(e)
-        except Exception as e:
+        except UI_RENDER_ERRORS as e:
             errors[field_id] = str(e)
 
     if errors:
@@ -184,7 +200,7 @@ def validate_response_body(data: Dict) -> Union[ResponseBody, Dict[str, Any]]:
 
 
 def validate_request_body(
-    data: Dict, task_schema: Optional[TaskSchema] = None, endpoint: str = ""
+    data: Dict, _task_schema: Optional[TaskSchema] = None, _endpoint: str = ""
 ) -> Union[RequestBody, Dict[str, Any]]:
     """Validate a request body dictionary against the RequestBody model."""
     try:
@@ -209,11 +225,10 @@ def _validate_parameter_value(value: Any, param_schema: Any) -> None:
     """Validate a single parameter value against its schema."""
     if value is None:
         return
-    from rb.api.models import RangedFloatParameterDescriptor, EnumParameterDescriptor
 
     desc = param_schema.value
     if isinstance(desc, RangedFloatParameterDescriptor):
-        if not (desc.range.min <= float(value) <= desc.range.max):
+        if not desc.range.min <= float(value) <= desc.range.max:
             raise ValueError(
                 f"Value {value} must be between {desc.range.min} and {desc.range.max}"
             )

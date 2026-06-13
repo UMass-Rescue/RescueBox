@@ -99,16 +99,17 @@ def mock_chatbot():
 @pytest.fixture
 def mock_ui():
     """Mock NiceGUI ui module for testing."""
-    with patch("frontend.components.shared.ui") as mock_ui:
-        # Mock common UI elements
-        mock_container = MagicMock()
-        mock_ui.column.return_value = mock_container
-        mock_ui.row = MagicMock()
-        mock_ui.label = MagicMock()
-        mock_ui.button = MagicMock()
-        mock_ui.card = MagicMock()
-        mock_ui.icon = MagicMock()
-        yield mock_ui
+    with patch("frontend.components.shared.stepper.ui") as mock_ui:
+        with patch("frontend.components.shared.ui", mock_ui):
+            # Mock common UI elements
+            mock_container = MagicMock()
+            mock_ui.column.return_value = mock_container
+            mock_ui.row = MagicMock()
+            mock_ui.label = MagicMock()
+            mock_ui.button = MagicMock()
+            mock_ui.card = MagicMock()
+            mock_ui.icon = MagicMock()
+            yield mock_ui
 
 
 @pytest.fixture

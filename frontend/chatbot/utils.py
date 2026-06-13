@@ -186,9 +186,8 @@ def get_rejection_message(reason: str) -> str:
 | **Summarize Text** | Summarize documents in /case/reports |
 
 Please rephrase your request as a forensic analysis task."""
-    else:  # no_match
-        logger.debug("Using no_match rejection message")
-        return """#### I am a **RescueBox Forensic Assistant**.
+    logger.debug("Using no_match rejection message")
+    return """#### I am a **RescueBox Forensic Assistant**.
 
 
 #### these are some prompt **Examples:**

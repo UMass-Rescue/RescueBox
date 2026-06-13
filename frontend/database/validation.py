@@ -63,13 +63,17 @@ class DatabaseValidator:
                 return model_class(**data)
             except ValidationError:
                 logger.error(
-                    f"Failed to validate {model_class.__name__} from data: {data}"
+                    "Failed to validate %s from data: %s",
+                    model_class.__name__,
+                    data,
                 )
                 raise
         else:
             # Try to wrap non-dict data
             logger.warning(
-                f"Converting non-dict data to {model_class.__name__}: {data}"
+                "Converting non-dict data to %s: %s",
+                model_class.__name__,
+                data,
             )
             return model_class(**{"value": data})
 
@@ -97,7 +101,7 @@ class DatabaseValidator:
 
             return json.dumps(serializable_data, default=str, ensure_ascii=False)
         except (TypeError, ValueError):
-            logger.error(f"Failed to serialize data to JSON: {data}")
+            logger.error("Failed to serialize data to JSON: %s", data)
             raise
 
     @staticmethod
@@ -123,7 +127,7 @@ class DatabaseValidator:
                 return data
 
         except (json.JSONDecodeError, ValidationError):
-            logger.error(f"Failed to deserialize JSON: {json_str}")
+            logger.error("Failed to deserialize JSON: %s", json_str)
             raise
 
     @staticmethod
@@ -166,7 +170,9 @@ class DatabaseValidator:
 
         if max_length and len(value) > max_length:
             logger.warning(
-                f"Truncating string from {len(value)} to {max_length} characters"
+                "Truncating string from %d to %d characters",
+                len(value),
+                max_length,
             )
             value = value[:max_length]
 

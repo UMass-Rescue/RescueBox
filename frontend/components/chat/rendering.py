@@ -2,18 +2,26 @@ import logging
 from typing import Any
 from .ui_bridge import ui, label, row, column, card, button, markdown
 from frontend.design_tokens import Design
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
 ASSISTANT_MARKDOWN_CLASSES = "prose prose-slate max-w-none !text-base !leading-relaxed"
 USER_PLAIN_CLASSES = "!text-base !leading-relaxed text-slate-800"
 
+_WELCOME_CARD_CLS = (
+    "w-full max-w-sm bg-white ring-1 ring-slate-200 shadow-sm rounded-2xl "
+    "rounded-tl-none border-l-4 border-l-[#881c1c]"
+)
+_OPEN_TOOLS_MENU_JS = (
+    'document.querySelectorAll("button").forEach(b => { '
+    'if(b.innerText.includes("Menu")) b.click(); })'
+)
+
 
 def render_welcome_message(container: ui.element) -> None:
     with container:
-        with card().classes(
-            "w-full max-w-sm bg-white ring-1 ring-slate-200 shadow-sm rounded-2xl rounded-tl-none border-l-4 border-l-[#881c1c]"
-        ):
+        with card().classes(_WELCOME_CARD_CLS):
             with column().classes("p-3 gap-1"):
                 label("Assistant").classes(
                     "font-medium !text-sm text-slate-500 uppercase tracking-wider"
@@ -21,19 +29,10 @@ def render_welcome_message(container: ui.element) -> None:
                 label("New conversation. How can I help you?").classes(
                     "!text-base !leading-relaxed text-slate-800"
                 )
-                with row().classes("mt-2"):
-                    button("Open Tools Menu", icon="menu", color=None).props(
-                        "flat dense no-caps"
-                    ).classes("text-sm text-slate-600 hover:text-[#881c1c]").on(
-                        "click",
-                        lambda: ui.run_javascript(
-                            'document.querySelectorAll("button").forEach(b => { if(b.innerText.includes("Menu")) b.click(); })'
-                        ),
-                    )
 
 
 def render_message_card(
-    container: ui.element, role: str, content: str, timestamp: str = ""
+    container: ui.element, role: str, content: str, _timestamp: str = ""
 ) -> None:
     try:
         with container:
@@ -63,7 +62,7 @@ def render_message_card(
                             USER_PLAIN_CLASSES
                             + (" whitespace-pre-line" if "\n" in str(content) else "")
                         )
-    except Exception as e:
+    except UI_RENDER_ERRORS as e:
         logger.error("Error rendering message card: %s", e)
 
 
@@ -79,7 +78,6 @@ def render_conversation_card(
             with row().classes("gap-2"):
                 button(
                     "View",
-                    icon="visibility",
                     color=None,
                     on_click=lambda: view_callback(conversation.conversation_id),
                 ).classes(
@@ -87,7 +85,6 @@ def render_conversation_card(
                 )
                 button(
                     "Load",
-                    icon="login",
                     color=None,
                     on_click=lambda: load_callback(conversation.conversation_id),
                 ).classes(

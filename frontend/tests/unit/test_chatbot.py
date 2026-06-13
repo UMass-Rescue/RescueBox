@@ -1,18 +1,18 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from frontend.pages.chatbot import ChatbotPage
+from frontend.pages.chatbot.chat_page import ChatbotPage
 
 
 @pytest.mark.asyncio
 async def test_handle_new_conversation_resets_state_and_enables_input():
     """Test that starting a new conversation clears UI and securely enables the chat input."""
-    with patch("frontend.pages.chatbot.ChatbotCore"), patch(
-        "frontend.pages.chatbot.MessageHandler"
-    ), patch("frontend.pages.chatbot.ToolRegistry"), patch(
-        "frontend.pages.chatbot.ChatbotStateManager"
+    with patch("frontend.pages.chatbot.chat_page.ChatbotCore"), patch(
+        "frontend.pages.chatbot.chat_page.MessageHandler"
+    ), patch("frontend.pages.chatbot.chat_page.ToolRegistry"), patch(
+        "frontend.pages.chatbot.chat_page.ChatbotStateManager"
     ), patch(
-        "frontend.pages.chatbot.MessageFlowCoordinator"
+        "frontend.pages.chatbot.chat_page.MessageFlowCoordinator"
     ):
 
         page = ChatbotPage()
@@ -20,7 +20,9 @@ async def test_handle_new_conversation_resets_state_and_enables_input():
         page.chat_container = MagicMock()
         page.below_input_area_container = MagicMock()
 
-        with patch("frontend.components.chat.render_welcome_message") as mock_welcome:
+        with patch(
+            "frontend.pages.chatbot.chat_page.render_welcome_message"
+        ) as mock_welcome:
             await page._handle_new_conversation()
 
             page.state_manager.reset_conversation.assert_called_once()

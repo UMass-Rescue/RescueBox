@@ -3,7 +3,7 @@
 # List of models required for v3
 MODELS=(
     "gemma3:1b"
-    "granite4:micro"
+    "ibm/granite4.1:3b"
     "moondream:latest"
 )
 

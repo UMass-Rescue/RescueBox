@@ -15,4 +15,4 @@ You may need a running RescueBox API, Ollama with **`GRANITE_MODEL`**, etc. Read
 
 ## Full testing guide
 
-**`frontend/docs/testing.md`**
+See **`frontend/docs/README.md`** and **`frontend/docs/ui-flow.md`** for current frontend behavior/context.

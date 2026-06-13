@@ -14,16 +14,67 @@ import logging
 from typing import Dict, Any
 from pathlib import Path
 from frontend.chatbot.config import ToolRegistry, ChatbotConfig
+from frontend.chatbot.exceptions import CHATBOT_ERRORS
 from frontend.chatbot.core import ChatbotCore
 from frontend.chatbot.utils import (
     normalize_arguments,
     is_rescuebox_request,
     get_rejection_message,
 )
+from frontend.database.file_filter_utils import process_prompt_for_filters
+from frontend.utils import get_user_id
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def _owner_id_for_filters():
+    try:
+        return get_user_id()
+    except CHATBOT_ERRORS:
+        return None
+
+
+def _attach_filter_to_call(call: Dict[str, Any], user_message: str, owner) -> None:
+    input_dir_arg = call["arguments"].get("input_dir") or call["arguments"].get("input")
+    input_dir_path = None
+    if input_dir_arg:
+        try:
+            input_dir_path = Path(input_dir_arg)
+        except CHATBOT_ERRORS:
+            input_dir_path = None
+    try:
+        filter_id = process_prompt_for_filters(
+            user_message,
+            call,
+            input_dir=input_dir_path,
+            owner_id=owner,
+            persist_if_requested=True,
+        )
+    except CHATBOT_ERRORS as exc:
+        logger.debug(
+            "process_prompt_for_filters failed for call %s: %s",
+            call.get("endpoint"),
+            exc,
+        )
+        return
+    if not filter_id:
+        return
+    call["_resolved_filter_id"] = filter_id
+    try:
+        call["arguments"]["filterId"] = filter_id
+    except CHATBOT_ERRORS:
+        pass
+
+
+def _resolve_filters_for_calls(validated_calls, user_message: str) -> None:
+    try:
+        owner = _owner_id_for_filters()
+        for call in validated_calls:
+            _attach_filter_to_call(call, user_message, owner)
+    except CHATBOT_ERRORS as exc:
+        logger.debug("Filter resolution skipped or failed: %s", exc)
 
 
 class MessageHandler:
@@ -74,9 +125,8 @@ class MessageHandler:
         if user_input.startswith("/"):
             logger.debug("Input method detected: slash_command")
             return "slash_command"
-        else:
-            logger.debug("Input method detected: smart_analyze")
-            return "smart_analyze"
+        logger.debug("Input method detected: smart_analyze")
+        return "smart_analyze"
 
     async def handle_message(
         self, user_input: str, update_status_callback=None
@@ -97,11 +147,10 @@ class MessageHandler:
 
         if method == "slash_command":
             return await self.handle_slash_command(user_input, update_status_callback)
-        else:
-            return await self.handle_smart_analyze(user_input, update_status_callback)
+        return await self.handle_smart_analyze(user_input, update_status_callback)
 
     async def handle_slash_command(
-        self, user_input: str, update_status_callback=None
+        self, user_input: str, _update_status_callback=None
     ) -> Dict[str, Any]:
         """
         Handle slash commands (/help, /models, /assistant, mapped tools).
@@ -141,12 +190,11 @@ class MessageHandler:
             endpoint = self.tool_registry.SLASH_COMMANDS[command]
             logger.debug("Slash command '%s' maps to endpoint: %s", command, endpoint)
             return {"type": "show_form", "endpoint": endpoint, "arguments": {}}
-        else:
-            logger.warning("Unknown slash command: %s", command)
-            return {
-                "type": "error",
-                "content": f"Unknown command: {command}. Type `/help` for available commands.",
-            }
+        logger.warning("Unknown slash command: %s", command)
+        return {
+            "type": "error",
+            "content": f"Unknown command: {command}. Type `/help` for available commands.",
+        }
 
     async def handle_smart_analyze(
         self, user_message: str, update_status_callback=None
@@ -164,8 +212,6 @@ class MessageHandler:
             "Handling smart analyze for message (length=%d)", len(user_message)
         )
         logger.debug("Message preview: %s...", user_message[:100])
-
-        # TODO: trim file/output filter from  user_message
 
         # Filter check if enabled
         if self.config.FILTER_ENABLED:
@@ -200,8 +246,7 @@ class MessageHandler:
                 "content": "⚠️ Could not determine the appropriate tool. "
                 "Try being more specific or use `/models` to see all available models.",
             }
-        else:
-            logger.info("Granite model returned %s tool call(s)", tool_calls)
+        logger.info("Granite model returned %s tool call(s)", tool_calls)
 
         # Ensure tool_calls is a list (backward compatibility)
         if not isinstance(tool_calls, list):
@@ -240,52 +285,7 @@ class MessageHandler:
             [c["endpoint"] for c in validated_calls],
         )
 
-        # Try to detect and resolve any input/output filters referenced by the tool calls.
-        # Resolve but do not persist by default (persist_if_requested=False). Persisting should
-        # only happen when UI/user requests saving filters.
-        try:
-            from frontend.database.file_filter_utils import process_prompt_for_filters
-
-            try:
-                from frontend.utils import get_user_id
-
-                owner = get_user_id()
-            except Exception:
-                owner = None
-
-            for call in validated_calls:
-                input_dir_arg = call["arguments"].get("input_dir") or call[
-                    "arguments"
-                ].get("input")
-                input_dir_path = None
-                try:
-                    if input_dir_arg:
-                        input_dir_path = Path(input_dir_arg)
-                except Exception:
-                    input_dir_path = None
-                try:
-                    filter_id = process_prompt_for_filters(
-                        user_message,
-                        call,
-                        input_dir=input_dir_path,
-                        owner_id=owner,
-                        persist_if_requested=True,
-                    )
-                    if filter_id:
-                        call["_resolved_filter_id"] = filter_id
-                        # also propagate into arguments so forms receive the filterId
-                        try:
-                            call["arguments"]["filterId"] = filter_id
-                        except Exception:
-                            pass
-                except Exception as _e:
-                    logger.debug(
-                        "process_prompt_for_filters failed for call %s: %s",
-                        call.get("endpoint"),
-                        _e,
-                    )
-        except Exception as e:
-            logger.debug("Filter resolution skipped or failed: %s", e)
+        _resolve_filters_for_calls(validated_calls, user_message)
         # If single tool call, return show_form (backward compatible)
         if len(validated_calls) == 1:
             call = validated_calls[0]

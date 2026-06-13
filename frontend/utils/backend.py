@@ -1,30 +1,39 @@
 import logging
+import sys
+
+from frontend.api_client import api_client as default_api_client
+from frontend.database.model_cache import cache_models
+from frontend.utils.exceptions import HTTP_CLIENT_ERRORS
 
 logger = logging.getLogger(__name__)
 
-_BACKEND_AVAILABLE = False
-BACKEND_AVAILABLE = _BACKEND_AVAILABLE
+
+class _BackendAvailability:
+    flag = False
+
+    @classmethod
+    def set_flag(cls, value: bool) -> None:
+        cls.flag = bool(value)
+
+    @classmethod
+    def is_available(cls) -> bool:
+        return cls.flag
 
 
-def set_backend_available(value: bool):
-    global _BACKEND_AVAILABLE, BACKEND_AVAILABLE
-    _BACKEND_AVAILABLE = value
-    BACKEND_AVAILABLE = value
+def set_backend_available(value: bool) -> None:
+    _BackendAvailability.set_flag(value)
+    sys.modules[__name__].BACKEND_AVAILABLE = _BackendAvailability.flag
     logger.info("Backend availability set to: %s", value)
 
 
 def is_backend_available() -> bool:
-    return _BACKEND_AVAILABLE
+    return _BackendAvailability.flag
 
 
-async def prefetch_and_cache_models(api_client=None, backend_url="", api_timeout=30):
+async def prefetch_and_cache_models(api_client=None, _backend_url="", _api_timeout=30):
     """Prefetch all model metadata and cache it in the database."""
-    from frontend.database import cache_models
-
     if api_client is None:
-        from frontend.api_client import api_client as default_client
-
-        api_client = default_client
+        api_client = default_api_client
 
     try:
         logger.info("Prefetching model metadata...")
@@ -41,7 +50,7 @@ async def prefetch_and_cache_models(api_client=None, backend_url="", api_timeout
             logger.warning(
                 "Pre-fetching models returned no data. Skipping cache update."
             )
-    except Exception as e:
+    except HTTP_CLIENT_ERRORS as e:
         logger.warning("Failed to prefetch models: %s", e)
 
 

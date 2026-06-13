@@ -11,7 +11,7 @@ import pytest
 import httpx
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, patch, MagicMock, Mock
+from unittest.mock import AsyncMock, patch, Mock
 from frontend.chatbot.core import ChatbotCore
 from frontend.chatbot.config import ChatbotConfig
 
@@ -33,13 +33,15 @@ class TestChatbotCore:
         return ChatbotConfig()
 
     @pytest.fixture
-    def core(self, config, mock_api_client):
-        """Create ChatbotCore instance with mocked dependencies."""
+    def core(self, config):
+        """Create ChatbotCore instance; Ollama client mocked, RescueBox HTTP via ApiClient."""
         core = ChatbotCore(config)
-        # Mock external dependencies
-        core.api_client = mock_api_client
         core.ollama_client = AsyncMock()
         return core
+
+    def test_core_api_client_shares_api_async_client(self, config):
+        core = ChatbotCore(config)
+        assert core.api_client is core.api._client
 
     @pytest.mark.asyncio
     async def test_get_task_schema_from_endpoint_success(
@@ -317,7 +319,9 @@ class TestChatbotCore:
     @pytest.mark.asyncio
     async def test_call_granite_model_error(self, core):
         """Test Granite model call with error"""
-        core.ollama_client.post = AsyncMock(side_effect=Exception("Connection error"))
+        core.ollama_client.post = AsyncMock(
+            side_effect=ConnectionError("Connection error")
+        )
 
         result = await core.call_granite_model("test prompt")
 
@@ -452,17 +456,11 @@ class TestChatbotCore:
 
     @pytest.mark.asyncio
     async def test_close(self, core):
-        """Test closing HTTP clients and llama model"""
-        core.api_client.aclose = AsyncMock()
+        """Test closing HTTP clients."""
         core.ollama_client.aclose = AsyncMock()
         core.api.aclose = AsyncMock()
 
-        # Set up legacy attribute to test cleanup
-        core._llama_model = MagicMock()
-
         await core.close()
 
-        core.api_client.aclose.assert_called_once()
         core.ollama_client.aclose.assert_called_once()
         core.api.aclose.assert_called_once()
-        assert core._llama_model is None

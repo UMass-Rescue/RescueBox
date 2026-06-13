@@ -1,8 +1,13 @@
 import logging
+import os
 import uuid
-from typing import Dict, Any, Optional
+from typing import Any, Callable, Dict, Optional, TypeVar
+
 from nicegui import app
+
 from frontend.constants import is_valid_explicit_user_id
+from frontend.database.case_db import CaseRecord, get_case_db
+from frontend.utils.exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -16,16 +21,74 @@ DEFAULT_PREFERENCES = {
 }
 _test_fallback_storage: dict = {}
 
+_T = TypeVar("_T")
+_STORAGE_UNAVAILABLE = object()
+
 
 def _runs_under_pytest() -> bool:
     try:
-        import os
-
         return (
             "PYTEST_CURRENT_TEST" in os.environ or "PYTEST_XDIST_WORKER" in os.environ
         )
-    except Exception:
+    except UI_RENDER_ERRORS:
         return False
+
+
+def _ignore_storage_errors(
+    action: Callable[[], _T], default: Optional[_T] = None
+) -> Optional[_T]:
+    try:
+        return action()
+    except UI_RENDER_ERRORS:
+        return default
+
+
+def _user_get(key: str, default: Any = None) -> Any:
+    val = _ignore_storage_errors(
+        lambda: app.storage.user.get(key), default=_STORAGE_UNAVAILABLE
+    )
+    if val is _STORAGE_UNAVAILABLE:
+        return default
+    return val
+
+
+def _user_set(key: str, value: Any) -> None:
+    _ignore_storage_errors(lambda: app.storage.user.__setitem__(key, value))
+
+
+def _user_pop(key: str, default: Any = None) -> Any:
+    return _ignore_storage_errors(
+        lambda: app.storage.user.pop(key, default), default=default
+    )
+
+
+def _general_get(key: str, default: Any = None) -> Any:
+    val = _ignore_storage_errors(lambda: app.storage.general.get(key))
+    return default if val is None else val
+
+
+def _general_set(key: str, value: Any) -> None:
+    _ignore_storage_errors(lambda: app.storage.general.__setitem__(key, value))
+
+
+def _client_get(key: str, default: Any = None) -> Any:
+    val = _ignore_storage_errors(lambda: app.storage.client.get(key))
+    return default if val is None else val
+
+
+def _client_set(key: str, value: Any) -> None:
+    _ignore_storage_errors(lambda: app.storage.client.__setitem__(key, value))
+
+
+def _client_pop(key: str, default: Any = None) -> Any:
+    return _ignore_storage_errors(
+        lambda: app.storage.client.pop(key, default), default=default
+    )
+
+
+def read_user_storage_key(key: str, default: Any = None) -> Any:
+    """Read a single key from NiceGUI user storage (None if unavailable)."""
+    return _user_get(key, default)
 
 
 def get_user_id() -> Optional[str]:
@@ -35,7 +98,7 @@ def get_user_id() -> Optional[str]:
             user_id = f"session-{uuid.uuid4().hex}"
             app.storage.user["id"] = user_id
         return user_id
-    except Exception:
+    except UI_RENDER_ERRORS:
         if _runs_under_pytest():
             return "test-user-1"
         return None
@@ -63,13 +126,10 @@ def release_explicit_user_id_claim(uid: str):
             _test_fallback_storage["user_id_registry"] = registry
         return
 
-    try:
-        registry = app.storage.general.get("user_id_registry", {})
-        if uid in registry:
-            registry.pop(uid)
-            app.storage.general["user_id_registry"] = registry
-    except Exception:
-        pass
+    registry = dict(_general_get("user_id_registry", {}) or {})
+    if uid in registry:
+        registry.pop(uid)
+        _general_set("user_id_registry", registry)
 
 
 def ensure_explicit_user_id_for_tests():
@@ -91,41 +151,35 @@ def try_claim_explicit_user_id(uid: str) -> str:
         return "ok"
 
     try:
-        registry = app.storage.general.get("user_id_registry", {})
+        registry = dict(app.storage.general.get("user_id_registry", {}) or {})
         if uid in registry:
             return "taken"
         registry[uid] = True
         app.storage.general["user_id_registry"] = registry
         set_explicit_user_id(uid)
         return "ok"
-    except Exception:
+    except UI_RENDER_ERRORS:
         return "invalid"
 
 
 def get_active_case_id() -> Optional[str]:
-    try:
-        return app.storage.user.get("active_case_id")
-    except Exception:
-        if _runs_under_pytest():
-            return _test_fallback_storage.get("active_case_id")
-        return None
+    case_id = _user_get("active_case_id")
+    if case_id:
+        return case_id
+    if _runs_under_pytest():
+        return _test_fallback_storage.get("active_case_id")
+    return None
 
 
 def set_active_case_id(value: str):
     v = value.strip()
-    try:
-        app.storage.user["active_case_id"] = v
-    except Exception:
-        pass
+    _user_set("active_case_id", v)
     if _runs_under_pytest():
         _test_fallback_storage["active_case_id"] = v
 
 
 def clear_active_case_id():
-    try:
-        app.storage.user.pop("active_case_id", None)
-    except Exception:
-        pass
+    _user_pop("active_case_id", None)
     if _runs_under_pytest():
         _test_fallback_storage.pop("active_case_id", None)
 
@@ -135,12 +189,8 @@ def get_active_case() -> Optional[Any]:
     if not case_id:
         return None
     try:
-        from frontend.database.case_db import get_case_db
-
         case = get_case_db().get_case_by_id_sync(case_id)
         if not case and _runs_under_pytest():
-            from frontend.database.case_db import CaseRecord
-
             return CaseRecord(
                 caseId=case_id,
                 caseNumber="TEST-CASE",
@@ -150,7 +200,7 @@ def get_active_case() -> Optional[Any]:
                 updatedAt="2026-06-04T13:15:00",
             )
         return case
-    except Exception:
+    except UI_RENDER_ERRORS:
         return None
 
 
@@ -162,48 +212,32 @@ def get_user_id_for_jobs() -> Optional[str]:
 def set_user_preference(key: str, value: Any):
     prefs = get_user_preferences()
     prefs[key] = value
-    try:
-        app.storage.user["preferences"] = prefs
-    except Exception:
-        pass
+    _user_set("preferences", prefs)
     if _runs_under_pytest():
         _test_fallback_storage["preferences"] = prefs
 
 
 def get_user_preferences() -> Dict[str, Any]:
-    prefs = None
-    try:
-        prefs = app.storage.user.get("preferences")
-    except Exception:
-        pass
-
+    prefs = _user_get("preferences")
     if prefs is None and _runs_under_pytest():
         prefs = _test_fallback_storage.get("preferences")
-
     if prefs is None:
         prefs = {}
-
     return {**DEFAULT_PREFERENCES, **prefs}
 
 
 def get_current_conversation_id() -> Optional[str]:
-    try:
-        val = app.storage.user.get("current_conversation_id")
-        if val:
-            return val
-    except Exception:
-        pass
+    val = _user_get("current_conversation_id")
+    if val:
+        return val
     return _test_fallback_storage.get("current_conversation_id")
 
 
 def set_current_conversation_id(conversation_id: Optional[str]):
-    try:
-        if conversation_id:
-            app.storage.user["current_conversation_id"] = conversation_id
-        else:
-            app.storage.user.pop("current_conversation_id", None)
-    except Exception:
-        pass
+    if conversation_id:
+        _user_set("current_conversation_id", conversation_id)
+    else:
+        _user_pop("current_conversation_id", None)
     if _runs_under_pytest():
         if conversation_id:
             _test_fallback_storage["current_conversation_id"] = conversation_id
@@ -212,23 +246,17 @@ def set_current_conversation_id(conversation_id: Optional[str]):
 
 
 def get_draft_message() -> str:
-    try:
-        val = app.storage.client.get("draft_message")
-        if val:
-            return val
-    except Exception:
-        pass
+    val = _client_get("draft_message")
+    if val:
+        return val
     return _test_fallback_storage.get("draft_message", "")
 
 
 def set_draft_message(message: str):
-    try:
-        if message:
-            app.storage.client["draft_message"] = message
-        else:
-            app.storage.client.pop("draft_message", None)
-    except Exception:
-        pass
+    if message:
+        _client_set("draft_message", message)
+    else:
+        _client_pop("draft_message", None)
     if _runs_under_pytest():
         if message:
             _test_fallback_storage["draft_message"] = message
@@ -242,10 +270,7 @@ def set_conversation_to_load(conversation_id, conversation_data, messages):
         "conversation_data": conversation_data,
         "messages": messages,
     }
-    try:
-        app.storage.user["conversation_to_load"] = data
-    except Exception:
-        pass
+    _user_set("conversation_to_load", data)
     if _runs_under_pytest():
         _test_fallback_storage["conversation_to_load"] = data
 
@@ -255,8 +280,10 @@ def get_conversation_to_load():
         data = app.storage.user.get("conversation_to_load")
         if data:
             app.storage.user.pop("conversation_to_load", None)
+            if _runs_under_pytest():
+                _test_fallback_storage.pop("conversation_to_load", None)
         return data
-    except Exception:
+    except UI_RENDER_ERRORS:
         data = _test_fallback_storage.get("conversation_to_load")
         if data:
             _test_fallback_storage.pop("conversation_to_load", None)
@@ -264,26 +291,19 @@ def get_conversation_to_load():
 
 
 def clear_conversation_to_load():
-    try:
-        app.storage.user.pop("conversation_to_load", None)
-    except Exception:
-        pass
+    _user_pop("conversation_to_load", None)
     if _runs_under_pytest():
         _test_fallback_storage.pop("conversation_to_load", None)
 
 
 def get_form_draft() -> Optional[dict]:
-    try:
-        val = app.storage.user.get("form_draft")
-        if val:
-            return val
-    except Exception:
-        pass
+    val = _user_get("form_draft")
+    if val:
+        return val
     return _test_fallback_storage.get("form_draft")
 
 
 def set_form_draft(endpoint: str, arguments: dict = None):
-    # Support both 1-arg (dict) and 2-arg (str, dict) patterns
     if (not endpoint and not arguments) or (
         endpoint == "" and (arguments is None or arguments == {})
     ):
@@ -292,19 +312,16 @@ def set_form_draft(endpoint: str, arguments: dict = None):
         draft = endpoint
     else:
         draft = {"endpoint": endpoint, "arguments": arguments}
-    try:
-        app.storage.user["form_draft"] = draft
-    except Exception:
-        pass
+    if draft is None:
+        _user_pop("form_draft", None)
+    else:
+        _user_set("form_draft", draft)
     if _runs_under_pytest():
         _test_fallback_storage["form_draft"] = draft
 
 
 def clear_form_draft():
-    try:
-        app.storage.user.pop("form_draft", None)
-    except Exception:
-        pass
+    _user_pop("form_draft", None)
     if _runs_under_pytest():
         _test_fallback_storage.pop("form_draft", None)
 
@@ -317,23 +334,16 @@ def get_user_preference(key: str, default: Any = None) -> Any:
 def set_user_preferences(prefs: Dict[str, Any]):
     current = get_user_preferences()
     current.update(prefs)
-    try:
-        app.storage.user["preferences"] = current
-    except Exception:
-        pass
+    _user_set("preferences", current)
     if _runs_under_pytest():
         _test_fallback_storage["preferences"] = current
 
 
 def reset_user_preferences():
-    try:
-        app.storage.user["preferences"] = DEFAULT_PREFERENCES
-    except Exception:
-        pass
+    _user_set("preferences", DEFAULT_PREFERENCES)
     if _runs_under_pytest():
         _test_fallback_storage["preferences"] = DEFAULT_PREFERENCES
 
 
 def reset_test_storage():
-    global _test_fallback_storage
-    _test_fallback_storage = {}
+    _test_fallback_storage.clear()

@@ -18,8 +18,15 @@ from pydantic import BaseModel, Field
 
 # Import refactored components
 from .base_db import BaseDatabase
-from .schemas import ChatHistoryDatabaseSchema, SchemaManager
+from .db_exceptions import DB_ERRORS
+from .schemas import (
+    ChatHistoryDatabaseSchema,
+    SchemaManager,
+    chat_history_runtime_create_statements,
+    chat_history_runtime_index_statements,
+)
 from .validation import DatabaseValidator
+from frontend.utils.storage import get_user_id_for_jobs
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -102,26 +109,6 @@ class ChatHistoryDB(BaseDatabase):
         # Initialize validator
         self.validator = DatabaseValidator()
 
-    def connect(self) -> sqlite3.Connection:
-        """
-        Connect to SQLite database and ensure schema exists.
-
-        Returns:
-            sqlite3.Connection: Database connection
-
-        Note:
-            Schema initialization is handled by the base class
-        """
-        return super().connect()
-
-    def _create_schema(self) -> None:
-        """
-        Create database schema for chat history.
-
-        This method is called by the base class during connection.
-        """
-        self.schema_manager.create_schema(self.conn)
-
     def _create_schema(self):
         """
         Create database schema for conversations and messages.
@@ -130,53 +117,10 @@ class ChatHistoryDB(BaseDatabase):
         """
         logger.debug("Creating chat history schema")
 
-        # Conversations table
-        self.conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS conversations (
-                conversation_id TEXT PRIMARY KEY,
-                userId TEXT,
-                title TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                message_count INTEGER DEFAULT 0,
-                metadata TEXT
-            )
-        """
-        )
-
-        # Chat messages table
-        self.conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS chat_messages (
-                message_id TEXT PRIMARY KEY,
-                conversation_id TEXT NOT NULL,
-                role TEXT NOT NULL,
-                content TEXT NOT NULL,
-                message_type TEXT DEFAULT 'text',
-                tool_calls TEXT,
-                tool_call_endpoint TEXT,
-                tool_call_arguments TEXT,
-                timestamp TEXT NOT NULL,
-                metadata TEXT,
-                FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE
-            )
-        """
-        )
-
-        # Indexes for performance
-        self.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_id ON chat_messages(conversation_id)"
-        )
-        self.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp)"
-        )
-        self.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_chat_messages_tool_call_endpoint ON chat_messages(tool_call_endpoint)"
-        )
-        self.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)"
-        )
+        for statement in chat_history_runtime_create_statements():
+            self.conn.execute(statement.strip())
+        for statement in chat_history_runtime_index_statements():
+            self.conn.execute(statement.strip())
 
         self.conn.commit()
         logger.debug("Chat history schema created/verified")
@@ -199,7 +143,7 @@ class ChatHistoryDB(BaseDatabase):
                     )
                     conn.commit()
                     logger.debug("Added userId column and index to conversations table")
-                except Exception as e_add:
+                except DB_ERRORS as e_add:
                     logger.exception(
                         "Failed to add userId column to conversations table: %s", e_add
                     )
@@ -210,10 +154,8 @@ class ChatHistoryDB(BaseDatabase):
     def _get_current_user(self) -> Optional[str]:
         """Return current NiceGUI session/user id or None."""
         try:
-            from frontend.utils import get_user_id_for_jobs
-
             return get_user_id_for_jobs()
-        except Exception:
+        except DB_ERRORS:
             return None
 
     def _conversation_user_id(
@@ -228,17 +170,9 @@ class ChatHistoryDB(BaseDatabase):
             row = cursor.fetchone()
             if row:
                 return row.get("userId")
-        except Exception as e:
+        except DB_ERRORS as e:
             logger.debug("Failed to fetch conversation userId: %s", e)
         return None
-
-    def close(self):
-        """Close database connection."""
-        if self.conn:
-            logger.debug("Closing database connection")
-            self.conn.close()
-            self.conn = None
-            logger.info("Database connection closed")
 
     async def create_conversation(
         self, title: Optional[str] = None
@@ -262,17 +196,15 @@ class ChatHistoryDB(BaseDatabase):
             # Ensure userId column exists for older DBs
             try:
                 self._ensure_conversations_userid_column(conn)
-            except Exception:
+            except DB_ERRORS:
                 logger.debug(
                     "Failed to ensure conversations.userId column before insert"
                 )
 
             # Determine current session/user id if available
             try:
-                from frontend.utils import get_user_id_for_jobs
-
                 user_id = get_user_id_for_jobs()
-            except Exception:
+            except DB_ERRORS:
                 user_id = None
 
             logger.debug(
@@ -300,15 +232,15 @@ class ChatHistoryDB(BaseDatabase):
             )
         except sqlite3.IntegrityError as e:
             logger.error("Database integrity error creating conversation: %s", str(e))
-            raise Exception(
+            raise RuntimeError(
                 "Failed to create conversation: database integrity error"
             ) from e
         except sqlite3.Error as e:
             logger.error("Database error creating conversation: %s", str(e))
-            raise Exception(f"Database error creating conversation: {str(e)}") from e
-        except Exception as e:
+            raise RuntimeError(f"Database error creating conversation: {e}") from e
+        except DB_ERRORS as e:
             logger.error("Unexpected error creating conversation: %s", str(e))
-            raise Exception(f"Unexpected error creating conversation: {str(e)}") from e
+            raise RuntimeError(f"Unexpected error creating conversation: {e}") from e
 
     async def get_conversation(
         self, conversation_id: str
@@ -325,7 +257,7 @@ class ChatHistoryDB(BaseDatabase):
         conn = self.connect()
         try:
             self._ensure_conversations_userid_column(conn)
-        except Exception:
+        except DB_ERRORS:
             logger.debug(
                 "Failed to ensure conversations.userId column before fetch by id"
             )
@@ -353,16 +285,14 @@ class ChatHistoryDB(BaseDatabase):
         # Ensure column exists and filter by current NiceGUI session/user if available
         try:
             self._ensure_conversations_userid_column(conn)
-        except Exception:
+        except DB_ERRORS:
             logger.debug(
                 "Failed to ensure conversations.userId column before fetching conversations"
             )
 
         try:
-            from frontend.utils import get_user_id_for_jobs
-
             current_user = get_user_id_for_jobs()
-        except Exception:
+        except DB_ERRORS:
             current_user = None
 
         if current_user:
@@ -442,7 +372,7 @@ class ChatHistoryDB(BaseDatabase):
         updates["updated_at"] = datetime.now().isoformat()
 
         # Build update query
-        set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+        set_clause = ", ".join([f"{k} = ?" for k in updates])
         values = list(updates.values()) + [conversation_id]
 
         cursor = conn.execute(
@@ -521,7 +451,7 @@ class ChatHistoryDB(BaseDatabase):
                     conversation_id,
                     current_user,
                 )
-                raise Exception("Access denied to conversation")
+                raise PermissionError("Access denied to conversation")
 
         # Serialize JSON fields
         tool_calls_json = json.dumps(tool_calls) if tool_calls else None
@@ -770,7 +700,7 @@ class ChatHistoryDB(BaseDatabase):
         """
         # get_message enforces ownership now
         message = await self.get_message(message_id)
-        if message and message.message_type == "tool_call":
+        if message:
             return message
         return None
 
@@ -813,7 +743,7 @@ class ChatHistoryDB(BaseDatabase):
         return ChatMessageRecord(**data)
 
 
-_chat_history_db: Optional[ChatHistoryDB] = None
+_CHAT_HISTORY_DB_SINGLETON: Dict[str, Optional[ChatHistoryDB]] = {"instance": None}
 
 
 def get_chat_history_db() -> ChatHistoryDB:
@@ -823,11 +753,9 @@ def get_chat_history_db() -> ChatHistoryDB:
     Returns:
         ChatHistoryDB: Chat history database instance
     """
-    global _chat_history_db
-
-    if _chat_history_db is None:
+    if _CHAT_HISTORY_DB_SINGLETON["instance"] is None:
         logger.info("Lazy-initializing chat history database")
-        _chat_history_db = ChatHistoryDB()
-        _chat_history_db.connect()
+        _CHAT_HISTORY_DB_SINGLETON["instance"] = ChatHistoryDB()
+        _CHAT_HISTORY_DB_SINGLETON["instance"].connect()
 
-    return _chat_history_db
+    return _CHAT_HISTORY_DB_SINGLETON["instance"]

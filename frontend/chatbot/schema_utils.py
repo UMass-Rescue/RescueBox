@@ -1,3 +1,5 @@
+"""Map task schemas and tool arguments to form-friendly values."""
+
 import logging
 from typing import Dict, Any, Union
 from rb.api.models import TaskSchema, InputType

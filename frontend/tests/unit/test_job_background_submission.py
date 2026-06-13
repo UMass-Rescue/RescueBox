@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from frontend.pages import chatbot as orchestrator_module
+from frontend.pages.chatbot.handlers import job_orchestrator as orchestrator_module
 from frontend.pages.chatbot.handlers import JobSubmissionOrchestrator
 
 
@@ -11,16 +11,8 @@ async def test_background_submission_schedules_background_task(monkeypatch):
     form_handler.state_manager = MagicMock()
     orchestrator = JobSubmissionOrchestrator(form_handler)
 
-    # Patch DatabaseService.create_and_track_job to return a job id
-    monkeypatch.setattr(orchestrator_module, "DatabaseService", MagicMock())
-    orchestrator_module.DatabaseService.create_and_track_job = AsyncMock(
-        return_value={"job_id": "JOB_TEST"}
-    )
-    orchestrator_module.DatabaseService.save_user_prompt_if_missing_from_form_submission = (
-        AsyncMock()
-    )
-    orchestrator_module.DatabaseService.save_message_to_history = AsyncMock()
-    orchestrator_module.DatabaseService.save_job_started_to_history = AsyncMock()
+    # Patch lifecycle service to return a tracked job id.
+    orchestrator.lifecycle.create_tracked_job = AsyncMock(return_value="JOB_TEST")
 
     # Patch background_tasks.create to capture scheduling
     called = {"count": 0}
@@ -55,14 +47,17 @@ async def test_background_submission_success_enables_input(monkeypatch):
     form_handler.state_manager = MagicMock()
     orchestrator = JobSubmissionOrchestrator(form_handler)
 
-    with patch("frontend.pages.chatbot.show_results", new_callable=AsyncMock), patch(
-        "frontend.pages.chatbot.DatabaseService.save_tool_result_to_history",
+    with patch(
+        "frontend.pages.chatbot.handlers.job_orchestrator.show_results",
         new_callable=AsyncMock,
     ), patch(
-        "frontend.pages.chatbot.UIOperations.safe_container_update",
+        "frontend.pages.chatbot.handlers.job_lifecycle_service.DatabaseService.save_tool_result_to_history",
         new_callable=AsyncMock,
     ), patch(
-        "frontend.pages.chatbot.UIOperations.scroll_to_bottom_after_dom_update",
+        "frontend.components.chat.ui_operations.UIOperations.safe_container_update",
+        new_callable=AsyncMock,
+    ), patch(
+        "frontend.components.chat.ui_operations.UIOperations.scroll_to_bottom_after_dom_update",
         new_callable=AsyncMock,
     ):
 
@@ -96,13 +91,17 @@ async def test_handle_remaining_calls_passes_on_form_cancel():
     core.get_task_schema_from_endpoint = AsyncMock(return_value=MagicMock())
 
     with patch(
-        "frontend.pages.chatbot.coordinator.load_and_show_form", new_callable=AsyncMock
+        "frontend.pages.chatbot.handlers.pipeline.load_and_show_form",
+        new_callable=AsyncMock,
     ) as mock_load, patch(
-        "frontend.pages.chatbot.coerce_pipeline_response", return_value=response_body
+        "frontend.pages.chatbot.handlers.pipeline.coerce_pipeline_response",
+        return_value=response_body,
     ), patch(
-        "frontend.pages.chatbot.extract_batch_file_items", return_value=[]
+        "frontend.pages.chatbot.handlers.pipeline.extract_batch_file_items",
+        return_value=[],
     ), patch(
-        "frontend.pages.chatbot.chain_output_to_input", return_value={}
+        "frontend.pages.chatbot.handlers.pipeline.chain_output_to_input",
+        return_value={},
     ):
 
         await orchestrator.handle_remaining_calls(
@@ -139,17 +138,17 @@ async def test_do_submit_error_enables_input(monkeypatch):
     core = MagicMock()
     core.config = MagicMock()
     core.config.RESCUEBOX_HOST = "http://localhost"
-    core.submit_job = AsyncMock(side_effect=Exception("Simulated API failure"))
+    core.submit_job = AsyncMock(side_effect=RuntimeError("Simulated API failure"))
 
     with patch(
-        "frontend.pages.chatbot.DatabaseService.create_and_track_job",
+        "frontend.pages.chatbot.handlers.job_lifecycle_service.DatabaseService.create_and_track_job",
         new_callable=AsyncMock,
         return_value={"job_id": "job1"},
     ), patch(
-        "frontend.pages.chatbot.DatabaseService.save_user_prompt_if_missing_from_form_submission",
+        "frontend.pages.chatbot.handlers.job_lifecycle_service.DatabaseService.save_user_prompt_if_missing_from_form_submission",
         new_callable=AsyncMock,
     ), patch(
-        "frontend.pages.chatbot.DatabaseService.update_job_status",
+        "frontend.pages.chatbot.handlers.job_lifecycle_service.DatabaseService.update_job_status",
         new_callable=AsyncMock,
     ):
 

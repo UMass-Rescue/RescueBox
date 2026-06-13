@@ -1,6 +1,6 @@
 # Chatbot Module Tests
 
-**Overview:** See **`../docs/testing.md`**. Below is module-specific detail.
+**Overview:** See **`../docs/README.md`**. Below is module-specific detail.
 
 This document describes the test suite for the refactored chatbot module.
 
@@ -38,17 +38,25 @@ Tests for configuration and tool registry:
 
 #### `test_chatbot_core.py`
 Tests for core business logic:
-- **`ChatbotCore`**: Tests API interactions, form creation, job submission
+- **`ChatbotCore`**: RescueBox `ApiClient` + Ollama HTTP; schema fetch, forms, job submit, Granite via `/api/chat`
 
 **Key Test Cases:**
 - Task schema fetching from endpoints
 - Argument conversion to initial values
-- Argument normalization during conversion
-- Job submission
-- Granite model tool call parsing (both Ollama API and direct GGUF loading)
-- Direct GGUF model loading via llama-cpp-python (call_granite_model_direct)
-- Model caching and lazy loading
-- Error handling (import errors, file not found, inference errors)
+- Job submission (orchestrator; user id / case scoping)
+- Granite tool call parsing via Ollama (`call_granite_model` / `call_granite_model_direct`)
+- HTTP client lifecycle (`close()`)
+- Error handling (network, HTTP status, empty model responses)
+
+#### `test_api_client.py`
+- **`ApiClient`**: API path prefix rules, robust `json()` for mocks, sync/async HTTP fallbacks
+
+#### `test_form_submit_handler.py`
+- **`FormSubmitHandler`**: Requires active case id; case-notes dialog cancel aborts submit
+
+#### `test_utils_session_and_theme.py`
+- Session vs case ids (`ensure_session_user_id`, `ensure_active_case_id`)
+- `apply_saved_theme()` from preferences / config
 
 #### `test_chatbot_message_handler.py`
 Tests for message routing and handling:

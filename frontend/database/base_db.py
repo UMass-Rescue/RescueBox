@@ -45,7 +45,9 @@ class BaseDatabase(ABC):
         self._initialized = False
 
         logger.info(
-            f"{self.__class__.__name__} initialized with database path: {db_path}"
+            "%s initialized with database path: %s",
+            self.__class__.__name__,
+            db_path,
         )
 
     def connect(self) -> sqlite3.Connection:
@@ -56,7 +58,7 @@ class BaseDatabase(ABC):
             sqlite3.Connection: Database connection
         """
         if self.conn is None:
-            logger.debug(f"Connecting to database: {self.db_path}")
+            logger.debug("Connecting to database: %s", self.db_path)
             # Use a longer timeout and allow multi-threaded access where appropriate.
             # Enable WAL journal mode and a busy timeout to reduce "database is locked" errors.
             self.conn = sqlite3.connect(
@@ -86,12 +88,17 @@ class BaseDatabase(ABC):
 
         return self.conn
 
-    def close(self) -> None:
-        """Close database connection."""
+    def close_connection(self) -> None:
+        """Close database connection with logging."""
         if self.conn:
+            logger.debug("Closing database connection")
             self.conn.close()
             self.conn = None
             logger.info("Database connection closed")
+
+    def close(self) -> None:
+        """Close database connection."""
+        self.close_connection()
 
     @abstractmethod
     def _create_schema(self) -> None:
@@ -101,7 +108,7 @@ class BaseDatabase(ABC):
         Must be implemented by subclasses to define their specific tables
         and indexes.
         """
-        pass
+        raise NotImplementedError
 
     def execute_query(self, query: str, params: tuple = ()) -> sqlite3.Cursor:
         """
@@ -118,7 +125,7 @@ class BaseDatabase(ABC):
         try:
             return conn.execute(query, params)
         except sqlite3.Error:
-            logger.error(f"Database query failed: {query} with params {params}")
+            logger.error("Database query failed: %s with params %s", query, params)
             raise
 
     def execute_query_many(self, query: str, params_list: list) -> sqlite3.Cursor:
@@ -136,7 +143,7 @@ class BaseDatabase(ABC):
         try:
             return conn.executemany(query, params_list)
         except sqlite3.Error:
-            logger.error(f"Database query failed: {query} with params {params_list}")
+            logger.error("Database query failed: %s with params %s", query, params_list)
             raise
 
     def commit(self) -> None:

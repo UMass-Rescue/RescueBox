@@ -14,15 +14,14 @@ from nicegui import ui
 
 logger = logging.getLogger(__name__)
 
-_READABILITY_CSS_DONE = False
+_READABILITY_CSS_STATE = {"done": False}
 
 
 def inject_global_readability_css() -> None:
     """Inject shared styles once (``shared=True``) for all clients."""
-    global _READABILITY_CSS_DONE
-    if _READABILITY_CSS_DONE:
+    if _READABILITY_CSS_STATE["done"]:
         return
-    _READABILITY_CSS_DONE = True
+    _READABILITY_CSS_STATE["done"] = True
     ui.add_head_html(
         """
         <link rel="icon" href="/icons/favicon.png?v=5" type="image/png">
@@ -71,7 +70,8 @@ def inject_global_readability_css() -> None:
             background-color: #e4e7e9 !important;
             background-image: none !important;
             color: #18181b !important;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2), 0 2px 2px rgba(0, 0, 0, 0.14), 0 3px 1px -2px rgba(0, 0, 0, 0.12) !important;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2), 0 2px 2px rgba(0, 0, 0, 0.14),
+                0 3px 1px -2px rgba(0, 0, 0, 0.12) !important;
         }
         .q-notifications .q-notification.rb-notify-1e293b .q-notification__message,
         .q-notifications .q-notification.rb-notify-1e293b .q-notification__caption,
@@ -116,7 +116,8 @@ def inject_global_readability_css() -> None:
             background-color: #a2aaad !important;
             background-image: none !important;
             color: #18181b !important;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2), 0 2px 2px rgba(0, 0, 0, 0.14), 0 3px 1px -2px rgba(0, 0, 0, 0.12) !important;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2), 0 2px 2px rgba(0, 0, 0, 0.14),
+                0 3px 1px -2px rgba(0, 0, 0, 0.12) !important;
         }
         .q-notifications .q-notification.rb-notify-a2aaad .q-notification__message,
         .q-notifications .q-notification.rb-notify-a2aaad .q-notification__caption,
@@ -330,7 +331,10 @@ def inject_global_readability_css() -> None:
         .rb-chat-input-area .q-field__label {
             font-size: 1rem !important;
         }
-        .rb-image-summary-search-field .q-field__marginal .q-icon, .rb-image-summary-search-field .q-field__append .q-icon { color: #1e293b !important; }
+        .rb-image-summary-search-field .q-field__marginal .q-icon,
+        .rb-image-summary-search-field .q-field__append .q-icon {
+            color: #1e293b !important;
+        }
 
         /* Case Notes field specific overrides to ensure no blue/indigo remains */
         .rb-case-notes-field .q-field__label,

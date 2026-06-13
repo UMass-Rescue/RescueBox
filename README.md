@@ -11,7 +11,7 @@ Notes for Developers Only:
 1. python 3.13 , poetry 
       checkout git repo src and run poetry install
 
-2. install **ollama and pull models** granite4:micro, moondream:latest, gemma3:4b , gemma3:1b
+2. install **ollama and pull models** ibm/granite4.1:3b, moondream:latest, gemma3:4b , gemma3:1b
 	see "startup\ollama_check.sh"
 
 3. **install and run pgvector docker container** on macos/Linux/windows 

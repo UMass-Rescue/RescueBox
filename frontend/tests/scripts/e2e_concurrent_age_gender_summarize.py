@@ -38,24 +38,10 @@ from typing import Any
 
 import httpx
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-
-
-def _ensure_repo_on_path() -> None:
-    root = str(_REPO_ROOT)
-    if root not in sys.path:
-        sys.path.insert(0, root)
-
-
-def _pipeline_helpers():
-    _ensure_repo_on_path()
-    from frontend.chatbot.multi_tool_handler import (
-        apply_metadata_filter,
-        extract_batch_file_items,
-    )
-
-    return apply_metadata_filter, extract_batch_file_items
-
+from frontend.chatbot.multi_tool_handler import (
+    apply_metadata_filter,
+    extract_batch_file_items,
+)
 
 DEFAULT_BASE = "http://127.0.0.1:8080/api"
 DEFAULT_INPUT = "/home/tester/Documents/demo/age-gender-classifier/inputs"
@@ -115,9 +101,8 @@ async def _one_pipeline(
         snippet = (pr.text or "")[:400].replace("\n", " ")
         return user_index, "predict", pr.status_code, elapsed, snippet
 
-    extract_batch_file_items, apply_metadata_filter = _pipeline_helpers()
     items = extract_batch_file_items(pr.json())
-    filtered_paths = apply_metadata_filter(items, criteria)
+    filtered_paths = apply_metadata_filter(items, criteria_str=criteria)
 
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 

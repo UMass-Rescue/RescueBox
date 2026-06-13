@@ -1,40 +1,35 @@
+"""Public exports for chatbot page stack and helpers."""
+
 from nicegui import background_tasks
 
 from frontend.chatbot import api_helpers
 from frontend.chatbot.config import ChatbotConfig, ToolRegistry
 from frontend.chatbot.core import ChatbotCore
 from frontend.chatbot.message_handler import MessageHandler
-from frontend.chatbot.multi_tool_handler import (
-    apply_metadata_filter,
-    batch_items_have_age_gender_metadata,
-    chain_output_to_input,
-    coerce_pipeline_response,
-    extract_batch_file_items,
-)
-from frontend.components.chat.utils import UIOperations
-from frontend.database.chat_history_db import get_chat_history_db
-from frontend.database.job_db import get_job_db
+from frontend.components.chat import UIOperations
 
+from . import handlers
 from .coordinator import (
     FormSubmitHandler,
     MessageFlowCoordinator,
     MessageProcessor,
-    PipelineHandler,
     ResultProcessor,
 )
 from .database_service import DatabaseService
-from .handlers import JobSubmissionOrchestrator
+from .handlers import JobSubmissionOrchestrator, PipelineHandler
 from .state import ChatbotStateManager, ChatMessage
 from .ui import (
     ChatbotPage,
-    _show_results_body,
     chatbot_page,
     create_chat_ui,
     handle_api_error,
     handle_rerun_parameter,
-    load_and_show_form,
     render_message,
     show_error_to_user,
+)
+from .ui_flow import (
+    _show_results_body,
+    load_and_show_form,
     show_results,
     show_tool_selection,
 )
@@ -50,6 +45,7 @@ __all__ = [
     "ResultProcessor",
     "MessageProcessor",
     "PipelineHandler",
+    "handlers",
     "ChatbotPage",
     "chatbot_page",
     "create_chat_ui",
@@ -66,19 +62,13 @@ __all__ = [
     "show_tool_selection",
     "DatabaseService",
     "database_service",
-    "background_tasks",
-    "get_chat_history_db",
-    "get_job_db",
     "handle_rerun_parameter",
+    # Compatibility exports for existing test patch paths.
+    "background_tasks",
     "ChatbotCore",
     "ChatbotConfig",
     "MessageHandler",
     "ToolRegistry",
     "api_helpers",
-    "coerce_pipeline_response",
-    "chain_output_to_input",
-    "extract_batch_file_items",
-    "apply_metadata_filter",
-    "batch_items_have_age_gender_metadata",
     "UIOperations",
 ]

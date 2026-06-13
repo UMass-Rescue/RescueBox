@@ -16,7 +16,13 @@ Key Features:
 import json
 import logging
 from typing import List, Any, Optional, Literal
+
+from nicegui import app
 from pydantic import BaseModel, Field
+
+from frontend.chatbot.pipeline_context import get_pipeline_output_path
+from frontend.chatbot.exceptions import CHATBOT_ERRORS
+from frontend.utils import get_active_case
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -53,25 +59,19 @@ class ImageSummarize(BaseModel):
 
 
 class AudioTranscribe(BaseModel):
-    """
-    Transcribe audio files to text. Input is a folder of audio files. Output is a string of the transcription per input file
-    """
+    """Transcribe audio in a folder; output is text per input file."""
 
     input_dir: str = Field(..., description="Path to input audio")
 
 
 class AgeGenderPredict(BaseModel):
-    """
-    Predict age and gender of faces in an image directory. Input is a folder of images. Output is a string of the age and gender per input file
-    """
+    """Predict age and gender per image in a directory."""
 
     image_directory: str = Field(..., description="Path to image directory")
 
 
 class FaceFindBulk(BaseModel):
-    """
-    Find faces in the database that was uploaded earlier using FaceBulkUpload. Input is a folder of images. Upload the images to the database first.
-    """
+    """Find faces in a collection uploaded via FaceBulkUpload."""
 
     query_directory: str = Field(..., description="Path to query images")
     collection_name: str = Field("default", description="Database collection")
@@ -79,9 +79,7 @@ class FaceFindBulk(BaseModel):
 
 
 class FaceBulkUpload(BaseModel):
-    """
-    Input is a folder of images. Upload the images to the database first and then use the collection name to find faces in the database using FaceFindBulk.
-    """
+    """Upload images to a face-match collection for later FaceFindBulk queries."""
 
     directory_path: str = Field(..., description="Path to upload")
     collection_name: str = Field(..., description="Target collection")
@@ -89,9 +87,7 @@ class FaceBulkUpload(BaseModel):
 
 
 class DeepfakeDetection(BaseModel):
-    """
-    Detect deepfakes in an image directory. Input is a folder of images. Output is a file path of the deepfakes found per input file
-    """
+    """Detect deepfakes in an image directory; writes reports under output_dir."""
 
     input_dir: str = Field(..., description="Input directory of images")
     output_dir: str = Field(..., description="Output directory for reports and crops")
@@ -122,10 +118,8 @@ class UfdrMount(BaseModel):
 
 class TextSearch(BaseModel):
     """
-    Semantic search over plain text files only (e.g. .txt summaries from image_summary/summarize-images).
-    Use when the user explicitly searches text or written summaries, captions, or .txt description files.
-    Do NOT use when the user says "search these images", "search images for …", "search photos for …",
-    or "these pictures" as the set to search—those mean CLIP over pixels (image_embeddings/search_images), not text files.
+    Semantic search over plain text files (e.g. image_summary .txt output).
+    Not for CLIP image search — use image_embeddings/search_images for photos.
     """
 
     input_dir: str = Field(
@@ -166,6 +160,8 @@ class ImageSimilaritySearch(BaseModel):
 
 # Legacy support for backward compatibility
 class RescueBoxToolCall(BaseModel):
+    """Single Granite tool call (legacy strict schema)."""
+
     name: Literal[
         "audio/transcribe",
         "age-gender/predict",
@@ -184,6 +180,8 @@ class RescueBoxToolCall(BaseModel):
 
 
 class ToolCallList(BaseModel):
+    """Wrapper for a list of legacy tool calls."""
+
     calls: List[RescueBoxToolCall] = Field(
         ..., description="List of tool calls (legacy format)"
     )
@@ -285,38 +283,40 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     # Generate Dynamic Schema for the prompt
     tools_definitions = generate_tool_definitions()
 
-    from frontend.utils import get_active_case
-    from nicegui import app
-
     active_case = get_active_case()
     context_prefix = ""
     if active_case:
-        context_prefix += f"ACTIVE CASE CONTEXT:\n- Case Number: {active_case.caseNumber}\n- Evidence Path: {active_case.evidencePath}\n"
-        context_prefix += "- Use the evidence path as the default input directory/file path for all tools if not specified otherwise.\n"
+        context_prefix += (
+            f"ACTIVE CASE CONTEXT:\n"
+            f"- Case Number: {active_case.caseNumber}\n"
+            f"- Evidence Path: {active_case.evidencePath}\n"
+        )
+        context_prefix += (
+            "- Use the evidence path as the default input directory/file path "
+            "for all tools if not specified otherwise.\n"
+        )
 
     pipeline_job_id = None
     try:
         pipeline_job_id = app.storage.user.get("pipeline_job_id")
-    except Exception:
+    except CHATBOT_ERRORS:
         pass
 
     if pipeline_job_id:
         try:
-            from frontend.database import get_job_db
-
-            job = get_job_db().get_job_by_uid_sync(pipeline_job_id)
-            if job and job.response:
-                from frontend.chatbot.multi_tool_handler import extract_output_path
-                from rb.api.models import ResponseBody
-
-                response_body = job.response
-                if not isinstance(response_body, ResponseBody):
-                    response_body = ResponseBody(**response_body)
-                output_path = extract_output_path(response_body)
-                if output_path:
-                    context_prefix += f"PIPELINED JOB CONTEXT:\n- Source Job ID: {pipeline_job_id}\n- Source Job Output Path: {output_path}\n"
-                    context_prefix += "- Use this output path as the input directory/file path for the next tool call if the user asks to analyze/pipeline/use the results of the previous job.\n"
-        except Exception as e:
+            output_path = get_pipeline_output_path(pipeline_job_id)
+            if output_path:
+                context_prefix += (
+                    f"PIPELINED JOB CONTEXT:\n"
+                    f"- Source Job ID: {pipeline_job_id}\n"
+                    f"- Source Job Output Path: {output_path}\n"
+                )
+                context_prefix += (
+                    "- Use this output path as the input directory/file path "
+                    "for the next tool call if the user asks to analyze/pipeline/"
+                    "use the results of the previous job.\n"
+                )
+        except CHATBOT_ERRORS as e:
             logger.error("Error extracting pipeline job output path in prompt: %s", e)
 
     # ==========================================
@@ -332,40 +332,52 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             "RULES:\n"
             "1. CHAINING: If the user requests multiple actions, generate a LIST of tools in execution order.\n"
             '2. EXHAUSTIVE: Emit one tool call per distinct action. Use "rescuebox/unknown" only when no tool fits.\n'
-            "3. SHARED CONTEXT: Reuse paths across tools; after ufdr_mounter/mount, use mount_name as input_dir for image tools.\n"
+            "3. SHARED CONTEXT: Reuse paths across tools; after ufdr_mounter/mount, "
+            "use mount_name as input_dir for image tools.\n"
             "4. DEFAULTING: Infer output_dir for summaries (e.g. <folder>/summary) when omitted.\n"
             "5. IMAGE SUMMARIZE (captions): image_summary/summarize-images writes text descriptions of images. "
             'Phrases: "summarize images", "describe photos", "caption images".\n'
             "6. TEXT SEARCH vs IMAGE SEARCH (do not confuse):\n"
-            '   - If the user asks for transcribe AND/OR summarize in the SAME request as "search text" or '
-            '"search", that is a multi-step pipeline—emit ALL steps (see rules 11–12).\n'
-            "   - text_embeddings/search = search inside TEXT FILES (.txt), usually caption/summary outputs. "
-            "Use only when the user asks to search summaries/captions/written text, or the chain first ran image_summary "
-            "and then searches that output folder\n"
+            "   - If the user asks for transcribe AND/OR summarize in the SAME request as "
+            '"search text" or "search", that is a multi-step pipeline—emit ALL steps '
+            "(see rules 11–12).\n"
+            "   - text_embeddings/search = search inside TEXT FILES (.txt), usually "
+            "caption/summary outputs. Use only when the user asks to search summaries/"
+            "captions/written text, or the chain first ran image_summary and then "
+            "searches that output folder\n"
             "   - image_embeddings/search_images = CLIP search over IMAGE PIXELS. "
-            'Use when the user mentions photos, images, pictures, "in these photos", "find … in images", or any '
-            'visual "find X" query over a folder of images—even if they say "find" without saying "CLIP".\n'
-            '   - If the user says "find … in these photos" or similar, choose image_embeddings/search_images, '
-            "NOT text_embeddings/search, unless they explicitly mean searching text or .txt summary files.\n"
+            'Use when the user mentions photos, images, pictures, "in these photos", '
+            '"find … in images", or any visual "find X" query over a folder of '
+            'images—even if they say "find" without saying "CLIP".\n'
+            '   - If the user says "find … in these photos" or similar, choose '
+            "image_embeddings/search_images, NOT text_embeddings/search, unless they "
+            "explicitly mean searching text or .txt summary files.\n"
             "   - If the user wants ONLY image/photo search, emit image_embeddings/search_images only.\n"
             "   - If the user wants ONLY text/.txt search, emit text_embeddings/search only.\n"
-            '   - If ONE prompt asks for BOTH "image search" (or photos/CLIP/visual) AND "text search" (or summaries/.txt), '
-            "emit TWO tools: image_embeddings/search_images AND text_embeddings/search.\n"
-            "7. BOTH summarize AND image-search on the same folder: emit image_summary/summarize-images AND "
-            "image_embeddings/search_images with the SAME input_dir (same image folder); order mount first if UFDR applies.\n"
-            "8. SUMMARIZE + TEXT SEARCH pipeline: If the user wants summaries AND to search those written descriptions, use "
-            "image_summary/summarize-images then text_embeddings/search with input_dir = that output_dir.\n"
-            "9. UFDR: If the user mentions mounting UFDR/.ufdr, emit ufdr_mounter/mount first; downstream input_dir is mount_name.\n"
+            '   - If ONE prompt asks for BOTH "image search" (or photos/CLIP/visual) AND '
+            '"text search" (or summaries/.txt), emit TWO tools: '
+            "image_embeddings/search_images AND text_embeddings/search.\n"
+            "7. BOTH summarize AND image-search on the same folder: emit "
+            "image_summary/summarize-images AND image_embeddings/search_images with "
+            "the SAME input_dir (same image folder); order mount first if UFDR applies.\n"
+            "8. SUMMARIZE + TEXT SEARCH pipeline: If the user wants summaries AND to "
+            "search those written descriptions, use image_summary/summarize-images then "
+            "text_embeddings/search with input_dir = that output_dir.\n"
+            "9. UFDR: If the user mentions mounting UFDR/.ufdr, emit ufdr_mounter/mount "
+            "first; downstream input_dir is mount_name.\n"
             "10. AUDIO vs TEXT SUMMARIZE: audio/transcribe converts speech in audio files to text. "
             "text_summarization/summarize condenses text/PDF files already on disk. These are different tools.\n"
-            "11. TRANSCRIBE + SUMMARIZE: If the user asks to transcribe audio/files and summarize "
-            "the text only, emit TWO tools in order: audio/transcribe first, then text_summarization/summarize.\n"
-            '12. TRANSCRIBE + SUMMARIZE + SEARCH TEXT (three steps): Phrases like "transcribe summarize and search text" '
-            "mean THREE tools in order—never answer with only text_embeddings/search. "
-            "Emit: audio/transcribe, then text_summarization/summarize, then text_embeddings/search. "
-            "Summarize output_dir feeds text_embeddings/search input_dir.\n"
-            '13. IMAGE SEARCH + TEXT SEARCH (two search tools): Phrases like "image search text search" require BOTH '
-            "image_embeddings/search_images and text_embeddings/search.\n\n"
+            "11. TRANSCRIBE + SUMMARIZE: If the user asks to transcribe audio/files and "
+            "summarize the text only, emit TWO tools in order: audio/transcribe first, "
+            "then text_summarization/summarize.\n"
+            "12. TRANSCRIBE + SUMMARIZE + SEARCH TEXT (three steps): Phrases like "
+            '"transcribe summarize and search text" mean THREE tools in order—never '
+            "answer with only text_embeddings/search. Emit: audio/transcribe, then "
+            "text_summarization/summarize, then text_embeddings/search. Summarize "
+            "output_dir feeds text_embeddings/search input_dir.\n"
+            "13. IMAGE SEARCH + TEXT SEARCH (two search tools): Phrases like "
+            '"image search text search" require BOTH image_embeddings/search_images '
+            "and text_embeddings/search.\n\n"
             f"<tools>{json.dumps(tools_definitions)}</tools>"
         ),
     }
@@ -475,7 +487,10 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     # 5. Example E: Age-gender + Summarize + Search (image_summary -> text_embeddings pipeline)
     ex_e_user = {
         "role": "user",
-        "content": "detect age and gender of faces in /evidence/case1, summarize, and search for a kid with brown clothes",
+        "content": (
+            "detect age and gender of faces in /evidence/case1, summarize, "
+            "and search for a kid with brown clothes"
+        ),
     }
     ex_e_asst = {
         "role": "assistant",
@@ -856,19 +871,18 @@ def parse_tool_calls_response(response_text: str) -> Optional[list[dict[str, Any
                 {"name": tool_call.name, "arguments": tool_call.arguments}
             )
 
-        if tool_calls:
-            for call in tool_calls:
-                if call.get("name") == "unknown":
-                    logger.info("⚠️  No valid tool calls found")
-                    return None
-            xml_output = f"<tool_code>{json.dumps(data['calls'])}</tool_code>"
-            logger.debug("formatted_output: %s", xml_output)
-            return tool_calls
-        else:
+        if not tool_calls:
             logger.warning("⚠️  No valid tool calls found")
             return None
+        for call in tool_calls:
+            if call.get("name") == "unknown":
+                logger.info("⚠️  No valid tool calls found")
+                return None
+        xml_output = f"<tool_code>{json.dumps(data['calls'])}</tool_code>"
+        logger.debug("formatted_output: %s", xml_output)
+        return tool_calls
 
-    except Exception as e:
+    except CHATBOT_ERRORS as e:
         logger.error("❌ Error parsing model output: %s", str(e))
         logger.error("Raw Output: %s", response_text)
         return None

@@ -3,9 +3,12 @@ import re
 import contextvars
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
+
 from frontend.config import LOG_FILE
-from frontend.database import get_job_db, get_chat_history_db
+from frontend.database.chat_history_db import get_chat_history_db
+from frontend.database.job_db import get_job_db
+from frontend.utils.exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +40,7 @@ _NOISY_WARNING_NAMES = (
     "httpx",
     "frontend.chatbot",
     "frontend.components.forms",
-    "frontend.components.results.tool_selection_card",
+    "frontend.components.results.tool_selection",
     "frontend.utils.validators",
     "frontend.utils.file_browser",
     "nicegui",
@@ -49,7 +52,7 @@ _CHATBOT_FORMS_WARNING_NAMES = (
     "frontend.pages.chatbot.state.state_manager",
     "frontend.pages.chatbot.utils.form_validator",
     "frontend.components.forms.form_generator",
-    "frontend.components.forms.form_handlers",
+    "frontend.components.forms.form_generator",
     "frontend.components.forms.builders.input_field_builder",
     "frontend.components.forms.case_notes_dialog",
 )
@@ -104,10 +107,16 @@ class ContextFilter(logging.Filter):
             if sid:
                 parts.append(f"session_id={sid}")
             record.context = f" | {' | '.join(parts)}" if parts else ""
-        except Exception:
+        except UI_RENDER_ERRORS:
             record.job_id = record.model_id = record.session_id = "-"
             record.context = ""
         return True
+
+    @staticmethod
+    def reset_record_context(record: logging.LogRecord) -> None:
+        """Clear context fields on a log record (for tests)."""
+        record.job_id = record.model_id = record.session_id = "-"
+        record.context = ""
 
 
 def configure_logging_with_context(log_file_path=None, log_level="DEBUG"):
@@ -142,7 +151,7 @@ def configure_logging_with_context(log_file_path=None, log_level="DEBUG"):
     return fh
 
 
-def apply_per_logger_levels_for_verbose_root(level):
+def apply_per_logger_levels_for_verbose_root(_level):
     for n in _NOISY_WARNING_NAMES + _CHATBOT_FORMS_WARNING_NAMES:
         logging.getLogger(n).setLevel(logging.WARNING)
     for n in _PIPELINE_DIAG_INFO_NAMES:
@@ -172,7 +181,7 @@ async def generate_audit_trail_for_job(job_id: str) -> Dict[str, Any]:
                             "timestamp": m.timestamp,
                         }
                     )
-    except Exception:
+    except UI_RENDER_ERRORS:
         pass
 
     audit = {
@@ -183,7 +192,7 @@ async def generate_audit_trail_for_job(job_id: str) -> Dict[str, Any]:
     }
     try:
         audit["logs"] = await read_logs_filtered(job_id=job_id)
-    except Exception:
+    except UI_RENDER_ERRORS:
         audit["logs"] = []
     return audit
 
@@ -191,10 +200,10 @@ async def generate_audit_trail_for_job(job_id: str) -> Dict[str, Any]:
 async def read_logs_filtered(
     log_file_path=None,
     job_id=None,
-    model_id=None,
-    session_id=None,
+    _model_id=None,
+    _session_id=None,
     start_time=None,
-    end_time=None,
+    _end_time=None,
 ):
     path = Path(log_file_path or LOG_FILE)
     if not path.exists():
@@ -211,7 +220,7 @@ async def read_logs_filtered(
                 not start_time or not e.get("timestamp") or e["timestamp"] >= start_time
             )
         ]
-    except Exception:
+    except UI_RENDER_ERRORS:
         return []
 
 
@@ -222,10 +231,10 @@ def parse_log_line(line):
     match = re.match(pattern, line)
     if not match:
         return None
-    ts_str, level, ctx_str, logger_name, message = match.groups()
+    ts_str, level, ctx_str, _logger_name, message = match.groups()
     try:
         ts = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
-    except Exception:
+    except UI_RENDER_ERRORS:
         ts = None
     jid = re.search(r"job_id=([^\s|]+)", ctx_str)
     return {

@@ -27,7 +27,7 @@ Click **[Assistant](/chatbot)** in the top nav (or use **Assistant** from the ho
 
 2. The **plugin selector menu** appears in the chat area with numbered options.
 
-3. Click **🎤 Transcribe Audio** — it is option **1** in the picker (`audio/transcribe`).
+3. Click ** Transcribe Audio** — it is option **1** in the picker (`audio/transcribe`).
 
 4. The **input form** for transcription loads **inline** in the chat.
 

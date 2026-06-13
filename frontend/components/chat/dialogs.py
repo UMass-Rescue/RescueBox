@@ -1,6 +1,10 @@
 import json
 from typing import Optional, Callable, List, Any
+
 from nicegui import ui
+
+from frontend.components.chat.rendering import render_conversation_card
+from frontend.database import get_chat_history_db
 from frontend.design_tokens import Design
 
 
@@ -8,9 +12,7 @@ def show_help_dialog(help_text: str, title: Optional[str] = "RescueBox Help") ->
     with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_WIDE):
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
             ui.label(title or "Help").classes(Design.PANEL_SHELL_HEADER_TITLE)
-            ui.button(icon="close", color=None, on_click=dialog.close).props(
-                "flat round dense"
-            )
+            ui.button(color=None, on_click=dialog.close).props("flat round dense")
         with ui.column().classes("w-full flex-1 overflow-y-auto p-6"):
             ui.markdown(help_text or "No help available.")
     dialog.open()
@@ -19,18 +21,13 @@ def show_help_dialog(help_text: str, title: Optional[str] = "RescueBox Help") ->
 async def show_history_dialog(
     on_conversation_select: Callable[[str], None]
 ) -> ui.dialog:
-    from frontend.database import get_chat_history_db
-    from frontend.components.chat.rendering import render_conversation_card
-
     chat_db = get_chat_history_db()
     conversations = await chat_db.get_all_conversations()
 
     with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_WIDE):
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
             ui.label("Chat History").classes(Design.PANEL_SHELL_HEADER_TITLE)
-            ui.button(icon="close", color=None, on_click=dialog.close).props(
-                "flat round dense"
-            )
+            ui.button(color=None, on_click=dialog.close).props("flat round dense")
 
         with ui.column().classes(
             f"{Design.PANEL_SHELL_BODY} gap-3 overflow-y-auto max-h-[60vh] w-full"
@@ -59,7 +56,7 @@ async def show_history_dialog(
 
 
 def show_conversation_view_dialog(
-    conversation: Any, messages: List[Any], title: str = None
+    _conversation: Any, messages: List[Any], title: str = None
 ):
     """Render persisted messages; include JSON for tool calls and job payloads when present."""
 

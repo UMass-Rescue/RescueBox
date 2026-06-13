@@ -1,8 +1,11 @@
 from __future__ import annotations
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
+import asyncio
 from typing import Iterator, Optional
 from nicegui import ui, app
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.utils.ui import is_ephemeral_ui_error
 
 _chat_container_override: ContextVar[Optional[ui.element]] = ContextVar(
     "chat_container_override", default=None
@@ -47,20 +50,8 @@ def resolve_chat_container(
     return g
 
 
-def is_ephemeral_ui_error(exc: BaseException) -> bool:
-    """Check if an exception is an 'expected' ephemeral UI error (e.g. client disconnected)."""
-    msg = str(exc).lower()
-    return (
-        "client deleted" in msg
-        or "client is deleted" in msg
-        or "slot cannot be determined" in msg
-        or "no slot to add element" in msg
-    )
-
-
 def safe_ui_call(func, *args, **kwargs):
     """Safely call a UI function, swallowing ephemeral UI errors."""
-    import asyncio
 
     def handle_error(e):
         if is_ephemeral_ui_error(e):
@@ -72,12 +63,12 @@ def safe_ui_call(func, *args, **kwargs):
         async def async_wrapper():
             try:
                 return await func(*args, **kwargs)
-            except Exception as e:
+            except UI_RENDER_ERRORS as e:
                 return handle_error(e)
 
         return async_wrapper()
 
     try:
         return func(*args, **kwargs)
-    except Exception as e:
+    except UI_RENDER_ERRORS as e:
         return handle_error(e)

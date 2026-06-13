@@ -16,14 +16,62 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from frontend.database.db_exceptions import DB_ERRORS
 from frontend.database.job_db import get_job_db
+from frontend.database.schemas import (
+    file_filters_runtime_create_statements,
+    file_filters_runtime_index_statements,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def _get_conn() -> sqlite3.Connection:
-    db = get_job_db()
-    return db.connect()
+def _json_loads_or(value: Optional[str], default):
+    if not value:
+        return default
+    try:
+        return json.loads(value)
+    except DB_ERRORS:
+        return default
+
+
+def _parse_pattern_line(line: str):
+    line = line.strip()
+    if not line:
+        return None
+    try:
+        if "." in line:
+            return float(line)
+        return int(line)
+    except DB_ERRORS:
+        return line
+
+
+def _patterns_from_file(path: Path) -> List[Union[str, int, float]]:
+    patterns: List[Union[str, int, float]] = []
+    txt = path.read_text(encoding="utf-8")
+    for line in txt.splitlines():
+        parsed = _parse_pattern_line(line)
+        if parsed is not None:
+            patterns.append(parsed)
+    return patterns
+
+
+def _get_conn(conn: Optional[sqlite3.Connection] = None) -> sqlite3.Connection:
+    if conn is not None:
+        resolved = conn
+    else:
+        db = get_job_db()
+        resolved = db.connect()
+    _ensure_file_filters_schema(resolved)
+    return resolved
+
+
+def _ensure_file_filters_schema(conn: sqlite3.Connection) -> None:
+    for statement in file_filters_runtime_create_statements():
+        conn.execute(statement.strip())
+    for statement in file_filters_runtime_index_statements():
+        conn.execute(statement.strip())
 
 
 def create_filter(
@@ -35,11 +83,12 @@ def create_filter(
     owner_id: Optional[str] = None,
     source: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    conn: Optional[sqlite3.Connection] = None,
 ) -> str:
     """
     Create a persisted filter record and return its id (UUID string).
     """
-    conn = _get_conn()
+    conn = _get_conn(conn)
     fid = f"FILTER_{uuid.uuid4().hex}"
     now = datetime.now().isoformat()
     paths_json = json.dumps([str(Path(p)) for p in paths]) if paths else None
@@ -68,11 +117,13 @@ def create_filter(
     return fid
 
 
-def load_filter(filter_id: str) -> Optional[Dict[str, Any]]:
+def load_filter(
+    filter_id: str, conn: Optional[sqlite3.Connection] = None
+) -> Optional[Dict[str, Any]]:
     """
     Load a persisted filter by id. Returns dict or None if not found.
     """
-    conn = _get_conn()
+    conn = _get_conn(conn)
     cur = conn.execute("SELECT * FROM file_filters WHERE id = ?", (filter_id,))
     row = cur.fetchone()
     if not row:
@@ -80,32 +131,16 @@ def load_filter(filter_id: str) -> Optional[Dict[str, Any]]:
     cols = [c[0] for c in cur.description]
     data = dict(zip(cols, row))
     # parse JSON fields
-    if data.get("paths_json"):
-        try:
-            data["paths_json"] = json.loads(data["paths_json"])
-        except Exception:
-            data["paths_json"] = []
-    else:
-        data["paths_json"] = []
-    if data.get("patterns_json"):
-        try:
-            data["patterns_json"] = json.loads(data["patterns_json"])
-        except Exception:
-            data["patterns_json"] = []
-    else:
-        data["patterns_json"] = []
-    if data.get("metadata"):
-        try:
-            data["metadata"] = json.loads(data["metadata"])
-        except Exception:
-            data["metadata"] = {}
-    else:
-        data["metadata"] = {}
+    data["paths_json"] = _json_loads_or(data.get("paths_json"), [])
+    data["patterns_json"] = _json_loads_or(data.get("patterns_json"), [])
+    data["metadata"] = _json_loads_or(data.get("metadata"), {})
     return data
 
 
-def list_filters(owner_id: Optional[str] = None) -> List[Dict[str, Any]]:
-    conn = _get_conn()
+def list_filters(
+    owner_id: Optional[str] = None, conn: Optional[sqlite3.Connection] = None
+) -> List[Dict[str, Any]]:
+    conn = _get_conn(conn)
     if owner_id:
         cur = conn.execute(
             "SELECT * FROM file_filters WHERE owner_id = ? ORDER BY created_at DESC",
@@ -119,20 +154,14 @@ def list_filters(owner_id: Optional[str] = None) -> List[Dict[str, Any]]:
     for row in rows:
         data = dict(zip(cols, row))
         # parse JSON lightly
-        try:
-            data["paths_json"] = json.loads(data.get("paths_json") or "[]")
-        except Exception:
-            data["paths_json"] = []
-        try:
-            data["patterns_json"] = json.loads(data.get("patterns_json") or "[]")
-        except Exception:
-            data["patterns_json"] = []
+        data["paths_json"] = _json_loads_or(data.get("paths_json") or "[]", [])
+        data["patterns_json"] = _json_loads_or(data.get("patterns_json") or "[]", [])
         result.append(data)
     return result
 
 
-def delete_filter(filter_id: str) -> bool:
-    conn = _get_conn()
+def delete_filter(filter_id: str, conn: Optional[sqlite3.Connection] = None) -> bool:
+    conn = _get_conn(conn)
     cur = conn.execute("DELETE FROM file_filters WHERE id = ?", (filter_id,))
     conn.commit()
     return cur.rowcount > 0
@@ -143,6 +172,7 @@ def resolve_filter_for_job(
     input_dir: Path,
     persist_if_requested: bool = False,
     owner_id: Optional[str] = None,
+    conn: Optional[sqlite3.Connection] = None,
 ) -> Tuple[List[Path], Optional[str]]:
     """
     Resolve input file list from BatchFileInput-like object.
@@ -154,7 +184,7 @@ def resolve_filter_for_job(
 
     # If object/dict contains 'filter_id', treat as reference
     if isinstance(batch_file_input, dict) and batch_file_input.get("filter_id"):
-        f = load_filter(batch_file_input["filter_id"])
+        f = load_filter(batch_file_input["filter_id"], conn=conn)
         if f and f.get("paths_json"):
             resolved = [input_dir.joinpath(p).resolve() for p in f["paths_json"]]
             return (resolved, f["id"])
@@ -164,7 +194,7 @@ def resolve_filter_for_job(
     files = None
     try:
         files = getattr(batch_file_input, "files", None) or batch_file_input
-    except Exception:
+    except DB_ERRORS:
         files = None
 
     if files:
@@ -174,7 +204,7 @@ def resolve_filter_for_job(
                 p = Path(getattr(entry, "path", entry))
                 if p.exists():
                     paths.append(p.resolve())
-            except Exception:
+            except DB_ERRORS:
                 continue
         # If persist requested, create filter
         if persist_if_requested and (paths or owner_id):
@@ -192,6 +222,7 @@ def resolve_filter_for_job(
                 paths=rel_paths,
                 filter_type="input",
                 owner_id=owner_id,
+                conn=conn,
             )
             return (paths, fid)
         return (paths, None)
@@ -203,6 +234,7 @@ def resolve_output_filter_for_job(
     output_filter_input: Any,
     persist_if_requested: bool = False,
     owner_id: Optional[str] = None,
+    conn: Optional[sqlite3.Connection] = None,
 ) -> Tuple[List[Union[str, int, float]], Optional[str]]:
     """
     Resolve output filter patterns from uploaded files or saved filter references.
@@ -213,7 +245,7 @@ def resolve_output_filter_for_job(
 
     # If reference dict
     if isinstance(output_filter_input, dict) and output_filter_input.get("filter_id"):
-        f = load_filter(output_filter_input["filter_id"])
+        f = load_filter(output_filter_input["filter_id"], conn=conn)
         if f and f.get("patterns_json"):
             return (f["patterns_json"], f["id"])
         return ([], None)
@@ -221,7 +253,7 @@ def resolve_output_filter_for_job(
     files = None
     try:
         files = getattr(output_filter_input, "files", None) or output_filter_input
-    except Exception:
+    except DB_ERRORS:
         files = None
 
     patterns: List[Union[str, int, float]] = []
@@ -230,21 +262,8 @@ def resolve_output_filter_for_job(
             try:
                 p = Path(getattr(entry, "path", entry))
                 if p.exists():
-                    txt = p.read_text(encoding="utf-8")
-                    for line in txt.splitlines():
-                        line = line.strip()
-                        if not line:
-                            continue
-                        # Try numeric parse
-                        try:
-                            if "." in line:
-                                val = float(line)
-                            else:
-                                val = int(line)
-                            patterns.append(val)
-                        except Exception:
-                            patterns.append(line)
-            except Exception:
+                    patterns.extend(_patterns_from_file(p))
+            except DB_ERRORS:
                 continue
         if persist_if_requested and (patterns or owner_id):
             fid = create_filter(
@@ -252,6 +271,7 @@ def resolve_output_filter_for_job(
                 patterns=patterns,
                 filter_type="output",
                 owner_id=owner_id,
+                conn=conn,
             )
             return (patterns, fid)
         return (patterns, None)
@@ -265,6 +285,7 @@ def create_composite_filter(
     name: Optional[str] = None,
     input_dir: Optional[Union[str, Path]] = None,
     owner_id: Optional[str] = None,
+    conn: Optional[sqlite3.Connection] = None,
 ) -> str:
     rel_paths = [str(p) for p in paths] if paths else None
     return create_filter(
@@ -274,4 +295,5 @@ def create_composite_filter(
         patterns=patterns,
         filter_type="composite",
         owner_id=owner_id,
+        conn=conn,
     )

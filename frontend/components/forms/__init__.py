@@ -6,7 +6,7 @@ from .form_generator import (
     collect_form_data,
     validate_form,
 )
-from . import form_generator as form_handlers
+from . import form_generator
 from .field_builders import (
     create_input_field,
     create_parameter_field,
@@ -15,6 +15,9 @@ from .field_builders import (
 )
 from .dialogs import show_case_notes_dialog
 from frontend.utils import handle_validation_error, show_error_to_user
+
+# Backward-compatible alias (prefer ``form_generator`` in new code).
+form_handlers = form_generator
 
 __all__ = [
     "FormGenerator",
@@ -28,15 +31,8 @@ __all__ = [
     "show_case_notes_dialog",
     "validate_form",
     "ui",
+    "form_generator",
     "form_handlers",
     "handle_validation_error",
     "show_error_to_user",
 ]
-
-
-# Legacy alias for backward compatibility if needed
-def create_form(*args, **kwargs):
-    """Legacy wrapper for generate_form."""
-    generator = FormGenerator()
-    # If called in sync context, this won't work well, but generate_form is async
-    return generator.generate_form(*args, **kwargs)

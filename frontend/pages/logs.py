@@ -10,12 +10,12 @@ from pathlib import Path
 
 from nicegui import ui
 
+from frontend.components.logs import read_log_file, render_log_viewer
 from frontend.components.shared import create_navbar
 from frontend.config import LOG_FILE
 from frontend.constants import UI_TITLES
-from frontend.utils.paths import setup_backend_path
-
-setup_backend_path()
+from frontend.utils import apply_saved_theme, require_demo_user_session
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -28,6 +28,7 @@ class LogsPage:
         """Initialize the logs page."""
         self.log_content = ""
         self.max_lines = 1000  # Limit lines for performance
+        self.log_display = None
 
     async def render(self):
         """Render the logs page. Creates the UI components for displaying log content with"""
@@ -38,15 +39,12 @@ class LogsPage:
         ):
             # Page header
             with ui.row().classes("items-center gap-2 mb-4"):
-                ui.icon("terminal", size="lg").classes("text-[#881c1c]")
                 ui.label(UI_TITLES.get("logs", "Application Logs")).classes(
                     "text-4xl font-bold text-slate-800"
                 )
 
             # Use extracted log viewer component (full width, fill available space)
             try:
-                from frontend.components.logs import render_log_viewer
-
                 log_container = ui.column().classes("w-full max-w-full min-w-0 flex-1")
                 self.log_display = render_log_viewer(
                     log_container, LOG_FILE, self.max_lines
@@ -54,7 +52,7 @@ class LogsPage:
                 # Load initial content into returned element if available
                 if self.log_display is not None:
                     await self._load_logs()
-            except Exception as e:
+            except UI_RENDER_ERRORS as e:
                 # Fallback to inline rendering if component fails
                 logger.exception("Failed to use log_viewer component: %s", e)
 
@@ -88,9 +86,9 @@ class LogsPage:
             timeout=10,
         )
 
-        logger.debug(f"Loaded log content from: {LOG_FILE}")
+        logger.debug("Loaded log content from: %s", LOG_FILE)
 
-    async def _refresh_logs(self):
+    async def refresh_logs(self):
         """Refresh the log display by reloading content."""
         logger.info("Refreshing logs")
         await self._load_logs()
@@ -101,43 +99,12 @@ class LogsPage:
 async def logs_page():
     """Page route handler for /logs. Creates the logs page with navigation bar and renders the LogsPage."""
     logger.info("Logs page route accessed")
-    from frontend.utils import apply_saved_theme
-
     apply_saved_theme()
     create_navbar()
-    from frontend.utils import require_demo_user_session
-
     if not require_demo_user_session():
         return
     logs_page_instance = LogsPage()
     await logs_page_instance.render()
-
-
-def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:
-    """Read and process log file contents. Args:"""
-    try:
-        if not log_file_path.exists():
-            return f"Log file does not exist: {log_file_path}"
-
-        logger.debug(f"Reading log file: {log_file_path}")
-
-        with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
-            lines = f.readlines()
-
-        # Limit to max_lines for performance
-        if len(lines) > max_lines:
-            lines = lines[-max_lines:]
-            content = f"[Showing last {max_lines} lines of {len(lines) + (len(lines) - max_lines)} total lines]\n\n"
-        else:
-            content = ""
-
-        content += "".join(lines)
-        return content
-
-    except Exception as e:
-        error_msg = f"Error reading log file: {str(e)}"
-        logger.error(error_msg)
-        return error_msg
 
 
 def format_log_content(content: str) -> str:

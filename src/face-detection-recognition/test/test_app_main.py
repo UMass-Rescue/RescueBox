@@ -1,5 +1,4 @@
 import os
-import sys
 import uuid
 import unittest
 from pathlib import Path
@@ -7,16 +6,14 @@ from pathlib import Path
 import onnxruntime
 import pytest
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-from face_detection_recognition.face_match_server import (  # noqa: E402
+from face_detection_recognition.database_functions import get_vector_database
+from face_detection_recognition.face_match_server import (
     APP_NAME,
-    DB,
     app as cli_app,
     server,
 )
+
+DB = get_vector_database()
 
 # Force CPU execution for testing - ONNX Runtime settings
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"

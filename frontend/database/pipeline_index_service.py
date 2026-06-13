@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from frontend.database.pipeline_job_index_db import (
@@ -22,9 +23,7 @@ from frontend.database.pipeline_job_index_db import (
     insert_pipeline_job_step,
     insert_pipeline_response_rows,
 )
-from frontend.components.results import (
-    source_image_path_from_summary,
-)
+from frontend.database.pipeline_lineage_utils import source_image_path_from_summary
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +168,7 @@ def _flatten_text_value(value: Any, out: List[Dict[str, Any]], cap: int) -> None
 
 def flatten_job_response_to_rows(
     response_data: Any,
-    endpoint: str,
+    _endpoint: str,
     cap: int = _MAX_RESPONSE_ROW_ITEMS,
 ) -> List[Dict[str, Any]]:
     """
@@ -528,8 +527,6 @@ def record_image_summary_for_pipeline(
                 continue
             excerpt = ""
             try:
-                from pathlib import Path
-
                 excerpt = Path(fp).read_text(encoding="utf-8", errors="replace")[:8000]
             except OSError:
                 pass
@@ -558,8 +555,6 @@ def record_image_summary_for_pipeline(
                 continue
             excerpt = ""
             try:
-                from pathlib import Path
-
                 excerpt = Path(fp).read_text(encoding="utf-8", errors="replace")[:8000]
             except OSError:
                 pass

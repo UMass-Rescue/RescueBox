@@ -89,16 +89,16 @@ class TestFormHandlersErrorHandling:
         handles the exception, prevents form submission, and displays
         appropriate error feedback to the user.
         """
-        from frontend.components.forms import form_handlers
+        from frontend.components.forms import form_generator
 
         with patch(
             "frontend.components.forms.form_generator.validate_form_data",
             return_value={"is_valid": True, "errors": {}},
         ):
             with patch.object(
-                form_handlers,
+                form_generator,
                 "collect_form_data",
-                side_effect=Exception("Collection error"),
+                side_effect=RuntimeError("Collection error"),
             ):
                 with patch(
                     "frontend.components.forms.form_generator.show_error_to_user"
@@ -132,14 +132,14 @@ class TestFormHandlersErrorHandling:
         system catches the error and displays appropriate feedback
         without crashing the form handling flow.
         """
-        from frontend.components.forms import form_handlers
+        from frontend.components.forms import form_generator
 
         with patch(
             "frontend.components.forms.form_generator.validate_form_data",
             return_value={"is_valid": True, "errors": {}},
         ):
             with patch.object(
-                form_handlers,
+                form_generator,
                 "collect_form_data",
                 return_value={"inputs": {}, "parameters": {}},
             ):
@@ -148,7 +148,7 @@ class TestFormHandlersErrorHandling:
                 ) as mock_show_error:
 
                     def mock_submit(data):
-                        raise Exception("Submit error")
+                        raise RuntimeError("Submit error")
 
                     await handle_form_submit(
                         sample_task_schema, mock_form_widgets, mock_submit
@@ -163,14 +163,14 @@ class TestFormHandlersErrorHandling:
         self, sample_task_schema, mock_form_widgets
     ):
         """Test handling of missing submit callback"""
-        from frontend.components.forms import form_handlers
+        from frontend.components.forms import form_generator
 
         with patch(
             "frontend.components.forms.form_generator.validate_form_data",
             return_value={"is_valid": True, "errors": {}},
         ):
             with patch.object(
-                form_handlers,
+                form_generator,
                 "collect_form_data",
                 return_value={"inputs": {}, "parameters": {}},
             ):
@@ -193,7 +193,7 @@ class TestFormHandlersErrorHandling:
 
         with patch(
             "frontend.components.forms.form_generator.validate_form_data",
-            side_effect=Exception("Unexpected error"),
+            side_effect=RuntimeError("Unexpected error"),
         ):
             with patch(
                 "frontend.components.forms.form_generator.show_error_to_user"

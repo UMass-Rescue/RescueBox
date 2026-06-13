@@ -1,8 +1,30 @@
 import logging
 from typing import Union
-from nicegui import ui, context
+
+from nicegui import context, ui
+
+from frontend.constants import HOME_USER_ID, NAV_LINKS
+from frontend.config import APP_DARK_MODE
+from frontend.utils.exceptions import UI_RENDER_ERRORS
+from frontend.utils.storage import (
+    ensure_explicit_user_id_for_tests,
+    get_user_id,
+    get_user_id_for_jobs,
+    get_user_preference,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def is_ephemeral_ui_error(exc: BaseException) -> bool:
+    """True when the client disconnected or NiceGUI has no slot (tests/background)."""
+    msg = str(exc).lower()
+    return (
+        "client deleted" in msg
+        or "client is deleted" in msg
+        or "slot cannot be determined" in msg
+        or "no slot to add element" in msg
+    )
 
 
 def _safe_ui_call(func, *args, **kwargs):
@@ -15,7 +37,7 @@ def _safe_ui_call(func, *args, **kwargs):
         return None
     try:
         return func(*args, **kwargs)
-    except Exception:
+    except UI_RENDER_ERRORS:
         return None
 
 
@@ -26,7 +48,7 @@ def notify_success(
     close_button: bool = True,
     **kwargs,
 ):
-    logger.debug(f"Success notification shown: {message}")
+    logger.debug("Success notification shown: %s", message)
     _safe_ui_call(
         ui.notify,
         message,
@@ -45,7 +67,7 @@ def notify_error(
     close_button: bool = True,
     **kwargs,
 ):
-    logger.debug(f"Error notification shown: {message}")
+    logger.debug("Error notification shown: %s", message)
     _safe_ui_call(
         ui.notify,
         message,
@@ -64,7 +86,7 @@ def notify_info(
     close_button: bool = True,
     **kwargs,
 ):
-    logger.debug(f"Info notification shown: {message}")
+    logger.debug("Info notification shown: %s", message)
     _safe_ui_call(
         ui.notify,
         message=message,
@@ -82,7 +104,7 @@ def notify_warning(
     close_button: bool = True,
     **kwargs,
 ):
-    logger.debug(f"Warning notification shown: {message}")
+    logger.debug("Warning notification shown: %s", message)
     _safe_ui_call(
         ui.notify,
         message,
@@ -97,7 +119,7 @@ def notify_warning(
 async def handle_api_error(
     error: Exception, context_str: str, show_to_user: bool = True
 ):
-    logger.error(f"{context_str}: {error}", exc_info=True)
+    logger.error("%s: %s", context_str, error, exc_info=True)
     if show_to_user:
         notify_error(f"Error: {error}")
 
@@ -117,24 +139,32 @@ def handle_validation_error(
     notify_warning("Form validation failed. Please check your inputs.")
 
 
-def ensure_user_id():
-    from frontend.utils.storage import get_user_id
-
+def ensure_session_user_id():
+    """Ensure a NiceGUI session user id exists (browser session identity)."""
     return get_user_id()
 
 
+def ensure_active_case_id():
+    """Return the active investigative case id (required for jobs and scoped history)."""
+    return get_user_id_for_jobs()
+
+
+def ensure_user_id():
+    """Alias for :func:`ensure_session_user_id` (session id, not active case)."""
+    return ensure_session_user_id()
+
+
 def apply_saved_theme():
-    # Stub for now
-    pass
+    """Apply dark/light mode from user preferences or ``RESCUEBOX_DARK_MODE``."""
+    pref = get_user_preference("dark_mode")
+    use_dark = APP_DARK_MODE if pref is None else bool(pref)
+    try:
+        ui.dark_mode(use_dark)
+    except UI_RENDER_ERRORS:
+        logger.debug("Could not apply theme (no client context)")
 
 
 def require_demo_user_session():
-    from frontend.utils.storage import (
-        get_user_id_for_jobs,
-        ensure_explicit_user_id_for_tests,
-    )
-    from frontend.constants import HOME_USER_ID, NAV_LINKS
-
     ensure_explicit_user_id_for_tests()
     if get_user_id_for_jobs():
         return True

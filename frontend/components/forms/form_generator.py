@@ -1,23 +1,20 @@
 import logging
-import sys
-from pathlib import Path
 from typing import Callable
+
 from nicegui import ui
-
-# Add backend models to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
-
 from rb.api.models import TaskSchema
 from frontend.design_tokens import Design
-from frontend.utils import (
-    apply_ufdr_mount_autofill_after_inputs_built,
+from frontend.utils.paths import apply_ufdr_mount_autofill_after_inputs_built
+from frontend.utils.ui import handle_validation_error, show_error_to_user
+from frontend.utils.validators import (
     paired_output_directory_field_id,
+    paired_ufdr_mount_folder_field_id,
     paired_ufdr_mount_name_field_id,
     validate_form_data,
-    handle_validation_error,
-    show_error_to_user,
 )
+
 from .field_builders import create_input_field, create_parameter_field
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +34,7 @@ def render_form_actions(
                 if outer:
                     try:
                         outer.delete()
-                    except Exception:
+                    except UI_RENDER_ERRORS:
                         pass
                     return
                 on_cancel()
@@ -60,7 +57,7 @@ def render_form_actions(
                     btn.props["loading"] = False
 
             submit_btn = ui.button(
-                "▶ Submit Job", color=None, on_click=_submit_wrapper
+                "Submit Job", color=None, on_click=_submit_wrapper
             ).classes("rb-brand-primary text-white rounded-xl")
             btn_ref[0] = submit_btn
             return submit_btn
@@ -71,13 +68,18 @@ class FormGenerator:
         self.form_data = {}
         self.form_widgets = {}
 
+    def reset(self) -> None:
+        """Clear collected form state and widget references."""
+        self.form_data = {}
+        self.form_widgets = {}
+
     async def generate_form(
         self,
         schema,
         container,
         initial_values=None,
-        onSubmit=None,
-        onCancel=None,
+        on_submit=None,
+        on_cancel=None,
         compact=False,
         endpoint=None,
     ):
@@ -122,12 +124,20 @@ class FormGenerator:
                             paired_output_directory_field_id(inputs_list, idx),
                             paired_ufdr_mount_name_field_id(inputs_list, idx),
                         )
-                    try:
-                        apply_ufdr_mount_autofill_after_inputs_built(
-                            inputs_list, self.form_widgets
+                    for idx in range(len(inputs_list)):
+                        mount_folder_id = paired_ufdr_mount_folder_field_id(
+                            inputs_list, idx
                         )
-                    except Exception:
-                        pass
+                        if mount_folder_id:
+                            try:
+                                apply_ufdr_mount_autofill_after_inputs_built(
+                                    self.form_widgets,
+                                    "ufdr_file",
+                                    mount_folder_id,
+                                )
+                            except UI_RENDER_ERRORS:
+                                pass
+                            break
 
                 if schema.parameters:
                     ui.label("Parameters").classes(
@@ -143,15 +153,15 @@ class FormGenerator:
                         )
 
                 def _on_cancel():
-                    if onCancel:
-                        onCancel()
+                    if on_cancel:
+                        on_cancel()
                     container.clear()
 
                 async def _on_submit():
-                    if not onSubmit:
+                    if not on_submit:
                         return False
                     return await handle_form_submit(
-                        schema, self.form_widgets, onSubmit, endpoint=endpoint
+                        schema, self.form_widgets, on_submit, endpoint=endpoint
                     )
 
                 action_col = ui.column()
@@ -160,28 +170,28 @@ class FormGenerator:
 
 
 async def handle_form_submit(
-    schema, widgets, onSubmit, initial_inputs=None, endpoint=None
+    schema, widgets, on_submit, initial_inputs=None, endpoint=None
 ):
     try:
-        if onSubmit is None:
+        if on_submit is None:
             show_error_to_user("Form submission handler is not configured")
             return False
         try:
             form_data = collect_form_data(schema.model_dump(), widgets, initial_inputs)
-        except Exception as e:
+        except UI_RENDER_ERRORS as e:
             show_error_to_user(f"Failed to collect form data: {e}")
             return False
 
-        v_res = validate_form_data(form_data, schema, endpoint=endpoint)
+        v_res = validate_form_data(form_data, schema, endpoint)
         if not v_res["is_valid"]:
             handle_validation_error(
                 v_res.get("errors", {}), "Form submission validation"
             )
             return False
 
-        res = await onSubmit(form_data)
+        res = await on_submit(form_data)
         return res is True
-    except Exception as e:
+    except UI_RENDER_ERRORS as e:
         show_error_to_user(f"Form submission failed: {e}")
         return False
 
@@ -239,7 +249,7 @@ def validate_form(schema, widgets, initial_inputs=None, endpoint=None):
         widgets,
         initial_inputs,
     )
-    v_res = validate_form_data(form_data, schema, endpoint=endpoint)
+    v_res = validate_form_data(form_data, schema, endpoint)
     if not v_res["is_valid"]:
         return False, v_res.get("errors", {})
     return True, {}

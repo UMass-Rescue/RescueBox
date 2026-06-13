@@ -127,7 +127,7 @@ class TestFormIntegration:
     def test_form_error_handling(self):
         """Test form error handling patterns."""
         # Test that form handlers module exists and has expected functions
-        from frontend.components.forms import form_handlers
+        from frontend.components.forms import form_generator
 
-        assert form_handlers is not None
-        assert hasattr(form_handlers, "handle_form_submit")
+        assert form_generator is not None
+        assert hasattr(form_generator, "handle_form_submit")

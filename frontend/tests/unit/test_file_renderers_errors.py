@@ -62,7 +62,7 @@ class TestFileRenderersErrorHandling:
         container.__enter__ = Mock(return_value=container)
         container.__exit__ = Mock(return_value=False)
 
-        with patch("frontend.components.results.ui") as mock_ui:
+        with patch("frontend.components.results.file.ui") as mock_ui:
             mock_label = MagicMock()
             mock_ui.label = Mock(return_value=mock_label)
 
@@ -84,8 +84,10 @@ class TestFileRenderersErrorHandling:
 
         container = self._create_mock_container()
 
-        with patch("frontend.components.results.os.path.exists", return_value=False):
-            with patch("frontend.components.results.ui") as mock_ui:
+        with patch(
+            "frontend.components.results.file.os.path.exists", return_value=False
+        ):
+            with patch("frontend.components.results.file.ui") as mock_ui:
                 render_file(container, response)
 
                 # Verify error message is displayed
@@ -110,10 +112,12 @@ class TestFileRenderersErrorHandling:
 
         container = self._create_mock_container()
 
-        with patch("frontend.components.results.os.path.exists", return_value=True):
-            with patch("frontend.components.results.ui") as mock_ui:
+        with patch(
+            "frontend.components.results.file.os.path.exists", return_value=True
+        ):
+            with patch("frontend.components.results.file.ui") as mock_ui:
                 # Simulate image loading failure
-                mock_ui.image.side_effect = Exception(IMAGE_LOAD_ERROR_MSG)
+                mock_ui.image.side_effect = RuntimeError(IMAGE_LOAD_ERROR_MSG)
 
                 render_file(container, response)
 
@@ -148,7 +152,7 @@ class TestFileRenderersErrorHandling:
                 self.enter_count += 1
                 if self.enter_count == 1:
                     # First call (in main try block) raises exception
-                    raise Exception("Rendering error")
+                    raise RuntimeError("Rendering error")
                 # Second call (in except block) succeeds
                 return self
 
@@ -157,7 +161,7 @@ class TestFileRenderersErrorHandling:
 
         container = ExceptionRaisingContainer()
 
-        with patch("frontend.components.results.ui") as mock_ui:
+        with patch("frontend.components.results.file.ui") as mock_ui:
             # Mock all UI components to avoid actual UI calls
             mock_label = MagicMock()
             mock_ui.label = Mock(return_value=mock_label)

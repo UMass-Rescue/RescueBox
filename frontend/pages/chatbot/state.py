@@ -3,6 +3,10 @@ import logging
 from typing import Callable, List, Optional, Any, Dict
 from enum import Enum
 from dataclasses import dataclass
+from frontend.utils.storage import set_current_conversation_id
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+
+logger = logging.getLogger(__name__)
 
 
 class MessageRole(Enum):
@@ -10,9 +14,6 @@ class MessageRole(Enum):
     ASSISTANT = "assistant"
     SYSTEM = "system"
     TOOL = "tool"
-
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -52,7 +53,8 @@ class ChatbotStateManager:
     def add_message(self, message: ChatMessage):
         """Add a message to the conversation history."""
         self.messages.append(message)
-        logger.debug("Added message to conversation: %s", message.id)
+        logger.info("Added message to conversation: %s", message.id)
+        logger.info("Added message to conversation: %s", message.message_type)
 
     def clear_messages(self):
         """Clear all messages from the conversation."""
@@ -62,6 +64,7 @@ class ChatbotStateManager:
     def set_conversation_id(self, conversation_id: str):
         """Set the current conversation ID."""
         self.conversation_id = conversation_id
+        set_current_conversation_id(conversation_id)
         logger.debug("Set conversation ID: %s", conversation_id)
 
     def set_processing(self, processing: bool, hide_input: bool = True):
@@ -142,12 +145,21 @@ class ChatbotStateManager:
                 field = getattr(area, "input_field", None) or self.input_field
                 btn = getattr(area, "send_button", None)
                 if field:
-                    (field.enable() if enabled else field.disable())
+                    if enabled:
+                        field.enable()
+                    else:
+                        field.disable()
                 if btn:
-                    (btn.enable() if enabled else btn.disable())
+                    if enabled:
+                        btn.enable()
+                    else:
+                        btn.disable()
             elif self.input_field:
-                (self.input_field.enable() if enabled else self.input_field.disable())
-        except Exception as e:
+                if enabled:
+                    self.input_field.enable()
+                else:
+                    self.input_field.disable()
+        except UI_RENDER_ERRORS as e:
             logger.debug("Could not set input enabled=%s: %s", enabled, e)
 
     def clear_input(self):
@@ -159,6 +171,7 @@ class ChatbotStateManager:
         """Reset the conversation state for a new conversation."""
         self.clear_messages()
         self.conversation_id = None
+        set_current_conversation_id(None)
         self.clear_input()
         self.is_processing = False
         self.set_status("Ready")

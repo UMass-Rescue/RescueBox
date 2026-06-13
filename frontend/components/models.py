@@ -1,11 +1,13 @@
+"""Model list and model card UI components for the plugins page."""
+
 import logging
 from typing import List, Dict, Callable, Optional, Any
 from datetime import datetime
 from nicegui import ui
 from frontend.constants import UI_BUTTONS
 from frontend.design_tokens import Design
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
-# Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -33,8 +35,6 @@ def render_models_list(
             if online_models:
                 # ui.label('Available Models').classes('text-2xl font-bold mt-6 mb-4')
                 for model in online_models:
-                    from frontend.components.models import render_model_card
-
                     render_model_card(
                         container,
                         model,
@@ -46,8 +46,6 @@ def render_models_list(
             if offline_models:
                 ui.label("Unavailable Models").classes("text-2xl font-bold mt-6 mb-4")
                 for model in offline_models:
-                    from frontend.components.models import render_model_card
-
                     render_model_card(
                         container,
                         model,
@@ -55,19 +53,10 @@ def render_models_list(
                         on_inspect=lambda uid=model["uid"]: on_inspect(uid),
                         on_connect=lambda uid=model["uid"]: on_connect(uid),
                     )
-    except Exception as e:
+    except UI_RENDER_ERRORS as e:
         logger.exception("Failed to render models list: %s", e)
         with container:
             ui.label(f"Error rendering models: {e}").classes("text-red-600")
-
-
-"""
-Model Card Component
-
-This module provides the render_model_card function for displaying ML model
-information in a card-styled row format. The card shows model metadata, status,
-and action buttons.
-"""
 
 
 def render_model_card(
@@ -79,8 +68,6 @@ def render_model_card(
 ):
     """
     Render a model card in card-styled row format.
-    Returns:
-        None: This function modifies the container directly and doesn't return a value
     """
     logger.debug(
         "Rendering model card for model: %s (UID: %s)",
@@ -96,29 +83,15 @@ def render_model_card(
     with container:
         logger.debug("Creating model card container")
         with ui.card().classes(
-            "rb-models-plugin-card w-full p-6 hover:shadow-md transition-all border-l-4 border-l-[#881c1c] border-y border-r border-slate-200 rounded-xl bg-white"
+            "rb-models-plugin-card w-full p-6 hover:shadow-md transition-all "
+            "border-l-4 border-l-[#881c1c] border-y border-r border-slate-200 "
+            "rounded-xl bg-white"
         ):
             with ui.row().classes("items-center justify-between w-full"):
                 # Left section - Model info
                 with ui.column().classes("flex-1"):
-                    # Icon and name row
+                    # name row
                     with ui.row().classes("items-center gap-3"):
-                        # Model icon based on category (you can enhance this)
-                        icon_name = (
-                            "image"
-                            if "image" in model.get("name", "").lower()
-                            else (
-                                "audiotrack"
-                                if "audio" in model.get("name", "").lower()
-                                else (
-                                    "description"
-                                    if "text" in model.get("name", "").lower()
-                                    else "extension"
-                                )
-                            )
-                        )
-                        logger.debug("Selected icon: %s for model category", icon_name)
-                        ui.icon(icon_name, size="sm").classes("text-[#881c1c]")
                         ui.label(model["name"]).classes(
                             "text-2xl font-bold text-slate-800"
                         )
@@ -156,7 +129,6 @@ def render_model_card(
                         if on_inspect:
                             ui.button(
                                 UI_BUTTONS["plugin_readme"],
-                                icon="menu_book",
                                 color=None,
                                 on_click=lambda: (
                                     on_inspect(model["uid"]) if on_inspect else None
@@ -167,13 +139,13 @@ def render_model_card(
                         if not is_online and on_connect:
                             ui.button(
                                 "Connect",
-                                icon="power",
                                 color=None,
                                 on_click=lambda: (
                                     on_connect(model["uid"]) if on_connect else None
                                 ),
                             ).classes(
-                                "bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200"
+                                "bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 "
+                                "rounded-lg font-medium transition-colors border border-slate-200"
                             )
                             logger.debug("Connect button added (model is offline)")
 
@@ -223,13 +195,13 @@ def render_model_info_card(
                     try:
                         dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
                         updated_str = dt.strftime("%Y-%m-%d %H:%M:%S EDT")
-                    except Exception:
+                    except UI_RENDER_ERRORS:
                         updated_str = str(updated_at)
                 elif cached_at:
                     try:
                         dt = datetime.fromisoformat(cached_at)
                         updated_str = dt.strftime("%Y-%m-%d %H:%M:%S EDT")
-                    except Exception:
+                    except UI_RENDER_ERRORS:
                         updated_str = "N/A"
 
                 with ui.column().classes("gap-2 mb-4"):
@@ -257,7 +229,7 @@ def render_model_info_card(
                 if gpu_required:
                     with ui.column().classes("gap-2 mb-4"):
                         ui.badge("GPU Required", color="red").classes("text-xs")
-    except Exception as e:
+    except UI_RENDER_ERRORS as e:
         logger.exception("Error rendering model info card: %s", e)
         with container:
             ui.label(f"Error rendering model info: {e}").classes("text-red-600")

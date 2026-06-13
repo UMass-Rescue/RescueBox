@@ -21,12 +21,76 @@ Key Components:
 
 import logging
 import os
-from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def normalize_ollama_host(raw: str, *, default: str = "http://127.0.0.1:11434") -> str:
+    """Return an Ollama API base URL with ``http://`` or ``https://`` (env often omits scheme)."""
+    url = (raw or "").strip() or default
+    if url != "0.0.0.0" and not url.startswith(("http://", "https://")):
+        return f"http://{url}"
+    if url == "0.0.0.0":
+        return default
+    return url
+
+
+def collect_ollama_model_names(tags_payload: dict) -> List[str]:
+    """Collect distinct model ids from an Ollama ``/api/tags`` JSON body."""
+    names: List[str] = []
+    for entry in tags_payload.get("models") or []:
+        for key in ("name", "model"):
+            value = (entry.get(key) or "").strip()
+            if value and value not in names:
+                names.append(value)
+    return names
+
+
+def _normalize_model_id(model_id: str) -> str:
+    return (model_id or "").strip().lower().replace(":", "-").replace("_", "-")
+
+
+def _model_id_root(normalized_id: str) -> str:
+    """Drop common Ollama tag suffixes (e.g. ``-latest``) for matching."""
+    parts = normalized_id.split("-")
+    if len(parts) >= 2 and parts[-1] in ("latest", "main"):
+        return "-".join(parts[:-1])
+    return normalized_id
+
+
+def resolve_ollama_model_tag(requested: str, available: List[str]) -> Optional[str]:
+    """Map a configured model name to the tag string Ollama expects."""
+    req = (requested or "").strip()
+    if not req or not available:
+        return None
+
+    req_root = _model_id_root(_normalize_model_id(req))
+    req_norm = _normalize_model_id(req)
+
+    for candidate in available:
+        tag = (candidate or "").strip()
+        if not tag:
+            continue
+        tag_norm = _normalize_model_id(tag)
+        tag_root = _model_id_root(tag_norm)
+        if tag.lower() == req.lower():
+            return tag
+        if tag_root == req_root or tag_norm == req_norm:
+            return tag
+        if req_root and (req_root in tag_norm or tag_root in req_norm):
+            return tag
+
+    if "granite" in req.lower():
+        for candidate in available:
+            tag = (candidate or "").strip()
+            if tag and "granite" in tag.lower():
+                return tag
+    return None
 
 
 class ChatbotConfig(BaseModel):
@@ -40,7 +104,7 @@ class ChatbotConfig(BaseModel):
         default="http://127.0.0.1:11434", description="Ollama API base URL"
     )
     GRANITE_MODEL: str = Field(
-        default="granite4:micro", description="Granite model name for tool calling"
+        default="ibm/granite4.1:3b", description="Granite model name for tool calling"
     )
     RESCUEBOX_HOST: str = Field(
         default="http://localhost:8000", description="RescueBox API base URL"
@@ -77,8 +141,8 @@ class ChatbotConfig(BaseModel):
             data["RESCUEBOX_HOST"] = env_api_base
         elif env_rescue and "RESCUEBOX_HOST" not in data:
             data["RESCUEBOX_HOST"] = env_rescue
-        if env_ollama and env_ollama != "0.0.0.0" and "OLLAMA_HOST" not in data:
-            data["OLLAMA_HOST"] = env_ollama
+        if env_ollama and "OLLAMA_HOST" not in data:
+            data["OLLAMA_HOST"] = normalize_ollama_host(env_ollama)
         if env_granite and "GRANITE_MODEL" not in data:
             data["GRANITE_MODEL"] = env_granite
 
@@ -93,7 +157,8 @@ class ChatbotConfig(BaseModel):
 
         super().__init__(**data)
         logger.info(
-            "ChatbotConfig initialized: OLLAMA_HOST=%s, RESCUEBOX_HOST=%s, GRANITE_MODEL=%s, TIMEOUT=%s, FILTER_ENABLED=%s",
+            "ChatbotConfig initialized: OLLAMA_HOST=%s, RESCUEBOX_HOST=%s, "
+            "GRANITE_MODEL=%s, TIMEOUT=%s, FILTER_ENABLED=%s",
             self.OLLAMA_HOST,
             self.RESCUEBOX_HOST,
             self.GRANITE_MODEL,
@@ -209,7 +274,7 @@ class ToolRegistry:
         a plugin (e.g. ``face-match/...``) appear once, in the position of their first menu entry.
         """
         seen: list[str] = []
-        for key in sorted(ToolRegistry.TOOL_MENU.keys(), key=lambda k: int(k)):
+        for key in sorted(ToolRegistry.TOOL_MENU.keys(), key=int):
             endpoint = ToolRegistry.TOOL_MENU[key]["endpoint"]
             uid = endpoint.split("/")[0]
             if uid not in seen:

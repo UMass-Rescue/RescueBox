@@ -691,7 +691,7 @@ The frontend has been comprehensively refactored into a modern, modular architec
 ##### **Form Components** (`frontend/components/forms/`)
 - **`form_generator.py`**: Main `FormGenerator` orchestrator class
 - **`builders/`**: Field builders for inputs (`input_field_builder.py`) and parameters (`parameter_field_builder.py`)
-- **`form_handlers.py`**: Form submission and validation logic
+- **`form_generator.py`**: Form submission and validation logic
 - **Features**: Dynamic form generation, type-safe field creation, comprehensive validation
 
 ##### **Results Components** (`frontend/components/results/`)
@@ -778,6 +778,16 @@ from frontend.pages.chatbot import chatbot_page
 ```
 
 All APIs remain unchanged despite the internal refactoring.
+
+### Unit test patch paths
+
+After splitting monolithic modules, tests often patch these import paths:
+
+- `frontend.components.results` — re-exports `os`, `ui`, `subprocess`, `platform` for renderer tests
+- `frontend.components.shared.notifications` (and `navbar`, `stepper`, `breadcrumbs`) — legacy aliases on the shared package
+- `frontend.components.forms.form_generator` — form submission (alias `form_handlers` kept for compatibility)
+- `frontend.pages.chatbot.ui_flow` — `load_and_show_form`, `show_results`
+- `frontend.pages.chatbot.handlers.pipeline` — pipeline step handlers
 
 ## Code Quality & Documentation
 

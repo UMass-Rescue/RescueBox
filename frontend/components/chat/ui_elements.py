@@ -10,17 +10,17 @@ def create_chat_header(on_show_history: Optional[Callable] = None):
         "rb-chat-toolbar-floating items-center justify-end w-full px-4 py-3 sticky top-0 z-10 gap-3"
     ):
         models_btn = (
-            ui.button("Menu", icon="menu", color=None)
+            ui.button("Menu", color=None)
             .classes(Design.BTN_PRIMARY_COMPACT)
             .props("unelevated no-caps")
         )
         analyze_btn = (
-            ui.button("Chat", icon="chat", color=None)
+            ui.button("Chat", color=None)
             .classes(Design.BTN_PRIMARY_COMPACT)
             .props("unelevated no-caps")
         )
         history_btn = (
-            ui.button("History", icon="history", color=None, on_click=on_show_history)
+            ui.button("History", color=None, on_click=on_show_history)
             .classes(Design.BTN_PRIMARY_COMPACT)
             .props("unelevated no-caps")
         )

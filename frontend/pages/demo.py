@@ -12,6 +12,7 @@ from frontend.components.demo import (
 from frontend.components.demo import schedule_hash_fragment_scroll
 from frontend.components.shared import create_navbar
 from frontend.constants import NAV_LINKS
+from frontend.utils.ui import apply_saved_theme, require_demo_user_session
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,8 @@ _BACK_TO_GUIDE_LABEL: dict[str, str] = {
 @ui.page("/demo")
 async def demo_page(walkthrough: Optional[str] = None):
     """Plain ``/demo`` = full landing. ``?walkthrough=…`` = folders only (matches embedded walkthrough samples)."""
-    from frontend.utils import apply_saved_theme
-
     apply_saved_theme()
     create_navbar()
-    from frontend.utils import require_demo_user_session
-
     if not require_demo_user_session():
         return
 

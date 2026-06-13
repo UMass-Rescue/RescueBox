@@ -1,10 +1,13 @@
+"""NiceGUI form wrapper for chatbot tool input schemas."""
+
 from typing import Optional, Dict
 import logging
+
 from nicegui import ui
+from rb.api.models import TaskSchema, RequestBody
 
 from frontend.components.forms import FormGenerator
 from frontend.utils import validate_request_body
-from rb.api.models import TaskSchema, RequestBody
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -32,15 +35,15 @@ async def create_input_form(
         form_generator = FormGenerator()
 
         async def handle_submit(form_data: dict):
-            validated = validate_request_body(form_data, task_schema, endpoint=endpoint)
+            validated = validate_request_body(form_data, task_schema, endpoint)
             if not isinstance(validated, RequestBody):
                 error_info = (
                     validated.get("errors")
                     if isinstance(validated, dict)
                     else "Unknown error"
                 )
-                raise Exception(f"Validation failed: {error_info}")
-            elif on_submit:
+                raise ValueError(f"Validation failed: {error_info}")
+            if on_submit:
                 return await on_submit(
                     validated, endpoint, task_schema, form_element=form_card
                 )
@@ -49,8 +52,8 @@ async def create_input_form(
             schema=task_schema.model_dump(),
             container=form_card,
             initial_values=initial_values,
-            onSubmit=handle_submit,
-            onCancel=on_cancel,
+            on_submit=handle_submit,
+            on_cancel=on_cancel,
             compact=True,
             endpoint=endpoint,
         )

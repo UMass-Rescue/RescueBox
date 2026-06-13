@@ -125,3 +125,13 @@ class Design:
     PANEL_SHELL_FOOTER = (
         "w-full flex-none p-4 bg-white border-t border-slate-200 items-center gap-2"
     )
+
+    @classmethod
+    def primary_button(cls) -> str:
+        """Primary action button classes."""
+        return cls.BTN_PRIMARY
+
+    @classmethod
+    def nav_header_classes(cls) -> str:
+        """Top navigation bar classes."""
+        return cls.NAV_HEADER

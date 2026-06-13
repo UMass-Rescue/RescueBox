@@ -6,19 +6,11 @@ matching the frontend's expectations for /models and /servers endpoints.
 """
 
 import logging
-from pathlib import Path
-import sys
 from typing import List, Dict, Optional, Any
 from fastapi import APIRouter, HTTPException, status
 from rb.api.models import API_APPMETDATA
 from rescuebox.main import app as rescuebox_app
 from rb.api.routes.cli import static_endpoint
-
-# Add project root to path for imports
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-sys.path.insert(0, str(project_root / "src"))
-
 
 logger = logging.getLogger(__name__)
 

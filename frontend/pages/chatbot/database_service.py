@@ -1,9 +1,12 @@
 import logging
 import re
 from typing import Optional, Dict, Any
+from frontend.utils import set_logging_context
 from frontend.database.chat_history_db import get_chat_history_db
-from frontend.database.job_db import get_job_db, JobStatus
+from frontend.database.job_db import get_job_db
+from frontend.database.job_models import JobStatus
 from frontend.chatbot.config import ToolRegistry
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +63,7 @@ class DatabaseService:
             return
         try:
             display = ToolRegistry.display_name_for_endpoint(endpoint)
-        except Exception:
+        except UI_RENDER_ERRORS:
             display = (endpoint or "Job").split("/")[-1]
         new_title = f"{display} · {job_id}"
         if len(new_title) > 200:
@@ -80,7 +83,6 @@ class DatabaseService:
     async def create_and_track_job(
         request_body, endpoint: str, task_schema=None, **kwargs
     ):
-        from frontend.utils import set_logging_context
 
         job_db = get_job_db()
         job_record = await job_db.create_job(
@@ -119,7 +121,7 @@ class DatabaseService:
             if "parameters" in data:
                 snap["parameters"] = data["parameters"]
             return snap or None
-        except Exception:
+        except UI_RENDER_ERRORS:
             logger.debug(
                 "Could not snapshot request body for chat history", exc_info=True
             )
@@ -160,7 +162,7 @@ class DatabaseService:
             await DatabaseService._set_conversation_list_title_from_job(
                 conversation_id, endpoint, job_id
             )
-        except Exception:
+        except UI_RENDER_ERRORS:
             logger.debug(
                 "Could not update conversation list title from job", exc_info=True
             )
@@ -219,8 +221,6 @@ class DatabaseService:
 
     @staticmethod
     def set_logging_context(**kwargs):
-        from frontend.utils import set_logging_context
-
         return set_logging_context(**kwargs)
 
 
