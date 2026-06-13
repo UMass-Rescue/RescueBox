@@ -7,7 +7,11 @@ persisting embeddings to various storage backends.
 
 from abc import abstractmethod
 from typing import Any, Protocol, cast
-from rb.api.database import TextEmbedding, ImageEmbedding, ImageSimilarityEmbedding
+from rb.api.database import (
+    TextEmbedding,
+    ImageEmbedding,
+    ImageSimilarityEmbedding,
+)
 
 
 class EmbeddingStorage(Protocol):
@@ -159,6 +163,37 @@ class ImageSimilarityEmbeddingStorage(DatabaseEmbeddingStorage):
         )
 
 
+class FaceEmbeddingStorage(DatabaseEmbeddingStorage):
+    """Persists face-match embeddings scoped by collection and tenant scope."""
+
+    def __init__(self, session, scope: str = "", collection_name: str = ""):
+        super().__init__(session)
+        self.scope = scope or ""
+        self.collection_name = collection_name
+
+    def save_face(
+        self,
+        *,
+        face_id: str,
+        image_path: str,
+        embedding: list[float],
+    ) -> None:
+        from rb.api.database import FaceEmbedding
+
+        self.session.add(
+            FaceEmbedding(
+                scope=self.scope,
+                collection_name=self.collection_name,
+                face_id=face_id,
+                image_path=image_path,
+                embedding=embedding,
+            )
+        )
+
+    def _create_record(self, path: str, embedding: list[float]):
+        raise NotImplementedError("Use save_face() for face embeddings")
+
+
 class NoOpEmbeddingStorage:
     """
     No-operation storage for testing or when persistence is not needed.
@@ -166,12 +201,12 @@ class NoOpEmbeddingStorage:
 
     def save_embedding(self, path: str, embedding: list[float]) -> None:
         """No-op save."""
-        pass
+        return
 
     def save_batch(self, embeddings: dict[str, list[float]]) -> None:
         """No-op batch save."""
-        pass
+        return
 
     def commit(self) -> None:
         """No-op commit."""
-        pass
+        return

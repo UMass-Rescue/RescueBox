@@ -610,7 +610,7 @@ class BulkUploadParameters(TypedDict):
     collection_name: str
 
 
-# Endpoint to allow users to upload images to chromaDB
+# Endpoint to allow users to upload images to db
 def bulk_upload_endpoint(
     inputs: BulkUploadInputs, parameters: BulkUploadParameters
 ) -> ResponseBody:
@@ -637,7 +637,7 @@ def bulk_upload_endpoint(
             input_directory_path, full_collection_name
         )
 
-        # New collections appear on the next task_schema fetch (Chroma list_collections).
+        # New collections appear on the next task_schema fetch (pgvector scope listing).
         return ResponseBody(root=TextResponse(value=response))
 
 
@@ -1264,7 +1264,7 @@ class DeleteCollectionParameters(TypedDict):
     collection_name: str
 
 
-# Endpoint for deleting collections from ChromaDB
+# Endpoint for deleting a face-match collection (all rows for scope + full collection name)
 def delete_collection_endpoint(
     inputs: DeleteCollectionInputs, parameters: DeleteCollectionParameters
 ) -> ResponseBody:
@@ -1326,7 +1326,7 @@ class ListCollectionsInputs(TypedDict):
     pass
 
 
-# Endpoint for listing all ChromaDB collections
+# Endpoint for listing face-match collections in the current scope
 def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
 
     responseValue = None
@@ -1357,7 +1357,7 @@ def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
 
 
 def __getattr__(name: str):
-    """Lazy ``DB`` for tests/tooling; avoids import-time Chroma init on partial imports."""
+    """Lazy ``DB`` for tests/tooling; avoids import-time DB init on partial imports."""
     if name == "DB":
         return get_vector_database()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

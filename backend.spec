@@ -79,41 +79,6 @@ transformers_metadata += copy_metadata('packaging')
 transformers_metadata += copy_metadata('requests')
 transformers_metadata += copy_metadata('filelock')
 
-# for chromadb https://github.com/chroma-core/chroma/issues/4092
-hiddenimports += [
-    'chromadb',
-    'chromadb.api',
-    'chromadb.api.rust',
-    'chromadb.api.fastapi',
-    'chromadb.config',
-    'chromadb.db',
-    'chromadb.db.impl',
-    'chromadb.utils',
-    'chromadb.telemetry',
-    'chromadb.segment',
-    'chromadb.segment.impl',
-    'chromadb.plugins',
-    'chromadb.auth',
-    'chromadb.server',
-    'chromadb.telemetry.product.posthog',
-    'chromadb.api.segment',
-    'chromadb.db.impl',
-    'chromadb.db.impl.sqlite',
-    'chromadb.migrations',
-    'chromadb.migrations.embeddings_queue',
-    'chromadb.segment.impl.manager',
-    'chromadb.segment.impl.manager.local',
-    'chromadb.segment.impl.metadata',
-    'chromadb.segment.impl.metadata.sqlite',
-    'chromadb.segment.impl.vector',
-    'chromadb.execution.executor.local',
-    'chromadb.quota.simple_quota_enforcer',
-    'chromadb.rate_limit.simple_rate_limit',
-    'chromadb.api.fastapi',
-    'chromadb.utils.embedding_functions',
-    'analytics',  # dependency for posthog
-]
-
 hiddenimports += [
         'pywin32',
         'win32api', 

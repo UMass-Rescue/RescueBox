@@ -134,6 +134,17 @@ def create_db_and_tables():
         img_index.create(engine)
     except Exception:
         pass  # Index may already exist
+    try:
+        face_index = Index(
+            "face_embeddings_hnsw_idx",
+            FaceEmbedding.embedding,
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        )
+        face_index.create(engine)
+    except Exception:
+        pass
 
 
 class TextEmbedding(SQLModel, table=True):
@@ -185,6 +196,23 @@ class ImageSimilarityEmbedding(SQLModel, table=True):
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
 
 
+class FaceEmbedding(SQLModel, table=True):
+    """Face-match plugin embeddings (replaces per-scope Chroma collections)."""
+
+    __tablename__ = "face_embeddings"
+
+    id: int | None = Field(default=None, primary_key=True)
+    # Isolation key (demo folder, RescueBox user hash, or "" for legacy default).
+    scope: str = Field(default="", index=True)
+    # Full collection name, e.g. sample_refa512S (includes detector/model/ensemble suffix).
+    collection_name: str = Field(index=True)
+    # Stable face id (sha256 of image path + bbox); was Chroma document id.
+    face_id: str = Field(index=True)
+    image_path: str = Field(index=True)
+    # Facenet512 / ArcFace default output size.
+    embedding: list[float] = Field(default=[], sa_column=Column(Vector(512)))
+
+
 # TODO: There is probably a way to do this without this try kludge
 try:
     # Create an HNSW index
@@ -215,5 +243,14 @@ try:
         postgresql_ops={"embedding": "vector_l2_ops"},
     )
     img_index.create(engine)
+
+    face_index = Index(
+        "face_embeddings_hnsw_idx",
+        FaceEmbedding.embedding,
+        postgresql_using="hnsw",
+        postgresql_with={"m": 16, "ef_construction": 64},
+        postgresql_ops={"embedding": "vector_cosine_ops"},
+    )
+    face_index.create(engine)
 except Exception:
     print("Index probably already exists")
