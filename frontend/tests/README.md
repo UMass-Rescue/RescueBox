@@ -8,7 +8,7 @@ poetry run pytest frontend/tests/unit -q
 
 # Integration (requires backend / Ollama / env — see integration/README.md)
 set RUN_INTEGRATION=1
-poetry run pytest frontend/tests/integration -v --tb=short
+poetry run pytest frontend/tests/integration -v --tb=short -c frontend/tests/pytest.ini -m ""
 
 # Lint
 poetry run pylint frontend
@@ -33,5 +33,7 @@ poetry run pylint frontend
 | `test_storage_reads.py` | `read_pipeline_job_id()` |
 | `test_config_paths.py` | `DATA_DIR` / `LOG_FILE` / `APP_SHOW_BROWSER` |
 | `test_chat_view_load_conversation.py` | `load_conversation` navigation errors |
+
+Integration additions (refactor): `integration/test_chatbot_refactor_integration.py` (pipeline planner/DB, handler vs `ui_flow` split); Menu-mode UI in `test_pages.py` / `test_pages_integration.py`.
 
 See also: `README_CHATBOT_TESTS.md`, `integration/README.md`, `../docs/README.md`.

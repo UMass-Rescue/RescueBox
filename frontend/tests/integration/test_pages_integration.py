@@ -128,10 +128,17 @@ class TestChatbotPageIntegration:
         send_button.click()
 
         await asyncio.sleep(0.5)
-        try:
-            await user.should_see("Plugin Selector")
-        except AssertionError:
-            await user.should_see("Plugins")
+        # Tool picker UI (ToolPicker in pages/chatbot/pickers.py)
+        await user.should_see("Choose a plugin")
+
+    @pytest.mark.asyncio
+    async def test_chatbot_menu_mode_shows_tool_picker(self, user: User):
+        """Menu tab opens inline tool picker (refactored ui_builder mode handlers)."""
+        await open_chatbot_and_wait_for_ready(user)
+        user.find("Menu").click()
+        await asyncio.sleep(0.5)
+        await user.should_see("Menu mode")
+        await user.should_see("Choose a plugin")
 
 
 @pytest.mark.api
@@ -225,9 +232,12 @@ class TestIndexPageIntegration:
         await user.open("/")
         await asyncio.sleep(0.5)
         try:
-            await user.should_see("Welcome to RescueBox")
+            await user.should_see("RescueBox Case Management")
         except AssertionError:
-            pass
+            try:
+                await user.should_see("Welcome to RescueBox")
+            except AssertionError:
+                pass
         try:
             await user.should_see("Browse Plugins")
         except AssertionError:

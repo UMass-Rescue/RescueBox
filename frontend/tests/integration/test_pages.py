@@ -31,9 +31,12 @@ class TestIndexPage:
         await user.open("/")
         await asyncio.sleep(0.5)
         try:
-            await user.should_see("Welcome to RescueBox")
+            await user.should_see("RescueBox Case Management")
         except AssertionError:
-            pass
+            try:
+                await user.should_see("Welcome to RescueBox")
+            except AssertionError:
+                pass
         try:
             await user.should_see("Browse Plugins")
         except AssertionError:
@@ -176,11 +179,40 @@ class TestChatbotPage:
 
         await asyncio.sleep(0.5)
 
-        # Tool picker UI (see ToolPicker / show_tool_picker_dialog)
-        try:
-            await user.should_see("Plugin Selector")
-        except AssertionError:
-            await user.should_see("Plugins")
+        # Tool picker UI (ToolPicker in pages/chatbot/pickers.py)
+        await user.should_see("Choose a plugin")
+
+    @pytest.mark.asyncio
+    @patch("httpx.AsyncClient")
+    async def test_chatbot_menu_mode_shows_tool_picker(
+        self, mock_client_class, user: User
+    ):
+        """Menu tab (ui_builder) opens inline tool picker without /models."""
+        self._setup_mock_client(mock_client_class)
+        await open_chatbot_and_wait_for_ready(user)
+        await user.should_see("Chat mode")
+
+        user.find("Menu").click()
+        await asyncio.sleep(0.5)
+
+        await user.should_see("Menu mode")
+        await user.should_see("Choose a plugin")
+
+    @pytest.mark.asyncio
+    @patch("httpx.AsyncClient")
+    async def test_chatbot_menu_to_chat_restores_input(
+        self, mock_client_class, user: User
+    ):
+        """Toggling back to Chat mode shows the message input again."""
+        self._setup_mock_client(mock_client_class)
+        await open_chatbot_and_wait_for_ready(user)
+        user.find("Menu").click()
+        await asyncio.sleep(0.4)
+        user.find("Chat").click()
+        await asyncio.sleep(0.4)
+
+        await user.should_see("Chat mode")
+        find_chat_textarea(user)
 
     @pytest.mark.asyncio
     @patch("httpx.AsyncClient")
@@ -225,6 +257,16 @@ class TestChatbotPage:
 
         # Should eventually see form (after schema is loaded)
         await user.should_see("Input Directory")
+
+
+class TestAboutPage:
+    """About page (license section uses Select with on_value_change)."""
+
+    @pytest.mark.asyncio
+    async def test_about_page_loads(self, user: User):
+        await user.open("/about")
+        await asyncio.sleep(0.5)
+        await user.should_see("RescueBox")
 
 
 class TestModelsPage:
