@@ -95,6 +95,21 @@ def _load_onnx_vision_model() -> tuple[ort.InferenceSession, "AutoImageProcessor
     return session, processor
 
 
+def _embed_pil_image(
+    ort_session: ort.InferenceSession,
+    processor,
+    image: Image.Image,
+) -> np.ndarray:
+    """Compute a normalised embedding from a PIL Image via ONNX Runtime."""
+    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(np.float32)
+    outputs = ort_session.run(None, {"pixel_values": pixel_values})
+    output_names = [o.name for o in ort_session.get_outputs()]
+    idx = output_names.index("pooler_output") if "pooler_output" in output_names else 0
+    image_embeds = outputs[idx].squeeze()
+    image_embeds = image_embeds / np.linalg.norm(image_embeds)
+    return image_embeds
+
+
 def _embed_image(
     ort_session: ort.InferenceSession,
     processor,
@@ -102,14 +117,7 @@ def _embed_image(
 ) -> np.ndarray:
     """Compute a normalised image embedding via ONNX Runtime."""
     image = Image.open(image_path).convert("RGB")
-    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(np.float32)
-    outputs = ort_session.run(None, {"pixel_values": pixel_values})
-    # Vision tower returns (last_hidden_state, pooler_output); pooler_output is the per-image vector.
-    output_names = [o.name for o in ort_session.get_outputs()]
-    idx = output_names.index("pooler_output") if "pooler_output" in output_names else 0
-    image_embeds = outputs[idx].squeeze()
-    image_embeds = image_embeds / np.linalg.norm(image_embeds)
-    return image_embeds
+    return _embed_pil_image(ort_session, processor, image)
 
 
 # ---------------------------------------------------------------------------
@@ -403,6 +411,270 @@ server.add_ml_service(
     short_title="Find similar images (image query)",
     order=0,
     task_schema_func=task_schema,
+)
+
+
+# ---------------------------------------------------------------------------
+#  Privacy-preserving search: anonymize then search
+# ---------------------------------------------------------------------------
+
+_ANONYMIZED_MODEL_SUFFIX = "+anonymized"
+
+
+def _anonymized_model_name() -> str:
+    return _DEFAULT_MODEL + _ANONYMIZED_MODEL_SUFFIX
+
+
+def _anonymize_task_schema() -> TaskSchema:
+    top_k_desc = RangedIntParameterDescriptor(
+        range=IntRangeDescriptor(min=1, max=20),
+        default=5,
+    )
+    min_similarity_desc = RangedFloatParameterDescriptor(
+        range=FloatRangeDescriptor(min=0.0, max=1.0),
+        default=0.5,
+    )
+
+    return TaskSchema(
+        inputs=[
+            InputSchema(
+                key="input_dir",
+                label="Directory of image files to search within",
+                input_type=InputType.DIRECTORY,
+            ),
+            InputSchema(
+                key="query_image",
+                label="Query image — find visually similar images to this one",
+                input_type=InputType.FILE,
+            ),
+        ],
+        parameters=[
+            ParameterSchema(
+                key="top_k",
+                label="Top K results",
+                subtitle="Number of most similar images to return",
+                value=top_k_desc,
+            ),
+            ParameterSchema(
+                key="min_similarity",
+                label="Match threshold",
+                subtitle="Similarity >= this counts as a match (scores may differ from raw search due to anonymization)",
+                value=min_similarity_desc,
+            ),
+        ],
+    )
+
+
+def _embed_and_store_anonymized(session, storage, file_paths, path_to_hash, ort_session, processor, model_name):
+    """Anonymize each image, then embed the sanitized version. Raw pixels are never embedded."""
+    from image_similarity.anonymizer import anonymize_image
+
+    already = _paths_already_embedded(session, file_paths, model_name)
+    paths_for_search: list[str] = []
+    newly_embedded = relocated = cloned = 0
+    file_paths_set = set(file_paths)
+
+    for path in file_paths:
+        if path in already:
+            paths_for_search.append(path)
+            continue
+
+        h = path_to_hash[path]
+        row = session.exec(
+            select(ImageSimilarityEmbedding).where(
+                ImageSimilarityEmbedding.content_sha256 == h,
+                ImageSimilarityEmbedding.model_name == model_name,
+            )
+        ).first()
+
+        if row is None:
+            with _lock_for_content_hash(h):
+                row = session.exec(
+                    select(ImageSimilarityEmbedding).where(
+                        ImageSimilarityEmbedding.content_sha256 == h,
+                        ImageSimilarityEmbedding.model_name == model_name,
+                    )
+                ).first()
+                if row is None:
+                    try:
+                        original = Image.open(path).convert("RGB")
+                        sanitized = anonymize_image(original)
+                        embedding = _embed_pil_image(ort_session, processor, sanitized)
+                        storage.save_embedding(
+                            path, embedding.tolist(), content_sha256=h,
+                        )
+                        paths_for_search.append(path)
+                        newly_embedded += 1
+                        already.add(path)
+                        session.flush()
+                    except Exception as e:
+                        logger.warning("Could not process (anonymize) %s: %s", path, e)
+                    continue
+
+        if row is not None:
+            if row.path == path:
+                paths_for_search.append(path)
+                already.add(path)
+                session.flush()
+                continue
+            if row.path not in file_paths_set:
+                session.execute(
+                    update(ImageSimilarityEmbedding)
+                    .where(ImageSimilarityEmbedding.id == row.id)
+                    .values(path=path)
+                )
+                relocated += 1
+            else:
+                emb = list(row.embedding) if row.embedding is not None else []
+                session.add(ImageSimilarityEmbedding(
+                    path=path, embedding=emb, content_sha256=h, model_name=model_name,
+                ))
+                cloned += 1
+            paths_for_search.append(path)
+            already.add(path)
+            session.flush()
+            continue
+
+    if newly_embedded or relocated or cloned:
+        storage.commit()
+
+    return paths_for_search
+
+
+def anonymize_and_search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
+    """Anonymize images (SAM3 blackout), then search by visual similarity.
+
+    Sensitive regions (faces, text, logos, etc.) are blacked out before
+    embedding so that raw image content is never encoded or stored.
+    """
+    from image_similarity.anonymizer import anonymize_image
+
+    input_dir = str(inputs["input_dir"].path)
+    query_image_path = str(inputs["query_image"].path)
+    model_name = _anonymized_model_name()
+    top_k = int(parameters.get("top_k", 5))
+    min_similarity = float(parameters.get("min_similarity", 0.5))
+
+    ort_session, processor = _load_onnx_vision_model()
+    logger.info(
+        "ONNX vision model loaded (anonymized mode): providers=%s model=%s",
+        ort_session.get_providers(),
+        model_name,
+    )
+
+    file_paths: list[str] = []
+    for name in sorted(os.listdir(input_dir)):
+        path = os.path.join(input_dir, name)
+        if os.path.isfile(path) and os.path.splitext(path)[1].lower() in ALLOWED_IMAGE_EXTS:
+            file_paths.append(path)
+
+    query_in_dir = query_image_path in set(file_paths)
+    all_paths = file_paths if query_in_dir else file_paths + [query_image_path]
+
+    path_to_hash: dict[str, str] = {}
+    hashed_paths: list[str] = []
+    for p in all_paths:
+        try:
+            path_to_hash[p] = _sha256_file(p)
+            hashed_paths.append(p)
+        except OSError as exc:
+            logger.warning("Skip hashing %s: %s", p, exc)
+    all_paths = hashed_paths
+
+    with Session(engine) as session:
+        storage = ImageSimilarityEmbeddingStorage(session, model_name=model_name)
+        paths_for_search = _embed_and_store_anonymized(
+            session, storage, all_paths, path_to_hash, ort_session, processor, model_name,
+        )
+
+        query_row = session.exec(
+            select(ImageSimilarityEmbedding).where(
+                ImageSimilarityEmbedding.path == query_image_path,
+                ImageSimilarityEmbedding.model_name == model_name,
+            )
+        ).first()
+
+        if query_row is not None and query_row.embedding is not None:
+            query_vec = np.array(list(query_row.embedding), dtype=np.float32)
+        else:
+            original = Image.open(query_image_path).convert("RGB")
+            sanitized = anonymize_image(original)
+            query_vec = _embed_pil_image(ort_session, processor, sanitized)
+
+        search_paths = [p for p in paths_for_search if p != query_image_path]
+        search_results: list[dict] = []
+        if search_paths:
+            qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
+            stmt = (
+                text(
+                    """
+                    SELECT id, path, 1 - (embedding <=> CAST(:qvec AS vector)) AS similarity
+                    FROM image_similarity_embeddings
+                    WHERE path IN :paths AND model_name = :model_name
+                    ORDER BY embedding <=> CAST(:qvec AS vector)
+                    LIMIT :top_k
+                    """
+                ).bindparams(bindparam("paths", expanding=True))
+            )
+            rows = session.execute(
+                stmt, {
+                    "qvec": qvec_literal,
+                    "paths": search_paths,
+                    "top_k": top_k,
+                    "model_name": model_name,
+                },
+            ).fetchall()
+            for row in rows:
+                sim = float(row.similarity)
+                search_results.append({
+                    "id": row.id, "path": row.path,
+                    "similarity": round(sim, 4), "is_match": sim >= min_similarity,
+                })
+
+    query_label = f"Similar to {os.path.basename(query_image_path)} (anonymized)"
+    file_responses: list[FileResponse] = []
+    for rank, hit in enumerate(search_results, start=1):
+        file_responses.append(
+            FileResponse(
+                file_type=FileType.IMG,
+                path=str(hit["path"]),
+                title=f"#{rank} · similarity {hit['similarity']}",
+                subtitle=query_label,
+                metadata={
+                    "Query": query_label,
+                    "Similarity": str(hit["similarity"]),
+                    "Match": "Yes" if hit["is_match"] else "No",
+                    "Model": model_name,
+                    "Privacy": "anonymized (SAM3 blackout)",
+                    "id": str(hit.get("id", "")),
+                },
+            )
+        )
+
+    return ResponseBody(root=BatchFileResponse(files=file_responses))
+
+
+def _anonymize_parameters_cli_parse(value: str) -> Parameters:
+    parts = [p.strip() for p in value.split(",")]
+    top_k = int(parts[0]) if len(parts) > 0 and parts[0] else 5
+    min_similarity = float(parts[1]) if len(parts) > 1 and parts[1] else 0.5
+    return Parameters(top_k=top_k, min_similarity=min_similarity)
+
+
+server.add_ml_service(
+    rule="/anonymize_and_search",
+    ml_function=anonymize_and_search,
+    inputs_cli_parser=typer.Argument(
+        parser=inputs_cli_parse,
+        help="Directory of images and query image as: input_dir|||query_image_path",
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=_anonymize_parameters_cli_parse,
+        help="top_k,min_similarity",
+    ),
+    short_title="Anonymize & search (privacy-preserving)",
+    order=1,
+    task_schema_func=_anonymize_task_schema,
 )
 
 app = server.app
