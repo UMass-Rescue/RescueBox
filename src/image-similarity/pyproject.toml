@@ -16,6 +16,7 @@ numpy = "*"
 sqlmodel = "*"
 sqlalchemy = "*"
 pgvector = "*"
+torch = "*"
 rb-api = { path = "../rb-api", develop = true }
 
 [build-system]
