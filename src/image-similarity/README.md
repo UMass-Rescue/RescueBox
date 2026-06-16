@@ -6,13 +6,24 @@ Default model: [`google/siglip2-so400m-patch14-384`](https://huggingface.co/goog
 
 ## Features
 
-### Embed + search (`/search_similar_images`)
+### Task 1: Embed + search (`/search_similar_images`)
 
 Single endpoint that:
 
 1. For each image in the directory: if a row for that `(path, model_name)` (or `(content_sha256, model_name)`) already exists in `image_similarity_embeddings`, it **reuses** it. Otherwise it embeds, normalizes, and **stores** the vector.
 2. Embeds the **query image** the same way (also reusing if already in the DB).
 3. **Ranks** the directory images with pgvector cosine distance and returns the **top_k** paths.
+
+### Task 2: Anonymize & search (`/anonymize_and_search`)
+
+Privacy-preserving variant. Before embedding, every image is **anonymized** using Facebook's SAM3 segmentation model:
+
+1. Detect sensitive regions (faces, people, text, signs, logos) in each image.
+2. **Black out** detected regions.
+3. Embed the **sanitized** image — the raw image is never embedded or stored as a vector.
+4. Rank and return top-k results.
+
+Anonymized embeddings are tagged with `model_name = "...+anonymized"` so they are completely isolated from raw embeddings and can never be mixed.
 
 Embeddings are stored in a dedicated `image_similarity_embeddings` table, separate from the text-to-image `image_embeddings` table, because different vision encoders produce embeddings in different vector spaces.
 
@@ -38,18 +49,32 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
 
 ## Usage
 
+### Standard search
+
 **CLI:** pass folder and query image as `input_dir|||query_image_path`. Parameters: `top_k,min_similarity` (omit trailing values for defaults).
 
 ```bash
 rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/query.jpg" "5,0.5"
 ```
 
-**Inputs (HTTP/UI):**
+### Privacy-preserving search
+
+```bash
+rescuebox image_similarity /anonymize_and_search "/path/to/photos|||/path/to/query.jpg" "5,0.5"
+```
+
+SAM3 weights are gated on Hugging Face. Before first use:
+
+```bash
+hf auth login
+```
+
+### Inputs (HTTP/UI)
 
 - `input_dir` — directory of images to search within
 - `query_image` — reference image file
 
-**Parameters:**
+### Parameters
 
 - `top_k` (1–20, default: 5) — number of highest-similarity images to return
 - `min_similarity` (0–1, default: 0.5) — Match column uses this floor
@@ -86,9 +111,10 @@ Selected over three alternatives (LAION CLIP-H, DFN5B, SigLIP-2-gopt) as the bes
 
 ## Dependencies
 
-- `transformers`: image preprocessor (`AutoProcessor`)
+- `transformers`: image preprocessor (`AutoProcessor`) + SAM3 model
 - `onnxruntime`: vision-tower inference
 - `pillow`: image loading
+- `torch`: SAM3 segmentation (anonymize & search only)
 - `sqlmodel`, `sqlalchemy`, `pgvector`: storage and similarity search
 
 ## Database Schema
@@ -106,6 +132,20 @@ CREATE INDEX ON image_similarity_embeddings (path);
 CREATE INDEX ON image_similarity_embeddings (content_sha256);
 CREATE INDEX ON image_similarity_embeddings USING hnsw (embedding vector_l2_ops);
 ```
+
+### How raw vs. anonymized embeddings are stored
+
+Both routes use the **same table** (`image_similarity_embeddings`) but different `model_name` values:
+
+| Route | `model_name` value | What gets embedded |
+|---|---|---|
+| `/search_similar_images` | `google/siglip2-so400m-patch14-384` | Original image pixels |
+| `/anonymize_and_search` | `google/siglip2-so400m-patch14-384+anonymized` | SAM3-blackout image (faces/text/logos blacked out) |
+
+The `+anonymized` suffix guarantees:
+- Raw and anonymized vectors are **never mixed** in queries (pgvector filters by `model_name`).
+- You can purge all anonymized embeddings: `DELETE FROM image_similarity_embeddings WHERE model_name LIKE '%+anonymized'`.
+- When privacy mode is used, a raw embedding is **never computed** — the image is sanitized before any encoding happens.
 
 ## Tips for Best Results
 

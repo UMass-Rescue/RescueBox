@@ -38,6 +38,10 @@ The embedding model is fixed to `google/siglip2-so400m-patch14-384` (Apache 2.0 
 2. Look up or compute the **query image's** embedding. If it already exists in the DB, that stored vector is reused.
 3. Rank **only** the directory images using pgvector cosine similarity against the query embedding, return **top-k** results.
 
+## Anonymize & Search (`/anonymize_and_search`)
+
+Privacy-preserving variant. Every image is anonymized before embedding — sensitive regions are detected using SAM3 and blacked out. Raw image content is never encoded or stored as a vector. Same inputs and parameters as above.
+
 ## Notes
 
 - Search is **within the given folder's embedded set** for that job, not a global search across unrelated past embeddings.
@@ -51,3 +55,4 @@ The embedding model is fixed to `google/siglip2-so400m-patch14-384` (Apache 2.0 
 ## Dependencies
 
 - `transformers`, `onnxruntime`, `pillow`, `numpy`, PostgreSQL with **pgvector**, `sqlmodel` / `sqlalchemy`.
+- `torch` (required for SAM3 anonymization in Anonymize & Search).

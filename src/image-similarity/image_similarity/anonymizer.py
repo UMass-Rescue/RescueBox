@@ -5,11 +5,9 @@ Detects specified visual concepts (faces, text, logos, etc.) in an image using
 Facebook's SAM3 model, then blacks out those regions so that downstream
 embeddings never encode sensitive content.
 
-Anonymization approach inspired by the contrastive-privacy framework:
+Anonymization approach inspired by:
     Bissias, Bagdasarian & Levine, "Contrastive Privacy: A Semantic Approach
     to Measuring Privacy of AI-based Sanitization" (2026).
-    Paper:  https://arxiv.org/pdf/2605.02977.pdf
-    Code:   https://github.com/umass-forensics/contrastive-privacy
 """
 
 from __future__ import annotations
