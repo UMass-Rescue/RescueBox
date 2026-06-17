@@ -6,14 +6,17 @@ from pathlib import Path
 import onnxruntime
 import pytest
 
-from face_detection_recognition.database_functions import get_vector_database
+from face_detection_recognition.database_functions import (
+    _face_tables_ready_marker,
+    get_vector_database,
+)
 from face_detection_recognition.face_match_server import (
     APP_NAME,
     app as cli_app,
     server,
 )
 
-DB = get_vector_database()
+DB = None  # initialized in TestFaceMatch.setup_class when Postgres is up
 
 # Force CPU execution for testing - ONNX Runtime settings
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -53,6 +56,22 @@ TEST_MODEL_NAME = "facenet512"  # Default model
 TEST_DETECTOR_BACKEND = "retinaface"  # Default detector
 
 
+def _postgres_pgvector_available() -> bool:
+    """True when RescueBox Postgres (pgvector) accepts connections."""
+    try:
+        from sqlalchemy import text
+
+        from rb.api.database import engine
+
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        _face_tables_ready_marker.cache_clear()
+        return True
+    except Exception as exc:
+        print(f"PostgreSQL/pgvector not available: {exc}")
+        return False
+
+
 class TestFaceMatch(RBAppTest):
     has_test_images = os.path.exists(TEST_QUERY_IMAGE)
     print(TEST_QUERY_IMAGE.absolute())
@@ -67,6 +86,15 @@ class TestFaceMatch(RBAppTest):
         )
         if not (models_dir / "retinaface-resnet50.onnx").exists():
             pytest.skip("Face detection ONNX models not available in CI environment")
+
+        if not _postgres_pgvector_available():
+            pytest.skip(
+                "PostgreSQL/pgvector not available "
+                "(run startup/pgvector_start.sh or set DATABASE_URL)"
+            )
+
+        global DB
+        DB = get_vector_database()
 
         os.makedirs(TEST_IMAGES_DIR, exist_ok=True)
         os.makedirs(TEST_FACES_DIR, exist_ok=True)
@@ -84,6 +112,8 @@ class TestFaceMatch(RBAppTest):
     @classmethod
     def teardown_class(cls):
         """Clean up after all tests"""
+        if DB is None:
+            return
         # Delete our test collection if it exists
         try:
             if hasattr(cls, "full_collection_name"):

@@ -8,7 +8,7 @@ import os
 # Prefer env override; default to docker-compose service hostname 'db'
 postgres_url = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg2://rbuser:rescue@127.0.0.1:5432/rescuebox",
+    "postgresql+psycopg2://rbuser:rescue@127.0.0.1:5433/rescuebox",
 )
 engine = create_engine(postgres_url, pool_pre_ping=True, future=True)
 

@@ -4,7 +4,7 @@ import psycopg2
 import sys
 
 # Connect to the database
-conn = psycopg2.connect('postgresql://rbuser:rescue@127.0.0.1:5432/rescuebox')
+conn = psycopg2.connect('postgresql://rbuser:rescue@127.0.0.1:5433/rescuebox')
 cur = conn.cursor()
 
 # Check what tables exist
