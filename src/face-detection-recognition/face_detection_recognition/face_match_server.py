@@ -35,6 +35,7 @@ from face_detection_recognition.utils.logger import log_info
 from face_detection_recognition.database_functions import (
     Vector_Database,
     get_vector_database,
+    list_base_collection_names_for_schema,
     vector_db_for_current_request,
 )
 
@@ -88,10 +89,11 @@ class ImageDirectory(FileFilterDirectory):
 
 
 def _bulk_upload_collection_choices(is_ensemble: bool) -> List[str]:
-    """First row is the UI sentinel; remaining names are Chroma collections for the current user only."""
+    """First row is the UI sentinel; remaining names are collections for the current user only."""
     rows: List[str] = ["Create a new collection"]
-    db = vector_db_for_current_request(None)
-    rows.extend(db.get_available_collections(isEnsemble=is_ensemble))
+    rows.extend(
+        list_base_collection_names_for_schema(is_ensemble=is_ensemble, path_hint=None)
+    )
     return rows
 
 
@@ -129,11 +131,9 @@ def _collection_name_enum_for_find_tasks() -> EnumParameterDescriptor:
     If no Chroma collections exist yet, expose a single ``sample`` option so users can
     still submit (after bulk upload, real names appear on next model cache refresh).
 
-    Names come only from the current user's Chroma store (``X-RescueBox-User-Id`` when set).
+    Names come only from the current user's store (``X-RescueBox-User-Id`` when set).
     """
-    names = vector_db_for_current_request(None).get_available_collections(
-        isEnsemble=False
-    )
+    names = list_base_collection_names_for_schema(is_ensemble=False, path_hint=None)
     names = [n for n in names if n]
     if names:
         return EnumParameterDescriptor(
@@ -150,9 +150,7 @@ def _collection_name_enum_for_find_tasks() -> EnumParameterDescriptor:
 
 def _collection_name_enum_for_multi_pipeline_find() -> EnumParameterDescriptor:
     """Same as :func:`_collection_name_enum_for_find_tasks` but for ensemble collection names."""
-    names = vector_db_for_current_request(None).get_available_collections(
-        isEnsemble=True
-    )
+    names = list_base_collection_names_for_schema(is_ensemble=True, path_hint=None)
     names = [n for n in names if n]
     if names:
         return EnumParameterDescriptor(

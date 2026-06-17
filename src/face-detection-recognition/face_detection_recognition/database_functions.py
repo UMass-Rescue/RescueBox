@@ -1,8 +1,10 @@
 import hashlib
 import json
+import logging
 import os
 import re
 from contextvars import ContextVar
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Sequence
 
 import pandas as pd
@@ -13,6 +15,8 @@ from sqlmodel import Session, select
 
 from face_detection_recognition.utils.resource_path import get_config_path
 
+logger = logging.getLogger(__name__)
+
 # Segment after .../Documents/ — e.g. demo1, demo2, demo3 under /home/user/Documents/demo3/...
 _DOCUMENTS_SCOPE = re.compile(r"[/\\]Documents[/\\]([^/\\]+)", re.IGNORECASE)
 _VALID_DEMO_SCOPE = re.compile(r"^demo[0-9]+$", re.IGNORECASE)
@@ -20,7 +24,6 @@ _VALID_DEMO_SCOPE = re.compile(r"^demo[0-9]+$", re.IGNORECASE)
 _VALID_USER_SCOPE = re.compile(r"^u_[a-f0-9]{16}$")
 
 _vector_db_cache: Dict[tuple, "Vector_Database"] = {}
-_tables_initialized = False
 
 # Set by FastAPI (cli_to_api) from header X-RescueBox-User-Id for each request; isolates rows per user.
 facematch_rescuebox_user_id: ContextVar[Optional[str]] = ContextVar(
@@ -49,12 +52,22 @@ def facematch_demo_scope_from_path(path: Optional[str]) -> Optional[str]:
     return segment if _VALID_DEMO_SCOPE.fullmatch(segment) else None
 
 
-def _ensure_face_tables() -> None:
-    global _tables_initialized
-    if _tables_initialized:
-        return
+@lru_cache(maxsize=1)
+def _face_tables_ready_marker() -> bool:
+    """Cached only after ``create_db_and_tables`` succeeds."""
     create_db_and_tables()
-    _tables_initialized = True
+    return True
+
+
+def _ensure_face_tables() -> None:
+    try:
+        _face_tables_ready_marker()
+    except Exception as exc:
+        _face_tables_ready_marker.cache_clear()
+        # Plugin import / task_schema registration must not require a live Postgres (e.g. CI).
+        logger.warning(
+            "Face embedding tables not ready (database unavailable): %s", exc
+        )
 
 
 def _scope_storage_key(demo_scope: Optional[str]) -> str:
@@ -124,6 +137,23 @@ def vector_db_for_current_request(path_hint: Optional[str] = None) -> "Vector_Da
     return get_vector_database(scope)
 
 
+def list_base_collection_names_for_schema(
+    *,
+    is_ensemble: bool = False,
+    path_hint: Optional[str] = None,
+) -> List[str]:
+    """Collection names for task-schema enums; empty when Postgres is unreachable."""
+    try:
+        db = vector_db_for_current_request(path_hint)
+        return db.get_available_collections(isEnsemble=is_ensemble)
+    except Exception as exc:
+        logger.warning(
+            "Could not list face-match collections for schema (database unavailable): %s",
+            exc,
+        )
+        return []
+
+
 # Get models from config file.
 db_config_path = get_config_path("db_config.json")
 with open(db_config_path, "r") as config_file:
@@ -163,13 +193,22 @@ class Vector_Database:
         return f"{base_name}_{detector.lower()[0:2]}{model.lower()[0:2]}{self.ensemble_indicator if isEnsemble else self.single_indicator}"
 
     def list_full_collection_names(self) -> List[str]:
-        with Session(engine) as session:
-            rows = session.exec(
-                select(FaceEmbedding.collection_name)
-                .where(FaceEmbedding.scope == self.scope)
-                .distinct()
-            ).all()
-        return sorted(set(rows))
+        try:
+            _ensure_face_tables()
+            with Session(engine) as session:
+                rows = session.exec(
+                    select(FaceEmbedding.collection_name)
+                    .where(FaceEmbedding.scope == self.scope)
+                    .distinct()
+                ).all()
+            return sorted(set(rows))
+        except Exception as exc:
+            logger.warning(
+                "Could not list face embedding collections for scope %r: %s",
+                self.scope,
+                exc,
+            )
+            return []
 
     def delete_collection_by_full_name(self, full_name: str) -> None:
         with Session(engine) as session:
