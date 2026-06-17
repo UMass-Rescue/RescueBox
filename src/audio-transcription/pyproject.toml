@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "audio-transcription"
-version = "2.0.0"
+version = "3.0.0"
 description = ""
 authors = ["Rescue Lab <sahilsharma@umass.edu>"]
 packages = [{include = "audio_transcription"}]
@@ -11,7 +11,7 @@ audio-transcription = "audio_transcription.main:app"
 [tool.poetry.dependencies]
 cmake = "*"
 python = "^3.11"
-openai-whisper = "*"
+faster-whisper = "*"
 
 [build-system]
 requires = ["poetry-core"]

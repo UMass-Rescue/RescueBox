@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "face-match"
-version = "2.0.0"
+version = "3.0.0"
 description = ""
 authors = [
     "Andrew Lin <andrewlin@umass.edu>",
@@ -15,14 +15,20 @@ packages = [{include = "face_detection_recognition"}]
 face-match = "face_detection_recognition.face_match_server:app"
 
 [tool.poetry.dependencies]
+python = ">=3.11,<3.15"
 pandas="*"
 ruff="*"
 python-dotenv="*"
-onnxruntime="*"
-chromadb="*"
+onnxruntime = "*"
 matplotlib="*"
 opencv-python="*"
 numpy="*"
+sqlmodel = "*"
+sqlalchemy = "*"
+pgvector = "*"
+psycopg2-binary = "*"
+rb-api = { path = "../rb-api", develop = true }
+rb-lib = { path = "../rb-lib", develop = true }
 
 [build-system]
 requires = ["poetry-core"]

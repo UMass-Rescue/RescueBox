@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "RescueBox",
+  "version": "3.1.0",
+  "identifier": "com.rescuebox.desktop",
+  "build": {
+    "frontendDist": "http://localhost:8080",
+    "devUrl": "http://localhost:8080",
+    "beforeDevCommand": {
+
+      "script": "ping 127.0.0.1 -n 4 > NUL && start /B poetry run python backend/server.py && poetry run python frontend/main.py",
+      "cwd": ".",
+      "wait": false
+    },
+    "beforeBuildCommand": {
+      "script": "poetry run pyinstaller --noconfirm --distpath src-tauri-frontend frontend.spec && poetry run pyinstaller --noconfirm --distpath src-tauri-backend backend.spec &&  move src-tauri-frontend\\frontend src-tauri && move src-tauri\\frontend\\frontend.exe src-tauri\\frontend\\frontend-x86_64-pc-windows-msvc.exe && move src-tauri-backend\\rescuebox src-tauri && move src-tauri\\rescuebox src-tauri\\backend && move src-tauri\\backend\\rescuebox.exe src-tauri\\backend\\rescuebox-x86_64-pc-windows-msvc.exe",
+      "cwd": ".."
+    }
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "RescueBox",
+        "width": 1280, 
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "windows": {
+      "nsis": {
+        "template": "nsis/custom.nsi",
+        "installMode": "perMachine",
+        "installerIcon": "icons/icon.ico"
+      }
+    },
+    "resources": {
+      "frontend/": "frontend",
+      "backend/": "backend",
+      "demo/": "demo"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

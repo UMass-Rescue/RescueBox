@@ -19,6 +19,10 @@ from face_detection_recognition.face_match_server import (
 
 from image_summary.main import app as image_summary_app, APP_NAME as IMAGE_SUM_APP_NAME  # type: ignore
 
+from text_embeddings.main import app as text_embeddings_app, APP_NAME as TEXT_EMB_APP_NAME  # type: ignore
+from image_embeddings.main import app as image_embeddings_app, APP_NAME as IMAGE_EMB_APP_NAME  # type: ignore
+from image_similarity.main import app as image_similarity_app, APP_NAME as IMAGE_SIM_APP_NAME  # type: ignore
+
 ufdr_app = None
 try:
     from ufdr_mounter.ufdr_server import app as ufdr_app, APP_NAME as UFDR_APP_NAME  # type: ignore
@@ -50,6 +54,11 @@ plugins: list[RescueBoxPlugin] = [
     ),
     RescueBoxPlugin(
         deepfake_detection_app, DEEPFAKE_APP_NAME, "Deepfake Image Detection"
+    ),
+    RescueBoxPlugin(text_embeddings_app, TEXT_EMB_APP_NAME, "Text Embeddings"),
+    RescueBoxPlugin(image_embeddings_app, IMAGE_EMB_APP_NAME, "Image Embeddings"),
+    RescueBoxPlugin(
+        image_similarity_app, IMAGE_SIM_APP_NAME, "Image Similarity Search"
     ),
 ]
 

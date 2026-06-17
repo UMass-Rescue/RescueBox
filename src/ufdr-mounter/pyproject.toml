@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ufdr-mounter"
-version = "2.0.0"
+version = "3.0.0"
 description = "Mount UFDR forensic archives using FUSE"
 authors = ["Sribatscha Maharana <sribatscha.maharana@gmail.com>"]
 packages = [{include = "ufdr_mounter"}]
@@ -10,11 +10,12 @@ ufdr-mounter = "ufdr_mounter.ufdr_server:app"
 
 [tool.poetry.dependencies]
 fusepy = "*"
+fastapi = ">=0.115.0"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.ruff]
-ignore = ["F401"]
+[tool.ruff.lint]
+#ignore = ["F401"]

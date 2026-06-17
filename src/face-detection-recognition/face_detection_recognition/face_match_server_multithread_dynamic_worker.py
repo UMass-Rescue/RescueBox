@@ -38,9 +38,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 info_file_path = os.path.join(script_dir, "..", "app-info.md")
 
 server.add_app_metadata(
-    name="Face Recognition and Matching",
-    author="FaceMatch Team",
-    version="2.0.0",
+    name="Face Match",
+    author="UMass RescueLab",
+    version="3.0.0",
     info=load_file_as_string(info_file_path),
 )
 
@@ -538,6 +538,6 @@ def bulk_upload_endpoint(
 
 # Start the server
 if __name__ == "__main__":
-    log_info("Starting Face Recognition and Matching server")
+    log_info("Starting Face Match server")
     log_info(f"Available databases: {available_databases}")
     server.run()

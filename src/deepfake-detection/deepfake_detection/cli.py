@@ -1,5 +1,5 @@
 import argparse
-import onnxruntime as ort
+from deepfake_detection.main import _load_face_detector_session
 from deepfake_detection.sim_data import defaultDataset
 from deepfake_detection.process.transformer import TransformerModelONNX
 from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
@@ -28,12 +28,6 @@ def args_func():
         required=True,
         help="List of models to use (e.g., TransformerModel BNext_M_ModelONNX). Use 'all' to run all models or 'list' to list available models.",
     )
-    parser.add_argument(
-        "--facecrop",
-        action="store_true",
-        help="Enable face cropping before model inference.",
-    )
-
     args = parser.parse_args()
     return args
 
@@ -129,16 +123,15 @@ if __name__ == "__main__":
 
     test_dataset = defaultDataset(dataset_path=str(input_path), resolution=224)
 
-    # Initialize face cropper if requested
+    # Same as the server: face-aligned crops improve scores; load whenever ONNX is present.
     facecropper = None
-    if args.facecrop:
-        try:
-            facecropper = ort.InferenceSession(
-                str(Path(__file__).parent / "onnx_models/face_detector.onnx"),
-                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
-            )
-        except Exception as e:
-            print(f"Error loading face detector: {e}")
+    try:
+        facecropper = _load_face_detector_session()
+        print(
+            "Face detector loaded; preprocess uses face alignment when a face is found."
+        )
+    except Exception as e:
+        print(f"Face detector unavailable ({e}); using full-frame preprocessing only.")
     results = run_models(models_to_use, test_dataset, facecrop=facecropper)
 
     output_dir = Path("sample_output")

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RescueBox frontend design tokens",
+  "version": "2.3.0",
+  "meta": {
+    "stack": ["NiceGUI", "Quasar", "Tailwind CSS utility classes"],
+    "source_of_truth": "frontend/design_tokens.py",
+    "default_theme": "light",
+    "brand": {
+      "primary": "#881c1c (UMass Maroon PMS 202)",
+      "primary_hover": "#6a1616 (darker maroon for buttons)",
+      "neutrals": "zinc scale for text, borders, and surfaces app-wide (no Tailwind gray-* in Python UI)"
+    },
+      "notes": "Quasar primary (--q-primary) and rb-brand-primary buttons use UMass Maroon #881c1c; navbar uses Medium Gray #505759. Links, pickers, and surfaces use Maroon, Medium Gray, and Zinc neutrals. Import design_tokens.Design where practical."
+  },
+  "color": {
+    "semantic": {
+      "brand_primary": "#881c1c Maroon",
+      "brand_primary_hover": "#6a1616 darker maroon",
+      "brand_muted_on_dark": "zinc-400 (navbar version text)",
+      "surface_elevated": "zinc-50 (tool-call cards, jobs table header, job-running chip)",
+      "text_primary": "zinc-800 / zinc-900",
+      "text_muted": "zinc-500 / zinc-600",
+      "border_default": "zinc-100 / zinc-200",
+      "success": "green-* (tool results, completed stepper)",
+      "error": "red-*",
+      "warning": "Quasar / yellow-*"
+    }
+  },
+  "components": {
+    "button_primary": "Design.BTN_PRIMARY",
+    "button_compact": "Design.BTN_PRIMARY_TIGHT (tables, dense actions)",
+    "button_ghost": "Design.BTN_GHOST",
+    "button_secondary": "Design.BTN_SECONDARY_NEUTRAL",
+    "navbar": "Design.NAV_HEADER, NAV_LINK, NAV_VERSION_MUTED",
+    "chat_bubbles": "Design.CHAT_USER_BUBBLE / CHAT_ASSISTANT_BUBBLE",
+    "chat_input": "Design.INPUT_MODERN",
+    "form_long_text": "Design.INPUT_OUTLINED (see design_tokens.py)",
+    "jobs_table_header": "bg-zinc-50 border-zinc-200 text-zinc-800",
+    "tool_call": "Design.CARD_TOOL_CALL",
+    "tool_result": "Design.CARD_TOOL_RESULT",
+    "panel_shell": "Design.PANEL_SHELL_CARD / _NARROW / _MD / _WIDE + PANEL_SHELL_HEADER + PANEL_SHELL_BODY + PANEL_SHELL_FOOTER for dialogs, chat surface, plugin/analysis pickers"
+  },
+  "typography": {
+    "body_base_rem": 0.8,
+    "markdown": "prose-zinc for in-app guides and chat-adjacent markdown",
+    "notifications": "1rem overrides in ui_readability_css.py"
+  },
+  "gradients": {
+    "panel_headers": "zinc-50 → zinc-100 (subtle contrast) for file browser, text search cards; Help dialog uses zinc panel shell + prose-zinc"
+  }
+}

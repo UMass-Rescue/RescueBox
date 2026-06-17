@@ -1,27 +1,53 @@
 # RescueBox from UMass Rescue Lab
 
-We are proud to offer our first preview release of RescueBox!
 
-* [Windows software](https://umass-my.sharepoint.com/:u:/g/personal/sahilsharma_umass_edu/EYSwMi7RkoFCosIZLdzuqnMBN8n7ejoIPT9eqVjXqKIlJg?e=Kis33R) (2.3GB) 
-
-The download contains documentation including a product overview, installation notes, and RescueBox usage. 
-
-This release has been tested on Windows 11 64-bit hardware. The software does work if you run it on a machine with only a CPU; try it out with a few images or audio files. However for large scale work, because the processing is dependent on machine learning models, you won't see good performance unless you run on a machine that has a modern NVIDIA GPU card. Something like 4090 or 5090 or better for large amounts of files.
-
-The software is free of charge. UMass Amherst is research university and a non-profit: our plan to continue development of this open source software is by seeking funding for this work from sponsors. While we seek this funding, we are indeed offering free support for the software for its users. Please ask for our help, offer feedback, and submit bug reports using [this form](https://forms.gle/wYs1S5k1JS3G2rLo7). Again, please note that there is documentation in the download. 
-
-<img  width="200px" src="https://images.squarespace-cdn.com/content/v1/5efb7aa577f8b34b0f786c0f/1598361988326-7EWAXEOBNQGIQGSQK8PS/Rescue+Lab+LogoOL.jpg?format=1500w">
-
-For more information on Rescue Lab see our [web site](https://rescue-lab.org).
+This release has been tested on Windows 11 64-bit hardware. The software does work if you run it on a machine with only a CPU; try it out with a few images or audio files. GPU strongly recommended.
 
 -----------------------
 Notes for Developers Only:
 
-**For Hackathon ideas** see [issues](https://github.com/UMass-Rescue/RescueBox/issues)
+**Pre-requisites for windows/macos/Linux ** 
 
-Please refer to the [CONTRIBUTING](CONTRIBUTING.md) file for more information on how to contribute to this project.
+1. python 3.13 , poetry 
+      checkout git repo src and run poetry install
 
-Documentation is available on the [Wiki](https://github.com/UMass-Rescue/RescueBox/wiki)
+2. install **ollama and pull models** ibm/granite4.1:3b, moondream:latest, gemma3:4b , gemma3:1b
+	see "startup\ollama_check.sh"
+
+3. **install and run pgvector docker container** on macos/Linux/windows 
+
+	"startup\docker-compose.yml"       
+	"startup\pgvector_start.sh"
+	"startup\check_pgvector_db.sh"
+
+4. **download and extract onnx models** from :
+    	https://umass-my.sharepoint.com/:u:/g/personal/jaikumar_umass_edu/IQAiVKIZKA8QT6EEVDLqmc5NAWuYAy8wl9I3K2Ken5G7lLc?e=w8DjIl
+		
+    	extract rb_3.1_onnx_models.zip to rescuebox <ROOT> or top level directory ( where "src" folder exists)
+        
+
+5. **install ffmpeg.exe** for audio transcribe https://www.osxexperts.net/ffmpeg81arm.zip
+
+6. start **backend server**
+     poetry run python -m rb.api.main , confirm by accessing http://localhost:8000
+
+7. start **frontend UI server**
+     poetry run python frontend/main.py, confirm by accessing http://localhost:8080
+
+
+NOTES:
+
+** for macos** poetry toml file are upto date.
+
+**Frontend (NiceGUI) developer docs:** [frontend/docs/README.md](frontend/docs/README.md) — workflow, database, tests, and related topics.
+
+**src-tauri** folder to build windows rescuebox installer. src-tauri\nsis\README.txt for current build notes.
+
+**image-embeddings** converted to onnx model , text embeddings onnx convert pending..
+  
+on windows : frontend.spec and backend.spec run with pyinstaller to create exe and package with src-tauri build steps.
+
+on linux : run_backend_server and run_ui_server was used to demo nvidia/cuda gpu with dgx-spark server
 
 See the [LICENSE](LICENSE) file for license details.
 

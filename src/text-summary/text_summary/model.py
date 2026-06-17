@@ -4,9 +4,6 @@ from text_summary.summary_prompt import PROMPT
 SUPPORTED_MODELS = [
     "gemma3:1b",
     "gemma3:4b",
-    "deepseek-r1:1.5b",
-    "deepseek-r1:7b",
-    "llama3.2:3b",
 ]
 
 

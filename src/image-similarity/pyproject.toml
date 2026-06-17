@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "image-similarity"
+version = "1.0.0"
+description = "Image-to-image similarity search plugin for RescueBox using CLIP"
+authors = ["RescueBox Team"]
+packages = [{include = "image_similarity"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.15"
+typer = "*"
+pydantic = "*"
+transformers = "*"
+onnxruntime = "*"
+pillow = "*"
+numpy = "*"
+sqlmodel = "*"
+sqlalchemy = "*"
+pgvector = "*"
+rb-api = { path = "../rb-api", develop = true }
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

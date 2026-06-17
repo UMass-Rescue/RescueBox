@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "case-export"
+version = "0.1.0"
+description = "RescueBox job → CASE/UCO-style JSON-LD fragments (minimal, no required case-uco)"
+authors = ["RescueBox Team"]
+packages = [{ include = "case_export" }]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.15"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

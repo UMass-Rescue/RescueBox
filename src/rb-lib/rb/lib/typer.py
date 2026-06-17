@@ -90,10 +90,11 @@ def get_inputs_from_signature(
     return result
 
 
-def typer_app_to_tree(app: typer.Typer) -> dict:
+def typer_app_to_tree(app: typer.Typer) -> tuple[dict, dict]:
     # Create root node
     root = Node("rescuebox", command=None, is_group=True)
     schema_commands = {}
+    _node_map = {}
 
     def add_commands_to_node(typer_app: typer.Typer, parent_node: Node):
 
@@ -140,19 +141,25 @@ def typer_app_to_tree(app: typer.Typer) -> dict:
             return None
 
     def node_to_dict(node: Node) -> dict:
+        _node = node.command
+        endpoint_path = "/" + "/".join([_.name.split("/")[-1] for _ in node.path][1:])
         result = {
             "name": node.name,
             "is_group": node.is_group,
             "help": None,
             "order": 0,
         }
+
+        if _node:
+            _node_map[endpoint_path] = _node
+
         endpoint = get_endpoint_from_schema(node.command)
 
         if endpoint:
             result["order"] = endpoint.order
 
         if not node.is_group:
-            result["endpoint"] = "/" + "/".join([_.name for _ in node.path][1:])
+            result["endpoint"] = endpoint_path
 
             result["inputs"] = get_inputs_from_signature(
                 node.signature, node.command, schema_commands
@@ -180,4 +187,4 @@ def typer_app_to_tree(app: typer.Typer) -> dict:
 
     # Convert the entire tree to dictionary format
     tree_dict = node_to_dict(root)
-    return tree_dict
+    return tree_dict, _node_map

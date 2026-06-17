@@ -1,4 +1,17 @@
-from typing import Any, Callable, Mapping, Union, get_type_hints
+import os
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 from pydantic import BaseModel
 from typing_extensions import assert_never
@@ -59,18 +72,29 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
         parameters_schema_key_to_parameter_type.keys()
     ), f"Parameter schema and Typed Dict for parameters must have the same keys. Parameter schema keys: {parameters_schema_key_to_parameter_type.keys()} | Typed Dict keys: {parameters_type_hints.keys()}"
 
+    def _unwrap_optional(hint):
+        """Unwrap NotRequired[X] to X for optional input validation."""
+        try:
+            from typing import NotRequired
+
+            if get_origin(hint) is NotRequired:
+                return get_args(hint)[0]
+        except Exception:
+            pass
+        return hint
+
     for key in input_schema_input_key_to_input_type:
-        input_type_hint = input_type_hints[key]
+        input_type_hint = _unwrap_optional(input_type_hints[key])
         input_type = input_schema_input_key_to_input_type[key]
         match input_type:
             case InputType.FILE:
-                assert (
-                    input_type_hint is FileInput
-                ), f"For key {key}, the input type is InputType.FILE, but the TypeDict hint is {input_type_hint}. Change to FileInput."
+                assert issubclass(
+                    input_type_hint, FileInput
+                ), f"For key {key}, the input type is InputType.FILE, but the TypeDict hint is {input_type_hint}. Change to FileInput (or a subclass)."
             case NewFileInputType():
-                assert (
-                    input_type_hint is FileInput
-                ), f"For key {key}, the input type is NewFileInputType, but the TypeDict hint is {input_type_hint}. Change to FileInput."
+                assert issubclass(
+                    input_type_hint, FileInput
+                ), f"For key {key}, the input type is NewFileInputType, but the TypeDict hint is {input_type_hint}. Change to FileInput (or a subclass)."
             case InputType.DIRECTORY:
                 assert issubclass(
                     input_type_hint, DirectoryInput
@@ -128,3 +152,142 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
                 ), f"For key {key}, the parameter type is ParameterType.INT, but the TypeDict hint is {parameter_type_hint}. Change to int."
             case _:  # pragma: no cover
                 assert_never(parameter_type)
+
+
+# ---Pipeline Filter helper utilities for plugins ----------------------------------
+
+
+def extract_filter_id(inputs: dict, parameters: dict) -> Optional[str]:
+    """Extract a filter id from parameters or inputs if present."""
+    fid = None
+    try:
+        # Check top-level then _meta container
+        fid = (
+            parameters.get("filterId")
+            or parameters.get("filter_id")
+            or (parameters.get("_meta") or {}).get("filterId")
+        )
+    except Exception:
+        fid = None
+
+    try:
+        ffi = (
+            inputs.get("file_filter")
+            if isinstance(inputs, dict)
+            else inputs["file_filter"]
+        )
+        if isinstance(ffi, dict) and ffi.get("filter_id"):
+            fid = fid or ffi.get("filter_id")
+        else:
+            try:
+                attr_fid = getattr(ffi, "filter_id", None)
+                if attr_fid:
+                    fid = fid or attr_fid
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return fid
+
+
+def load_saved_filter(filter_id: str, input_dir: Path) -> Tuple[List[Path], List[str]]:
+    """
+    Load a persisted filter and return (input_paths, output_patterns).
+    Input paths are resolved against input_dir when stored as relative paths.
+    """
+    from frontend.database.file_filter_store import load_filter
+
+    input_paths: List[Path] = []
+    output_patterns: List[str] = []
+    if not filter_id:
+        return input_paths, output_patterns
+    saved = load_filter(filter_id)
+    if not saved:
+        return input_paths, output_patterns
+    spaths = saved.get("paths_json") or []
+    if spaths:
+        resolved = []
+        for p in spaths:
+            try:
+                rp = Path(p)
+                if not rp.is_absolute():
+                    rp = Path(input_dir) / rp
+                resolved.append(rp)
+            except Exception:
+                continue
+        input_paths = resolved
+    output_patterns = saved.get("patterns_json") or []
+    return input_paths, output_patterns
+
+
+def collect_inline_file_filter(inputs: dict, input_dir: Path) -> List[Path]:
+    """Collect input file list from uploaded BatchFileInput in the request (inline).
+    Supports both Pydantic model (.files) and plain dict (["files"]) for file_filter.
+
+    If ``file_filter`` is present with ``files: []``, returns an empty list (process no files).
+    Do not treat an empty list as "missing filter" — that would incorrectly process every file
+    in the directory (e.g. after a pipeline filter matched nothing).
+    """
+    try:
+        ff = inputs.get("file_filter")
+        if ff is None:
+            return [Path(f) for f in input_dir.iterdir() if f.is_file()]
+        # Support both Pydantic model (.files) and plain dict (["files"])
+        if isinstance(ff, dict):
+            files = ff.get("files")
+        else:
+            files = getattr(ff, "files", None)
+        if files is None:
+            files = []
+        return [
+            Path(f.get("path") if isinstance(f, dict) else getattr(f, "path", f))
+            for f in files
+        ]
+    except Exception:
+        pass
+    return [Path(f) for f in input_dir.iterdir() if f.is_file()]
+
+
+def collect_inline_output_patterns(inputs: dict) -> List[str]:
+    """Collect output patterns from uploaded output_filter files (inline)."""
+    patterns: List[str] = []
+    try:
+        output_filter_files = inputs.get("output_filter").files
+    except Exception:
+        output_filter_files = []
+
+    if output_filter_files:
+        for pf in output_filter_files:
+            try:
+                p = Path(pf.path)
+                if p.exists():
+                    content = p.read_text(encoding="utf-8")
+                    for line in content.splitlines():
+                        line = line.strip()
+                        if line:
+                            patterns.append(line)
+            except Exception:
+                continue
+    return patterns
+
+
+def apply_torch_cpu_preference() -> None:
+    """
+    Call immediately before ``import torch`` when the user wants CPU-only PyTorch.
+
+    On some hosts (e.g. PyTorch/CUDA wheel mismatch, or fragile ARM GPU stacks),
+    initializing CUDA can **SIGSEGV** the process. Setting ``CUDA_VISIBLE_DEVICES``
+    to empty **before** torch loads prevents the CUDA driver from loading.
+    """
+    if os.environ.get("RESCUEBOX_FORCE_CPU", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+        return
+    for key in ("RESCUEBOX_PYTORCH_DEVICE", "RESCUEBOX_CLIP_DEVICE"):
+        dev = os.environ.get(key, "").strip().lower()
+        if dev in ("cpu", "none"):
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
+            return

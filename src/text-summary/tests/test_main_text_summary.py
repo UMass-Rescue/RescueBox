@@ -1,6 +1,5 @@
-from text_summary.main import app as cli_app, APP_NAME, task_schema
+from text_summary.main import app as cli_app, APP_NAME, task_schema, server
 from rb.lib.common_tests import RBAppTest
-from rb.api.models import AppMetadata
 from pathlib import Path
 from unittest.mock import patch
 import json
@@ -11,13 +10,8 @@ class TestTextSummary(RBAppTest):
         self.set_app(cli_app, APP_NAME)
 
     def get_metadata(self):
-        return AppMetadata(
-            name="Text Summarization",
-            author="UMass Rescue",
-            version="2.0.0",
-            info="Summarize text and PDF files in a directory.",
-            plugin_name=APP_NAME,
-        )
+        assert server._app_metadata is not None
+        return server._app_metadata
 
     def get_all_ml_services(self):
         return [

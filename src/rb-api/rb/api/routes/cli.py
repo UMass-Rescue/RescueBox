@@ -65,6 +65,8 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
                 return ResponseBody(root=TextResponse(value=result))
             # this has an issue of nor sending back details to desktop ui the api caller ?
             raise ValueError(f"Invalid return type from Typer command: {type(result)}")
+        except HTTPException:
+            raise
         except Exception as e:
             # response handler for all plugin runtime errors
             logger.error("Error: %s %s", e, stdout)
@@ -141,7 +143,7 @@ def streaming_endpoint(callback: Callable, *args, **kwargs) -> Generator:
         time.sleep(0.01)
 
 
-def command_callback(command: typer.models.CommandInfo):
+def command_callback(command: typer.models.CommandInfo, plugin_name: str):
     """Create a FastAPI endpoint handler for a Typer CLI command with `ResponseBody`"""
 
     original_signature = inspect.signature(command.callback)
@@ -159,6 +161,8 @@ def command_callback(command: typer.models.CommandInfo):
 
     @with_signature(new_signature)
     def wrapper(*args, **kwargs) -> ResponseBody:
+        route_name = command.name or command.callback.__name__
+        logger.info("RescueBox API: %s %s", plugin_name, route_name)
         logger.debug(
             f"FastAPI wrapper called for {command.callback.__name__} with args={args}, kwargs={kwargs}"
         )
@@ -193,7 +197,7 @@ for plugin in rescuebox_app.registered_groups:
         if command.name:
             logger.debug(f"plugin command name is {command.name}")
             params = {
-                "endpoint": command_callback(command),
+                "endpoint": command_callback(command, plugin.name),
                 "name": command.name,
             }
             if is_get_request(command):
@@ -208,7 +212,7 @@ for plugin in rescuebox_app.registered_groups:
         else:
             router_with_prefix.add_api_route(
                 f"/{command.callback.__name__}",
-                endpoint=command_callback(command),
+                endpoint=command_callback(command, plugin.name),
                 methods=["POST"],
                 name=command.callback.__name__,
                 response_model=Any,  # for internal use

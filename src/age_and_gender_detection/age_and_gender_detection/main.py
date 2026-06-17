@@ -1,24 +1,38 @@
+import os
+import logging
+import typer
+import threading
+from pathlib import Path
+from typing import List, TypedDict
+
+from pydantic import DirectoryPath
+
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     BatchFileResponse,
-    DirectoryInput,
+    FileFilterDirectory,
     FileResponse,
     InputSchema,
     InputType,
-    TaskSchema,
     ResponseBody,
+    TaskSchema,
     TextResponse,
 )
-from typing import TypedDict
 from age_and_gender_detection.model import AgeGenderDetector
-from pathlib import Path
-import logging
-import typer
-import onnxruntime
 
-onnxruntime.set_default_logger_severity(3)
 
 APP_NAME = "age-gender"
+
+# Raster image types expected under ``image_directory`` (validated via ``FileFilterDirectory``).
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif", ".gif"}
+
+
+class AgeGenderImageDirectory(FileFilterDirectory):
+    """Directory must exist, be non-empty, and contain at least one allowed image extension."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(IMAGE_EXTENSIONS)
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,7 +54,7 @@ def task_schema() -> TaskSchema:
 
 # Specify the input and output types for the task
 class Inputs(TypedDict):
-    image_directory: DirectoryInput
+    image_directory: AgeGenderImageDirectory
 
 
 class Parameters(TypedDict):
@@ -48,13 +62,20 @@ class Parameters(TypedDict):
 
 
 server = MLService(APP_NAME)
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+info_file_path = os.path.join(script_dir, "app-info.md")
+with open(info_file_path, "r", encoding="utf-8") as f:
+    info = f.read()
+
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Age and Gender Classifier",
-    author="UMass Rescue",
-    version="2.1.0",
-    info="Model to classify the age and gender of all faces in an image.",
+    name="Age and Gender",
+    author="UMass RescueLab",
+    version="3.0.0",
+    info=info,
     gpu=True,
+    make_threadsafe=True,
 )
 models_dir = Path("src/age_and_gender_detection/models")
 model = AgeGenderDetector(
@@ -63,11 +84,15 @@ model = AgeGenderDetector(
     gender_classifier_path=models_dir / "gender_googlenet.onnx",
 )
 
+_PREDICT_LOCK = threading.Lock()
+
 
 def predict(inputs: Inputs) -> ResponseBody:
     input_path = inputs["image_directory"].path
     logger.info(f"Input path: {input_path}")
-    predictions_by_image = model.predict_age_and_gender_on_dir(input_path)
+
+    with _PREDICT_LOCK:
+        predictions_by_image = model.predict_age_and_gender_on_dir(input_path)
     logger.info(f"Response: {predictions_by_image}")
 
     file_responses: list[FileResponse] = []
@@ -103,26 +128,24 @@ def predict(inputs: Inputs) -> ResponseBody:
 
 
 def cli_parser(path: str):
-    image_directory = path
     try:
-        logger.debug(f"Parsing CLI input path: {image_directory}")
-        image_directory = Path(image_directory)
-        if not image_directory.exists():
-            raise ValueError(f"Directory {image_directory} does not exist.")
-        if not image_directory.is_dir():
-            raise ValueError(f"Path {image_directory} is not a directory.")
-        inputs = Inputs(image_directory=DirectoryInput(path=image_directory))
-        return inputs
+        logger.debug("Parsing CLI input path: %s", path)
+        p = Path(path)
+        if not p.exists():
+            raise ValueError(f"Directory {p} does not exist.")
+        if not p.is_dir():
+            raise ValueError(f"Path {p} is not a directory.")
+        return Inputs(image_directory=AgeGenderImageDirectory(path=p))
     except Exception as e:
-        logger.error(f"Error parsing CLI input: {e}")
-        return typer.Abort()
+        logger.error("Error parsing CLI input: %s", e)
+        raise typer.Abort() from e
 
 
 server.add_ml_service(
     rule="/predict",
     ml_function=predict,
     inputs_cli_parser=typer.Argument(parser=cli_parser, help="Image directory path"),
-    short_title="Age and Gender Classifier",
+    short_title="Age and Gender",
     order=0,
     task_schema_func=task_schema,
 )

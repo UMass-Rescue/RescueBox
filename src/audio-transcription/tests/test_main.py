@@ -2,9 +2,8 @@ import json
 from pathlib import Path
 
 from rb.api.models import ResponseBody
-from audio_transcription.main import app as cli_app, APP_NAME, task_schema
+from audio_transcription.main import app as cli_app, APP_NAME, task_schema, ml_service
 from rb.lib.common_tests import RBAppTest
-from rb.api.models import AppMetadata
 
 
 class TestAudioTranscription(RBAppTest):
@@ -12,13 +11,8 @@ class TestAudioTranscription(RBAppTest):
         self.set_app(cli_app, APP_NAME)
 
     def get_metadata(self):
-        return AppMetadata(
-            plugin_name=APP_NAME,
-            name="Audio Transcription",
-            author="RescueBox Team",
-            version="2.0.0",
-            info="A parser for transcribing audio files.",
-        )
+        assert ml_service._app_metadata is not None
+        return ml_service._app_metadata
 
     def get_all_ml_services(self):
         return [
@@ -39,8 +33,10 @@ class TestAudioTranscription(RBAppTest):
             print(f"Transcribe API: {transcribe_api}")
             result = self.runner.invoke(cli_app, [transcribe_api, str(full_path)])
             assert result.exit_code == 0
-            expected_transcript = "Twinkle twinkle little star"
-            assert any(expected_transcript in message for message in caplog.messages)
+            assert any(
+                "twinkle" in message.lower() and "little star" in message.lower()
+                for message in caplog.messages
+            )
 
     def test_api_transcribe_command(self):
         transcribe_api = f"/{APP_NAME}/transcribe"

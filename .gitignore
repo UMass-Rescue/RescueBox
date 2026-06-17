@@ -28,6 +28,7 @@ MANIFEST
 *.bat
 *.exe
 *.onnx
+frontend/data/
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -35,7 +36,15 @@ MANIFEST
 *.manifest
 RescueBox-Desktop/assets/rb_server/
 whisper/
+.nicegui/
+ffmpeg
+ffmpeg.exe
+*.gguf
 
+build/
+src-tauri-backend/
+src-tauri-frontend/
+		
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

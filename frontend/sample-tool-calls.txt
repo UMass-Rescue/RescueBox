@@ -1,0 +1,60 @@
+============================================================
+RescueBox Tool Calling - Interactive Mode
+============================================================
+Type your queries. The model will generate tool calls.
+Type 'quit' or 'exit' to stop.
+
+You: summarize photos in /tmp
+Assistant: Found 1 tool call(s):
+
+--- Tool Call 1 ---
+<tool_code>{
+  "name": "image_summary/summarize_images",
+  "arguments": {
+    "input_dir": "/tmp",
+    "output_dir": "/evidence/case_1001/docs",
+    "model": "gemma3:4b"
+  }
+}</tool_code>
+  Function: image_summary/summarize_images
+  Arguments: {
+  "input_dir": "/tmp",
+  "output_dir": "/evidence/case_1001/docs",
+  "model": "gemma3:4b"
+}
+
+
+You: summarize photos and detect fakes in /tmp
+Assistant: Found 2 tool call(s):
+
+--- Tool Call 1 ---
+<tool_code>{
+  "name": "image_summary/summarize_images",
+  "arguments": {
+    "input_dir": "/tmp",
+    "output_dir": "/evidence",
+    "model": "gemma3:4b"
+  }
+}</tool_code>
+  Function: image_summary/summarize_images
+  Arguments: {
+  "input_dir": "/tmp",
+  "output_dir": "/evidence",
+  "model": "gemma3:4b"
+}
+
+--- Tool Call 2 ---
+<tool_code>{
+  "name": "deepfake_detection/give_prediction",
+  "arguments": {
+    "input_dataset": "/tmp",
+    "output_file": "/evidence",
+    "facecrop": "true"
+  }
+}</tool_code>
+  Function: deepfake_detection/give_prediction
+  Arguments: {
+  "input_dataset": "/tmp",
+  "output_file": "/evidence",
+  "facecrop": "true"
+}
