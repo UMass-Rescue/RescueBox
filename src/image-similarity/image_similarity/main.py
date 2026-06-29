@@ -53,6 +53,22 @@ _EMBED_BATCH_SIZE = 32
 _EMBED_LOCKS_GUARD = threading.Lock()
 _EMBED_LOCKS: dict[str, threading.Lock] = {}
 
+_MODEL_LOCK = threading.Lock()
+_ORT_SESSION: ort.InferenceSession | None = None
+_PROCESSOR: CLIPImageProcessor | None = None
+
+
+def _get_onnx_vision_model() -> tuple[ort.InferenceSession, CLIPImageProcessor]:
+    """Load the ONNX model once and cache it for the lifetime of the process."""
+    global _ORT_SESSION, _PROCESSOR
+    if _ORT_SESSION is not None and _PROCESSOR is not None:
+        return _ORT_SESSION, _PROCESSOR
+    with _MODEL_LOCK:
+        if _ORT_SESSION is None or _PROCESSOR is None:
+            _ORT_SESSION, _PROCESSOR = _load_onnx_vision_model()
+            logger.info("ONNX vision model loaded and cached.")
+    return _ORT_SESSION, _PROCESSOR
+
 
 def _lock_for_content_hash(content_sha256_hex: str) -> threading.Lock:
     with _EMBED_LOCKS_GUARD:
@@ -463,7 +479,7 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     min_similarity = float(parameters.get("min_similarity", 0.5))
     scoring_mode = parameters.get("scoring_mode", "combined")
 
-    ort_session, processor = _load_onnx_vision_model()
+    ort_session, processor = _get_onnx_vision_model()
     logger.info(
         "ONNX vision model loaded: providers=%s model=%s scoring_mode=%s",
         ort_session.get_providers(),
