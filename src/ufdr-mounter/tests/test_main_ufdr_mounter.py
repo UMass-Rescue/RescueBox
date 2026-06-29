@@ -1,12 +1,14 @@
+import uuid
+
 from ufdr_mounter.ufdr_server import (
     app as cli_app,
     APP_NAME,
     ufdr_task_schema,
     server,
     validate_mount_folder,
+    validate_mount_name_tmp,
 )
 from rb.lib.common_tests import RBAppTest
-from rb.api.models import AppMetadata, ResponseBody
 from pathlib import Path
 import os
 
@@ -39,8 +41,7 @@ class TestUFDRMounter(RBAppTest):
     def test_mount_command(self, caplog, tmp_path):
         mount_api = f"/{APP_NAME}/mount"
         test_file = Path("src/ufdr-mounter/ufdr_mounter/testdata/test.ufdr").resolve()
-        mount_dir = tmp_path / "test_mount"
-        mount_dir.mkdir()
+        mount_dir = f"/tmp/rb_ufdr_cmd_{uuid.uuid4().hex[:10]}"
 
         input_str = f"{test_file},{mount_dir}"
         result = self.runner.invoke(self.cli_app, [mount_api, input_str, ""])
@@ -49,8 +50,7 @@ class TestUFDRMounter(RBAppTest):
     def test_mount_api(self, tmp_path):
         mount_api = f"/{APP_NAME}/mount"
         test_file = Path("src/ufdr-mounter/ufdr_mounter/testdata/test.ufdr").resolve()
-        mount_dir = tmp_path / "test_mount"
-        mount_dir.mkdir()
+        mount_dir = f"/tmp/rb_ufdr_api_{uuid.uuid4().hex[:10]}"
 
         input_json = {
             "inputs": {
@@ -61,6 +61,20 @@ class TestUFDRMounter(RBAppTest):
         }
         response = self.client.post(mount_api, json=input_json)
         print("debug", response)
+
+    def test_mount_api_rejects_non_tmp_mount_name(self):
+        mount_api = f"/{APP_NAME}/mount"
+        test_file = Path("src/ufdr-mounter/ufdr_mounter/testdata/test.ufdr").resolve()
+        input_json = {
+            "inputs": {
+                "ufdr_file": {"path": str(test_file)},
+                "mount_name": {"text": "/mnt/case1"},
+            },
+            "parameters": {},
+        }
+        response = self.client.post(mount_api, json=input_json)
+        assert response.status_code == 400
+        assert "tmp" in response.json().get("detail", "").lower()
 
     @pytest.mark.skipif(
         os.name == "nt",
@@ -81,7 +95,28 @@ class TestUFDRMounter(RBAppTest):
         assert response.status_code == 400
         detail = response.json().get("detail", "")
         assert isinstance(detail, str)
-        assert "mount point" in detail.lower()
+        # "/" normalizes to empty mount path; may also fail /tmp layout first for other inputs.
+        assert "mount" in detail.lower()
+
+
+class TestValidateMountNameTmp:
+    def test_accepts_tmp_single_segment(self):
+        ok, msg = validate_mount_name_tmp("/tmp/case123")
+        assert ok is True
+        assert msg == ""
+
+    def test_rejects_nested_under_tmp(self):
+        ok, msg = validate_mount_name_tmp("/tmp/a/b")
+        assert ok is False
+        assert "tmp" in msg.lower()
+
+    def test_rejects_mnt(self):
+        ok, msg = validate_mount_name_tmp("/mnt/case1")
+        assert ok is False
+
+    def test_rejects_relative(self):
+        ok, msg = validate_mount_name_tmp("myfolder")
+        assert ok is False
 
 
 class TestValidateMountFolder:

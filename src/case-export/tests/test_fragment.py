@@ -24,7 +24,9 @@ def test_build_fragment_minimal():
         "response": {
             "root": {
                 "output_type": "batchfile",
-                "files": [{"path": "/tmp/photos/a.jpg", "file_type": "img", "metadata": {}}],
+                "files": [
+                    {"path": "/tmp/photos/a.jpg", "file_type": "img", "metadata": {}}
+                ],
             }
         },
     }
@@ -46,7 +48,13 @@ def test_build_fragment_minimal():
 
 
 def test_build_fragment_serializable():
-    job = {"uid": "x", "endpoint": "e", "status": "Completed", "request": {}, "response": None}
+    job = {
+        "uid": "x",
+        "endpoint": "e",
+        "status": "Completed",
+        "request": {},
+        "response": None,
+    }
     doc = build_case_fragment_from_job_dict(job)
     json.dumps(doc)
 
@@ -68,7 +76,7 @@ def test_posix_path_in_request_serializes():
         "response": None,
     }
     text = build_jsonld_text(job)
-    assert "/tmp/foo/images" in text
+    assert path.as_posix() in text
     json.loads(text)
 
 
@@ -142,7 +150,9 @@ def test_batch_metadata_maps_similarity_to_rb_and_relationship():
 
 
 def test_validation_runs_or_skips_gracefully():
-    doc = build_case_fragment_from_job_dict({"uid": "u", "endpoint": "e", "status": "Completed"})
+    doc = build_case_fragment_from_job_dict(
+        {"uid": "u", "endpoint": "e", "status": "Completed"}
+    )
     ok, msgs = validate_fragment_jsonld(doc)
     assert isinstance(msgs, list) and len(msgs) >= 1
     # Without case_validate: ok True (skipped). With SHACL: may be False until graph matches shapes.

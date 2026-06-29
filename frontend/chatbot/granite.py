@@ -1,3 +1,5 @@
+"""Parse Granite model tool-call payloads from Ollama responses."""
+
 import json
 import logging
 import re
@@ -17,7 +19,10 @@ def _append_parsed_payload(tool_calls: List[Dict[str, Any]], parsed: Any) -> Non
             if isinstance(item, dict) and "name" in item:
                 args = item.get("arguments", {})
                 tool_calls.append(
-                    {"name": item["name"], "arguments": args if isinstance(args, dict) else {}}
+                    {
+                        "name": item["name"],
+                        "arguments": args if isinstance(args, dict) else {},
+                    }
                 )
     elif isinstance(parsed, dict):
         if "calls" in parsed and isinstance(parsed["calls"], list):
@@ -25,7 +30,10 @@ def _append_parsed_payload(tool_calls: List[Dict[str, Any]], parsed: Any) -> Non
         elif "name" in parsed:
             args = parsed.get("arguments", {})
             tool_calls.append(
-                {"name": parsed["name"], "arguments": args if isinstance(args, dict) else {}}
+                {
+                    "name": parsed["name"],
+                    "arguments": args if isinstance(args, dict) else {},
+                }
             )
 
 
@@ -57,19 +65,20 @@ def _scan_json_objects_with_nested_braces(text: str) -> List[str]:
     start: Optional[int] = None
     for idx, ch in enumerate(text):
         if ch == "{":
-            if depth == 0:
+            if not depth:
                 start = idx
             depth += 1
         elif ch == "}":
             if depth > 0:
                 depth -= 1
-                if depth == 0 and start is not None:
+                if not depth and start is not None:
                     spans.append(text[start : idx + 1])
                     start = None
     return spans
 
 
 def parse_fine_tune_tool_response(model_text: str) -> Optional[List[Dict[str, Any]]]:
+    """Extract tool call dicts from Granite ``<tool_code>`` JSON in model text."""
     if not model_text or not model_text.strip():
         return None
 

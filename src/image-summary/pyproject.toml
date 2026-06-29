@@ -10,6 +10,7 @@ image-summary = "image_summary.main:app"
 
 [tool.poetry.dependencies]
 ollama = "*"
+rb-api = { path = "../rb-api", develop = true }
 
 [build-system]
 requires = ["poetry-core"]

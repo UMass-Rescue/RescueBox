@@ -1,0 +1,8 @@
+build --bundles msi
+
+cargo tauri build 
+cargo tauri build --config tauri.fast.conf.json
+
+cargo tauri build --bundles msi --config tauri.fast.conf.json
+or
+cargo tauri build --bundles msi --config '{\"build\": {\"beforeBuildCommand\": \"\"}}'

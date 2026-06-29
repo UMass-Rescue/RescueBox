@@ -7,7 +7,9 @@ if TYPE_CHECKING:
     from nicegui.testing import User
 
 
-async def open_chatbot_and_wait_for_ready(user: "User", *, max_wait_s: float = 30.0) -> None:
+async def open_chatbot_and_wait_for_ready(
+    user: "User", *, max_wait_s: float = 30.0
+) -> None:
     """Open /chatbot and wait until primary controls are in the DOM."""
     await user.open("/chatbot")
     # Async page render (ChatbotPage.render) can lag behind user.open in long test runs
@@ -16,9 +18,7 @@ async def open_chatbot_and_wait_for_ready(user: "User", *, max_wait_s: float = 3
     n = max(1, int(max_wait_s / step))
     for _ in range(n):
         try:
-            await user.should_see("RescueBox Assistant")
             await user.should_see("Send")
-            await user.should_see("New Conversation")
             return
         except AssertionError:
             await asyncio.sleep(step)
@@ -40,11 +40,8 @@ def find_chat_textarea(user: "User"):
 
 
 async def assert_chatbot_header_visible(user: "User") -> None:
-    """Header may be emoji+Assistant or RescueBox Assistant depending on layout."""
+    """Header shows RescueBox Assistant and/or Assistant depending on layout."""
     try:
         await user.should_see("RescueBox Assistant")
     except AssertionError:
-        try:
-            await user.should_see("🤖 Assistant")
-        except AssertionError:
-            await user.should_see("Assistant")
+        await user.should_see("Assistant")

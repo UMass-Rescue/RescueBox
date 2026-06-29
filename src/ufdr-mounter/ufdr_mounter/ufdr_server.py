@@ -1,34 +1,54 @@
-import os
-from pathlib import Path
-import time
-import threading
-import platform
-import typer
 import logging
-
-from fastapi import HTTPException, status
-
-from ufdr_mounter.utils import UFDRMount
-from fuse import FUSE
+import os
+import platform
+import re
+import threading
+import time
+from pathlib import Path
 from typing import Optional, Tuple, TypedDict
+
+import typer
+from fastapi import HTTPException, status
+from fuse import FUSE
+from pydantic import model_validator
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     FileInput,
-    TextInput,
     InputSchema,
     InputType,
-    TextResponse,
     ResponseBody,
     TaskSchema,
+    TextInput,
+    TextResponse,
 )
 
+from ufdr_mounter.utils import UFDRMount
+
 APP_NAME = "ufdr_mounter"
+logger = logging.getLogger(__name__)
+
+# Single-file analogue of ``FileFilterDirectory`` / audio ``AUDIO_EXTENSIONS``: only UFDR archives.
+UFDR_EXTENSIONS = {".ufdr"}
+
+
+class UFDRFileInput(FileInput):
+    """Path must exist as a file (``FileInput``) and use an allowed UFDR suffix."""
+
+    @model_validator(mode="after")
+    def validate_ufdr_extension(self) -> "UFDRFileInput":
+        sfx = Path(self.path).suffix.lower()
+        if sfx not in UFDR_EXTENSIONS:
+            raise ValueError(
+                f"validate file: Expected extension {sorted(UFDR_EXTENSIONS)}, got {sfx!r} for path {self.path!r}"
+            )
+        return self
+
 
 server = MLService(APP_NAME)
 
 
 class UFDRInputs(TypedDict):
-    ufdr_file: FileInput
+    ufdr_file: UFDRFileInput
     mount_name: TextInput
 
 
@@ -46,13 +66,34 @@ def mount_in_background(ufdr_path, mount_path):
         logging.error(f"Mount thread failed: {e}")
 
 
+_MOUNT_LOCK = threading.Lock()
+
+# Mount folder must be exactly ``/tmp/<one_segment>`` (POSIX). See ``validate_mount_name_tmp``.
+_TMP_SINGLE_SEGMENT = re.compile(r"^/tmp/[^/]+$")
+
+
+def validate_mount_name_tmp(mount_name: str) -> Tuple[bool, str]:
+    """
+    Require user input to be an absolute path ``/tmp/<folder>`` with a single directory name.
+
+    Examples: ``/tmp/case123``, ``/tmp/evidence-a``. Rejects ``/mnt/...``, nested paths under
+    ``/tmp``, relative names, and ``..`` segments.
+    """
+    if mount_name.startswith("/home/tester/Documents"):
+        return True, ""
+    norm = mount_name.replace("\\", "/")
+    if _TMP_SINGLE_SEGMENT.match(norm):
+        return True, ""
+    return False, "Mount folder must be /tmp/<folder_name>"
+
+
 def get_mount_path(mount_name: str) -> str:
     mount_name = mount_name.strip()
     if os.path.isabs(mount_name) or (
         platform.system() == "Windows" and len(mount_name) == 2 and mount_name[1] == ":"
     ):
         return mount_name
-    return os.path.abspath(os.path.join("mnt", mount_name))
+    return os.path.abspath(os.path.join("tmp", mount_name))
 
 
 def _deepest_existing_ancestor(path: str) -> Optional[str]:
@@ -138,15 +179,22 @@ server.add_app_metadata(
     author="UMass RescueLab",
     version="3.0.0",
     info=app_info,
+    make_threadsafe=True,
 )
 
 
 def ufdr_task_schema() -> TaskSchema:
     return TaskSchema(
         inputs=[
-            InputSchema(key="ufdr_file", label="Path to the UFDR File", input_type=InputType.FILE),
             InputSchema(
-                key="mount_name", label="Mount Folder (eg. /mnt/case123)", input_type=InputType.TEXT
+                key="ufdr_file",
+                label="Path to the UFDR File",
+                input_type=InputType.FILE,
+            ),
+            InputSchema(
+                key="mount_name",
+                label="Mount folder , take default or /tmp/<name> , e.g. /tmp/case123",
+                input_type=InputType.TEXT,
             ),
         ],
         parameters=[],
@@ -155,7 +203,14 @@ def ufdr_task_schema() -> TaskSchema:
 
 def inputs_cli_parser(arg_str) -> UFDRInputs:
     args = arg_str.split(",")
-    return {"ufdr_file": FileInput(path=args[0]), "mount_name": TextInput(text=args[1])}
+    try:
+        return UFDRInputs(
+            ufdr_file=UFDRFileInput(path=args[0]),
+            mount_name=TextInput(text=args[1]),
+        )
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def parameters_cli_parser(args) -> UFDRParameters:
@@ -172,40 +227,49 @@ def wait_for_mount(path, timeout=10):
 
 # === Main Mount Function ===
 def mount_task(inputs: UFDRInputs, parameters: UFDRParameters) -> ResponseBody:
-    ufdr_path = inputs["ufdr_file"].path
-    mount_name = inputs["mount_name"].text.strip()
-    mount_path = get_mount_path(mount_name)
+    with _MOUNT_LOCK:
+        ufdr_path = inputs["ufdr_file"].path
+        mount_name = inputs["mount_name"].text.strip()
+        ok_name, err_name = validate_mount_name_tmp(mount_name)
+        if not ok_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=err_name,
+            )
+        mount_path = get_mount_path(mount_name)
 
-    ok, err_msg = validate_mount_folder(mount_path)
-    if not ok:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=err_msg,
+        ok, err_msg = validate_mount_folder(mount_path)
+        if not ok:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=err_msg,
+            )
+
+        if not (
+            platform.system() == "Windows"
+            and len(mount_path) == 2
+            and mount_path[1] == ":"
+        ):
+            os.makedirs(mount_path, exist_ok=True)
+
+        t = threading.Thread(
+            target=mount_in_background, args=(ufdr_path, mount_path), daemon=True
         )
+        t.start()
 
-    if not (
-        platform.system() == "Windows" and len(mount_path) == 2 and mount_path[1] == ":"
-    ):
-        os.makedirs(mount_path, exist_ok=True)
+        # give FUSE time to mount
+        if not wait_for_mount(mount_path, timeout=10):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Mount failed: Timeout waiting for FUSE mount",
+            )
 
-    t = threading.Thread(
-        target=mount_in_background, args=(ufdr_path, mount_path), daemon=True
-    )
-    t.start()
-
-    # give FUSE time to mount
-    if not wait_for_mount(mount_path, timeout=10):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Mount failed: Timeout waiting for FUSE mount",
-        )
-
-    try:
-        msg = f"Mounted at {mount_path}"
-    except Exception as e:
-        msg = f"Mount failed: {e}"
-    print(msg)
-    return ResponseBody(root=TextResponse(value=msg, title="Mount Result"))
+        try:
+            msg = f"Mounted at {mount_path}"
+        except Exception as e:
+            msg = f"Mount failed: {e}"
+        print(msg)
+        return ResponseBody(root=TextResponse(value=msg, title="Mount Result"))
 
 
 server.add_ml_service(

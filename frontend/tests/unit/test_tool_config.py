@@ -17,7 +17,6 @@ from frontend.chatbot.tool_config import (
     parse_tool_calls_response,
     RescueBoxToolCall,
     ToolCallList,
-    SCHEMA_MAP
 )
 
 # Test constants
@@ -56,6 +55,7 @@ class TestToolConfiguration:
         Ensures that new tools can be registered with the system
         and their schemas properly stored and retrieved.
         """
+
         class TestTool(BaseModel):
             test_param: str = "test"
 
@@ -77,6 +77,7 @@ class TestToolConfiguration:
         the system, ensuring clean cleanup and preventing stale tool
         definitions from persisting.
         """
+
         class TempTool(BaseModel):
             temp: str = "temp"
 
@@ -118,14 +119,16 @@ class TestToolConfiguration:
         correctly parsed into structured tool call objects that can
         be executed by the system.
         """
-        valid_content = json.dumps({
-            "calls": [
-                {
-                    "name": "audio/transcribe",
-                    "arguments": {"input_dir": "/test/path"}
-                }
-            ]
-        })
+        valid_content = json.dumps(
+            {
+                "calls": [
+                    {
+                        "name": "audio/transcribe",
+                        "arguments": {"input_dir": "/test/path"},
+                    }
+                ]
+            }
+        )
 
         result = parse_tool_calls_response(valid_content)
 
@@ -151,18 +154,14 @@ class TestToolConfiguration:
         """
         # Valid tool call should work without issues
         valid_call = RescueBoxToolCall(
-            name="audio/transcribe",
-            arguments={"input_dir": "/test"}
+            name="audio/transcribe", arguments={"input_dir": "/test"}
         )
         assert valid_call.name == "audio/transcribe"
         assert valid_call.arguments["input_dir"] == "/test"
 
         # Invalid tool names should be rejected
         with pytest.raises(ValueError):
-            RescueBoxToolCall(
-                name=INVALID_TOOL_NAME,
-                arguments={}
-            )
+            RescueBoxToolCall(name=INVALID_TOOL_NAME, arguments={})
 
     def test_tool_call_list_validation(self):
         """Test ToolCallList batch validation.
@@ -171,12 +170,17 @@ class TestToolConfiguration:
         and structured for batch processing operations.
         """
         tool_calls = [
-            RescueBoxToolCall(name="audio/transcribe", arguments={"input_dir": "/test1"}),
-            RescueBoxToolCall(name="text_summarization/summarize", arguments={
-                "input_dir": "/test2",
-                "output_dir": "/output",
-                "model": "gemma3:1b"
-            })
+            RescueBoxToolCall(
+                name="audio/transcribe", arguments={"input_dir": "/test1"}
+            ),
+            RescueBoxToolCall(
+                name="text_summarization/summarize",
+                arguments={
+                    "input_dir": "/test2",
+                    "output_dir": "/output",
+                    "model": "gemma3:1b",
+                },
+            ),
         ]
 
         tool_list = ToolCallList(calls=tool_calls)

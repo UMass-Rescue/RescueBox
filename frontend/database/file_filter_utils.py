@@ -1,16 +1,17 @@
 """
 Utility helpers used by job-runner and plugins to apply persisted filters.
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import re
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Union
 
+from frontend.database.db_exceptions import DB_ERRORS
 from frontend.database.file_filter_store import load_filter
-from frontend.database.job_db import get_job_db
 from frontend.database.file_filter_store import (
     resolve_filter_for_job,
     resolve_output_filter_for_job,
@@ -20,7 +21,14 @@ from frontend.database.file_filter_store import (
 logger = logging.getLogger(__name__)
 
 
-def set_job_filter(job_db, job_uid: str, *, filter_id: Optional[str] = None, owner_id: Optional[str] = None, clear: bool = False) -> bool:
+def set_job_filter(
+    job_db,
+    job_uid: str,
+    *,
+    filter_id: Optional[str] = None,
+    _owner_id: Optional[str] = None,
+    clear: bool = False,
+) -> bool:
     """
     Associate a saved filter id with an existing job record.
     This performs a direct SQL update to avoid async round-trips.
@@ -29,7 +37,9 @@ def set_job_filter(job_db, job_uid: str, *, filter_id: Optional[str] = None, own
     if clear:
         cur = conn.execute("UPDATE jobs SET filterId = NULL WHERE uid = ?", (job_uid,))
     else:
-        cur = conn.execute("UPDATE jobs SET filterId = ? WHERE uid = ?", (filter_id, job_uid))
+        cur = conn.execute(
+            "UPDATE jobs SET filterId = ? WHERE uid = ?", (filter_id, job_uid)
+        )
     conn.commit()
     return cur.rowcount > 0
 
@@ -46,7 +56,12 @@ def get_job_filters(job_db, job_uid: str) -> dict:
     cur = conn.execute("SELECT request, filterId FROM jobs WHERE uid = ?", (job_uid,))
     row = cur.fetchone()
     if not row:
-        return {"filter_id": None, "input_paths": [], "output_patterns": [], "metadata": {}}
+        return {
+            "filter_id": None,
+            "input_paths": [],
+            "output_patterns": [],
+            "metadata": {},
+        }
     request_json, filter_id = row[0], row[1]
     input_paths = []
     output_patterns = []
@@ -56,30 +71,44 @@ def get_job_filters(job_db, job_uid: str) -> dict:
         if f:
             base_dir = Path(f.get("input_dir")) if f.get("input_dir") else None
             if f.get("paths_json") and base_dir:
-                input_paths = [Path(base_dir) / Path(p) for p in f.get("paths_json", [])]
+                input_paths = [
+                    Path(base_dir) / Path(p) for p in f.get("paths_json", [])
+                ]
             else:
                 input_paths = [Path(p) for p in f.get("paths_json", [])]
             output_patterns = f.get("patterns_json", []) or []
             metadata = f.get("metadata", {}) or {}
     else:
-        # Backcompat: try to inspect request JSON for inline lists
+        # Backcompat: keep request_json parse-valid; inline file_filter/output_filter are handled at submit time.
         try:
-            req = json.loads(request_json)
-            inputs = req.get("inputs", {})
-            # look for file_filter/files list and output_filter
-            ff = inputs.get("file_filter")
-            of = inputs.get("output_filter")
-            # If file_filter provided as inline files, we can't resolve absolute paths reliably here
-            # Leave as empty; plugins should handle inline at submit time.
-        except Exception:
+            json.loads(request_json)
+        except DB_ERRORS:
             pass
-    return {"filter_id": filter_id, "input_paths": input_paths, "output_patterns": output_patterns, "metadata": metadata}
+    return {
+        "filter_id": filter_id,
+        "input_paths": input_paths,
+        "output_patterns": output_patterns,
+        "metadata": metadata,
+    }
 
 
-def resolve_input_files(input_dir: Path, input_paths: Optional[List[Path]], supported_extensions: Optional[Iterable[str]] = None) -> List[Path]:
-    supported = set([e.lower() for e in (supported_extensions or [".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"])])
+def resolve_input_files(
+    input_dir: Path,
+    input_paths: Optional[List[Path]],
+    supported_extensions: Optional[Iterable[str]] = None,
+) -> List[Path]:
+    supported = {
+        e.lower()
+        for e in (
+            supported_extensions or [".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"]
+        )
+    }
     if not input_paths:
-        return [p for p in input_dir.iterdir() if p.is_file() and p.suffix.lower() in supported]
+        return [
+            p
+            for p in input_dir.iterdir()
+            if p.is_file() and p.suffix.lower() in supported
+        ]
     resolved = []
     for p in input_paths:
         try:
@@ -87,7 +116,7 @@ def resolve_input_files(input_dir: Path, input_paths: Optional[List[Path]], supp
             if input_dir.resolve() in pp.parents or pp == input_dir.resolve():
                 if pp.suffix.lower() in supported:
                     resolved.append(pp)
-        except Exception:
+        except DB_ERRORS:
             continue
     return resolved
 
@@ -103,7 +132,7 @@ def _match_numeric_range(value: float, pattern: str) -> bool:
         for op in (">=", "<=", ">", "<", "=="):
             if pattern.startswith(op):
                 try:
-                    num = float(pattern[len(op):])
+                    num = float(pattern[len(op) :])
                     if op == ">=":
                         return value >= num
                     if op == "<=":
@@ -114,14 +143,46 @@ def _match_numeric_range(value: float, pattern: str) -> bool:
                         return value < num
                     if op == "==":
                         return value == num
-                except Exception:
+                except DB_ERRORS:
                     return False
-    except Exception:
+    except DB_ERRORS:
         return False
     return False
 
 
-def apply_output_filter(output_files: Iterable[Path], output_patterns: List[Union[str, int, float]], mode: str = "substring", case_sensitive: bool = True) -> List[Path]:
+def _pattern_matches_file_text(
+    txt: str,
+    pat: Union[str, int, float],
+    *,
+    mode: str,
+    case_sensitive: bool,
+) -> bool:
+    if isinstance(pat, (int, float)):
+        found = re.findall(r"[-+]?\d*\.\d+|\d+", txt)
+        if not found:
+            return False
+        val = float(found[0])
+        return _match_numeric_range(val, str(pat))
+    sp = str(pat)
+    if mode == "substring":
+        hay = txt if case_sensitive else txt.lower()
+        need = sp if case_sensitive else sp.lower()
+        return need in hay
+    if mode == "regex":
+        try:
+            flags = 0 if case_sensitive else re.IGNORECASE
+            return re.search(sp, txt, flags=flags) is not None
+        except re.error:
+            return False
+    return False
+
+
+def apply_output_filter(
+    output_files: Iterable[Path],
+    output_patterns: List[Union[str, int, float]],
+    mode: str = "substring",
+    case_sensitive: bool = True,
+) -> List[Path]:
     """
     Filter generated summary files by provided patterns.
     mode: 'substring'|'regex'|'numeric_range'
@@ -132,39 +193,17 @@ def apply_output_filter(output_files: Iterable[Path], output_patterns: List[Unio
     for f in output_files:
         try:
             txt = f.read_text(encoding="utf-8")
-        except Exception:
+        except DB_ERRORS:
             continue
         for pat in output_patterns:
-            if isinstance(pat, (int, float)):
-                try:
-                    # attempt to extract first float from text for comparison (best-effort)
-                    found = re.findall(r"[-+]?\d*\.\d+|\d+", txt)
-                    if not found:
-                        continue
-                    # use first number
-                    val = float(found[0])
-                    if _match_numeric_range(val, str(pat)):
-                        matched.append(f)
-                        break
-                except Exception:
-                    continue
-            else:
-                sp = str(pat)
-                if mode == "substring":
-                    hay = txt if case_sensitive else txt.lower()
-                    need = sp if case_sensitive else sp.lower()
-                    if need in hay:
-                        matched.append(f)
-                        break
-                elif mode == "regex":
-                    try:
-                        flags = 0 if case_sensitive else re.IGNORECASE
-                        if re.search(sp, txt, flags=flags):
-                            matched.append(f)
-                            break
-                    except re.error:
-                        continue
-        # end patterns loop
+            try:
+                if _pattern_matches_file_text(
+                    txt, pat, mode=mode, case_sensitive=case_sensitive
+                ):
+                    matched.append(f)
+                    break
+            except DB_ERRORS:
+                continue
     return matched
 
 
@@ -181,12 +220,17 @@ def parse_output_pattern(pattern_str: str) -> Union[dict, str, float, int]:
         if "." in s:
             return float(s)
         return int(s)
-    except Exception:
+    except DB_ERRORS:
         return {"type": "substring", "value": s}
 
 
-def process_prompt_for_filters(prompt: str, tool_call: dict, input_dir: Optional[Path] = None, owner_id: Optional[str] = None,
-     persist_if_requested: bool = True) -> Optional[str]:
+def process_prompt_for_filters(
+    _prompt: str,
+    tool_call: dict,
+    input_dir: Optional[Path] = None,
+    owner_id: Optional[str] = None,
+    persist_if_requested: bool = True,
+) -> Optional[str]:
     """
     Inspect the tool_call and prompt to resolve input/output filters.
     Returns a single filter_id if any persisted or referenced filter is found/created.
@@ -196,14 +240,23 @@ def process_prompt_for_filters(prompt: str, tool_call: dict, input_dir: Optional
     args = tool_call.get("arguments", {}) if tool_call else {}
     # Resolve input list
     try:
-        input_paths, input_fid = resolve_filter_for_job(args.get("file_filter") or args.get("input_files"), input_dir or Path("."), persist_if_requested=False, owner_id=owner_id)
-    except Exception:
+        input_paths, input_fid = resolve_filter_for_job(
+            args.get("file_filter") or args.get("input_files"),
+            input_dir or Path("."),
+            persist_if_requested=False,
+            owner_id=owner_id,
+        )
+    except DB_ERRORS:
         input_paths, input_fid = ([], None)
 
     # Resolve output patterns
     try:
-        output_patterns, output_fid = resolve_output_filter_for_job(args.get("output_filter") or args.get("output_patterns"), persist_if_requested=False, owner_id=owner_id)
-    except Exception:
+        output_patterns, output_fid = resolve_output_filter_for_job(
+            args.get("output_filter") or args.get("output_patterns"),
+            persist_if_requested=False,
+            owner_id=owner_id,
+        )
+    except DB_ERRORS:
         output_patterns, output_fid = ([], None)
 
     # If the tool_call already referenced persisted filters, prefer those ids
@@ -217,7 +270,13 @@ def process_prompt_for_filters(prompt: str, tool_call: dict, input_dir: Optional
             out = load_filter(output_fid)
             paths = inp.get("paths_json", []) if inp else None
             patterns = out.get("patterns_json", []) if out else None
-            return create_composite_filter(paths=paths, patterns=patterns, name="composite-from-prompt", input_dir=inp.get("input_dir") if inp else input_dir, owner_id=owner_id)
+            return create_composite_filter(
+                paths=paths,
+                patterns=patterns,
+                name="composite-from-prompt",
+                input_dir=inp.get("input_dir") if inp else input_dir,
+                owner_id=owner_id,
+            )
         # otherwise prefer input fid
         return input_fid
     if input_fid:
@@ -225,10 +284,15 @@ def process_prompt_for_filters(prompt: str, tool_call: dict, input_dir: Optional
     if output_fid:
         return output_fid
 
-    # No existing persisted filters; if persist requested and there are input_paths or output_patterns, persist accordingly
+    # No persisted filters; if persist requested and we have paths or patterns, save them
     if persist_if_requested and (input_paths or output_patterns):
-        return create_composite_filter(paths=input_paths if input_paths else None, patterns=output_patterns if output_patterns else None, name="saved-from-prompt", input_dir=str(input_dir) if input_dir else None, owner_id=owner_id)
+        return create_composite_filter(
+            paths=input_paths if input_paths else None,
+            patterns=output_patterns if output_patterns else None,
+            name="saved-from-prompt",
+            input_dir=str(input_dir) if input_dir else None,
+            owner_id=owner_id,
+        )
 
     # No filter persisted/resolved
     return None
-

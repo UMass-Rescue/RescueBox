@@ -24,6 +24,15 @@ Note: This plugin must be used with a GPU. it will work very slow with cpu only 
 
 - **Text Files:** For each input image, a corresponding `{original_filename}.txt` file is created in the output directory containing the description. Output files include the original image filename and extension to avoid naming collisions (e.g. `photo.jpg` → `photo.jpg.txt`).
 
+### API response (structured JSON in the text result)
+
+The plugin returns JSON including:
+
+- `files`: list of summary `.txt` paths (unchanged).
+- `file_pairs`: list of objects `{ "input_path": "<absolute source image>", "output_path": "<absolute summary .txt>" }` — one entry per processed image. Clients should use this for provenance instead of inferring paths from filenames.
+
+Other multi-file plugins should reuse the shared type ``InputOutputFilePair`` (and optional alias ``ImageSummaryFilePair``) from ``rb.lib.plugin_io`` in Python code, and the same JSON shape in API payloads when the relationship is known.
+
 ### Sample Output
 
 ```
@@ -42,5 +51,3 @@ The composition is centered, with warm afternoon lighting.
 - gemma3:27b : slow , higher accuracy , about 5 sec/image
 
 - gemma3:4b : fast , reasonable accuracy   2 sec / image
-
-- llama3.2-vision:11b this model only supports one image while more than one image requested

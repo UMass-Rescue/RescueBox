@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from logging import getLogger
-from typing import Any, Callable, List, Optional, get_type_hints, Annotated
+from typing import Any, Callable, Dict, List, Optional, get_type_hints, Annotated
+from contextlib import nullcontext
 
 from fastapi import Body
 import typer
+import threading
 
 from rb.api.models import (
     APIRoutes,
@@ -52,6 +54,8 @@ class MLService(object):
         self.endpoints: List[EndpointDetails] = []
         self._app_metadata: Optional[AppMetadata] = None
         self.plugin_name = name
+        self._ml_function_locks: Dict[str, Optional[threading.Lock]] = {}  # New line
+        self._make_threadsafe: bool = True
 
         @self.app.command(f"/{self.name}/api/routes")
         def list_routes():
@@ -68,7 +72,7 @@ class MLService(object):
                 for endpoint in self.endpoints
             ]
             res = APIRoutes(root=routes).model_dump(mode="json")
-            logger.info(res)
+            logger.info("%s", res)
             return res
 
         logger.debug("Registered routes command: /api/routes")
@@ -78,7 +82,7 @@ class MLService(object):
             if self._app_metadata is None:
                 return {"error": "App metadata not set"}
             res = self._app_metadata.model_dump(mode="json")
-            logger.info(res)
+            logger.info("%s", res)
             return res
 
     def add_app_metadata(
@@ -89,6 +93,7 @@ class MLService(object):
         info: str,
         plugin_name: str,
         gpu: bool = False,
+        make_threadsafe: bool = True,
     ):
         self._app_metadata = AppMetadata(
             name=name,
@@ -97,7 +102,9 @@ class MLService(object):
             info=info,
             plugin_name=plugin_name,
             gpu=gpu,
+            make_threadsafe=make_threadsafe,
         )
+        self._make_threadsafe = make_threadsafe
 
     def add_ml_service(
         self,
@@ -126,6 +133,12 @@ class MLService(object):
             order=order,
         )
         self.endpoints.append(endpoint)
+
+        if self._make_threadsafe:
+            self._ml_function_locks[endpoint.rule] = threading.Lock()
+        else:
+            self._ml_function_locks[endpoint.rule] = None
+
         type_hints = get_type_hints(ml_function)
         input_type = type_hints["inputs"]
         input_field_hints = get_type_hints(input_type)
@@ -155,7 +168,7 @@ class MLService(object):
             logger.info(res)
             return res
 
-        logger.debug(f"Registered task schema command: {endpoint.task_schema_rule}")
+        logger.debug("Registered task schema command: %s", endpoint.task_schema_rule)
 
         if parameter_type:
 
@@ -172,8 +185,11 @@ class MLService(object):
                     Body(embed=True),
                 ],
             ):
-                res = ml_function(inputs, parameters)
-                logger.info(res)
+                lock = self._ml_function_locks.get(endpoint.rule)
+                ctx = lock if lock else nullcontext()
+                with ctx:
+                    res = ml_function(inputs, parameters)
+                logger.info("%s", res)
                 return res
 
         else:
@@ -186,8 +202,11 @@ class MLService(object):
                     Body(embed=True),
                 ],
             ):
-                res = ml_function(inputs)
-                logger.info(res)
+                lock = self._ml_function_locks.get(endpoint.rule)
+                ctx = lock if lock else nullcontext()
+                with ctx:
+                    res = ml_function(inputs)
+                logger.info("%s", res)
                 return res
 
-        logger.debug(f"Registered ML service command: {rule}")
+        logger.debug("Registered ML service command: %s", rule)

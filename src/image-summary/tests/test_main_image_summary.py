@@ -1,10 +1,28 @@
-from image_summary.main import app as cli_app, APP_NAME, task_schema
+from image_summary.main import app as cli_app, APP_NAME, task_schema, server
 from rb.lib.common_tests import RBAppTest
-from rb.api.models import AppMetadata
 from pathlib import Path
 from unittest.mock import patch
-from image_summary.process import SUPPORTED_IMAGE_EXTENSIONS
+from image_summary.process import SUPPORTED_IMAGE_EXTENSIONS, iter_image_files
 import json
+
+
+def _mock_process_images(model, input_dir, output_dir, file_filter):
+    """Write one mocked .txt per image without calling Ollama."""
+    input_path = Path(input_dir)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    ff = list(file_filter) if file_filter else []
+    pairs = []
+    for image_path in iter_image_files(input_path, ff):
+        out_file = output_path / (image_path.name + ".txt")
+        out_file.write_text("Mocked summary", encoding="utf-8")
+        pairs.append(
+            {
+                "input_path": str(image_path.resolve()),
+                "output_path": str(out_file.resolve()),
+            }
+        )
+    return pairs
 
 
 class TestImageSummary(RBAppTest):
@@ -12,30 +30,22 @@ class TestImageSummary(RBAppTest):
         self.set_app(cli_app, APP_NAME)
 
     def get_metadata(self):
-        return AppMetadata(
-            name="Image Summary",
-            author="UMass Rescue",
-            version="1.0.0",
-            info=(
-                "This plugin lets you generate rich descriptions for every image in a folder. "
-                "For each image, it identifies the scene and setting, key objects and their attributes (colors, counts, positions), "
-                "people and actions (if present), visible text (quoted verbatim), and notable visual details like lighting and composition. "
-                "Input: a directory of images. Output: a matching directory of .txt files (one per image) containing the description."
-            ),
-            plugin_name=APP_NAME,
-        )
+        assert server._app_metadata is not None
+        return server._app_metadata
 
     def get_all_ml_services(self):
         return [
             (0, "summarize-images", "Describe Images", task_schema()),
         ]
 
-    @patch("image_summary.process.ensure_model_exists")
+    @patch("image_summary.model.ensure_model_exists")
     @patch(
-        "image_summary.process.describe_images_batch",
-        side_effect=lambda model, paths, **kwargs: {p: "Mocked summary" for p in paths},
+        "image_summary.main.process_images",
+        side_effect=_mock_process_images,
     )
-    def test_summarize_images_command(self, describe_batch_mock, ensure_model_exists_mock):
+    def test_summarize_images_command(
+        self, process_images_mock, ensure_model_exists_mock
+    ):
         summarize_api = f"/{APP_NAME}/summarize-images"
         full_path = Path.cwd() / "src" / "image-summary" / "test_input"
         output_path = Path.cwd() / "src" / "image-summary" / "test_output"
@@ -72,12 +82,12 @@ class TestImageSummary(RBAppTest):
                 content = f.read()
                 assert "Mocked summary" == content
 
-    @patch("image_summary.process.ensure_model_exists")
+    @patch("image_summary.model.ensure_model_exists")
     @patch(
-        "image_summary.process.describe_images_batch",
-        side_effect=lambda model, paths, **kwargs: {p: "Mocked summary" for p in paths},
+        "image_summary.main.process_images",
+        side_effect=_mock_process_images,
     )
-    def test_api_summarize(self, describe_batch_mock, ensure_model_exists_mock):
+    def test_api_summarize(self, process_images_mock, ensure_model_exists_mock):
         summarize_api = f"/{APP_NAME}/summarize-images"
         full_path = Path.cwd() / "src" / "image-summary" / "test_input"
         output_path = Path.cwd() / "src" / "image-summary" / "test_output"
@@ -110,6 +120,19 @@ class TestImageSummary(RBAppTest):
         assert set(expected_files) == set(results)
         for file in results:
             assert file.endswith(".txt")
+        pairs = parsed.get("file_pairs")
+        assert isinstance(pairs, list)
+        assert len(pairs) == len(expected_files)
+        by_out = {
+            p["output_path"]: p["input_path"] for p in pairs if isinstance(p, dict)
+        }
+        for ef in expected_files:
+            assert ef in by_out
+            assert (
+                by_out[ef]
+                .lower()
+                .endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"))
+            )
 
     @patch("image_summary.process.ensure_model_exists")
     def test_invalid_path(self, ensure_model_exists_mock):

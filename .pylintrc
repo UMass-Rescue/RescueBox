@@ -1,0 +1,28 @@
+[MASTER]
+init-hook='import sys; from pathlib import Path; r=Path(__file__).resolve().parent; sys.path.insert(0, str(r / "src" / "case-export")); sys.path.insert(0, str(r / "src" / "rb-api")); sys.path.insert(0, str(r)); v=r / ".venv" / "Lib" / "site-packages"; sys.path.insert(0, str(v)) if v.is_dir() else None'
+
+[MESSAGES CONTROL]
+disable=
+    import-error,
+    missing-class-docstring,
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-docstring,
+    wrong-import-order,
+    no-else-return,
+   
+
+[FORMAT]
+max-line-length=120
+
+[DESIGN]
+max-args=12
+max-positional-arguments=12
+max-attributes=25
+max-locals=45
+max-branches=45
+max-statements=100
+max-returns=12
+
+[TYPECHECK]
+extension-pkg-allow-list=win32api,win32con

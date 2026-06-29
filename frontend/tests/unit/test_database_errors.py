@@ -18,7 +18,6 @@ and preventing application crashes during database operations.
 import pytest
 import sqlite3
 from unittest.mock import Mock, patch
-from pathlib import Path
 from frontend.database.chat_history_db import ChatHistoryDB
 
 # Test constants
@@ -57,20 +56,21 @@ class TestDatabaseErrorHandling:
 
         Returns a context manager that can be used with 'with' statement.
         """
+
         def mock_connect():
             """Mock connection factory that returns a mock connection."""
             mock_conn = Mock()
             mock_conn.execute = Mock(side_effect=side_effect)
             return mock_conn
 
-        return patch.object(chat_history_db, 'connect', mock_connect)
-    
+        return patch.object(chat_history_db, "connect", mock_connect)
+
     @pytest.fixture
     def chat_history_db(self, tmp_path):
         """Create ChatHistoryDB instance with temporary database"""
         db_path = tmp_path / "test.db"
         return ChatHistoryDB(db_path=db_path)
-    
+
     @pytest.mark.asyncio
     async def test_create_conversation_integrity_error(self, chat_history_db):
         """Test handling of IntegrityError when creating conversation.
@@ -83,19 +83,22 @@ class TestDatabaseErrorHandling:
         await chat_history_db.create_conversation(title=TEST_CONVERSATION_TITLE)
 
         # Mock database connection to simulate integrity constraint failure
-        with self._mock_database_connection(chat_history_db,
-                                           sqlite3.IntegrityError("UNIQUE constraint failed")) as mock_connect:
+        with self._mock_database_connection(
+            chat_history_db, sqlite3.IntegrityError("UNIQUE constraint failed")
+        ) as mock_connect:
             # Temporarily override the connection method
             original_connect = chat_history_db.connect
             chat_history_db.connect = mock_connect
 
             # Attempt to create conversation should raise handled exception
             with pytest.raises(Exception, match=DATABASE_INTEGRITY_ERROR):
-                await chat_history_db.create_conversation(title=DUPLICATE_CONVERSATION_TITLE)
+                await chat_history_db.create_conversation(
+                    title=DUPLICATE_CONVERSATION_TITLE
+                )
 
             # Restore original connection method
             chat_history_db.connect = original_connect
-    
+
     @pytest.mark.asyncio
     async def test_create_conversation_sqlite_error(self, chat_history_db):
         """Test handling of generic SQLite errors during conversation creation.
@@ -105,8 +108,9 @@ class TestDatabaseErrorHandling:
         exceptions with clear error messages.
         """
         # Mock database connection to simulate operational error
-        with self._mock_database_connection(chat_history_db,
-                                           sqlite3.Error(DATABASE_LOCKED_ERROR)) as mock_connect:
+        with self._mock_database_connection(
+            chat_history_db, sqlite3.Error(DATABASE_LOCKED_ERROR)
+        ) as mock_connect:
             # Temporarily override the connection method
             original_connect = chat_history_db.connect
             chat_history_db.connect = mock_connect
@@ -117,7 +121,7 @@ class TestDatabaseErrorHandling:
 
             # Restore original connection method
             chat_history_db.connect = original_connect
-    
+
     @pytest.mark.asyncio
     async def test_create_conversation_unexpected_error(self, chat_history_db):
         """Test handling of unexpected errors during conversation creation.
@@ -127,8 +131,9 @@ class TestDatabaseErrorHandling:
         allowing higher-level error handling to manage these cases.
         """
         # Mock database connection to simulate unexpected error
-        with self._mock_database_connection(chat_history_db,
-                                           Exception(UNEXPECTED_ERROR_MSG)) as mock_connect:
+        with self._mock_database_connection(
+            chat_history_db, Exception(UNEXPECTED_ERROR_MSG)
+        ) as mock_connect:
             # Temporarily override the connection method
             original_connect = chat_history_db.connect
             chat_history_db.connect = mock_connect
@@ -152,7 +157,7 @@ class TestDatabaseErrorHandling:
 
         # Should return None for non-existent conversations (graceful degradation)
         assert result is None
-    
+
     @pytest.mark.asyncio
     async def test_get_all_conversations_with_error(self, chat_history_db):
         """Test error handling when retrieving all conversations.
@@ -166,8 +171,9 @@ class TestDatabaseErrorHandling:
         await chat_history_db.create_conversation(title=TEST_CONVERSATION_TITLE)
 
         # Mock database connection to simulate error during bulk retrieval
-        with self._mock_database_connection(chat_history_db,
-                                           sqlite3.Error(DATABASE_ERROR_MSG)) as mock_connect:
+        with self._mock_database_connection(
+            chat_history_db, sqlite3.Error(DATABASE_ERROR_MSG)
+        ) as mock_connect:
             # Temporarily override the connection method
             original_connect = chat_history_db.connect
             chat_history_db.connect = mock_connect
@@ -178,4 +184,3 @@ class TestDatabaseErrorHandling:
 
             # Restore original connection method
             chat_history_db.connect = original_connect
-

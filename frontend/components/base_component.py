@@ -9,6 +9,8 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 from nicegui import ui
 
+from frontend.components.component_utils import create_success_card_element
+
 # Configure logging for components
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -31,7 +33,7 @@ class BaseComponent(ABC):
         self.config = kwargs
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
-        self.logger.info(f"Initializing {self.__class__.__name__}")
+        self.logger.debug("Initializing %s", self.__class__.__name__)
 
     @abstractmethod
     def render(self) -> Any:
@@ -44,7 +46,7 @@ class BaseComponent(ABC):
         Returns:
             Any: The rendered component or container
         """
-        pass
+        raise NotImplementedError
 
     def create_error_display(self, message: str) -> ui.element:
         """
@@ -56,9 +58,9 @@ class BaseComponent(ABC):
         Returns:
             ui.element: Error display element
         """
-        with ui.card().classes('bg-red-50 border border-red-300 p-4') as error_card:
-            ui.label('Error').classes('text-lg font-semibold text-red-700 mb-2')
-            ui.label(message).classes('text-red-600')
+        with ui.card().classes("bg-red-50 border border-red-300 p-4") as error_card:
+            ui.label("Error").classes("text-lg font-semibold text-red-700 mb-2")
+            ui.label(message).classes("text-red-600")
         return error_card
 
     def create_loading_display(self, message: str = "Loading...") -> ui.element:
@@ -71,9 +73,9 @@ class BaseComponent(ABC):
         Returns:
             ui.element: Loading display element
         """
-        with ui.row().classes('items-center gap-2') as loading_row:
-            ui.spinner(size='sm')
-            ui.label(message).classes('text-sm text-gray-600')
+        with ui.row().classes("items-center gap-2") as loading_row:
+            ui.spinner(size="sm")
+            ui.label(message).classes("text-sm text-zinc-600")
         return loading_row
 
     def create_success_display(self, message: str) -> ui.element:
@@ -86,10 +88,7 @@ class BaseComponent(ABC):
         Returns:
             ui.element: Success display element
         """
-        with ui.card().classes('bg-green-50 border border-green-300 p-4') as success_card:
-            ui.label('Success').classes('text-lg font-semibold text-green-700 mb-2')
-            ui.label(message).classes('text-green-600')
-        return success_card
+        return create_success_card_element(message)
 
     def log_action(self, action: str, details: Optional[str] = None):
         """
@@ -124,7 +123,7 @@ class ComponentRegistry:
             instance: Component instance to register
         """
         cls._instances[name] = instance
-        logger.info(f"Registered component: {name}")
+        logger.info("Registered component: %s", name)
 
     @classmethod
     def get(cls, name: str) -> Optional[Any]:
@@ -149,7 +148,7 @@ class ComponentRegistry:
         """
         if name in cls._instances:
             del cls._instances[name]
-            logger.info(f"Unregistered component: {name}")
+            logger.info("Unregistered component: %s", name)
 
     @classmethod
     def list_components(cls) -> list:

@@ -1,13 +1,15 @@
-from typing import TypedDict, NotRequired
+from typing import Any, List, NotRequired, TypedDict, cast
 import json
 import logging
 import os
-
+from pathlib import Path
 import typer
+from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
-from rb.lib.utils import apply_torch_cpu_preference
+from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
 from rb.api.models import (
     FloatRangeDescriptor,
+    FileFilterDirectory,
     InputSchema,
     InputType,
     IntRangeDescriptor,
@@ -16,13 +18,16 @@ from rb.api.models import (
     RangedIntParameterDescriptor,
     ResponseBody,
     TaskSchema,
-    DirectoryInput,
     TextInput,
     TextResponse,
-    BatchFileInput,
 )
+from llama_index.core.node_parser import SentenceSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter  # type: ignore
+from rb.api.database import TextEmbeddingChunk, engine
+from sqlalchemy import bindparam, text as sql_text, update
+from sqlmodel import Session, delete, select
 
-#_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+# _MODEL_NAME = "BAAI/bge-small-en-v1.5"
 _MODEL_NAME = "BAAI/bge-m3"
 
 _BGE_QUERY_PREFIX = "query: "  # BGE asymmetric search (queries only)
@@ -35,17 +40,23 @@ _CHUNK_OVERLAP = 60
 _MAX_READ_BYTES_PER_FILE = 50 * 1024 * 1024  # 50 MiB per file (truncate with warning)
 # GPU batching: one encode() over all chunks; raise on high-end GPUs (e.g. Spark / Blackwell).
 _EMBED_BATCH_SIZE = 256
-from rb.api.database import engine, TextEmbeddingChunk
-from sqlalchemy import bindparam, text as sql_text, update
-from sqlmodel import Session
-from sqlmodel import delete, select
 
 APP_NAME = "text_embeddings"
 logger = logging.getLogger(__name__)
 
+# Text file suffixes scanned by ``resolve_text_file_corpus_paths`` (non-recursive, top-level).
+TEXT_EXTENSIONS = {".txt", ".text", ".md", ".log"}
+
+
+class TextCorpusDirectory(FileFilterDirectory):
+    """Directory must exist, be non-empty, and contain at least one allowed text extension."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(TEXT_EXTENSIONS)
+
 
 class Inputs(TypedDict):
-    input_dir: DirectoryInput
+    input_dir: TextCorpusDirectory
     query: TextInput
 
 
@@ -62,7 +73,7 @@ def task_schema() -> TaskSchema:
     )
     query_schema = InputSchema(
         key="query",
-        label="Search query",
+        label="Search query text",
         input_type=InputType.TEXT,
     )
 
@@ -72,7 +83,7 @@ def task_schema() -> TaskSchema:
     )
     min_similarity_desc = RangedFloatParameterDescriptor(
         range=FloatRangeDescriptor(min=0.0, max=1.0),
-        default=0.5,
+        default=0.45,
     )
 
     return TaskSchema(
@@ -87,7 +98,7 @@ def task_schema() -> TaskSchema:
             ParameterSchema(
                 key="min_similarity",
                 label="Match threshold",
-                subtitle="Similarity >= this value counts as a match (0.5 typical, 0.12/0.19 = weak)",
+                subtitle="Minimum value that counts as a match (> 0.45 typical)",
                 value=min_similarity_desc,
             ),
         ],
@@ -108,6 +119,7 @@ server.add_app_metadata(
     version="3.0.0",
     info=info,
     gpu=True,
+    make_threadsafe=True,
 )
 
 
@@ -119,12 +131,6 @@ def _chunk_text(
     chunk_overlap: int,
 ) -> list[str]:
     if chunker == "langchain":
-        try:
-            from langchain_text_splitters import RecursiveCharacterTextSplitter  # type: ignore
-        except Exception as exc:  # pragma: no cover - import guard
-            raise ValueError(
-                "LangChain text splitters not available. Please install 'langchain-text-splitters'."
-            ) from exc
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -133,12 +139,6 @@ def _chunk_text(
         )
         return splitter.split_text(text)
     elif chunker == "llamaindex":
-        try:
-            from llama_index.core.node_parser import SentenceSplitter  # type: ignore
-        except Exception as exc:  # pragma: no cover - import guard
-            raise ValueError(
-                "LlamaIndex not available. Please install 'llama-index-core' to use this chunker."
-            ) from exc
         splitter = SentenceSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         return splitter.split_text(text)
     else:
@@ -188,12 +188,14 @@ def _paths_with_chunks_for_params(
     if not paths:
         return set()
     rows = session.exec(
-        select(TextEmbeddingChunk.path).where(
-            TextEmbeddingChunk.path.in_(paths),
+        select(TextEmbeddingChunk.path)
+        .where(
+            cast(Any, TextEmbeddingChunk.__table__.c.path).in_(paths),
             TextEmbeddingChunk.model_name == model_name,
             TextEmbeddingChunk.chunk_size == chunk_size,
             TextEmbeddingChunk.chunk_overlap == chunk_overlap,
-        ).distinct()
+        )
+        .distinct()
     ).all()
     return set(rows)
 
@@ -202,7 +204,7 @@ def _delete_chunks_for_paths(session, paths: list[str], model_name: str) -> None
     """Delete chunks for these paths and model so they can be re-embedded."""
     session.execute(
         delete(TextEmbeddingChunk).where(
-            TextEmbeddingChunk.path.in_(paths),
+            cast(Any, TextEmbeddingChunk.__table__.c.path).in_(paths),
             TextEmbeddingChunk.model_name == model_name,
         )
     )
@@ -228,11 +230,13 @@ def _relocate_matching_basenames(
     Relocation is skipped when both the old and new full paths appear in ``file_paths``.
     """
     stored_paths = session.exec(
-        select(TextEmbeddingChunk.path).where(
+        select(TextEmbeddingChunk.path)
+        .where(
             TextEmbeddingChunk.model_name == model_name,
             TextEmbeddingChunk.chunk_size == chunk_size,
             TextEmbeddingChunk.chunk_overlap == chunk_overlap,
-        ).distinct()
+        )
+        .distinct()
     ).all()
     by_bn: dict[str, str] = {}
     for sp in stored_paths:
@@ -273,90 +277,38 @@ def _relocate_matching_basenames(
         by_bn[bn] = fp
 
 
-def _collect_text_files(input_dir: str) -> list[str]:
-    """Return sorted list of text file paths in the directory."""
-    allowed_exts = {".txt", ".text", ".md", ".log"}
-    paths = []
-    for name in sorted(os.listdir(input_dir)):
-        path = os.path.join(input_dir, name)
-        if os.path.isfile(path) and os.path.splitext(path)[1].lower() in allowed_exts:
-            paths.append(path)
-    return paths
-
-
 def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """
     Semantic search over text files. Embeds the directory if embeddings don't exist
     for the requested model, then runs cosine similarity search.
     """
-    apply_torch_cpu_preference()
-    import torch
+
     from sentence_transformers import SentenceTransformer  # type: ignore
 
     input_dir = str(inputs["input_dir"].path)
     query_text = inputs["query"].text
+
     model_name = _MODEL_NAME
     top_k = int(parameters.get("top_k", 5))
-    min_similarity = float(parameters.get("min_similarity", 0.5))
+    min_similarity = float(parameters.get("min_similarity", 0.45))
 
-    # Use file_filter when provided (e.g. from image_summary pipeline); else scan input_dir
-    file_paths: list[str] = []
-    if "file_filter" in inputs and inputs.get("file_filter"):
-        ff = inputs["file_filter"]
-        files = getattr(ff, "files", None) or (ff if isinstance(ff, dict) else {}).get("files", [])
-        if files:
-            for f in files:
-                p = f.get("path") if isinstance(f, dict) else getattr(f, "path", None)
-                if p and isinstance(p, str) and os.path.isfile(p):
-                    file_paths.append(p)
-    if not file_paths:
-        file_paths = _collect_text_files(input_dir)
+    file_paths, corpus_err = resolve_text_file_corpus_paths(inputs, input_dir)
     if not file_paths:
         return ResponseBody(
             root=TextResponse(
-                value=json.dumps({"error": "No text files found in directory", "results": []}),
+                value=json.dumps(
+                    {"error": corpus_err or "No text files to search", "results": []}
+                ),
                 title="Text Search",
                 subtitle="No text files to search",
             )
         )
 
-    cuda_ok = torch.cuda.is_available()
-    mps_ok = bool(getattr(torch.backends, "mps", None)) and torch.backends.mps.is_available()
-    if cuda_ok:
-        device = torch.device("cuda")
-    elif mps_ok:
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
+    model = SentenceTransformer(model_name)
 
     logger.info(
-        "SentenceTransformer runtime: cuda_available=%s mps_available=%s -> selected device=%s",
-        cuda_ok,
-        mps_ok,
-        device,
-    )
-    if cuda_ok and device.type == "cuda":
-        try:
-            idx = torch.cuda.current_device()
-            logger.info(
-                "CUDA GPU in use: name=%s index=%s",
-                torch.cuda.get_device_name(idx),
-                idx,
-            )
-        except Exception as e:
-            logger.debug("Could not read CUDA device name: %s", e)
-    elif device.type == "mps":
-        logger.info("Apple Metal (MPS) in use for SentenceTransformer")
-
-    model = SentenceTransformer(model_name, device=str(device))
-    try:
-        param_dev = next(model.parameters()).device
-    except Exception:
-        param_dev = device
-    logger.info(
-        "SentenceTransformer loaded on device=%s (parameter device=%s) model_name=%s",
-        device,
-        param_dev,
+        "SentenceTransformer loaded on device=%s model_name=%s",
+        model.device,
         model_name,
     )
 
@@ -443,9 +395,9 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                     1 - (embedding <=> '{embedding_str}'::vector) AS similarity
                 FROM text_embedding_chunks
                 WHERE model_name = :model_name
-                  AND chunk_size = :chunk_size
-                  AND chunk_overlap = :chunk_overlap
-                  AND path IN :paths
+                AND chunk_size = :chunk_size
+                AND chunk_overlap = :chunk_overlap
+                AND path IN :paths
                 ORDER BY path, embedding <=> '{embedding_str}'::vector ASC
             ) AS best_chunk_per_path
             ORDER BY similarity DESC
@@ -466,14 +418,16 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     search_results = []
     for row in rows:
         sim = float(row.similarity)
-        search_results.append({
-            "id": row.id,
-            "path": row.path,
-            "chunk_index": row.chunk_index,
-            "similarity": round(sim, 4),
-            "is_match": sim >= min_similarity,
-            "matching_text": _truncate(row.chunk_text or "", 600),
-        })
+        search_results.append(
+            {
+                "id": row.id,
+                "path": row.path,
+                "chunk_index": row.chunk_index,
+                "similarity": sim,
+                "is_match": sim >= min_similarity,
+                "matching_text": _truncate(row.chunk_text or "", 600),
+            }
+        )
     response_data = {
         "query": query_text,
         "model": model_name,
@@ -497,19 +451,22 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 def inputs_cli_parse(value: str) -> Inputs:
     # Expect "directory_path,query_text" or just directory for backwards compat
     parts = [p.strip() for p in value.split(",", 1)]
-    from pathlib import Path
     input_dir = Path(parts[0]) if parts[0] else Path(".")
     query_text = parts[1] if len(parts) > 1 else ""
-    return Inputs(
-        input_dir=DirectoryInput(path=input_dir),
-        query=TextInput(text=query_text),
-    )
+    try:
+        return Inputs(
+            input_dir=TextCorpusDirectory(path=input_dir),
+            query=TextInput(text=query_text),
+        )
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def parameters_cli_parse(value: str) -> Parameters:
     parts = [p.strip() for p in value.split(",")]
     top_k = int(parts[0]) if len(parts) > 0 and parts[0] else 3
-    min_similarity = float(parts[1]) if len(parts) > 1 and parts[1] else 0.5
+    min_similarity = float(parts[1]) if len(parts) > 1 and parts[1] else 0.45
     return Parameters(top_k=top_k, min_similarity=min_similarity)
 
 
@@ -522,7 +479,7 @@ server.add_ml_service(
     ),
     parameters_cli_parser=typer.Argument(
         parser=parameters_cli_parse,
-        help="top_k,min_similarity (e.g. 5,0.5)",
+        help="top_k,min_similarity (e.g. 0.45)",
     ),
     short_title="Search Text",
     order=0,

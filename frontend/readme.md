@@ -88,7 +88,7 @@ async def chatbot_page():
 ui.run(
     title='RescueBox Desktop',
     port=8080,
-    host='0.0.0.0',
+    host='127.0.0.1',
     show=False  # Don't auto-open browser
 )---
 
@@ -125,7 +125,7 @@ state = {
 
 # Navigation bar component
 def create_navbar():
-    with ui.header().classes('bg-blue-600 text-white shadow-lg'):
+    with ui.header().classes('rb-brand-nav text-white shadow-lg'):
         ui.label('🚑 RescueBox Desktop').classes('text-2xl font-bold')
         
         with ui.row().classes('gap-4 ml-auto'):
@@ -141,14 +141,14 @@ async def index():
     
     with ui.column().classes('container mx-auto p-8'):
         ui.label('Welcome to RescueBox Desktop').classes('text-4xl font-bold mb-4')
-        ui.label('Select a model or use the Assistant to get started').classes('text-xl text-gray-600')
+        ui.label('Select a model or use the Assistant to get started').classes('text-xl text-zinc-600')
         
         with ui.row().classes('gap-4 mt-8'):
-            ui.button('Browse Models', on_click=lambda: ui.open('/models')).classes('bg-blue-600 text-white px-6 py-3')
-            ui.button('Open Assistant', on_click=lambda: ui.open('/chatbot')).classes('bg-green-600 text-white px-6 py-3')
+            ui.button('Browse Models', on_click=lambda: ui.open('/models')).classes('rb-brand-primary text-white px-6 py-3 rounded-xl')
+            ui.button('Open Assistant', on_click=lambda: ui.open('/chatbot')).classes('rb-brand-primary text-white px-6 py-3 rounded-xl')
 
 if __name__ in {"__main__", "__mp_main__"}:
-    ui.run()---
+    ui.run()
 
 ### 2. Chatbot Interface Page
 
@@ -171,15 +171,16 @@ if __name__ in {"__main__", "__mp_main__"}:
 - **Tool call re-run** from history
 - Conversation management
 
-The chatbot page has been refactored into a modular architecture:
+The chatbot page has been refactored (May 2026) into a modern, package-based architecture to resolve monolithic scaling issues:
 
-- **`chatbot.py`** (~311 lines): Main `ChatbotPage` class that orchestrates UI and delegates to handlers
-- **`chatbot_handlers.py`** (~179 lines): Message sending, result processing, and form submission handlers
-- **`chatbot_message.py`** (~120 lines): `ChatMessage` data class and message rendering functions
-- **`chatbot_ui.py`** (~99 lines): UI layout creation and input handling
-- **`chatbot_forms.py`** (~215 lines): Form loading, tool picker, and results display
+- **`frontend/pages/chatbot/`**: New package structure replacing the monolithic orchestrator.
+- **`state.py`**: Centralized `ChatbotStateManager` and `ChatMessage` models.
+- **`coordinator.py`**: Core orchestration layer including `MessageFlowCoordinator`, `MessageProcessor`, and `ResultProcessor`.
+- **`ui.py`**: Main page layout, message rendering, and routing (`/chatbot`).
+- **`handlers.py`**: Specialized event handlers, job orchestration, and database services.
 
-See the [Component Architecture](#component-architecture) section for detailed breakdown.
+See the [Chatbot Architecture Guide](docs/chatbot-architecture.md) for a detailed technical breakdown.
+
 
 
 ### 3. Models Listing Page
@@ -586,14 +587,17 @@ frontend/
 │   ├── __init__.py
 │   ├── base_component.py        # Abstract base component class
 │   ├── component_utils.py       # Shared component utilities
-│   ├── chat/                    # Chat-specific components
-│   │   ├── panels/              # Chat panels (actions, renderer, utils, history)
-│   │   └── ...
-│   ├── forms/                   # Form components
-│   │   ├── builders/            # Form field builders
-│   │   ├── form_generator.py    # Form generation orchestrator
-│   │   ├── form_handlers.py     # Form submission handlers
-│   │   └── ...
+│   ├── chat/                    # Chat components (2026 Modular Refactor)
+│   │   ├── __init__.py          # Public API facade
+│   │   ├── rendering.py         # Message & Card renderers
+│   │   ├── ui_elements.py       # Header, Window, Input Area
+│   │   ├── dialogs.py           # Help, History, View Modals
+│   │   └── utils.py             # UIOperations & Styling
+│   ├── forms/                   # Form components (2026 Modular Refactor)
+│   │   ├── __init__.py          # Public API facade
+│   │   ├── form_generator.py    # FormGenerator & Orchestration
+│   │   ├── field_builders.py    # Input & Parameter builders
+│   │   └── dialogs.py           # Case Notes & UI Modals
 │   ├── jobs/                    # Job-specific components
 │   ├── models/                  # Model-specific components
 │   ├── results/                 # Results display components
@@ -602,19 +606,19 @@ frontend/
 │   └── shared/                  # Shared UI components (navbar, notifications, etc.)
 ├── pages/                       # Page components
 │   ├── __init__.py
-│   ├── base_page.py             # Base page class
 │   ├── models/                  # Models page components
-│   ├── jobs/                    # Jobs page components
-│   ├── chatbot/                 # Chatbot page (HEAVILY REFACTORED)
-│   │   ├── __init__.py
-│   │   ├── chatbot.py           # Main chatbot orchestrator
-│   │   ├── handlers/            # Specialized handlers
-│   │   ├── utils/               # Utility modules (20+ files)
-│   │   ├── state/               # State management
-│   │   ├── pickers.py           # Tool/model pickers
-│   │   ├── results.py           # Results display
-│   │   ├── constants.py         # Configuration constants
-│   │   └── parameter_handlers.py # URL parameter processing
+│   ├── jobs/                    # Jobs package (2026 Modular Refactor)
+│   │   ├── __init__.py          # Public API facade
+│   │   ├── list.py              # Jobs Listing Page
+│   │   ├── details.py           # Job Details Page
+│   │   ├── components.py        # Audit Trail & Action buttons
+│   │   └── utils.py             # Pipeline & Field helpers
+│   ├── chatbot/                 # Chatbot package (2026 Modular Refactor)
+│   │   ├── __init__.py          # Public API facade
+│   │   ├── state.py             # ChatbotStateManager & Models
+│   │   ├── coordinator.py       # Flow coordination & Orchestration
+│   │   ├── ui.py                # Main Page & Rendering logic
+│   │   └── handlers.py          # Event Handlers & Services
 │   └── logs/                    # Logs page
 ├── chatbot/                     # Legacy chatbot module (being phased out)
 │   ├── __init__.py
@@ -629,13 +633,14 @@ frontend/
 │   ├── validation.py            # Data validation & serialization
 │   ├── job_db.py                # Job database (refactored)
 │   └── chat_history_db.py       # Chat history database
-├── utils/                       # Utility modules
-│   ├── __init__.py
-│   ├── file_browser.py          # File/directory browser utilities
-│   ├── validators.py            # Form validation utilities
-│   ├── error_handling.py        # Error handling utilities
-│   ├── logging_context.py       # Contextual logging
-│   └── ...
+├── utils/                       # Utility package (2026 Modular Refactor)
+│   ├── __init__.py              # Public API facade
+│   ├── logging.py               # Audit trails & Contextual logging
+│   ├── paths.py                 # Path resolution & Backend setup
+│   ├── browser.py               # File/Directory browsers
+│   ├── validators.py            # Pydantic form/response validation
+│   ├── storage.py               # User preferences & Storage
+│   └── ui.py                    # Notifications & UI helpers
 └── tests/                       # Test suite (ENHANCED 2025)
     ├── conftest.py              # Pytest fixtures
     ├── unit/                    # Unit tests (54 new component tests)
@@ -686,7 +691,7 @@ The frontend has been comprehensively refactored into a modern, modular architec
 ##### **Form Components** (`frontend/components/forms/`)
 - **`form_generator.py`**: Main `FormGenerator` orchestrator class
 - **`builders/`**: Field builders for inputs (`input_field_builder.py`) and parameters (`parameter_field_builder.py`)
-- **`form_handlers.py`**: Form submission and validation logic
+- **`form_generator.py`**: Form submission and validation logic
 - **Features**: Dynamic form generation, type-safe field creation, comprehensive validation
 
 ##### **Results Components** (`frontend/components/results/`)
@@ -703,24 +708,20 @@ The frontend has been comprehensively refactored into a modern, modular architec
 - **`stepper.py`**: Visual progress indicators
 - **Features**: Consistent styling, responsive design, accessibility
 
-##### **Chat Components** (`frontend/components/chat/panels/`)
-- **`conversation_actions.py`**: Conversation management (delete, export, rerun)
-- **`conversation_renderer.py`**: Message rendering with proper formatting
-- **`conversation_utils.py`**: Chat-specific utilities
-- **`history_panel.py`**: Conversation history display
-- **Features**: Rich message formatting, conversation management, history navigation
+##### **Chat Components** (`frontend/components/chat/`)
+- **`rendering.py`**: Welcome and message/list cards  
+- **`dialogs.py`**, **`view.py`**: History, conversation view, load/rerun helpers  
+- **`utils.py`, `ui_elements.py`**, **`ui_bridge.py`**: Composer area, scrolling helpers (test patches)
 
 #### **Page-Level Architecture** (`frontend/pages/`)
 
 ##### **Chatbot Page** (Heavily Refactored - 20+ modules)
 - **`chatbot.py`**: Main orchestrator class
-- **`handlers/`**: Specialized handlers (5 modules)
-- **`utils/`**: Utility classes (20+ modules) - message processing, form handling, UI building, etc.
-- **`state/`**: State management classes
+- **`chatbot_handlers.py`**: Message routing, form submission wrapper, etc.
+- **`utils/`**: Utility classes - `JobSubmissionOrchestrator`, `ResultProcessor`, etc.
+- **`state/`**: State management classes (`ChatbotStateManager`)
 - **`parameter_handlers.py`**: URL parameter processing
 - **`constants.py`**: Configuration constants
-- **`pickers.py`**: Tool and analysis pickers
-- **`results.py`**: Result rendering coordination
 
 ##### **Database Architecture** (Refactored 2024)
 - **`base_db.py`**: Abstract base class with common database operations
@@ -777,6 +778,16 @@ from frontend.pages.chatbot import chatbot_page
 ```
 
 All APIs remain unchanged despite the internal refactoring.
+
+### Unit test patch paths
+
+After splitting monolithic modules, tests often patch these import paths:
+
+- `frontend.components.results` — re-exports `os`, `ui`, `subprocess`, `platform` for renderer tests
+- `frontend.components.shared.notifications` (and `navbar`, `stepper`, `breadcrumbs`) — legacy aliases on the shared package
+- `frontend.components.forms.form_generator` — form submission (alias `form_handlers` kept for compatibility)
+- `frontend.pages.chatbot.ui_flow` — `load_and_show_form`, `show_results`
+- `frontend.pages.chatbot.handlers.pipeline` — pipeline step handlers
 
 ## Code Quality & Documentation
 

@@ -2,11 +2,14 @@
 import csv
 import warnings
 import typer
-from typing import Any, Dict, List, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict
 from pathlib import Path
+
+from pydantic import DirectoryPath
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     DirectoryInput,
+    FileFilterDirectory,
     FileResponse,
     InputSchema,
     InputType,
@@ -24,9 +27,9 @@ from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 import onnxruntime as ort
 import os
 from deepfake_detection.sim_data import defaultDataset
-from collections import defaultdict
 import logging
 from datetime import datetime
+import threading
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,26 +41,64 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore")
 APP_NAME = "deepfake_detection"
 
+# Extensions scanned by ``defaultDataset`` in ``sim_data`` (top-level files only).
+DEEPFAKE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
+
+
+class DeepfakeImageDirectory(FileFilterDirectory):
+    """Directory must exist, be non-empty, and contain at least one allowed image extension."""
+
+    path: DirectoryPath
+    file_extensions: List[str] = list(DEEPFAKE_IMAGE_EXTENSIONS)
+
+
 print("start")
+
+
+def _load_face_detector_session():
+    """
+    RetinaFace ONNX session used to align crops on the detected face before BNext inference.
+
+    Face-aligned inputs typically match the model's training distribution better than raw
+    full frames. This session is always passed into ``run_models(..., facecrop=...)`` when
+    the ONNX file loads. The task parameter ``facecrop`` only selects whether result rows
+    show the saved crop vs the full image; it does not turn this preprocessing off.
+    """
+    model_dir = Path(__file__).resolve().parent / "onnx_models"
+    available = ort.get_available_providers()
+    providers = ["CPUExecutionProvider"]
+    if "CUDAExecutionProvider" in available:
+        providers.insert(
+            0,
+            (
+                "CUDAExecutionProvider",
+                {"device_id": 0, "cudnn_conv_algo_search": "DEFAULT"},
+            ),
+        )
+    if "CoreMLExecutionProvider" in available:
+        providers.insert(0, "CoreMLExecutionProvider")
+    return ort.InferenceSession(
+        str(model_dir / "face_detector.onnx"),
+        providers=providers,
+    )
 
 
 # Configure UI Elements in RescueBox Desktop
 def create_transform_case_task_schema() -> TaskSchema:
     print("create_transform_case_task_schema called")
     input_schema = InputSchema(
-        key="input_dataset",
+        key="input_dir",
         label="Path to the directory containing all images",
         input_type=InputType.DIRECTORY,
     )
     output_schema = InputSchema(
-        key="output_file",
+        key="output_dir",
         label="Path to the output file",
         input_type=InputType.DIRECTORY,
     )
     facecrop_schema = ParameterSchema(
         key="facecrop",
-        label="Enable face cropping? (true/false)",
-        # input_type=InputType.TEXT,
+        label="Show cropped face in results (true/false)",
         value=EnumParameterDescriptor(
             parameter_type=ParameterType.ENUM,
             enum_vals=[
@@ -65,9 +106,8 @@ def create_transform_case_task_schema() -> TaskSchema:
                 EnumVal(key="false", label="false"),
             ],
             default="false",
-            message_when_empty="Select if you want facecropping. Default is false.",
+            message_when_empty="true = preview the aligned face crop; false = preview the full image. Model input is unchanged.",
         ),
-        # value=TextParameterDescriptor(default="false"),
     )
 
     return TaskSchema(
@@ -78,12 +118,22 @@ def create_transform_case_task_schema() -> TaskSchema:
 
 # Specify the input and output types for the task
 class Inputs(TypedDict):
-    input_dataset: DirectoryInput
-    output_file: DirectoryInput
+    input_dir: DeepfakeImageDirectory
+    output_dir: DirectoryInput
 
 
 class Parameters(TypedDict):
+    """
+    ``facecrop``: if true/yes/1, each result row shows the saved face-crop preview when
+    available; if false, the row shows the full source image. Processing always runs with
+    the face-detector session (when it loads); this flag does not disable it.
+    """
+
     facecrop: str
+
+
+def _preview_face_crop_in_results(facecrop: str) -> bool:
+    return facecrop.strip().lower() in ("true", "1", "yes")
 
 
 def run_models(models, dataset, facecrop=None):
@@ -107,6 +157,9 @@ def run_models(models, dataset, facecrop=None):
 
             # Add image name to prediction
             processed_prediction["image_path"] = image_path
+            crop_pv = getattr(model, "last_crop_preview_path", None)
+            if crop_pv:
+                processed_prediction["crop_preview_path"] = crop_pv
 
             # Append the result to the list
             model_results.append(processed_prediction)
@@ -117,37 +170,42 @@ def run_models(models, dataset, facecrop=None):
 
 def cli_parser(input: str) -> Inputs:
     print("cli_parser called")
-    input_dataset, output_file = input.split(",")
-    input_dataset = Path(input_dataset)
-    output_file = Path(output_file)
+    input_dir, output_dir = input.split(",")
+    input_dir = Path(input_dir)
+    output_dir = Path(output_dir)
 
     # Ensure input dataset exists
-    if not input_dataset.exists():
+    if not input_dir.exists():
         raise ValueError("Input dataset directory does not exist.")
 
-    # Treat output_file as a directory if it doesn't have a file extension
-    if output_file.suffix == "":
-        output_dir = output_file
+    # Treat output_dir as a directory if it doesn't have a file extension
+    if output_dir.suffix == "":
+        output_dir = output_dir
     else:
-        output_dir = output_file.parent
+        output_dir = output_dir.parent
 
     # Ensure the output directory exists
     if not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Input dataset: {input_dataset}")
+    print(f"Input dataset: {input_dir}")
     print(f"Output directory: {output_dir}")
-    return {
-        "input_dataset": DirectoryInput(path=str(input_dataset)),
-        "output_file": DirectoryInput(path=str(output_dir)),
-    }
+    try:
+        return Inputs(
+            input_dir=DeepfakeImageDirectory(path=input_dir),
+            output_dir=DirectoryInput(path=str(output_dir)),
+        )
+    except Exception as e:
+        logger.error("Error parsing CLI inputs: %s", e)
+        raise typer.Abort() from e
 
 
 def param_parser(facecrop: str = "false") -> Parameters:
     print("param_parser called")
-    return {
-        "facecrop": facecrop,
-    }
+    return {"facecrop": facecrop}
+
+
+_PREDICT_LOCK = threading.Lock()
 
 
 # @server.route(
@@ -158,89 +216,125 @@ def param_parser(facecrop: str = "false") -> Parameters:
 # )
 def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     print("give_prediction called")
-    input_path = inputs["input_dataset"].path
-    out = Path(inputs["output_file"].path)
-    selected_models = "BNext_M_ModelONNX,"
-    selected_models = selected_models.split(",")
+    with _PREDICT_LOCK:
+        input_path = inputs["input_dir"].path
+        out = Path(inputs["output_dir"].path)
+        selected_models = ["BNext_M_ModelONNX"]
 
-    logger.info(f"Input path: {input_path}")
-    logger.info(f"Output path: {out}")
-    logger.info(f"Parameters: {parameters}")
-    logger.info(f"Selected models: {selected_models}")
+        logger.info(f"Input path: {input_path}")
+        logger.info(f"Output path: {out}")
+        logger.info(f"Parameters: {parameters}")
+        preview_crop = _preview_face_crop_in_results(
+            parameters.get("facecrop", "false")
+        )
+        logger.info(
+            "Result preview: %s",
+            "face crop image" if preview_crop else "full image",
+        )
+        logger.info(f"Selected models: {selected_models}")
 
-    # Filter models
-    model_map = {
-        "BNext_M_ModelONNX": BNext_M_ModelONNX,
-    }
-    active_models = [model_map[m]() for m in selected_models if m in model_map]
-    logger.info(f"Active models: {[m.__class__.__name__ for m in active_models]}")
-    # Need logic to verify that the random num is not already in the directory *******
-    out.mkdir(parents=True, exist_ok=True)
+        # Filter models
+        model_map = {
+            "BNext_M_ModelONNX": BNext_M_ModelONNX,
+        }
+        active_models = [model_map[m]() for m in selected_models if m in model_map]
+        logger.info(f"Active models: {[m.__class__.__name__ for m in active_models]}")
+        crop_preview_root = out.parent if out.suffix else out
+        crop_preview_root.mkdir(parents=True, exist_ok=True)
+        for m in active_models:
+            setattr(m, "crop_preview_dir", str(crop_preview_root.resolve()))
 
-    now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    out = out / f"predictions_{now}.csv"
+        out = crop_preview_root / f"predictions_{now}.csv"
 
-    # Initialize face cropper if requested
-    facecropper = None
-    facecrop_param = parameters.get("facecrop", "false").lower()
-    if facecrop_param in ("true", "1", "yes"):  # enable face cropping
+        # Face-aligned crops improve scores; always load when ONNX is available (``facecrop`` only affects result UI).
+        facecropper: Optional[ort.InferenceSession] = None
         try:
-            model_dir = Path(__file__).resolve().parent / "onnx_models"
-            available = ort.get_available_providers()
-            # Provider order: first match wins; prefer accelerators when present.
-            providers = ["CPUExecutionProvider"]  # baseline; always in ORT
-            if "CUDAExecutionProvider" in available:  # NVIDIA GPU if ORT built with CUDA
-                providers.insert(0, "CUDAExecutionProvider")
-            # macOS / Apple: CoreML EP only appears when onnxruntime was built with CoreML support
-            if "CoreMLExecutionProvider" in available:
-                providers.insert(0, "CoreMLExecutionProvider")
-            facecropper = ort.InferenceSession(
-                str(model_dir / "face_detector.onnx"),
-                providers=providers,
+            facecropper = _load_face_detector_session()
+            logger.info(
+                "Face detector loaded; preprocess uses face alignment when a face is found (headshot uses full frame)."
             )
         except Exception as e:
-            logger.warning(f"Error loading face detector: {e}")
-    dataset = defaultDataset(dataset_path=input_path, resolution=224)
-    res_list = run_models(active_models, dataset, facecrop=facecropper)
-    logger.debug(f"Results list: {res_list}")
-    # Prepare model data structure
-    model_data = []
-    for model_results in res_list:
-        model_name = model_results[0]["model_name"]
-        predictions = model_results[1:]
-        model_data.append({"name": model_name, "predictions": predictions})
-    
-    file_responses: List[FileResponse] = []
-    if model_data and model_data[0]["predictions"]:
-        num_images = len(model_data[0]["predictions"])
-        for i in range(num_images):
-            row_metadata: Dict[str, Any] = {}
-            # Use the full image_path instead of just the basename
-            full_image_path = model_data[0]["predictions"][i]["image_path"]
-            path_basename = os.path.basename(full_image_path)
-            row_metadata["Image Path"] = full_image_path
-
-            for m_idx, m in enumerate(model_data):
-                pred = m["predictions"][i]["prediction"]
-                conf = m["predictions"][i]["confidence"]
-                model_name = m["name"]
-                row_metadata[f"Prediction"] = pred
-                row_metadata[f"Confidence"] = f"{conf * 100:.0f}%"
-            
-            file_responses.append(
-                FileResponse(
-                    file_type="img",
-                    path=full_image_path,
-                    title=f"Prediction for {path_basename}",
-                    metadata=row_metadata
-                )
+            logger.warning(
+                "Face detector unavailable (%s); preprocessing falls back to full images only.",
+                e,
             )
-    if not file_responses:
-        return ResponseBody(root=TextResponse(value="No predictions generated or no images found."))
-    
-    return ResponseBody(root=BatchFileResponse(files=file_responses))
-    
+        dataset = defaultDataset(dataset_path=input_path, resolution=224)
+        res_list = run_models(active_models, dataset, facecrop=facecropper)
+        logger.debug(f"Results list: {res_list}")
+
+        # Persist aggregate results beside crop previews (CLI and tests expect predictions_*.csv here).
+        csv_fields = ["model_name", "image_path", "prediction", "confidence"]
+        with open(out, "w", newline="", encoding="utf-8") as csv_f:
+            writer = csv.DictWriter(csv_f, fieldnames=csv_fields, extrasaction="ignore")
+            writer.writeheader()
+            for model_results in res_list:
+                mn = model_results[0]["model_name"]
+                for row in model_results[1:]:
+                    writer.writerow(
+                        {
+                            "model_name": mn,
+                            "image_path": row.get("image_path", ""),
+                            "prediction": row.get("prediction", ""),
+                            "confidence": row.get("confidence", ""),
+                        }
+                    )
+        logger.info("Wrote predictions CSV to %s", out)
+
+        # Prepare model data structure
+        model_data = []
+        for model_results in res_list:
+            model_name = model_results[0]["model_name"]
+            predictions = model_results[1:]
+            model_data.append({"name": model_name, "predictions": predictions})
+
+        file_responses: List[FileResponse] = []
+        if model_data and model_data[0]["predictions"]:
+            num_images = len(model_data[0]["predictions"])
+            for i in range(num_images):
+                row_metadata: Dict[str, Any] = {}
+                # Use the full image_path instead of just the basename
+                full_image_path = model_data[0]["predictions"][i]["image_path"]
+                os.path.basename(full_image_path)
+
+                crop_preview_path = model_data[0]["predictions"][i].get(
+                    "crop_preview_path"
+                )
+                if preview_crop and crop_preview_path:
+                    display_path = crop_preview_path
+                    title = "Face crop"
+                    row_metadata["Image path"] = full_image_path
+
+                elif preview_crop:
+                    display_path = full_image_path
+                    title = "Full image"
+                else:
+                    display_path = full_image_path
+                    title = "Full image"
+
+                for m_idx, m in enumerate(model_data):
+                    pred = m["predictions"][i]["prediction"]
+                    conf = m["predictions"][i]["confidence"]
+                    model_name = m["name"]
+                    row_metadata["Prediction"] = pred
+                    row_metadata["Confidence"] = f"{conf * 100:.0f}%"
+
+                file_responses.append(
+                    FileResponse(
+                        file_type="img",
+                        path=display_path,
+                        title=title,
+                        metadata=row_metadata,
+                    )
+                )
+        if not file_responses:
+            return ResponseBody(
+                root=TextResponse(value="No predictions generated or no images found.")
+            )
+
+        return ResponseBody(root=BatchFileResponse(files=file_responses))
+
 
 # ----------------------------
 # Server Setup Below
@@ -260,6 +354,7 @@ server.add_app_metadata(
     info=app_info,
     plugin_name=APP_NAME,
     gpu=True,
+    make_threadsafe=True,
 )
 
 

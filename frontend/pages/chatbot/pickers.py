@@ -1,199 +1,174 @@
-"""
-Chatbot Pickers
+"""Tool and analysis picker UI (no dependency on coordinator or ui page)."""
 
-This module contains picker classes for tool selection and analysis type selection.
-"""
+from __future__ import annotations
 
 import logging
+
 from nicegui import ui
-from typing import Callable
-from frontend.pages.chatbot.utils.ui_operations import UIOperations
+
 from frontend.chatbot.config import ToolRegistry
-from frontend.pages.chatbot.constants import FormConfig
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 
 
-class BasePicker:
-    """Base class for picker dialogs with common functionality."""
+_TOOL_ICON_BOX = (
+    "w-12 h-12 rounded-xl bg-[#881c1c]/5 flex items-center justify-center "
+    "shrink-0 border border-[#881c1c]/10"
+)
+_TOOL_DESC = (
+    "text-sm sm:text-base text-slate-500 whitespace-normal break-words leading-relaxed"
+)
+_LAUNCH_ROW = (
+    "items-center gap-1 shrink-0 text-[#881c1c] font-semibold text-sm "
+    "bg-[#881c1c]/5 hover:bg-[#881c1c]/10 px-3 py-1.5 rounded-lg transition-all"
+)
 
-    def __init__(self, container: ui.element, title: str, card_classes: str):
+
+class ToolPicker:
+    def __init__(self, container, tool_registry, on_tool_selected):
         self.container = container
-        self.title = title
-        self.card_classes = card_classes
-        self.picker_card = None
-        self.input_field = None
-
-    def create_picker_card(self) -> ui.card:
-        """Create the main picker card container."""
-        self.picker_card = ui.card().classes(self.card_classes)
-        return self.picker_card
-
-    def create_header(self, icon: str, color: str):
-        """Create the picker header with title and icon."""
-        with ui.column().classes('p-3 space-y-2'):
-            ui.label(f'{icon} {self.title}').classes(f'text-lg font-bold text-{color}-700')
-
-    def create_submit_button(self, text: str, color: str, on_click):
-        """Create the submit button."""
-        ui.button(text, on_click=on_click).classes(f'bg-{color}-600 text-white mt-2')
-
-    def show_loading_indicator(self, message: str, color: str):
-        """Show a loading indicator in the container."""
-
-        UIOperations.scroll_to_bottom()
-        with self.container:
-            loading_row = ui.row().classes('justify-center py-4')
-            with loading_row:
-                ui.spinner(size='2rem').classes(f'text-{color}-600')
-                ui.label(message).classes(f'ml-2 text-{color}-700')
-            return loading_row
-
-    def cleanup_and_load(self, on_selected_callback):
-        """Clean up picker and trigger the selected callback."""
-        self.picker_card.delete()
-        return on_selected_callback()
-
-
-class ToolPicker(BasePicker):
-    """Picker for selecting tools from the tool registry."""
-
-    def __init__(self, container: ui.element, tool_registry: ToolRegistry,
-                 on_tool_selected: Callable[[str, dict], None]):
-        super().__init__(container, 'RescueBox Plugin Selector', FormConfig.TOOL_PICKER_CLASSES)
         self.tool_registry = tool_registry
         self.on_tool_selected = on_tool_selected
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def menu_registry(self):
+        """Tool registry backing this picker."""
+        return self.tool_registry
 
     async def show(self):
-        """Show the tool picker dialog."""
-        logger.info("Showing tool picker menu")
-        try:
-            # Delegate to component-rendered dialog
-            from frontend.components.pickers.tool_picker_dialog import show_tool_picker_dialog
-            with self.container:
-                with self.create_picker_card():
-                    self.create_header('🛠️', 'purple')
-                    with ui.row().classes('w-full'):
-                        show_tool_picker_dialog(ui.column(), self.tool_registry, self.on_tool_selected)
-            logger.debug("Tool picker menu displayed (via component)")
-        except Exception:
-            logger.exception("Failed to render tool picker via component, falling back to inline")
-            with self.container:
-                with self.create_picker_card():
-                    self.create_header('🛠️', 'purple')
-                    with ui.row().classes('w-full'):
-                        with ui.card().classes(
-                            'w-full max-w-md min-w-0 mx-auto p-4 rounded-xl border-2 border-violet-200 '
-                            'bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100 shadow-sm'
-                        ):
-                            self._create_tool_buttons()
+        self.logger.info(
+            "ToolPicker.show started. Registry type: %s", type(self.tool_registry)
+        )
 
-            logger.debug("Tool picker menu displayed")
+        menu = getattr(self.tool_registry, "TOOL_MENU", {})
+        if not menu:
+            menu = ToolRegistry.TOOL_MENU
 
-    def _create_tool_buttons(self):
-        """Create clickable tool buttons."""
-        ui.label('Available Tools').classes('text-xl font-bold text-slate-800 tracking-tight')
-        ui.label('Click a tool to use').classes('text-base text-slate-600 mb-4')
-        with ui.column().classes('gap-2 w-full'):
-            for num, tool in self.tool_registry.TOOL_MENU.items():
-                row = ui.row().classes(
-                    'w-full min-w-0 py-5 px-5 rounded-xl border-2 border-violet-200/90 '
-                    'bg-white shadow-sm hover:bg-violet-50 hover:border-violet-400 '
-                    'cursor-pointer transition-colors duration-150 items-start'
-                )
-                row.on('click', lambda *a, n=num: self._handle_tool_click(n))
-                with row:
-                    ui.label(f'{num}. {tool["name"]} — {tool["desc"]}').classes(
-                        'w-full text-left text-sm leading-snug font-medium text-slate-900 '
-                        'whitespace-normal break-words'
+        self.logger.info(
+            "ToolPicker.show menu source: %s. Items: %d",
+            "Instance" if hasattr(self.tool_registry, "TOOL_MENU") else "Class",
+            len(menu),
+        )
+
+        with self.container:
+            with ui.card().classes(
+                "w-full max-w-full bg-white border border-slate-200 shadow-md rounded-2xl overflow-hidden p-0"
+            ):
+                with ui.column().classes("p-6 gap-3 w-full bg-slate-50"):
+                    ui.label("Choose a plugin to run:").classes(
+                        "text-sm font-semibold text-slate-500 uppercase tracking-wider"
                     )
+                    if not menu:
+                        ui.label("No plugins available in TOOL_MENU.").classes(
+                            "text-sm text-rose-500 font-medium"
+                        )
+                    else:
+                        for num, tool in menu.items():
+                            self.logger.info(
+                                "Adding tool to UI: %s - %s",
+                                num,
+                                tool.get("name"),
+                            )
+                            row = ui.row().classes(
+                                "w-full min-w-0 py-4 px-5 rounded-xl border border-slate-200 bg-white shadow-sm "
+                                "hover:bg-slate-50 hover:border-[#881c1c] cursor-pointer transition-all duration-150 "
+                                "items-center justify-between gap-4 border-l-4 border-l-[#881c1c]"
+                            )
+                            row.on(
+                                "click",
+                                lambda *a, t=tool: self.on_tool_selected(
+                                    t["endpoint"], {}
+                                ),
+                            )
+                            with row:
+                                with ui.row().classes(
+                                    "items-center gap-4 flex-1 min-w-0"
+                                ):
 
-    def _handle_tool_click(self, num: str):
-        """Load the tool form when user clicks a tool button."""
-        if num not in self.tool_registry.TOOL_MENU:
-            return
-        tool = self.tool_registry.TOOL_MENU[num]
-        import asyncio
+                                    with ui.column().classes("flex-1 min-w-0 gap-0.5"):
+                                        ui.label(f'{num}. {tool["name"]}').classes(
+                                            "text-lg font-bold text-slate-800 leading-snug"
+                                        )
+                                        ui.label(
+                                            tool.get("desc", "No description")
+                                        ).classes(_TOOL_DESC)
 
-        async def load():
-            loading = self.show_loading_indicator('Loading form...', 'purple')
-            try:
-                await self.on_tool_selected(tool['endpoint'], {})
-            finally:
-                loading.delete()
+                                with ui.row().classes(_LAUNCH_ROW):
+                                    ui.label("Run")
 
-        asyncio.create_task(load())
+        self.logger.info("ToolPicker.show finished building UI.")
 
 
-class AnalysisPicker(BasePicker):
-    """Picker for selecting analysis types."""
-
-    def __init__(self, container: ui.element, on_analysis_selected: Callable[[str], None]):
-        super().__init__(container, 'Analysis Type Picker', FormConfig.ANALYSIS_PICKER_CLASSES)
+class AnalysisPicker:
+    def __init__(self, container, on_analysis_selected):
+        self.container = container
         self.on_analysis_selected = on_analysis_selected
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def target_container(self):
+        """UI container where analysis options are rendered."""
+        return self.container
 
     async def show(self):
-        """Show the analysis picker dialog."""
-        logger.info("Showing analysis picker menu")
-        try:
-            from frontend.components.pickers.analysis_picker_dialog import show_analysis_picker_dialog
-            with self.container:
-                with self.create_picker_card():
-                    self.create_header('🧠', 'green')
-                    with ui.row().classes('gap-4 w-full'):
-                        show_analysis_picker_dialog(ui.column(), FormConfig.ANALYSIS_OPTIONS, lambda name: self.on_analysis_selected(name))
-                        with ui.card().classes('bg-white p-4 flex-1'):
-                            self._create_input_form()
-            logger.debug("Analysis picker menu displayed (via component)")
-        except Exception:
-            logger.exception("Failed to render analysis picker via component, falling back to inline")
-            with self.container:
-                with self.create_picker_card():
-                    self.create_header('🧠', 'green')
-                    
-                    with ui.row().classes('gap-4 w-full'):
-                        with ui.card().classes('bg-white p-4 flex-1'):
-                            self._create_analysis_buttons()
-                        with ui.card().classes('bg-white p-4 flex-1'):
-                            self._create_input_form()
+        self.logger.info("AnalysisPicker.show started")
+        with self.container:
+            with ui.card().classes(
+                "w-full max-w-full bg-white border border-slate-200 shadow-md rounded-2xl overflow-hidden p-0"
+            ):
+                with ui.row().classes(Design.PANEL_SHELL_HEADER):
+                    with ui.row().classes("items-center gap-2"):
+                        ui.label("Analysis Mode").classes(
+                            Design.PANEL_SHELL_HEADER_TITLE
+                        )
 
-            logger.debug("Analysis picker menu displayed")
+                with ui.column().classes("p-6 gap-3 w-full bg-slate-50"):
+                    ui.label("Select an analysis type:").classes(
+                        "text-sm font-semibold text-slate-500 uppercase tracking-wider"
+                    )
+                    options = ["Surface Scan", "Deep Forensic", "AI Content Analysis"]
+                    analysis_details = {
+                        "Surface Scan": {
+                            "desc": "Quickly analyze metadata, file headers, and basic structures",
+                            "icon": "radar",
+                        },
+                        "Deep Forensic": {
+                            "desc": "Comprehensive, byte-level analysis of all partitions and hidden data",
+                            "icon": "biotech",
+                        },
+                        "AI Content Analysis": {
+                            "desc": "Leverage machine learning models to detect objects, faces, and transcribe media",
+                            "icon": "psychology",
+                        },
+                    }
+                    for a_type in options:
+                        details = analysis_details.get(
+                            a_type,
+                            {"desc": "Run automated analysis", "icon": "analytics"},
+                        )
+                        self.logger.info("Adding analysis option: %s", a_type)
+                        row = ui.row().classes(
+                            "w-full min-w-0 py-4 px-5 rounded-xl border border-slate-200 bg-white shadow-sm "
+                            "hover:bg-slate-50 hover:border-[#881c1c] cursor-pointer transition-all duration-150 "
+                            "items-center justify-between gap-4 border-l-4 border-l-[#881c1c]"
+                        )
+                        row.on(
+                            "click", lambda *a, t=a_type: self.on_analysis_selected(t)
+                        )
+                        with row:
+                            with ui.row().classes("items-center gap-4 flex-1 min-w-0"):
+                                with ui.element("div").classes(_TOOL_ICON_BOX):
+                                    ui.icon(details["icon"], size="24px").classes(
+                                        "text-[#881c1c]"
+                                    )
 
-    def _create_analysis_buttons(self):
-        """Create clickable analysis option buttons on the left side."""
-        ui.label('Choose what you want to analyze:').classes('font-semibold mb-3')
-        with ui.column().classes('gap-2'):
-            for num, option in FormConfig.ANALYSIS_OPTIONS.items():
-                ui.button(
-                    f'{num}. {option["name"]} - {option["desc"]}',
-                    on_click=lambda n=num: self._handle_selection(n)
-                ).classes('text-left p-2 h-auto whitespace-normal justify-start text-sm bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200')
+                                with ui.column().classes("flex-1 min-w-0 gap-0.5"):
+                                    ui.label(a_type).classes(
+                                        "text-lg font-bold text-slate-800 leading-snug"
+                                    )
+                                    ui.label(details["desc"]).classes(_TOOL_DESC)
 
-    def _handle_selection(self, num: int):
-        """Handle the visual selection of an analysis option."""
-        self.input_field.set_value(str(num))
-        ui.notify(f'Selected option {num}', type='info')
-
-    def _create_input_form(self):
-        """Create the input form on the right side."""
-        ui.label('Choose an option:').classes('font-semibold mb-2')
-        self.input_field = ui.input(label='Choose an option:', placeholder='Option Number (1-5)').classes('w-full')
-
-        async def on_submit():
-            try:
-                choice_num = int(self.input_field.value.strip())
-                if choice_num in FormConfig.ANALYSIS_OPTIONS:
-                    analysis_type = FormConfig.ANALYSIS_OPTIONS[choice_num]['name']
-
-                    loading_indicator = self.show_loading_indicator('Starting analysis...', 'green')
-                    try:
-                        await self.on_analysis_selected(analysis_type)
-                    finally:
-                        loading_indicator.delete()
-                else:
-                    max_val = len(FormConfig.ANALYSIS_OPTIONS)
-                    ui.notify(f'Invalid choice. Please enter 1-{max_val}.', type='negative')
-            except ValueError:
-                ui.notify('Please enter a valid number.', type='negative')
-
-        self.create_submit_button('Start Analysis', 'green', on_submit)
+                            with ui.row().classes(_LAUNCH_ROW):
+                                ui.label("Analyze")
+                                ui.icon("arrow_forward", size="16px")
+        self.logger.info("AnalysisPicker.show finished building UI.")

@@ -6,68 +6,39 @@ This guide walks a **demo user** through other interesting plugins like **Age & 
 
 ---
 
-## Part A — run using Menu for Plugins
+## Part A — run using Chat for Plugins
 
-Use the **plugins menu** to run the desired operation.
+Use the **chat mode** to run the desired operation.
 
-1. Open **[Assistant](/chatbot)**.
+1. Open **[Assistant](/chatbot)** and  type this prompt
 
-2. In the toolbar, click the  **📋 Menu** button.
+**Detect age and gender of these photos**
 
-3. Choose **👤 Age & Gender** plugin
+2. the **input form** appears, use **Browse** to pick the **age-gender-classifier** subfolder **inputs**
 
-4. When the **input form** appears inline, use **Browse** to pick the **age-gender-classifier** subfolder **inputs**
+- [Browse input folders](/demo?walkthrough=other#sample-inputs)
 
-5. **Submit Job**, add **case notes** as needed. 
-
-6. After job completes open **View Job** 
-    or **[Jobs](/jobs)** to inspect face metadata (age ranges, gender) in the results.
+3. **Submit Job**. and review esults.
 
 ---
 
----
+## Part B — Pipeline: detect age/gender, filter and summarize 
 
-## Part B — run using  Chat Assistant prompts
-
-Run the plugin job by typing a natural-language requests in the chat box (“Type your request”).
-
-1. Open **[Assistant](/chatbot)**.
-or
-2. In the toolbar, click **[🧠 Chat](/chatbot)**.
-
-3. Type in request:
-
-   **describe these photos**.
-
-4. Confirm the assistant proposes the right tool "image_summary/summarize-images"
-
-5. fill **Browse** fields, **input** directory path and **output** directory path, 
-choose the default model, and **Submit Job** .
-
-6. click on **view job** results after job is completed successfully.
-
----
-
-## Part C — Pipeline: age/gender + summarize 
-
-When a single prompt implies **more than one plugin** in sequence, for example **age/gender** 
-and then run **describe/summarize images**), RescueBox runs such workflows in a pipeline:
-
-**Type this prompt** in the chat assistant **[🧠 Chat](/chatbot)**.:
+**Type this prompt** in the chat assistant **[Chat](/chatbot)**.:
 
 **Detect age and gender of these photos and summarize**
 
 1. Run the **first** job (e.g. **`age-gender/predict`**) and collect per-file metadata.
 
-       you set form inputs  "age-gender-classifier/inputs" , **Submit Job**"
+       you set form inputs to "age-gender-classifier/inputs" folder, and click on **Submit Job**"
 
-2.  A **popup** titled **“Filter files before next step”** is shown so that you can narrow      files to feed the **next** step.
+2.  A **popup** titled **“Filter files before next step”** is shown so that you can narrow files to feed the **next** step.
 
-       you enter **Gender=Male, Age<10**
+       you pick **Gender=Male, Age "less than" 10** and **apply filter**
 
 3. Fill the next form for **summarize the images** 
 
-- input is pre populated with the inputs for the previous plugin (expected).
+- input is pre populated with the inputs for the previous age-gender task (expected).
 
 - enter output directory for **describe-images/outputs**
 
@@ -75,14 +46,7 @@ and then run **describe/summarize images**), RescueBox runs such workflows in a 
 
 **What to expect:**
 
-First run age-gender classifier plugin to scan the images and detect age-gender , then match gender/age filter and then proceed to describe only these matched images.
-
-Note that in this walk thru we used "describe images" which uses an AI model to get the details.
-In the previous **Search Image walkthrough** rescuebox uses an ML model to find images with matching query/caption. 
-
-The  **search plugin** is faster and it uses semantic search, a search for a 'cell phone' might match a prison cell or a small object that looks like a phone.
-
-The **describe images plugin** uses an ai model to describe and it could incorrectly tag a cell phone as a mouse, the more gpu intensive models are better.
+**Pipeline workflow** : First run age-gender classifier plugin to scan the images predict age-gender , then match gender/age filter and proceed to describe only the matched images.
 
 ---
 

@@ -2,88 +2,131 @@
 """
 Core Business Logic for Chatbot Operations
 
-This module contains the ChatbotCore class which handles all core chatbot operations
-including API interactions, form generation, job submission, and Granite model integration.
-
-Key Responsibilities:
-- Fetching task schemas from API endpoints
-- Converting tool call arguments to form initial values
-- Creating input forms dynamically
-- Submitting jobs to the RescueBox API
-- Calling Granite model for tool selection
+Coordinates API interactions, dynamic forms, job submission, and Granite (Ollama) tool selection.
 """
-from pathlib import Path
-import sys
 import json
+import logging
+from typing import Any, Dict, Optional
+
 import httpx
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
+from nicegui import ui
+
+from rb.api.models import RequestBody, ResponseBody, TaskSchema
 from frontend.api_client import ApiClient
 from frontend.chatbot.api_helpers import fetch_task_schema
-from rb.api.models import TaskSchema, RequestBody, ResponseBody
-from frontend.chatbot.schema_utils import convert_arguments_to_initial_values as _convert
+from frontend.chatbot.exceptions import CHATBOT_ERRORS
 from frontend.chatbot.forms import create_input_form as _create
-from frontend.chatbot.orchestrator import submit_job_orchestrator
 from frontend.chatbot.granite import parse_fine_tune_tool_response
+from frontend.chatbot.orchestrator import submit_job_orchestrator
+from frontend.chatbot.schema_utils import (
+    convert_arguments_to_initial_values as _convert,
+)
 from frontend.chatbot.tool_config import create_advanced_granite_prompt
-import logging
-from typing import Optional, Dict, Any
 
-
-
-# Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# ---------------------------------------------------------------------------
-# Thin coordinator class (new) that replaces the runtime ChatbotCore symbol.
-# Appending instead of editing the original class body keeps history safe while
-# updating the public API used by the rest of the codebase/tests.
-# ---------------------------------------------------------------------------
-class ThinChatbotCore:
+
+class ChatbotCore:
     """
-    Thin coordinator that delegates to extracted helper modules.
+    RescueBox API + Ollama coordinator.
+
+    HTTP: ``self.api`` (ApiClient) is the primary entry; ``self.api_client`` is the
+    underlying ``httpx.AsyncClient`` used by ``api_helpers`` fallbacks.
     """
+
     def __init__(self, config):
         self.config = config
-        self.api_client = httpx.AsyncClient(base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
-        self.ollama_client = httpx.AsyncClient(base_url=config.OLLAMA_HOST, timeout=60.0)
         self.api = ApiClient(config.RESCUEBOX_HOST, timeout=config.TIMEOUT)
-        self._llama_model = None  # legacy attribute for tests
+        self.api_client = self.api._client  # pylint: disable=protected-access
+        self.ollama_url = config.OLLAMA_HOST
+        logger.info("Granite tool OLLAMA_HOST: url=%s", self.ollama_url)
 
-    async def get_task_schema_from_endpoint(self, endpoint: str) -> Optional[TaskSchema]:
-        schema_dict = await fetch_task_schema(self.api if hasattr(self, 'api') else None, self.api_client, self.config, endpoint)
+        self.ollama_client = httpx.AsyncClient(base_url=self.ollama_url, timeout=600.0)
+
+    async def get_task_schema_from_endpoint(
+        self, endpoint: str
+    ) -> Optional[TaskSchema]:
+        """Fetch and parse the TaskSchema for a plugin endpoint."""
+        schema_dict = await fetch_task_schema(
+            self.api,
+            self.api_client,
+            self.config,
+            endpoint,
+        )
         return TaskSchema(**schema_dict)
 
-    def convert_arguments_to_initial_values(self, arguments: Dict[str, Any], task_schema: TaskSchema, endpoint: str = "") -> Dict[str, Any]:
+    def convert_arguments_to_initial_values(
+        self, arguments: Dict[str, Any], task_schema: TaskSchema, endpoint: str = ""
+    ) -> Dict[str, Any]:
+        """Map tool arguments to form initial values."""
         return _convert(arguments, task_schema, endpoint)
 
-    async def create_input_form(self, task_schema: TaskSchema, endpoint: str, initial_values: Optional[Dict] = None, on_submit: callable = None, on_cancel: callable = None):
-        return await _create(task_schema, endpoint, initial_values=initial_values, on_submit=on_submit, on_cancel=on_cancel)
+    async def create_input_form(
+        self,
+        task_schema: TaskSchema,
+        endpoint: str,
+        initial_values: Optional[Dict] = None,
+        on_submit: callable = None,
+        on_cancel: callable = None,
+        container: Optional[ui.element] = None,
+    ):
+        """Render a NiceGUI form for the given task schema."""
+        return await _create(
+            task_schema,
+            endpoint,
+            initial_values=initial_values,
+            on_submit=on_submit,
+            on_cancel=on_cancel,
+            container=container,
+        )
 
-    async def submit_job(self, request_body: RequestBody, endpoint: str) -> ResponseBody:
+    async def submit_job(
+        self, request_body: RequestBody, endpoint: str
+    ) -> ResponseBody:
+        """POST the job to RescueBox and return the normalized response body."""
         api_endpoint = f"{'' if endpoint.startswith('/') else '/'}{endpoint}"
         request_dict = {
-            'inputs': {k: v.model_dump(mode='json') if hasattr(v, 'model_dump') else v for k, v in request_body.inputs.items()},
-            'parameters': request_body.parameters
+            "inputs": {
+                k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v
+                for k, v in request_body.inputs.items()
+            },
+            "parameters": request_body.parameters,
         }
-        return await submit_job_orchestrator(self.api if hasattr(self, 'api') else None, self.api_client, self.config, request_dict, api_endpoint)
+        return await submit_job_orchestrator(
+            self.api,
+            self.api_client,
+            self.config,
+            request_dict,
+            api_endpoint,
+        )
 
-
-    async def call_granite_model(self, prompt: str, use_advanced: bool = True, update_status_callback=None):
+    async def call_granite_model(
+        self, prompt: str, use_advanced: bool = True, update_status_callback=None
+    ):
         """Backward-compatible alias for :meth:`call_granite_model_direct` (Ollama-backed)."""
-        return await self.call_granite_model_direct(prompt, use_advanced=use_advanced, update_status_callback=update_status_callback)
+        return await self.call_granite_model_direct(
+            prompt,
+            use_advanced=use_advanced,
+            update_status_callback=update_status_callback,
+        )
 
-    async def call_granite_model_direct(self, prompt: str, use_advanced: bool = True, update_status_callback=None):
+    async def call_granite_model_direct(
+        self, prompt: str, use_advanced: bool = True, update_status_callback=None
+    ):
         """Call Granite model via Ollama API for tool selection."""
         return await self._call_ollama(prompt, use_advanced, update_status_callback)
 
-    async def _call_ollama(self, prompt: str, use_advanced: bool, update_status_callback=None) -> Optional[list]:
+    async def _call_ollama(
+        self, prompt: str, use_advanced: bool, update_status_callback=None
+    ) -> Optional[list]:
         """Call Ollama API for Granite model tool selection."""
         if update_status_callback:
-            update_status_callback("🧠 RescueBox working with AI model...")
+            update_status_callback("RescueBox working with AI model...")
         _preview = prompt if len(prompt) <= 1200 else prompt[:1200] + "…"
         logger.info(
-            "Granite tool selection request: model=%s use_advanced=%s prompt_len=%d prompt_preview=%r",
+            "Granite tool selection request: url=%s model=%s use_advanced=%s prompt_len=%d prompt_preview=%r",
+            f"{self.ollama_url}/api/chat",
             self.config.GRANITE_MODEL,
             use_advanced,
             len(prompt),
@@ -92,7 +135,6 @@ class ThinChatbotCore:
         try:
             if use_advanced:
                 messages = create_advanced_granite_prompt(prompt)
-                # Convert to Ollama format (role + content; flatten tool_calls into content)
                 ollama_messages = []
                 for m in messages:
                     role = m.get("role", "user")
@@ -102,22 +144,35 @@ class ThinChatbotCore:
                         for tc in m["tool_calls"]:
                             fn = tc.get("function", tc)
                             name = fn.get("name") if isinstance(fn, dict) else fn
-                            args = fn.get("arguments", {}) if isinstance(fn, dict) else {}
-                            parts.append(f"<tool_code>{json.dumps({'name': name, 'arguments': args})}</tool_code>")
+                            args = (
+                                fn.get("arguments", {}) if isinstance(fn, dict) else {}
+                            )
+                            parts.append(
+                                f"<tool_code>{json.dumps({'name': name, 'arguments': args})}</tool_code>"
+                            )
                         content = "\n".join(parts)
                     ollama_messages.append({"role": role, "content": content})
             else:
                 ollama_messages = [
-                    {"role": "system", "content": "You are a forensic assistant. Respond with tool calls in <tool_code> tags."},
+                    {
+                        "role": "system",
+                        "content": "You are a forensic assistant. Respond with tool calls in <tool_code> tags.",
+                    },
                     {"role": "user", "content": prompt},
                 ]
             resp = await self.ollama_client.post(
-                "/api/chat",
-                json={"model": self.config.GRANITE_MODEL, "messages": ollama_messages, "stream": False},
-                timeout=120.0,
+                url=f"{self.ollama_url}/api/chat",
+                json={
+                    "model": self.config.GRANITE_MODEL,
+                    "messages": ollama_messages,
+                    "stream": False,
+                },
+                timeout=600.0,
             )
             if resp.status_code != 200:
-                logger.warning("Ollama failed: %s %s", resp.status_code, resp.text[:200])
+                logger.warning(
+                    "Ollama failed: %s %s", resp.status_code, resp.text[:200]
+                )
                 return None
             data = resp.json()
             model_text = data.get("message", {}).get("content", "")
@@ -141,17 +196,11 @@ class ThinChatbotCore:
                 )
             else:
                 logger.warning("Granite /api/chat returned empty message.content")
-        except Exception as e:
-            logger.debug("Ollama error: %s", e)
+        except CHATBOT_ERRORS as e:
+            logger.error("Ollama connection or parsing error: %s", e, exc_info=True)
         return None
 
     async def close(self):
-        await self.api_client.aclose()
-        if hasattr(self, 'api'):
-            await self.api.aclose()
+        """Close HTTP clients used by the chatbot core."""
+        await self.api.aclose()
         await self.ollama_client.aclose()
-        self._llama_model = None
-
-
-# Replace the exported symbol so external imports get the new thin coordinator.
-ChatbotCore = ThinChatbotCore

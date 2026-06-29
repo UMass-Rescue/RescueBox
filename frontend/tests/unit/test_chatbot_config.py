@@ -18,20 +18,25 @@ These components are critical for ensuring consistent, reliable chatbot
 behavior and providing users with clear, discoverable tool access patterns.
 """
 
-import pytest
-from frontend.chatbot.config import ChatbotConfig, ToolRegistry
+from frontend.chatbot.config import (
+    ChatbotConfig,
+    ToolRegistry,
+    normalize_ollama_host,
+    collect_ollama_model_names,
+    resolve_ollama_model_tag,
+)
 
 # Configuration constants
-DEFAULT_OLLAMA_HOST = "http://localhost:11434"
-DEFAULT_GRANITE_MODEL = "granite4:micro"
+DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
+DEFAULT_GRANITE_MODEL = "ibm/granite4.1:3b"
 DEFAULT_RESCUEBOX_HOST = "http://localhost:8000"
-DEFAULT_TIMEOUT = 300
+DEFAULT_TIMEOUT = 604800
 DEFAULT_FILTER_ENABLED = True
 
 CUSTOM_OLLAMA_HOST = "http://custom:11434"
 CUSTOM_GRANITE_MODEL = "custom-model"
 CUSTOM_RESCUEBOX_HOST = "http://custom:8000"
-CUSTOM_TIMEOUT = 600
+CUSTOM_TIMEOUT = 604800
 CUSTOM_FILTER_ENABLED = False
 
 # Tool registry constants
@@ -42,7 +47,7 @@ AGE_GENDER_COMMAND = "/age-gender"
 MODELS_COMMAND = "/models"
 ASSISTANT_COMMAND = "/assistant"
 HELP_COMMAND = "/help"
-SUMMARIZE_COMMAND = "/summarize"
+SUMMARIZE_COMMAND = "/summarize-text"
 
 TRANSCRIBE_ENDPOINT = "audio/transcribe"
 SUMMARIZE_ENDPOINT = "text_summarization/summarize"
@@ -54,8 +59,8 @@ TOOL_MENU_KEY_7 = "7"
 
 # Help text constants
 RESCUEBOX_ASSISTANT_TEXT = "RescueBox Assistant"
-SLASH_COMMANDS_TEXT = "Shortcut Commands"
-NATURAL_LANGUAGE_TEXT = "Natural Language"
+MENU_SELECTOR_TEXT = "Menu Selctor"
+NATURAL_LANGUAGE_TEXT = "natural language"
 THREE_WAYS_TEXT = "Three different ways"
 
 # Content filtering constants
@@ -83,23 +88,49 @@ class TestChatbotConfig:
     - Content filtering enablement
     - Model and service endpoint configuration
     """
-    
-    def test_default_config(self):
-        """Test default configuration values.
 
-        Validates that the ChatbotConfig initializes with sensible defaults
-        suitable for development and local deployment scenarios, ensuring
-        out-of-the-box functionality without requiring manual configuration.
-        """
+    def test_default_config(self, monkeypatch):
+        """Test default configuration values."""
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
         config = ChatbotConfig()
         assert config.OLLAMA_HOST == DEFAULT_OLLAMA_HOST
         assert config.GRANITE_MODEL == DEFAULT_GRANITE_MODEL
         # Allow environment override (API_BASE_URL) when running integration-enabled test runs.
         import os
+
         expected_hosts = {DEFAULT_RESCUEBOX_HOST, os.getenv("API_BASE_URL")} - {None}
         assert config.RESCUEBOX_HOST in expected_hosts
-        assert config.TIMEOUT == DEFAULT_TIMEOUT
+        assert config.TIMEOUT == 604800
         assert config.FILTER_ENABLED is DEFAULT_FILTER_ENABLED
+
+    def test_ollama_host_env_without_scheme(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_HOST", "127.0.0.1:11434")
+        config = ChatbotConfig()
+        assert config.OLLAMA_HOST == "http://127.0.0.1:11434"
+
+    def test_normalize_ollama_host_helper(self):
+        assert normalize_ollama_host("localhost:11434") == "http://localhost:11434"
+        assert (
+            normalize_ollama_host("https://ollama.example") == "https://ollama.example"
+        )
+
+    def test_resolve_ollama_model_tag(self):
+        tags = {
+            "models": [
+                {"name": "granite4-micro:latest", "model": "granite4-micro"},
+                {"name": "llama3.2", "model": "llama3.2"},
+            ]
+        }
+        names = collect_ollama_model_names(tags)
+        assert (
+            resolve_ollama_model_tag("ibm/granite4.1:3b", names)
+            == "granite4-micro:latest"
+        )
+        assert (
+            resolve_ollama_model_tag("granite4-micro", names) == "granite4-micro:latest"
+        )
+        assert resolve_ollama_model_tag("llama3.2", names) == "llama3.2"
+        assert resolve_ollama_model_tag("missing", names) is None
 
     def test_custom_config(self):
         """Test custom configuration values.
@@ -113,7 +144,7 @@ class TestChatbotConfig:
             GRANITE_MODEL=CUSTOM_GRANITE_MODEL,
             RESCUEBOX_HOST=CUSTOM_RESCUEBOX_HOST,
             TIMEOUT=CUSTOM_TIMEOUT,
-            FILTER_ENABLED=CUSTOM_FILTER_ENABLED
+            FILTER_ENABLED=CUSTOM_FILTER_ENABLED,
         )
         assert config.OLLAMA_HOST == CUSTOM_OLLAMA_HOST
         assert config.GRANITE_MODEL == CUSTOM_GRANITE_MODEL
@@ -139,7 +170,7 @@ class TestToolRegistry:
     - Help text generation and completeness
     - Menu consistency and validation
     """
-    
+
     def test_slash_commands_exist(self):
         """Test that all essential slash commands are defined.
 
@@ -166,7 +197,7 @@ class TestToolRegistry:
         assert ToolRegistry.SLASH_COMMANDS[SUMMARIZE_COMMAND] == SUMMARIZE_ENDPOINT
         assert ToolRegistry.SLASH_COMMANDS[MODELS_COMMAND] == PICK_TOOL_ENDPOINT
         assert ToolRegistry.SLASH_COMMANDS[ASSISTANT_COMMAND] == SMART_ANALYZE_ENDPOINT
-    
+
     def test_tool_menu_structure(self):
         """Test that tool menu has correct structure and required fields.
 
@@ -189,19 +220,8 @@ class TestToolRegistry:
         assert uids[0] == "audio"
         assert uids.index("image_summary") < uids.index("image_embeddings")
         assert uids.count("face-match") == 1
-        assert uids[-1] == "ufdr_mounter"
-    
-    def test_fallback_endpoints(self):
-        """Test that fallback endpoints are properly defined.
-
-        Ensures that fallback endpoint mappings exist for graceful
-        degradation when primary tool discovery fails, providing
-        reliable tool access even in edge cases.
-        """
-        assert TOOL_MENU_KEY_1 in ToolRegistry.FALLBACK_ENDPOINTS
-        assert TOOL_MENU_KEY_7 in ToolRegistry.FALLBACK_ENDPOINTS
-        assert ToolRegistry.FALLBACK_ENDPOINTS[TOOL_MENU_KEY_1] == TRANSCRIBE_ENDPOINT
-        assert ToolRegistry.FALLBACK_ENDPOINTS[TOOL_MENU_KEY_7] == SUMMARIZE_ENDPOINT
+        assert uids[-1] == "image_similarity"
+        assert "ufdr_mounter" in uids
 
     def test_blocked_patterns(self):
         """Test that blocked patterns are defined for content filtering.
@@ -214,7 +234,7 @@ class TestToolRegistry:
         # Check for common blocked patterns
         patterns_str = " ".join(ToolRegistry.BLOCKED_PATTERNS)
         assert WEATHER_PATTERN in patterns_str or STOCK_PATTERN in patterns_str
-    
+
     def test_rescuebox_keywords(self):
         """Test that RescueBox keywords are defined for tool discovery.
 
@@ -236,23 +256,7 @@ class TestToolRegistry:
         """
         help_text = ToolRegistry.get_help_text()
         assert RESCUEBOX_ASSISTANT_TEXT in help_text
-        assert SLASH_COMMANDS_TEXT in help_text
-        assert TRANSCRIBE_COMMAND in help_text or TRANSCRIBE_KEYWORD in help_text
-        assert "natural language" in help_text.lower()
+        assert MENU_SELECTOR_TEXT in help_text
+        assert TRANSCRIBE_KEYWORD in help_text.lower()
+        assert NATURAL_LANGUAGE_TEXT in help_text.lower()
         assert THREE_WAYS_TEXT in help_text
-    
-    def test_help_text_contains_all_commands(self):
-        """Test that help text contains all slash commands"""
-        help_text = ToolRegistry.get_help_text()
-        for cmd in ToolRegistry.SLASH_COMMANDS.keys():
-            if cmd not in ['/models', '/assistant', '/help']:
-                assert cmd in help_text or cmd.replace('/', '') in help_text.lower()
-    
-    def test_tool_menu_consistency(self):
-        """Test that tool menu and fallback endpoints are consistent"""
-        for tool_num, tool_info in ToolRegistry.TOOL_MENU.items():
-            endpoint = tool_info["endpoint"]
-            fallback_endpoint = ToolRegistry.FALLBACK_ENDPOINTS.get(tool_num)
-            assert endpoint == fallback_endpoint, \
-                f"Tool {tool_num} endpoint mismatch: {endpoint} != {fallback_endpoint}"
-

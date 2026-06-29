@@ -11,7 +11,7 @@ audio-transcription = "audio_transcription.main:app"
 [tool.poetry.dependencies]
 cmake = "*"
 python = "^3.11"
-openai-whisper = "*"
+faster-whisper = "*"
 
 [build-system]
 requires = ["poetry-core"]

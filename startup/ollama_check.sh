@@ -2,12 +2,15 @@
 
 # List of models required for v3
 MODELS=(
-    "llama3.2-vision:11b"
     "gemma3:1b"
-    "gemma3:27b"
-    "granite4:micro"
-    "gemma3:4b"
+    "ibm/granite4.1:3b"
+    "moondream:latest"
 )
+
+# sudo systemctl stop ollama
+#   curl -fsSL https://ollama.com/install.sh | sh
+#   ollama --version
+#  ollama version is 0.20.2
 
 echo "🔍 Validating Ollama Environment..."
 

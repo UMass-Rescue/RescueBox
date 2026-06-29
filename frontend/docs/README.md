@@ -1,43 +1,70 @@
-# Frontend documentation (canonical)
+# Frontend docs (simple set)
 
-Keep docs **small and current**. This index plus nine topic files are what we maintain (ten files including this README).
+This folder is intentionally reduced to **3 docs**:
 
-## Big picture
+1. **[ui-flow.md](./ui-flow.md)** - user flow logic from startup to common journeys.
+2. **[style-theme.md](./style-theme.md)** - style/theme rules and where to change UI appearance.
+3. **[README.md](./README.md)** - this quick index.
 
-- **UI:** NiceGUI app in `frontend/main.py`; routes on `frontend/pages/*`; shared UI in `frontend/components/`.
-- **Assistant (`/chatbot`):** User text → `MessageHandler.handle_message()` → slash commands or **`handle_smart_analyze()`** → **`ChatbotCore`** (alias of **`ThinChatbotCore`** in `frontend/chatbot/core.py`).
-  - **Tool selection:** Ollama **`POST /api/chat`** on `OLLAMA_HOST` with `GRANITE_MODEL` (see `_call_ollama`).
-  - **Plugins:** HTTP to **`RESCUEBOX_HOST`** — `GET {plugin}/{task}/task_schema`, `POST {plugin}/{task}` with JSON `inputs` / `parameters` (`frontend/chatbot/api_helpers.py` uses **`use_api_prefix=False`** for these paths so they match Typer-registered routes).
-- **Models list in UI:** `ApiClient` in `frontend/api_client.py` defaults to paths under **`API_BASE_URL`** (usually `http://localhost:<port>/api`), e.g. **`GET /api/models`**, **`GET /api/servers`**, etc. (`frontend/config.py`).
-- **Data:** SQLite under **`frontend/data/`** — one **`jobs.db`** file for both **jobs** and **chat history** tables; **`cache.db`** for cached model list (`frontend/database/__init__.py`). See [database.md](./database.md).
+Additional planning artifact:
 
-## Topic index
+- **[refactor-items.md](./refactor-items.md)** - comprehensive refactor backlog with priorities and PR-sized first slices.
 
-| Topic | Doc |
-|--------|-----|
-| End-to-end workflow (chat, tools, API) | [workflow.md](./workflow.md) |
-| Look & feel (Tailwind, dark mode, layout) | [style-theme.md](./style-theme.md) |
-| Conversations, messages, rerun | [chat-history.md](./chat-history.md) |
-| Job lifecycle, submission, polling | [jobs.md](./jobs.md) |
-| SQLite files, storage | [database.md](./database.md) |
-| Rendering API responses in the UI | [results.md](./results.md) |
-| Forensic filter, `/analyze` | [pipeline-filter.md](./pipeline-filter.md) |
-| Tests | [testing.md](./testing.md) |
+## One-screen overview
 
-## Code map
+- **Frontend app:** `frontend/main.py` (NiceGUI route bootstrap).
+- **Chat flow:** `pages/chatbot/*` + `chatbot/*` (message handling, schema fetch, submit).
+- **Results and forms UI:** `components/results/`, `components/forms/`.
+- **Data:** `frontend/data/jobs.db` and `frontend/data/cache.db`.
 
-| Area | Main locations |
-|------|----------------|
-| Chat page | `frontend/pages/chatbot/chatbot.py` (`@ui.page('/chatbot')`) |
-| Message routing | `frontend/chatbot/message_handler.py` (`MessageHandler`) |
-| Granite + forms + submit | `frontend/chatbot/core.py`, `orchestrator.py`, `api_helpers.py` |
-| Coordinator | `frontend/pages/chatbot/handlers/message_flow_coordinator.py` |
-| Form submit / results | `frontend/pages/chatbot/handlers/form_submit_handler.py`, `job_submission_orchestrator.py` |
-| Job DB / chat DB | `frontend/database/job_db.py`, `chat_history_db.py` (same `jobs.db`) |
-| Results UI | `frontend/components/results/` |
-| URL `?load_conversation=` / `?rerun=` | `frontend/pages/chatbot/parameter_handlers.py` |
+For implementation behavior details, use code references from `ui-flow.md`.
 
-## Related
+## Python classes by file (frontend runtime)
 
-- **Backend:** plugin routes and models router — `src/rb-api/rb/api/`.
-- **Tests:** [testing.md](./testing.md); repo uses Poetry (`pyproject.toml`).
+This is a concise inventory of classes defined in `frontend/` application code (tests excluded).
+
+| File | Classes |
+|------|---------|
+| `frontend/design_tokens.py` | `Design` |
+| `frontend/api_client.py` | `ApiClient` |
+| `frontend/utils/backend.py` | `_BackendAvailability` |
+| `frontend/utils/logging.py` | `ContextFilter` |
+| `frontend/pages/chatbot/chat_page.py` | `ChatbotPage` |
+| `frontend/pages/chatbot/ui_builder.py` | `FormConfig`, `ChatUIBuilder` |
+| `frontend/pages/chatbot/state.py` | `MessageRole`, `ChatMessage`, `ChatbotStateManager`, `MessageSendParams` |
+| `frontend/pages/chatbot/message_flow_coordinator.py` | `MessageFlowCoordinator` |
+| `frontend/pages/chatbot/message_processor.py` | `MessageProcessor` |
+| `frontend/chatbot/message_handler.py` | `MessageHandler` |
+| `frontend/chatbot/core.py` | `ChatbotCore` |
+| `frontend/chatbot/config.py` | `ChatbotConfig`, `ToolRegistry` |
+| `frontend/chatbot/tool_config.py` | `TextSummarize`, `ImageSummarize`, `AudioTranscribe`, `AgeGenderPredict`, `FaceFindBulk`, `FaceBulkUpload`, `DeepfakeDetection`, `FileSystemScan`, `UfdrMount`, `TextSearch`, `ImageSearch`, `ImageSimilaritySearch`, `RescueBoxToolCall`, `ToolCallList` |
+| `frontend/chatbot/multi_tool/models.py` | `MultiToolCallResult` |
+| `frontend/pages/chatbot/pickers.py` | `ToolPicker`, `AnalysisPicker` |
+| `frontend/pages/chatbot/form_submit_handler.py` | `FormSubmitHandler` |
+| `frontend/pages/chatbot/result_processor.py` | `ResultProcessor` |
+| `frontend/pages/chatbot/database_service.py` | `DatabaseService` |
+| `frontend/pages/chatbot/handlers/base.py` | `BaseHandler`, `FormErrorHandler` |
+| `frontend/pages/chatbot/handlers/job_submit_params.py` | `JobSubmitParams` |
+| `frontend/pages/chatbot/handlers/job_lifecycle_service.py` | `JobLifecycleService` |
+| `frontend/pages/chatbot/handlers/job_orchestrator.py` | `JobSubmissionOrchestrator` |
+| `frontend/pages/chatbot/handlers/pipeline.py` | `PipelineHandler` |
+| `frontend/pages/chatbot/handlers/pipeline_planner.py` | `NextPipelineStepPlan` |
+| `frontend/components/forms/form_generator.py` | `FormGenerator` |
+| `frontend/components/results/dispatch.py` | `ResultDispatcher`, `ResultsPreview` |
+| `frontend/components/results/image_summary.py` | `_ImageSummaryCssState` |
+| `frontend/components/results/serve_paths.py` | `_ServeRouteState` |
+| `frontend/components/chat/ui_operations.py` | `UIOperations` |
+| `frontend/components/shared/stepper.py` | `WorkflowStepper` |
+| `frontend/components/demo.py` | `WalkthroughPreset` |
+| `frontend/components/base_component.py` | `BaseComponent`, `ComponentRegistry` |
+| `frontend/pages/logs.py` | `LogsPage` |
+| `frontend/pages/models.py` | `ModelsPage` |
+| `frontend/pages/jobs/list.py` | `JobsPage` |
+| `frontend/database/schemas.py` | `DatabaseSchema`, `JobDatabaseSchema`, `ChatHistoryDatabaseSchema`, `SchemaManager` |
+| `frontend/database/base_db.py` | `BaseDatabase` |
+| `frontend/database/validation.py` | `DatabaseValidator` |
+| `frontend/database/job_models.py` | `JobStatus`, `JobRecord` |
+| `frontend/database/job_db.py` | `JobDB` |
+| `frontend/database/case_db.py` | `CaseRecord`, `CaseDB` |
+| `frontend/database/chat_history_db.py` | `ConversationRecord`, `ChatMessageRecord`, `ChatHistoryDB` |
+| `frontend/utils/browser.py` | `DirectoryBrowser`, `FileBrowser` |

@@ -1,15 +1,23 @@
-poetry run pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu130
+poetry run pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu130 > /dev/null 2>&1
 
-RC=`python -c "import torch; print(torch.cuda.is_available())"`
+# no torch in rescuebox
+# RC=`poetry run python -c "import torch; print(torch.cuda.is_available())"`
+
+import onnxruntime as ort
+
+# Check for NVIDIA GPU
+cuda_available = "CUDAExecutionProvider" in ort.get_available_providers()
+
+# Check for AMD / Intel Windows GPU (if using onnxruntime-directml)
+dml_available = "DmlExecutionProvider" in ort.get_available_providers()
 
 echo ""
-if [[ "$RC" == "True" ]]; then
+if [[ "$cuda_available" == "True" ]]; then
     echo "==============================="
-    echo "torch for CLIP will use GPU"
-    python -c "import torch; print(torch.version.cuda)"
+    echo "embeddings plugin using CLIP will use GPU"
     echo "==============================="
 else
-   echo "torch for CLIP will not use gpu , CPU only"
+   echo "embeddings plugin using CLIP will not use gpu , CPU only"
 fi
 
 

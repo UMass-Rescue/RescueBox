@@ -17,5 +17,5 @@ fastapi = ">=0.115.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.ruff]
-ignore = ["F401"]
+[tool.ruff.lint]
+#ignore = ["F401"]

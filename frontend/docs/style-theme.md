@@ -1,16 +1,50 @@
-# Style and theme
+# Style and theme (frontend)
 
-## Approach
+Current source of truth for reusable style tokens is `frontend/design_tokens.py` (`Design`).
+Global CSS/Quasar overrides are in `frontend/utils/ui_readability_css.py`.
 
-- **Tailwind** utility classes on NiceGUI elements (`.classes('...')`) — layout, spacing, color, typography.
-- **Shared chrome:** `frontend/components/shared/navbar.py`, chat under `frontend/components/chat/`.
+## Core theme rules
 
-## Dark mode
+- Primary brand actions: UMass maroon `#881c1c` (`Design.BTN_PRIMARY*`, `Design.LINK`).
+- Secondary solid buttons: medium gray `#505759` (`Design.BTN_MEDIUM_GRAY`).
+- Neutral surfaces/text/borders: zinc/slate classes used consistently across pages.
+- Semantic status colors remain semantic:
+  - success (`green-*`)
+  - warning (`yellow-*`)
+  - error (`red-*`)
 
-- **`RESCUEBOX_DARK_MODE`** → **`APP_DARK_MODE`** in `frontend/config.py`, passed to **`ui.run(dark=...)`** in `frontend/main.py`.
-- **Runtime theme helpers:** `frontend/utils/theme.py` (e.g. **`apply_saved_theme`** used on job details page).
+## Where to update styling
 
-## Where to change look
+- Tokens: `frontend/design_tokens.py`
+- Global CSS + Quasar vars: `frontend/utils/ui_readability_css.py`
+- Shared navbar/shell: `frontend/components/shared/`
+- Chat UI styling: `frontend/components/chat/` and `frontend/pages/chatbot/`
+- Forms: `frontend/components/forms/`
+- Jobs and results cards: `frontend/components/jobs/`, `frontend/components/results/`
 
-- App bootstrap: `frontend/main.py`.
-- Forms: `frontend/components/forms/form_generator.py` and builders under `forms/builders/`, `forms/fields/`.
+## Practical guidance
+
+- Prefer `Design.*` tokens over repeating long inline class strings.
+- Keep new neutral styles on zinc/slate family.
+- Avoid introducing legacy/deprecated indigo primary CTA patterns.
+
+## Audit helpers
+
+From repo root:
+
+```bash
+# New gray utility usage (should be reviewed)
+rg 'gray-[0-9]' frontend --glob '*.py'
+
+# Files importing Design
+rg 'from frontend\.design_tokens import Design' frontend --glob '*.py'
+```
+
+## Historical note
+
+The previous style doc included a large generated file inventory that drifted from current module paths. That inventory has been removed; regenerate via commands above when needed.
+
+## Related
+
+- `frontend/docs/ui-flow.md`
+- `frontend/docs/README.md`
