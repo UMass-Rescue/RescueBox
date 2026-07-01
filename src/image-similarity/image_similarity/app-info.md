@@ -1,8 +1,8 @@
-# Image Similarity Search (CLIP)
+# Image Similarity Search
 
-This plugin finds **visually similar images** given a query image. It uses CLIP to embed all images in a folder and then ranks them by cosine similarity to the query image's embedding.
+This plugin finds **visually similar images** given a query image. It embeds all images in a folder using a SigLIP2 vision encoder (ONNX Runtime) and ranks them using a configurable scoring mode combining semantic similarity and perceptual hashing.
 
-Embeddings are stored in the same PostgreSQL (pgvector) `image_embeddings` table used by the text-to-image **Search Images** plugin. If images have already been embedded by that plugin (or by a prior run of this one), their vectors are **reused** — no double computation.
+Embeddings are stored in a dedicated PostgreSQL (pgvector) `image_similarity_embeddings` table. If images have already been embedded by a prior run, their vectors are **reused** — no double computation.
 
 **Route:** `/search_similar_images`
 
@@ -14,11 +14,13 @@ Embeddings are stored in the same PostgreSQL (pgvector) `image_embeddings` table
 
 ## Parameters
 
-- **CLIP model:** `apple/DFN5B-CLIP-ViT-H-14-378` current favorite.
+- **CLIP model:** `google/siglip2-so400m-patch14-384` (SigLIP2-SO400M, 1152-dim, Apache 2.0).
 
 - **Top K:** How many highest-similarity images to return (1–20, default 5).
 
 - **Match threshold:** Similarity in 0–1; results at or above this count as a match in metadata. Image-to-image similarity scores are typically higher than text-to-image (~0.5–0.9 for related content).
+
+- **Scoring mode:** Combined (CLIP + PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ).
 
 ## Supported Image Types
 
@@ -34,20 +36,19 @@ Embeddings are stored in the same PostgreSQL (pgvector) `image_embeddings` table
 
 ## How It Works (brief)
 
-1. Scan the input directory; for each image, check if its embedding already exists in `image_embeddings` (by path or content SHA-256). Only compute and store new CLIP image vectors for files not already in the database.
-2. Look up or compute the **query image's** CLIP embedding. If it already exists in the DB (e.g. it is inside the directory, or was embedded in a prior run), that stored vector is reused.
-3. Rank **only** the directory images using pgvector cosine similarity against the query embedding, return **top-k** results.
+1. Scan the input directory; for each image, check if its embedding already exists in `image_similarity_embeddings` (by path or content SHA-256). Only compute and store new vectors for files not already in the database.
+2. Compute PDQ perceptual hashes for all images (backfilling any that are missing).
+3. Look up or compute the **query image's** embedding and PDQ hash.
+4. Rank **only** the directory images using the selected scoring mode, return **top-k** results.
 
 ## Notes
 
 - Search is **within the given folder's embedded set** for that job, not a global search across unrelated past embeddings.
 
-- Both this plugin and the **Search Images** (text-to-image) plugin share the same `image_embeddings` table. Running one seeds the table for the other — embeddings are computed once and reused across both search modes.
-
-- **GPU** speeds up CLIP; CPU works but is slower on large folders.
+- **GPU** speeds up inference; CPU works but is slower on large folders.
 
 - **Pipeline:** Compatible with other plugins that consume or produce `BatchFileResponse` / file lists.
 
 ## Dependencies
 
-- `transformers`, `torch`, `pillow`, `numpy`, PostgreSQL with **pgvector**, `sqlmodel` / `sqlalchemy`.
+- `transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, PostgreSQL with **pgvector**, `sqlmodel` / `sqlalchemy`.
