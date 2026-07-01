@@ -11,7 +11,7 @@ import onnxruntime as ort
 import pdqhash
 import typer
 from PIL import Image
-from transformers import CLIPImageProcessor
+from transformers import AutoImageProcessor
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     InputSchema,
@@ -31,8 +31,8 @@ from rb.api.models import (
     FileResponse,
     FileType,
 )
-from rb.api.database import ImageEmbedding, engine
-from rb.api.embedding_storage import ImageEmbeddingStorage
+from rb.api.database import ImageSimilarityEmbedding, engine
+from rb.api.embedding_storage import ImageSimilarityEmbeddingStorage
 from image_similarity.scorers import ClipScorer, CombinedScorer, PdqScorer
 from sqlmodel import Session, select
 from sqlalchemy import update
@@ -43,9 +43,9 @@ logger = logging.getLogger(__name__)
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
 ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
-_DEFAULT_MODEL = "openai/clip-vit-base-patch32"
+_DEFAULT_MODEL = "google/siglip2-so400m-patch14-384"
 _MODELS_DIR = Path(__file__).resolve().parent / "onnx_models"
-_DEFAULT_ONNX_PATH = _MODELS_DIR / "clip-vit-base-patch32.onnx"
+_DEFAULT_ONNX_PATH = _MODELS_DIR / "siglip2-so400m-patch14-384.onnx"
 # Number of images fed to the ONNX session per GPU kernel launch.
 # Larger values increase GPU utilisation; reduce if VRAM is limited.
 _EMBED_BATCH_SIZE = 32
@@ -55,10 +55,10 @@ _EMBED_LOCKS: dict[str, threading.Lock] = {}
 
 _MODEL_LOCK = threading.Lock()
 _ORT_SESSION: ort.InferenceSession | None = None
-_PROCESSOR: CLIPImageProcessor | None = None
+_PROCESSOR: AutoImageProcessor | None = None
 
 
-def _get_onnx_vision_model() -> tuple[ort.InferenceSession, CLIPImageProcessor]:
+def _get_onnx_vision_model() -> tuple[ort.InferenceSession, AutoImageProcessor]:
     """Load the ONNX model once and cache it for the lifetime of the process."""
     global _ORT_SESSION, _PROCESSOR
     if _ORT_SESSION is not None and _PROCESSOR is not None:
@@ -100,23 +100,24 @@ def _get_ort_providers() -> list[str]:
     providers: list[str] = []
     if "CUDAExecutionProvider" in available:
         providers.append("CUDAExecutionProvider")
-    if "CoreMLExecutionProvider" in available:
-        providers.append("CoreMLExecutionProvider")
+    # Skip CoreML - causes errors with CLIP models on macOS
+    # if "CoreMLExecutionProvider" in available:
+    #     providers.append("CoreMLExecutionProvider")
     providers.append("CPUExecutionProvider")
     return providers
 
 
-def _load_onnx_vision_model() -> tuple[ort.InferenceSession, CLIPImageProcessor]:
-    """Load the bundled CLIP vision ONNX model and image processor."""
+def _load_onnx_vision_model() -> tuple[ort.InferenceSession, AutoImageProcessor]:
+    """Load the bundled vision ONNX model and its image processor."""
     if not _DEFAULT_ONNX_PATH.exists():
         raise FileNotFoundError(
             f"ONNX model not found at {_DEFAULT_ONNX_PATH}. "
-            "Download clip-vit-base-patch32.onnx into the onnx_models/ directory."
+            f"Download the vision ONNX export of {_DEFAULT_MODEL} into the onnx_models/ directory."
         )
     session = ort.InferenceSession(
         str(_DEFAULT_ONNX_PATH), providers=_get_ort_providers(),
     )
-    processor = CLIPImageProcessor.from_pretrained(_DEFAULT_MODEL)
+    processor = AutoImageProcessor.from_pretrained(_MODELS_DIR)
     return session, processor
 
 
@@ -129,7 +130,7 @@ def _supports_dynamic_batch(ort_session: ort.InferenceSession) -> bool:
 
 def _embed_images_batch(
     ort_session: ort.InferenceSession,
-    processor: CLIPImageProcessor,
+    processor: AutoImageProcessor,
     image_paths: list[str],
     batch_size: int = _EMBED_BATCH_SIZE,
 ) -> dict[str, np.ndarray]:
@@ -165,7 +166,9 @@ def _embed_images_batch(
             np.float32
         )
         outputs = ort_session.run(None, {"pixel_values": pixel_values})
-        embeds = outputs[0]  # (batch, embed_dim)
+        embeds = outputs[0]
+        if embeds.ndim == 3:
+            embeds = embeds.mean(axis=1)
         embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
         for path, vec in zip(valid_paths, embeds):
             results[path] = vec
@@ -174,7 +177,7 @@ def _embed_images_batch(
 
 def _embed_image(
     ort_session: ort.InferenceSession,
-    processor: CLIPImageProcessor,
+    processor: AutoImageProcessor,
     image_path: str,
 ) -> np.ndarray:
     """Compute a normalised embedding for a single image.  Returns a 1-D float32 array."""
@@ -182,6 +185,9 @@ def _embed_image(
     if image_path not in results:
         raise RuntimeError(f"Failed to embed {image_path}")
     return results[image_path]
+
+
+_PDQ_HEX_LEN = 64  # 256 bits = 64 hex chars
 
 
 def _compute_pdq_hash(image_path: str) -> str:
@@ -195,11 +201,14 @@ def _compute_pdq_hash(image_path: str) -> str:
         img = Image.open(image_path).convert("RGB")
         img_array = np.array(img, dtype=np.uint8)
         hash_vector, _quality = pdqhash.compute(img_array)
-        # hash_vector is a list of 256 ints (0 or 1); pack into bytes then hex.
         bits = 0
         for bit in hash_vector:
             bits = (bits << 1) | int(bit)
-        return format(bits, "064x")
+        hex_hash = format(bits, "064x")
+        if len(hex_hash) != _PDQ_HEX_LEN:
+            logger.warning("PDQ hash length mismatch for %s: got %d chars", image_path, len(hex_hash))
+            return ""
+        return hex_hash
     except Exception as exc:
         logger.warning("PDQ hash failed for %s: %s", image_path, exc)
         return ""
@@ -212,9 +221,9 @@ def _compute_pdq_hash(image_path: str) -> str:
 def task_schema() -> TaskSchema:
     model_enum = EnumParameterDescriptor(
         enum_vals=[
-            EnumVal(key="openai/clip-vit-base-patch32", label="CLIP-ViT-B-32-OpenAI"),
+            EnumVal(key="google/siglip2-so400m-patch14-384", label="SigLIP2-SO400M"),
         ],
-        default="openai/clip-vit-base-patch32",
+        default="google/siglip2-so400m-patch14-384",
     )
     top_k_desc = RangedIntParameterDescriptor(
         range=IntRangeDescriptor(min=1, max=20),
@@ -291,11 +300,19 @@ server.add_app_metadata(
 )
 
 
-def _paths_already_embedded(session: Session, paths: list[str]) -> set[str]:
+def _paths_already_embedded(session: Session, paths: list[str], model_name: str = _DEFAULT_MODEL) -> set[str]:
     if not paths:
         return set()
-    rows = session.exec(select(ImageEmbedding.path).where(ImageEmbedding.path.in_(paths))).all()
+    rows = session.exec(
+        select(ImageSimilarityEmbedding.path).where(
+            ImageSimilarityEmbedding.path.in_(paths),
+            ImageSimilarityEmbedding.model_name == model_name,
+        )
+    ).all()
     return set(rows)
+
+
+_SHA256_HEX_LEN = 64  # SHA-256 = 32 bytes = 64 hex chars
 
 
 def _sha256_file(path: str) -> str:
@@ -303,7 +320,9 @@ def _sha256_file(path: str) -> str:
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
-    return h.hexdigest()
+    digest = h.hexdigest()
+    assert len(digest) == _SHA256_HEX_LEN
+    return digest
 
 
 def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
@@ -312,31 +331,36 @@ def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
     Uses a single batch query instead of N individual lookups.
     """
     if not paths:
+        logger.info("Backfill: no paths to check")
         return 0
+    logger.info("Backfill: checking %d paths for missing PDQ hashes", len(paths))
     rows = session.exec(
-        select(ImageEmbedding).where(
-            ImageEmbedding.path.in_(paths),
-            ImageEmbedding.pdq_hash == "",
+        select(ImageSimilarityEmbedding).where(
+            ImageSimilarityEmbedding.path.in_(paths),
+            ImageSimilarityEmbedding.pdq_hash == "",
         )
     ).all()
+    logger.info("Backfill: found %d rows with empty pdq_hash", len(rows))
     filled = 0
     for row in rows:
         pdq = _compute_pdq_hash(row.path)
+        logger.info("Backfill: %s -> pdq=%s", row.path, pdq[:16] + "..." if pdq else "EMPTY")
         if pdq:
             session.execute(
-                update(ImageEmbedding)
-                .where(ImageEmbedding.id == row.id)
+                update(ImageSimilarityEmbedding)
+                .where(ImageSimilarityEmbedding.id == row.id)
                 .values(pdq_hash=pdq)
             )
             filled += 1
     if filled:
         session.flush()
+    logger.info("Backfill: filled %d PDQ hashes", filled)
     return filled
 
 
-def _discover_new_paths(session, file_paths, already, path_to_hash):
+def _discover_new_paths(session, file_paths, already, path_to_hash, model_name: str = _DEFAULT_MODEL):
     """Return (hash_row_cache, need_embed) for paths not yet in the DB."""
-    hash_row_cache: dict[str, ImageEmbedding | None] = {}
+    hash_row_cache: dict[str, ImageSimilarityEmbedding | None] = {}
     need_embed: list[str] = []
     for path in file_paths:
         if path in already:
@@ -344,7 +368,10 @@ def _discover_new_paths(session, file_paths, already, path_to_hash):
         h = path_to_hash[path]
         if h not in hash_row_cache:
             hash_row_cache[h] = session.exec(
-                select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
+                select(ImageSimilarityEmbedding).where(
+                    ImageSimilarityEmbedding.content_sha256 == h,
+                    ImageSimilarityEmbedding.model_name == model_name,
+                )
             ).first()
         if hash_row_cache[h] is None:
             need_embed.append(path)
@@ -382,12 +409,16 @@ def _batch_embed_and_hash(need_embed, path_to_hash, ort_session, processor):
 def _persist_new_path(
     path, h, row, batch_embeddings, batch_pdq, file_paths_set,
     session, storage, paths_for_search, already, counters,
+    model_name: str = _DEFAULT_MODEL,
 ):
     """Persist a single new path — insert, relocate, or clone."""
     if row is None:
         with _lock_for_content_hash(h):
             row = session.exec(
-                select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
+                select(ImageSimilarityEmbedding).where(
+                    ImageSimilarityEmbedding.content_sha256 == h,
+                    ImageSimilarityEmbedding.model_name == model_name,
+                )
             ).first()
             if row is None:
                 if h in batch_embeddings:
@@ -402,6 +433,7 @@ def _persist_new_path(
                         already.add(path)
                         session.flush()
                     except Exception as e:
+                        session.rollback()
                         logger.warning("Could not store embedding for %s: %s", path, e)
                 else:
                     logger.warning("Embedding not computed for %s — skipped", path)
@@ -422,14 +454,14 @@ def _persist_new_path(
             if pdq:
                 update_vals["pdq_hash"] = pdq
         session.execute(
-            update(ImageEmbedding).where(ImageEmbedding.id == row.id).values(**update_vals)
+            update(ImageSimilarityEmbedding).where(ImageSimilarityEmbedding.id == row.id).values(**update_vals)
         )
         counters["relocated"] += 1
         logger.info("Reused embedding by content hash (path updated): %s -> %s", row.path, path)
     else:
         emb = list(row.embedding) if row.embedding is not None else []
         pdq = row.pdq_hash or batch_pdq.get(h, "")
-        session.add(ImageEmbedding(path=path, embedding=emb, content_sha256=h, pdq_hash=pdq))
+        session.add(ImageSimilarityEmbedding(path=path, embedding=emb, content_sha256=h, pdq_hash=pdq))
         counters["cloned"] += 1
 
     paths_for_search.append(path)
@@ -437,16 +469,16 @@ def _persist_new_path(
     session.flush()
 
 
-def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor):
+def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor, model_name: str = _DEFAULT_MODEL):
     """Ensure every path has an embedding + PDQ row.  Returns paths ready for search."""
-    already = _paths_already_embedded(session, file_paths)
+    already = _paths_already_embedded(session, file_paths, model_name)
     file_paths_set = set(file_paths)
 
     paths_for_search = [p for p in file_paths if p in already]
     _backfill_missing_pdq_hashes(session, paths_for_search)
 
     hash_row_cache, need_embed = _discover_new_paths(
-        session, file_paths, already, path_to_hash,
+        session, file_paths, already, path_to_hash, model_name,
     )
     batch_embeddings, batch_pdq = _batch_embed_and_hash(
         need_embed, path_to_hash, ort_session, processor,
@@ -461,6 +493,7 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_sess
             path, h, hash_row_cache.get(h),
             batch_embeddings, batch_pdq, file_paths_set,
             session, storage, paths_for_search, already, counters,
+            model_name,
         )
 
     if any(counters.values()):
@@ -507,13 +540,16 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     all_paths = hashed_paths
 
     with Session(engine) as session:
-        storage = ImageEmbeddingStorage(session)
+        storage = ImageSimilarityEmbeddingStorage(session, model_name=model_name)
         paths_for_search = _embed_and_store_images(
-            session, storage, all_paths, path_to_hash, ort_session, processor,
+            session, storage, all_paths, path_to_hash, ort_session, processor, model_name,
         )
 
         query_row = session.exec(
-            select(ImageEmbedding).where(ImageEmbedding.path == query_image_path)
+            select(ImageSimilarityEmbedding).where(
+                ImageSimilarityEmbedding.path == query_image_path,
+                ImageSimilarityEmbedding.model_name == model_name,
+            )
         ).first()
 
         # Resolve query CLIP embedding (needed for semantic / combined).
@@ -536,14 +572,14 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
 
         if scoring_mode == "semantic":
             assert query_vec is not None
-            scorer = ClipScorer(session, query_vec)
+            scorer = ClipScorer(session, query_vec, model_name)
             raw_results = scorer.score(query_image_path, search_paths, top_k)
         elif scoring_mode == "pdq":
             scorer = PdqScorer(session, query_pdq)
             raw_results = scorer.score(query_image_path, search_paths, top_k)
         else:  # combined
             assert query_vec is not None
-            clip_scorer = ClipScorer(session, query_vec)
+            clip_scorer = ClipScorer(session, query_vec, model_name)
             pdq_scorer = PdqScorer(session, query_pdq)
             scorer = CombinedScorer([
                 ("clip", clip_scorer, 0.5),
@@ -561,17 +597,13 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     for rank, hit in enumerate(search_results, start=1):
         score = hit["score"]
         meta: dict[str, str] = {
-            "Query": query_label,
-            "Similarity": str(score),
             "Match": "Yes" if hit["is_match"] else "No",
-            "Scoring": scoring_mode,
-            "Model": model_name,
         }
         if scoring_mode == "combined":
             if "score_clip" in hit:
-                meta["CLIP score"] = str(hit["score_clip"])
+                meta["CLIP"] = str(hit["score_clip"])
             if "score_pdq" in hit:
-                meta["PDQ score"] = str(hit["score_pdq"])
+                meta["PDQ"] = str(hit["score_pdq"])
         file_responses.append(
             FileResponse(
                 file_type=FileType.IMG,
