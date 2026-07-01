@@ -38,10 +38,10 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
 
 ## Usage
 
-**CLI:** pass folder and query image as `input_dir|||query_image_path`. Parameters: `top_k,min_similarity` (omit trailing values for defaults).
+**CLI:** pass folder and query image as `input_dir|||query_image_path`. Parameters: `model_name,top_k,min_similarity,scoring_mode` (omit trailing values for defaults).
 
 ```bash
-rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/query.jpg" "5,0.5"
+rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/query.jpg" ",5,0.5,combined"
 ```
 
 **Inputs (HTTP/UI):**
@@ -51,10 +51,10 @@ rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/qu
 
 **Parameters:**
 
+- `model_name` — CLIP model (default: `google/siglip2-so400m-patch14-384`)
 - `top_k` (1–20, default: 5) — number of highest-similarity images to return
 - `min_similarity` (0–1, default: 0.5) — Match column uses this floor
-
-The encoder is fixed to `google/siglip2-so400m-patch14-384` (the bundled ONNX model), so it is not a user-facing parameter.
+- `scoring_mode` — `combined` (default), `semantic`, or `pdq`
 
 **Output:** `BatchFileResponse` (`output_type`: `batchfile`) — one `FileResponse` per ranked hit (image path, title with rank/similarity, metadata: Query, Similarity, Match, Model, id). The RescueBox UI renders this as a **sortable table, click a row to open/preview the image**. If there are no hits, `files` is an empty list.
 
@@ -86,12 +86,13 @@ Selected over three alternatives (LAION CLIP-H, DFN5B, SigLIP-2-gopt) as the bes
 
 ## Dependencies
 
-- `transformers`: image preprocessor (`AutoProcessor`)
+- `transformers`: image preprocessor (`AutoImageProcessor`)
 - `onnxruntime`: vision-tower inference
+- `pdqhash`: perceptual hashing
 - `pillow`: image loading
 - `sqlmodel`, `sqlalchemy`, `pgvector`: storage and similarity search
 
-## Database Schema
+## Database Schema (reference only — managed by the plugin)
 
 ```sql
 CREATE TABLE image_similarity_embeddings (
@@ -99,7 +100,8 @@ CREATE TABLE image_similarity_embeddings (
     path VARCHAR NOT NULL,
     content_sha256 VARCHAR NOT NULL,
     model_name VARCHAR NOT NULL,
-    embedding VECTOR(1152) NOT NULL
+    embedding VECTOR(1152) NOT NULL,
+    pdq_hash VARCHAR NOT NULL DEFAULT ''
 );
 
 CREATE INDEX ON image_similarity_embeddings (path);
