@@ -358,7 +358,7 @@ def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
     return filled
 
 
-def _discover_new_paths(session, file_paths, already, path_to_hash, model_name: str = _DEFAULT_MODEL):
+def _discover_new_paths(session: Session, file_paths: list[str], already: set[str], path_to_hash: dict[str, str], model_name: str = _DEFAULT_MODEL):
     """Return (hash_row_cache, need_embed) for paths not yet in the DB."""
     hash_row_cache: dict[str, ImageSimilarityEmbedding | None] = {}
     need_embed: list[str] = []
@@ -378,7 +378,7 @@ def _discover_new_paths(session, file_paths, already, path_to_hash, model_name: 
     return hash_row_cache, need_embed
 
 
-def _batch_embed_and_hash(need_embed, path_to_hash, ort_session, processor):
+def _batch_embed_and_hash(need_embed: list[str], path_to_hash: dict[str, str], ort_session: ort.InferenceSession, processor: AutoImageProcessor):
     """Batch-embed (CLIP) and batch-hash (PDQ) all genuinely new content.
 
     Deduplicates by content hash so identical files are processed only once.
@@ -407,8 +407,10 @@ def _batch_embed_and_hash(need_embed, path_to_hash, ort_session, processor):
 
 
 def _persist_new_path(
-    path, h, row, batch_embeddings, batch_pdq, file_paths_set,
-    session, storage, paths_for_search, already, counters,
+    path: str, h: str, row: ImageSimilarityEmbedding | None,
+    batch_embeddings: dict[str, np.ndarray], batch_pdq: dict[str, str], file_paths_set: set[str],
+    session: Session, storage: ImageSimilarityEmbeddingStorage, paths_for_search: list[str],
+    already: set[str], counters: dict[str, int],
     model_name: str = _DEFAULT_MODEL,
 ):
     """Persist a single new path — insert, relocate, or clone."""
@@ -469,7 +471,7 @@ def _persist_new_path(
     session.flush()
 
 
-def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_session, processor, model_name: str = _DEFAULT_MODEL):
+def _embed_and_store_images(session: Session, storage: ImageSimilarityEmbeddingStorage, file_paths: list[str], path_to_hash: dict[str, str], ort_session: ort.InferenceSession, processor: AutoImageProcessor, model_name: str = _DEFAULT_MODEL):
     """Ensure every path has an embedding + PDQ row.  Returns paths ready for search."""
     already = _paths_already_embedded(session, file_paths, model_name)
     file_paths_set = set(file_paths)
