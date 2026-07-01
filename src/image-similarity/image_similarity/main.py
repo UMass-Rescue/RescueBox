@@ -33,7 +33,7 @@ from rb.api.models import (
 )
 from rb.api.database import ImageSimilarityEmbedding, engine
 from rb.api.embedding_storage import ImageSimilarityEmbeddingStorage
-from image_similarity.scorers import ClipScorer, CombinedScorer, PdqScorer
+from image_similarity.scorers import ClipScorer, CombinedScorer, ImageScorer, PdqScorer
 from sqlmodel import Session, select
 from sqlalchemy import update
 
@@ -502,6 +502,87 @@ def _embed_and_store_images(session, storage, file_paths, path_to_hash, ort_sess
     return paths_for_search
 
 
+def _collect_image_paths(input_dir: str) -> list[str]:
+    """Return sorted list of valid image file paths from a directory."""
+    paths: list[str] = []
+    for name in sorted(os.listdir(input_dir)):
+        if os.path.splitext(name)[1].lower() not in ALLOWED_IMAGE_EXTS:
+            continue
+        full = os.path.join(input_dir, name)
+        if os.path.isfile(full):
+            paths.append(full)
+    return paths
+
+
+def _hash_paths(paths: list[str]) -> tuple[list[str], dict[str, str]]:
+    """SHA-256 hash each path. Returns (valid_paths, path_to_hash)."""
+    path_to_hash: dict[str, str] = {}
+    valid: list[str] = []
+    for p in paths:
+        try:
+            path_to_hash[p] = _sha256_file(p)
+            valid.append(p)
+        except OSError as exc:
+            logger.warning("Skip hashing %s: %s", p, exc)
+    return valid, path_to_hash
+
+
+def _build_scorer(
+    session: Session,
+    scoring_mode: str,
+    query_row: ImageSimilarityEmbedding | None,
+    query_image_path: str,
+    model_name: str,
+    ort_session: ort.InferenceSession,
+    processor: AutoImageProcessor,
+) -> ImageScorer:
+    """Construct the appropriate scorer based on scoring_mode."""
+    query_vec: np.ndarray | None = None
+    if scoring_mode in ("semantic", "combined"):
+        if query_row is not None and query_row.embedding is not None:
+            query_vec = np.array(list(query_row.embedding), dtype=np.float32)
+        else:
+            query_vec = _embed_image(ort_session, processor, query_image_path)
+
+    query_pdq = ""
+    if scoring_mode in ("pdq", "combined"):
+        if query_row is not None and query_row.pdq_hash:
+            query_pdq = query_row.pdq_hash
+        else:
+            query_pdq = _compute_pdq_hash(query_image_path)
+
+    if scoring_mode == "semantic":
+        assert query_vec is not None
+        return ClipScorer(session, query_vec, model_name)
+    if scoring_mode == "pdq":
+        return PdqScorer(session, query_pdq)
+
+    assert query_vec is not None
+    return CombinedScorer([
+        ("clip", ClipScorer(session, query_vec, model_name), 0.5),
+        ("pdq", PdqScorer(session, query_pdq), 0.5),
+    ])
+
+
+def _build_metadata(
+    hit: dict, scoring_mode: str, model_name: str, query_name: str,
+) -> dict[str, str]:
+    """Build per-result metadata dict with consistent columns across all modes."""
+    scoring_labels = {
+        "combined": "Combined (CLIP + PDQ)",
+        "semantic": "Semantic only (CLIP)",
+        "pdq": "Perceptual only (PDQ)",
+    }
+    meta: dict[str, str] = {
+        "Scoring Mode": scoring_labels.get(scoring_mode, scoring_mode),
+        "Match": "Yes" if hit["is_match"] else "No",
+    }
+    if scoring_mode in ("semantic", "combined"):
+        meta["CLIP Model"] = model_name
+    meta["Query"] = f"Similar to {query_name}"
+    return meta
+
+
 def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """Find images visually similar to a query image inside ``input_dir``."""
 
@@ -513,31 +594,11 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     scoring_mode = parameters.get("scoring_mode", "combined")
 
     ort_session, processor = _get_onnx_vision_model()
-    logger.info(
-        "ONNX vision model loaded: providers=%s model=%s scoring_mode=%s",
-        ort_session.get_providers(),
-        model_name,
-        scoring_mode,
-    )
+    logger.info("Scoring: providers=%s model=%s mode=%s", ort_session.get_providers(), model_name, scoring_mode)
 
-    file_paths: list[str] = []
-    for name in sorted(os.listdir(input_dir)):
-        path = os.path.join(input_dir, name)
-        if os.path.isfile(path) and os.path.splitext(path)[1].lower() in ALLOWED_IMAGE_EXTS:
-            file_paths.append(path)
-
-    query_in_dir = query_image_path in set(file_paths)
-    all_paths = file_paths if query_in_dir else file_paths + [query_image_path]
-
-    path_to_hash: dict[str, str] = {}
-    hashed_paths: list[str] = []
-    for p in all_paths:
-        try:
-            path_to_hash[p] = _sha256_file(p)
-            hashed_paths.append(p)
-        except OSError as exc:
-            logger.warning("Skip hashing %s: %s", p, exc)
-    all_paths = hashed_paths
+    file_paths = _collect_image_paths(input_dir)
+    all_paths = file_paths if query_image_path in set(file_paths) else file_paths + [query_image_path]
+    all_paths, path_to_hash = _hash_paths(all_paths)
 
     with Session(engine) as session:
         storage = ImageSimilarityEmbeddingStorage(session, model_name=model_name)
@@ -552,67 +613,25 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
             )
         ).first()
 
-        # Resolve query CLIP embedding (needed for semantic / combined).
-        query_vec: np.ndarray | None = None
-        if scoring_mode in ("semantic", "combined"):
-            if query_row is not None and query_row.embedding is not None:
-                query_vec = np.array(list(query_row.embedding), dtype=np.float32)
-            else:
-                query_vec = _embed_image(ort_session, processor, query_image_path)
-
-        # Resolve query PDQ hash (needed for pdq / combined).
-        query_pdq: str = ""
-        if scoring_mode in ("pdq", "combined"):
-            if query_row is not None and query_row.pdq_hash:
-                query_pdq = query_row.pdq_hash
-            else:
-                query_pdq = _compute_pdq_hash(query_image_path)
-
+        scorer = _build_scorer(session, scoring_mode, query_row, query_image_path, model_name, ort_session, processor)
         search_paths = [p for p in paths_for_search if p != query_image_path]
-
-        if scoring_mode == "semantic":
-            assert query_vec is not None
-            scorer = ClipScorer(session, query_vec, model_name)
-            raw_results = scorer.score(query_image_path, search_paths, top_k)
-        elif scoring_mode == "pdq":
-            scorer = PdqScorer(session, query_pdq)
-            raw_results = scorer.score(query_image_path, search_paths, top_k)
-        else:  # combined
-            assert query_vec is not None
-            clip_scorer = ClipScorer(session, query_vec, model_name)
-            pdq_scorer = PdqScorer(session, query_pdq)
-            scorer = CombinedScorer([
-                ("clip", clip_scorer, 0.5),
-                ("pdq", pdq_scorer, 0.5),
-            ])
-            raw_results = scorer.score(query_image_path, search_paths, top_k)
+        raw_results = scorer.score(query_image_path, search_paths, top_k)
 
         search_results = [
-            {**hit, "is_match": hit["score"] >= min_similarity}
-            for hit in raw_results
+            {**hit, "rank": rank, "is_match": hit["score"] >= min_similarity}
+            for rank, hit in enumerate(raw_results, start=1)
         ]
 
-    query_label = f"Similar to {os.path.basename(query_image_path)}"
-    file_responses: list[FileResponse] = []
-    for rank, hit in enumerate(search_results, start=1):
-        score = hit["score"]
-        meta: dict[str, str] = {
-            "Match": "Yes" if hit["is_match"] else "No",
-        }
-        if scoring_mode == "combined":
-            if "score_clip" in hit:
-                meta["CLIP"] = str(hit["score_clip"])
-            if "score_pdq" in hit:
-                meta["PDQ"] = str(hit["score_pdq"])
-        file_responses.append(
-            FileResponse(
-                file_type=FileType.IMG,
-                path=str(hit["path"]),
-                title=f"#{rank} · similarity {score}",
-                subtitle=query_label,
-                metadata=meta,
-            )
+    query_name = os.path.basename(query_image_path)
+    file_responses = [
+        FileResponse(
+            file_type=FileType.IMG,
+            path=str(hit["path"]),
+            title=f"#{hit['rank']} · similarity {hit['score']}",
+            metadata=_build_metadata(hit, scoring_mode, model_name, query_name),
         )
+        for rank, hit in enumerate(search_results, start=1)
+    ]
 
     return ResponseBody(root=BatchFileResponse(files=file_responses))
 
