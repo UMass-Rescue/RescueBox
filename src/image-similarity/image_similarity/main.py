@@ -344,7 +344,6 @@ def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
     filled = 0
     for row in rows:
         pdq = _compute_pdq_hash(row.path)
-        logger.info("Backfill: %s -> pdq=%s", row.path, pdq[:16] + "..." if pdq else "EMPTY")
         if pdq:
             session.execute(
                 update(ImageSimilarityEmbedding)
@@ -354,7 +353,7 @@ def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
             filled += 1
     if filled:
         session.flush()
-    logger.info("Backfill: filled %d PDQ hashes", filled)
+    logger.info("Backfill: filled %d / %d missing PDQ hashes", filled, len(rows))
     return filled
 
 
