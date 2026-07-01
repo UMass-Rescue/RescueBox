@@ -47,3 +47,10 @@ def test_app_show_browser_true_when_env_true(monkeypatch):
         monkeypatch.setenv("RESCUEBOX_SHOW_BROWSER", "true")
         mod = _reload_config()
     assert mod.APP_SHOW_BROWSER is True
+
+
+def test_app_show_browser_false_when_frozen_without_env(monkeypatch):
+    monkeypatch.delenv("RESCUEBOX_SHOW_BROWSER", raising=False)
+    with patch.object(Path, "mkdir"), patch.object(sys, "frozen", True, create=True):
+        mod = _reload_config()
+    assert mod.APP_SHOW_BROWSER is False

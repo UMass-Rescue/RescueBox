@@ -179,7 +179,6 @@ class ToolRegistry:
         "/upload-faces": "face-match/bulkupload",
         "/find-faces": "face-match/findfacebulk",
         "/summarize-text": "text_summarization/summarize",
-        "/search-text": "text_embeddings/search",
         "/search-images": "image_embeddings/search_images",
         "/similar-images": "image_similarity/search_similar_images",
         "/ufdr-mount": "ufdr_mounter/mount",
@@ -231,16 +230,11 @@ class ToolRegistry:
             "desc": "Document summaries",
         },
         "9": {
-            "name": "Search Text",
-            "endpoint": "text_embeddings/search",
-            "desc": "words or caption match",
-        },
-        "10": {
             "name": "UFDR Mount",
             "endpoint": "ufdr_mounter/mount",
             "desc": "Mount UFDR files",
         },
-        "11": {
+        "10": {
             "name": "Similar Images",
             "endpoint": "image_similarity/search_similar_images",
             "desc": "Find images similar to a query image",
