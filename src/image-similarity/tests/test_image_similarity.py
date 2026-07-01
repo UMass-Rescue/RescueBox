@@ -109,7 +109,7 @@ def test_parameters_cli_parse_full():
 
 def test_parameters_cli_parse_defaults():
     parsed = parameters_cli_parse("")
-    assert parsed["model_name"] == "openai/clip-vit-base-patch32"
+    assert parsed["model_name"] == "google/siglip2-so400m-patch14-384"
     assert parsed["top_k"] == 5
     assert parsed["min_similarity"] == 0.5
     assert parsed["scoring_mode"] == "combined"
