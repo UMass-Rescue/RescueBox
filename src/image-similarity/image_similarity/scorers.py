@@ -15,7 +15,7 @@ import numpy as np
 from sqlalchemy import bindparam, text
 from sqlmodel import Session, select
 
-from rb.api.database import ImageEmbedding
+from rb.api.database import ImageSimilarityEmbedding
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ def cosine_similarity_search(
     query_vec: np.ndarray,
     search_paths: list[str],
     top_k: int,
+    model_name: str = "google/siglip2-so400m-patch14-384",
 ) -> list[dict]:
     """Find the top-K most similar embeddings using pgvector's cosine distance.
 
@@ -64,15 +65,15 @@ def cosine_similarity_search(
             """
             SELECT path,
                    1 - (embedding <=> CAST(:qvec AS vector)) AS score
-            FROM image_embeddings
-            WHERE path IN :paths
+            FROM image_similarity_embeddings
+            WHERE path IN :paths AND model_name = :model_name
             ORDER BY embedding <=> CAST(:qvec AS vector)
             LIMIT :top_k
             """
         ).bindparams(bindparam("paths", expanding=True))
     )
     rows = session.execute(
-        stmt, {"qvec": qvec_literal, "paths": search_paths, "top_k": top_k},
+        stmt, {"qvec": qvec_literal, "paths": search_paths, "top_k": top_k, "model_name": model_name},
     ).fetchall()
     return [{"path": r.path, "score": round(float(r.score), 4)} for r in rows]
 
@@ -93,9 +94,9 @@ def pdq_similarity_search(
         return []
 
     rows = session.exec(
-        select(ImageEmbedding.path, ImageEmbedding.pdq_hash).where(
-            ImageEmbedding.path.in_(candidate_paths),
-            ImageEmbedding.pdq_hash != "",
+        select(ImageSimilarityEmbedding.path, ImageSimilarityEmbedding.pdq_hash).where(
+            ImageSimilarityEmbedding.path.in_(candidate_paths),
+            ImageSimilarityEmbedding.pdq_hash != "",
         )
     ).all()
 
@@ -119,12 +120,13 @@ def pdq_similarity_search(
 class ClipScorer:
     """Cosine-similarity scorer backed by the pgvector HNSW index."""
 
-    def __init__(self, session: Session, query_vec: np.ndarray) -> None:
+    def __init__(self, session: Session, query_vec: np.ndarray, model_name: str = "google/siglip2-so400m-patch14-384") -> None:
         self._session = session
         self._query_vec = query_vec
+        self._model_name = model_name
 
     def score(self, query_path: str, candidate_paths: list[str], top_k: int) -> list[dict]:
-        return cosine_similarity_search(self._session, self._query_vec, candidate_paths, top_k)
+        return cosine_similarity_search(self._session, self._query_vec, candidate_paths, top_k, self._model_name)
 
 
 class PdqScorer:
