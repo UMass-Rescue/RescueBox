@@ -254,7 +254,8 @@ class FileResponse(BaseModel):
     path: str
     title: Optional[str] = None
     subtitle: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None # additional columns like prediction
+    metadata: Optional[Dict[str, Any]] = None  # additional columns like prediction
+
 
 class DirectoryResponse(BaseModel):
     model_config = ConfigDict(
@@ -310,7 +311,6 @@ class BatchDirectoryResponse(BaseModel):
     )
     output_type: Optional[Literal["batchdirectory"]] = "batchdirectory"
     directories: List[DirectoryResponse]
-
 
 
 class APIRoutes(RootModel[List[SchemaAPIRoute]]):
