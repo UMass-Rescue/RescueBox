@@ -26,6 +26,7 @@ _PDQ_BITS = 256
 # Protocol
 # ---------------------------------------------------------------------------
 
+
 @runtime_checkable
 class ImageScorer(Protocol):
     """Minimal interface every scorer must satisfy."""
@@ -44,6 +45,7 @@ class ImageScorer(Protocol):
 # Standalone search helpers (kept as plain functions for reuse / testability)
 # ---------------------------------------------------------------------------
 
+
 def cosine_similarity_search(
     session: Session,
     query_vec: np.ndarray,
@@ -60,9 +62,8 @@ def cosine_similarity_search(
     if not search_paths:
         return []
     qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
-    stmt = (
-        text(
-            """
+    stmt = text(
+        """
             SELECT path,
                    1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM image_similarity_embeddings
@@ -70,10 +71,15 @@ def cosine_similarity_search(
             ORDER BY embedding <=> CAST(:qvec AS vector)
             LIMIT :top_k
             """
-        ).bindparams(bindparam("paths", expanding=True))
-    )
+    ).bindparams(bindparam("paths", expanding=True))
     rows = session.execute(
-        stmt, {"qvec": qvec_literal, "paths": search_paths, "top_k": top_k, "model_name": model_name},
+        stmt,
+        {
+            "qvec": qvec_literal,
+            "paths": search_paths,
+            "top_k": top_k,
+            "model_name": model_name,
+        },
     ).fetchall()
     return [{"path": r.path, "score": round(float(r.score), 4)} for r in rows]
 
@@ -117,16 +123,26 @@ def pdq_similarity_search(
 # Scorer classes (thin wrappers around the standalone helpers)
 # ---------------------------------------------------------------------------
 
+
 class ClipScorer:
     """Cosine-similarity scorer backed by the pgvector HNSW index."""
 
-    def __init__(self, session: Session, query_vec: np.ndarray, model_name: str = "google/siglip2-so400m-patch14-384") -> None:
+    def __init__(
+        self,
+        session: Session,
+        query_vec: np.ndarray,
+        model_name: str = "google/siglip2-so400m-patch14-384",
+    ) -> None:
         self._session = session
         self._query_vec = query_vec
         self._model_name = model_name
 
-    def score(self, query_path: str, candidate_paths: list[str], top_k: int) -> list[dict]:
-        return cosine_similarity_search(self._session, self._query_vec, candidate_paths, top_k, self._model_name)
+    def score(
+        self, query_path: str, candidate_paths: list[str], top_k: int
+    ) -> list[dict]:
+        return cosine_similarity_search(
+            self._session, self._query_vec, candidate_paths, top_k, self._model_name
+        )
 
 
 class PdqScorer:
@@ -139,13 +155,18 @@ class PdqScorer:
         self._session = session
         self._query_pdq = query_pdq
 
-    def score(self, query_path: str, candidate_paths: list[str], top_k: int) -> list[dict]:
-        return pdq_similarity_search(self._session, self._query_pdq, candidate_paths, top_k)
+    def score(
+        self, query_path: str, candidate_paths: list[str], top_k: int
+    ) -> list[dict]:
+        return pdq_similarity_search(
+            self._session, self._query_pdq, candidate_paths, top_k
+        )
 
 
 # ---------------------------------------------------------------------------
 # Combined scorer
 # ---------------------------------------------------------------------------
+
 
 class CombinedScorer:
     """Merge multiple scorers via a weighted average.

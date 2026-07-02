@@ -146,7 +146,12 @@ class ImageSimilarityEmbeddingStorage(DatabaseEmbeddingStorage):
         self.model_name = model_name
 
     def save_embedding(
-        self, path: str, embedding: list[float], *, content_sha256: str = "", pdq_hash: str = ""
+        self,
+        path: str,
+        embedding: list[float],
+        *,
+        content_sha256: str = "",
+        pdq_hash: str = "",
     ) -> None:
         self.session.add(
             ImageSimilarityEmbedding(

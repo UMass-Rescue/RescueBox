@@ -24,6 +24,7 @@ from PIL import Image
 #  Task schema
 # ---------------------------------------------------------------------------
 
+
 def test_task_schema_inputs():
     schema = task_schema()
     assert schema is not None
@@ -43,6 +44,7 @@ def test_task_schema_parameters():
 #  Function signature
 # ---------------------------------------------------------------------------
 
+
 def test_search_similar_images_callable():
     assert callable(search_similar_images)
     sig = inspect.signature(search_similar_images)
@@ -53,6 +55,7 @@ def test_search_similar_images_callable():
 # ---------------------------------------------------------------------------
 #  Input / parameter types
 # ---------------------------------------------------------------------------
+
 
 def test_inputs_structure(tmp_path):
     d = tmp_path / "photos"
@@ -83,6 +86,7 @@ def test_parameters_structure():
 # ---------------------------------------------------------------------------
 #  CLI parsers
 # ---------------------------------------------------------------------------
+
 
 def test_inputs_cli_parse(tmp_path):
     d = tmp_path / "imgs"
@@ -132,6 +136,7 @@ def test_parameters_cli_parse_invalid_scoring_mode():
 #  Hamming distance (pure math, no deps)
 # ---------------------------------------------------------------------------
 
+
 def test_hamming_distance_identical():
     h = "a" * 64
     assert hamming_distance(h, h) == 0
@@ -158,6 +163,7 @@ def test_hamming_distance_symmetric():
 # ---------------------------------------------------------------------------
 #  PDQ hash computation (needs only PIL, no DB)
 # ---------------------------------------------------------------------------
+
 
 def _make_test_image(tmp_path, name="test.png", size=(64, 64), color="red"):
     """Create a small solid-color image and return its path."""
@@ -194,6 +200,7 @@ def test_compute_pdq_hash_bad_file(tmp_path):
 # ---------------------------------------------------------------------------
 #  CombinedScorer (mock sub-scorers, no DB)
 # ---------------------------------------------------------------------------
+
 
 class _FakeScorer:
     """Minimal scorer that returns pre-set results."""
@@ -235,14 +242,18 @@ def test_combined_scorer_renormalises_missing_scorer():
 
 
 def test_combined_scorer_ranking():
-    clip = _FakeScorer([
-        {"path": "/a.jpg", "score": 0.5},
-        {"path": "/b.jpg", "score": 0.9},
-    ])
-    pdq = _FakeScorer([
-        {"path": "/a.jpg", "score": 1.0},
-        {"path": "/b.jpg", "score": 0.2},
-    ])
+    clip = _FakeScorer(
+        [
+            {"path": "/a.jpg", "score": 0.5},
+            {"path": "/b.jpg", "score": 0.9},
+        ]
+    )
+    pdq = _FakeScorer(
+        [
+            {"path": "/a.jpg", "score": 1.0},
+            {"path": "/b.jpg", "score": 0.2},
+        ]
+    )
     scorer = CombinedScorer([("clip", clip, 0.5), ("pdq", pdq, 0.5)])
     results = scorer.score("q.jpg", ["/a.jpg", "/b.jpg"], top_k=5)
     assert results[0]["path"] == "/a.jpg"  # (0.5+1.0)/2 = 0.75
@@ -250,16 +261,20 @@ def test_combined_scorer_ranking():
 
 
 def test_combined_scorer_top_k():
-    clip = _FakeScorer([
-        {"path": "/a.jpg", "score": 0.9},
-        {"path": "/b.jpg", "score": 0.8},
-        {"path": "/c.jpg", "score": 0.7},
-    ])
-    pdq = _FakeScorer([
-        {"path": "/a.jpg", "score": 0.9},
-        {"path": "/b.jpg", "score": 0.8},
-        {"path": "/c.jpg", "score": 0.7},
-    ])
+    clip = _FakeScorer(
+        [
+            {"path": "/a.jpg", "score": 0.9},
+            {"path": "/b.jpg", "score": 0.8},
+            {"path": "/c.jpg", "score": 0.7},
+        ]
+    )
+    pdq = _FakeScorer(
+        [
+            {"path": "/a.jpg", "score": 0.9},
+            {"path": "/b.jpg", "score": 0.8},
+            {"path": "/c.jpg", "score": 0.7},
+        ]
+    )
     scorer = CombinedScorer([("clip", clip, 0.5), ("pdq", pdq, 0.5)])
     results = scorer.score("q.jpg", ["/a.jpg", "/b.jpg", "/c.jpg"], top_k=2)
     assert len(results) == 2

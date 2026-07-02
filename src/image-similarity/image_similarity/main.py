@@ -2,8 +2,6 @@ from typing import TypedDict
 import hashlib
 import logging
 import os
-import threading
-
 from pathlib import Path
 
 import numpy as np
@@ -50,10 +48,6 @@ _DEFAULT_ONNX_PATH = _MODELS_DIR / "siglip2-so400m-patch14-384.onnx"
 # Larger values increase GPU utilisation; reduce if VRAM is limited.
 _EMBED_BATCH_SIZE = 32
 
-_EMBED_LOCKS_GUARD = threading.Lock()
-_EMBED_LOCKS: dict[str, threading.Lock] = {}
-
-_MODEL_LOCK = threading.Lock()
 _ORT_SESSION: ort.InferenceSession | None = None
 _PROCESSOR: AutoImageProcessor | None = None
 
@@ -61,22 +55,10 @@ _PROCESSOR: AutoImageProcessor | None = None
 def _get_onnx_vision_model() -> tuple[ort.InferenceSession, AutoImageProcessor]:
     """Load the ONNX model once and cache it for the lifetime of the process."""
     global _ORT_SESSION, _PROCESSOR
-    if _ORT_SESSION is not None and _PROCESSOR is not None:
-        return _ORT_SESSION, _PROCESSOR
-    with _MODEL_LOCK:
-        if _ORT_SESSION is None or _PROCESSOR is None:
-            _ORT_SESSION, _PROCESSOR = _load_onnx_vision_model()
-            logger.info("ONNX vision model loaded and cached.")
+    if _ORT_SESSION is None or _PROCESSOR is None:
+        _ORT_SESSION, _PROCESSOR = _load_onnx_vision_model()
+        logger.info("ONNX vision model loaded and cached.")
     return _ORT_SESSION, _PROCESSOR
-
-
-def _lock_for_content_hash(content_sha256_hex: str) -> threading.Lock:
-    with _EMBED_LOCKS_GUARD:
-        lock = _EMBED_LOCKS.get(content_sha256_hex)
-        if lock is None:
-            lock = threading.Lock()
-            _EMBED_LOCKS[content_sha256_hex] = lock
-        return lock
 
 
 class Inputs(TypedDict):
@@ -94,6 +76,7 @@ class Parameters(TypedDict):
 # ---------------------------------------------------------------------------
 #  ONNX Runtime helpers  (same pattern as deepfake-detection / face-match)
 # ---------------------------------------------------------------------------
+
 
 def _get_ort_providers() -> list[str]:
     available = ort.get_available_providers()
@@ -115,7 +98,8 @@ def _load_onnx_vision_model() -> tuple[ort.InferenceSession, AutoImageProcessor]
             f"Download the vision ONNX export of {_DEFAULT_MODEL} into the onnx_models/ directory."
         )
     session = ort.InferenceSession(
-        str(_DEFAULT_ONNX_PATH), providers=_get_ort_providers(),
+        str(_DEFAULT_ONNX_PATH),
+        providers=_get_ort_providers(),
     )
     processor = AutoImageProcessor.from_pretrained(_MODELS_DIR)
     return session, processor
@@ -162,9 +146,9 @@ def _embed_images_batch(
                 logger.warning("Could not open %s: %s", p, exc)
         if not images:
             continue
-        pixel_values = processor(images=images, return_tensors="np")["pixel_values"].astype(
-            np.float32
-        )
+        pixel_values = processor(images=images, return_tensors="np")[
+            "pixel_values"
+        ].astype(np.float32)
         outputs = ort_session.run(None, {"pixel_values": pixel_values})
         embeds = outputs[0]
         if embeds.ndim == 3:
@@ -206,7 +190,11 @@ def _compute_pdq_hash(image_path: str) -> str:
             bits = (bits << 1) | int(bit)
         hex_hash = format(bits, "064x")
         if len(hex_hash) != _PDQ_HEX_LEN:
-            logger.warning("PDQ hash length mismatch for %s: got %d chars", image_path, len(hex_hash))
+            logger.warning(
+                "PDQ hash length mismatch for %s: got %d chars",
+                image_path,
+                len(hex_hash),
+            )
             return ""
         return hex_hash
     except Exception as exc:
@@ -217,6 +205,7 @@ def _compute_pdq_hash(image_path: str) -> str:
 # ---------------------------------------------------------------------------
 #  Task schema
 # ---------------------------------------------------------------------------
+
 
 def task_schema() -> TaskSchema:
     model_enum = EnumParameterDescriptor(
@@ -300,7 +289,9 @@ server.add_app_metadata(
 )
 
 
-def _paths_already_embedded(session: Session, paths: list[str], model_name: str = _DEFAULT_MODEL) -> set[str]:
+def _paths_already_embedded(
+    session: Session, paths: list[str], model_name: str = _DEFAULT_MODEL
+) -> set[str]:
     if not paths:
         return set()
     rows = session.exec(
@@ -357,7 +348,13 @@ def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
     return filled
 
 
-def _discover_new_paths(session: Session, file_paths: list[str], already: set[str], path_to_hash: dict[str, str], model_name: str = _DEFAULT_MODEL):
+def _discover_new_paths(
+    session: Session,
+    file_paths: list[str],
+    already: set[str],
+    path_to_hash: dict[str, str],
+    model_name: str = _DEFAULT_MODEL,
+):
     """Return (hash_row_cache, need_embed) for paths not yet in the DB."""
     hash_row_cache: dict[str, ImageSimilarityEmbedding | None] = {}
     need_embed: list[str] = []
@@ -377,7 +374,12 @@ def _discover_new_paths(session: Session, file_paths: list[str], already: set[st
     return hash_row_cache, need_embed
 
 
-def _batch_embed_and_hash(need_embed: list[str], path_to_hash: dict[str, str], ort_session: ort.InferenceSession, processor: AutoImageProcessor):
+def _batch_embed_and_hash(
+    need_embed: list[str],
+    path_to_hash: dict[str, str],
+    ort_session: ort.InferenceSession,
+    processor: AutoImageProcessor,
+):
     """Batch-embed (CLIP) and batch-hash (PDQ) all genuinely new content.
 
     Deduplicates by content hash so identical files are processed only once.
@@ -406,39 +408,46 @@ def _batch_embed_and_hash(need_embed: list[str], path_to_hash: dict[str, str], o
 
 
 def _persist_new_path(
-    path: str, h: str, row: ImageSimilarityEmbedding | None,
-    batch_embeddings: dict[str, np.ndarray], batch_pdq: dict[str, str], file_paths_set: set[str],
-    session: Session, storage: ImageSimilarityEmbeddingStorage, paths_for_search: list[str],
-    already: set[str], counters: dict[str, int],
+    path: str,
+    h: str,
+    row: ImageSimilarityEmbedding | None,
+    batch_embeddings: dict[str, np.ndarray],
+    batch_pdq: dict[str, str],
+    file_paths_set: set[str],
+    session: Session,
+    storage: ImageSimilarityEmbeddingStorage,
+    paths_for_search: list[str],
+    already: set[str],
+    counters: dict[str, int],
     model_name: str = _DEFAULT_MODEL,
 ):
     """Persist a single new path — insert, relocate, or clone."""
     if row is None:
-        with _lock_for_content_hash(h):
-            row = session.exec(
-                select(ImageSimilarityEmbedding).where(
-                    ImageSimilarityEmbedding.content_sha256 == h,
-                    ImageSimilarityEmbedding.model_name == model_name,
-                )
-            ).first()
-            if row is None:
-                if h in batch_embeddings:
-                    try:
-                        storage.save_embedding(
-                            path, batch_embeddings[h].tolist(),
-                            content_sha256=h,
-                            pdq_hash=batch_pdq.get(h, ""),
-                        )
-                        paths_for_search.append(path)
-                        counters["new"] += 1
-                        already.add(path)
-                        session.flush()
-                    except Exception as e:
-                        session.rollback()
-                        logger.warning("Could not store embedding for %s: %s", path, e)
-                else:
-                    logger.warning("Embedding not computed for %s — skipped", path)
-                return
+        row = session.exec(
+            select(ImageSimilarityEmbedding).where(
+                ImageSimilarityEmbedding.content_sha256 == h,
+                ImageSimilarityEmbedding.model_name == model_name,
+            )
+        ).first()
+        if row is None:
+            if h in batch_embeddings:
+                try:
+                    storage.save_embedding(
+                        path,
+                        batch_embeddings[h].tolist(),
+                        content_sha256=h,
+                        pdq_hash=batch_pdq.get(h, ""),
+                    )
+                    paths_for_search.append(path)
+                    counters["new"] += 1
+                    already.add(path)
+                    session.flush()
+                except Exception as e:
+                    session.rollback()
+                    logger.warning("Could not store embedding for %s: %s", path, e)
+            else:
+                logger.warning("Embedding not computed for %s — skipped", path)
+            return
 
     if row is None:
         return
@@ -455,14 +464,22 @@ def _persist_new_path(
             if pdq:
                 update_vals["pdq_hash"] = pdq
         session.execute(
-            update(ImageSimilarityEmbedding).where(ImageSimilarityEmbedding.id == row.id).values(**update_vals)
+            update(ImageSimilarityEmbedding)
+            .where(ImageSimilarityEmbedding.id == row.id)
+            .values(**update_vals)
         )
         counters["relocated"] += 1
-        logger.info("Reused embedding by content hash (path updated): %s -> %s", row.path, path)
+        logger.info(
+            "Reused embedding by content hash (path updated): %s -> %s", row.path, path
+        )
     else:
         emb = list(row.embedding) if row.embedding is not None else []
         pdq = row.pdq_hash or batch_pdq.get(h, "")
-        session.add(ImageSimilarityEmbedding(path=path, embedding=emb, content_sha256=h, pdq_hash=pdq))
+        session.add(
+            ImageSimilarityEmbedding(
+                path=path, embedding=emb, content_sha256=h, pdq_hash=pdq
+            )
+        )
         counters["cloned"] += 1
 
     paths_for_search.append(path)
@@ -470,7 +487,15 @@ def _persist_new_path(
     session.flush()
 
 
-def _embed_and_store_images(session: Session, storage: ImageSimilarityEmbeddingStorage, file_paths: list[str], path_to_hash: dict[str, str], ort_session: ort.InferenceSession, processor: AutoImageProcessor, model_name: str = _DEFAULT_MODEL):
+def _embed_and_store_images(
+    session: Session,
+    storage: ImageSimilarityEmbeddingStorage,
+    file_paths: list[str],
+    path_to_hash: dict[str, str],
+    ort_session: ort.InferenceSession,
+    processor: AutoImageProcessor,
+    model_name: str = _DEFAULT_MODEL,
+):
     """Ensure every path has an embedding + PDQ row.  Returns paths ready for search."""
     already = _paths_already_embedded(session, file_paths, model_name)
     file_paths_set = set(file_paths)
@@ -479,10 +504,17 @@ def _embed_and_store_images(session: Session, storage: ImageSimilarityEmbeddingS
     _backfill_missing_pdq_hashes(session, paths_for_search)
 
     hash_row_cache, need_embed = _discover_new_paths(
-        session, file_paths, already, path_to_hash, model_name,
+        session,
+        file_paths,
+        already,
+        path_to_hash,
+        model_name,
     )
     batch_embeddings, batch_pdq = _batch_embed_and_hash(
-        need_embed, path_to_hash, ort_session, processor,
+        need_embed,
+        path_to_hash,
+        ort_session,
+        processor,
     )
 
     counters = {"new": 0, "relocated": 0, "cloned": 0}
@@ -491,9 +523,17 @@ def _embed_and_store_images(session: Session, storage: ImageSimilarityEmbeddingS
             continue
         h = path_to_hash[path]
         _persist_new_path(
-            path, h, hash_row_cache.get(h),
-            batch_embeddings, batch_pdq, file_paths_set,
-            session, storage, paths_for_search, already, counters,
+            path,
+            h,
+            hash_row_cache.get(h),
+            batch_embeddings,
+            batch_pdq,
+            file_paths_set,
+            session,
+            storage,
+            paths_for_search,
+            already,
+            counters,
             model_name,
         )
 
@@ -559,14 +599,19 @@ def _build_scorer(
         return PdqScorer(session, query_pdq)
 
     assert query_vec is not None
-    return CombinedScorer([
-        ("clip", ClipScorer(session, query_vec, model_name), 0.5),
-        ("pdq", PdqScorer(session, query_pdq), 0.5),
-    ])
+    return CombinedScorer(
+        [
+            ("clip", ClipScorer(session, query_vec, model_name), 0.5),
+            ("pdq", PdqScorer(session, query_pdq), 0.5),
+        ]
+    )
 
 
 def _build_metadata(
-    hit: dict, scoring_mode: str, model_name: str, query_name: str,
+    hit: dict,
+    scoring_mode: str,
+    model_name: str,
+    query_name: str,
 ) -> dict[str, str]:
     """Build per-result metadata dict with consistent columns across all modes."""
     scoring_labels = {
@@ -595,16 +640,31 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
     scoring_mode = parameters.get("scoring_mode", "combined")
 
     ort_session, processor = _get_onnx_vision_model()
-    logger.info("Scoring: providers=%s model=%s mode=%s", ort_session.get_providers(), model_name, scoring_mode)
+    logger.info(
+        "Scoring: providers=%s model=%s mode=%s",
+        ort_session.get_providers(),
+        model_name,
+        scoring_mode,
+    )
 
     file_paths = _collect_image_paths(input_dir)
-    all_paths = file_paths if query_image_path in set(file_paths) else file_paths + [query_image_path]
+    all_paths = (
+        file_paths
+        if query_image_path in set(file_paths)
+        else file_paths + [query_image_path]
+    )
     all_paths, path_to_hash = _hash_paths(all_paths)
 
     with Session(engine) as session:
         storage = ImageSimilarityEmbeddingStorage(session, model_name=model_name)
         paths_for_search = _embed_and_store_images(
-            session, storage, all_paths, path_to_hash, ort_session, processor, model_name,
+            session,
+            storage,
+            all_paths,
+            path_to_hash,
+            ort_session,
+            processor,
+            model_name,
         )
 
         query_row = session.exec(
@@ -614,7 +674,15 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
             )
         ).first()
 
-        scorer = _build_scorer(session, scoring_mode, query_row, query_image_path, model_name, ort_session, processor)
+        scorer = _build_scorer(
+            session,
+            scoring_mode,
+            query_row,
+            query_image_path,
+            model_name,
+            ort_session,
+            processor,
+        )
         search_paths = [p for p in paths_for_search if p != query_image_path]
         raw_results = scorer.score(query_image_path, search_paths, top_k)
 
@@ -639,7 +707,9 @@ def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBod
 
 def inputs_cli_parse(value: str) -> Inputs:
     if "|||" not in value:
-        raise ValueError("Expected 'input_dir|||query_image_path' (use ||| between folder and query image).")
+        raise ValueError(
+            "Expected 'input_dir|||query_image_path' (use ||| between folder and query image)."
+        )
     dir_part, img_part = value.split("|||", 1)
     return Inputs(
         input_dir=DirectoryInput(path=dir_part.strip()),
@@ -654,9 +724,16 @@ def parameters_cli_parse(value: str) -> Parameters:
     min_similarity = float(parts[2]) if len(parts) > 2 and parts[2] else 0.5
     raw_mode = parts[3] if len(parts) > 3 and parts[3] else "combined"
     if raw_mode not in ("semantic", "pdq", "combined"):
-        raise ValueError(f"scoring_mode must be one of semantic/pdq/combined, got: {raw_mode!r}")
+        raise ValueError(
+            f"scoring_mode must be one of semantic/pdq/combined, got: {raw_mode!r}"
+        )
     scoring_mode = raw_mode
-    return Parameters(model_name=model_name, top_k=top_k, min_similarity=min_similarity, scoring_mode=scoring_mode)
+    return Parameters(
+        model_name=model_name,
+        top_k=top_k,
+        min_similarity=min_similarity,
+        scoring_mode=scoring_mode,
+    )
 
 
 server.add_ml_service(
