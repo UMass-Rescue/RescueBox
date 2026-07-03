@@ -1,10 +1,16 @@
 #!/usr/bin/env zsh
  
+
+echo "Starting RescueBox Database..."
+bash startup/pgvector_start.sh
+
 echo "Starting backend Server..."
 # Run in background and pipe all output (errors and standard logs) to log
 nohup poetry run python -m rb.api.main > backend.log 2>&1 &
+
 echo "API Server running (PID: $!)"
 sleep 30
+
 echo "Starting frontend UI..."
 nohup poetry run python frontend/main.py > frontend.log 2>&1 &
 echo "Worker running (PID: $!)"
