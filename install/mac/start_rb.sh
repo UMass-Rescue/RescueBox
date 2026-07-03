@@ -1,6 +1,9 @@
 #!/usr/bin/env zsh
  
 
+echo "Starting Ollama server..."
+brew services start ollama
+
 echo "Starting RescueBox Database..."
 bash startup/pgvector_start.sh
 
