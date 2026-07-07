@@ -1,0 +1,15 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: rb-postgres
+    environment:
+      POSTGRES_USER: rbuser
+      POSTGRES_PASSWORD: rescue
+      POSTGRES_DB: rescuebox
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "rbuser" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "5433:5432"

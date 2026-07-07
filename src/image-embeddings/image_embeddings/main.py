@@ -34,7 +34,7 @@ from rb.api.database import ImageEmbedding, engine
 from rb.api.embedding_storage import ImageEmbeddingStorage
 from sqlmodel import Session, select
 from sqlalchemy import bindparam, text
-
+from transformers.models.clip.processing_clip import CLIPProcessor
 
 APP_NAME = "image_embeddings"
 logger = logging.getLogger(__name__)
@@ -43,14 +43,11 @@ logger = logging.getLogger(__name__)
 # Must match ``ImageEmbedding.embedding`` in ``rb.api.database`` (pgvector vector(512)).
 DEFAULT_CLIP_MODEL = "openai/clip-vit-base-patch32"
 _EXPECTED_IMAGE_EMBED_DIM = 512
+_CLIP_MODELS_DIR = Path(__file__).resolve().parent / "clip_onnx_models"
 # Hugging Face hub uses filelock at DEBUG; keep noise down when root logging is DEBUG.
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
 _INSTANCE_LOCK = threading.Lock()
-
-_CLIP_PROCESSOR_CLS: type | None = None
-
-_CLIP_INSTANCE_CACHE: dict[tuple[str, str], tuple[Any, Any]] = {}
 
 # Raster types accepted for CLIP embedding (top-level files under ``input_dir``).
 CLIP_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff"}
@@ -172,41 +169,31 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-def _get_clip_processor_class() -> type:
-    """Return ``CLIPProcessor`` class (cached, thread-safe)."""
-    global _CLIP_PROCESSOR_CLS
-    if _CLIP_PROCESSOR_CLS is not None:
-        return _CLIP_PROCESSOR_CLS
-    try:
-        from transformers.models.clip.processing_clip import CLIPProcessor
-    except ImportError:
-        from transformers import CLIPProcessor  # type: ignore
-    _CLIP_PROCESSOR_CLS = CLIPProcessor
-    logger.debug("CLIP processor class bound (thread-safe lazy init)")
-    return _CLIP_PROCESSOR_CLS
+@cache
+def _get_clip_processor() -> Any:
+    """Load bundled CLIP tokenizer + image preprocessor (same dir as ONNX exports)."""
 
-
-def _get_clip_processor(model_name: str) -> Any:
-    key = (model_name, "processor")
-    cached = _CLIP_INSTANCE_CACHE.get(key)
-    if cached:
-        return cached[0]
-    CLIPProcessor = _get_clip_processor_class()
-    processor = CLIPProcessor.from_pretrained(model_name, interpolation="bicubic")
-    _CLIP_INSTANCE_CACHE[key] = (processor, None)
-    return processor
+    if not (_CLIP_MODELS_DIR / "preprocessor_config.json").is_file():
+        raise FileNotFoundError(
+            f"Missing CLIP processor files in {_CLIP_MODELS_DIR} "
+            f"(preprocessor_config.json alongside text.onnx / vision.onnx)."
+        )
+    return CLIPProcessor.from_pretrained(
+        str(_CLIP_MODELS_DIR),
+        local_files_only=True,
+        interpolation="bicubic",
+    )
 
 
 @cache
 def _get_onnx_sessions() -> tuple[ort.InferenceSession, ort.InferenceSession]:
     """Return (text_session, vision_session) with input validation."""
 
-    model_dir = Path(__file__).resolve().parent / "clip_onnx_models"
-    text_model = model_dir / "text.onnx"
-    vision_model = model_dir / "vision.onnx"
+    text_model = _CLIP_MODELS_DIR / "text.onnx"
+    vision_model = _CLIP_MODELS_DIR / "vision.onnx"
     if not text_model.is_file() or not vision_model.is_file():
         raise FileNotFoundError(
-            f"Missing CLIP ONNX model files in {model_dir}: text.onnx/vision.onnx"
+            f"Missing CLIP ONNX model files in {_CLIP_MODELS_DIR}: text.onnx/vision.onnx"
         )
     available_providers = ort.get_available_providers()
     providers = []
@@ -269,6 +256,11 @@ def _pick_session_for_inputs(
     )
 
 
+def _clip_image_processor(processor: Any) -> Any:
+    """Return the vision preprocessor (``CLIPProcessor`` exposes it at runtime)."""
+    return getattr(processor, "image_processor", None)
+
+
 def _dummy_text_inputs(processor) -> dict:
     inputs = dict(processor(text=[""], return_tensors="np", padding=True))
     return {
@@ -280,7 +272,7 @@ def _dummy_text_inputs(processor) -> dict:
 def _dummy_pixel_values(processor) -> np.ndarray:
     from PIL import Image
 
-    size = getattr(processor.image_processor, "size", 224)
+    size = getattr(_clip_image_processor(processor), "size", 224)
     if isinstance(size, dict):
         size = max(size.values() or [224])
     dummy = Image.new("RGB", (int(size), int(size)), color=(0, 0, 0))
@@ -304,13 +296,14 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         min_similarity = float(parameters.get("min_similarity", 0.13))
         expected_dim = _EXPECTED_IMAGE_EMBED_DIM
 
-        processor = _get_clip_processor(model_name)
+        processor = _get_clip_processor()
         text_session, vision_session = _get_onnx_sessions()
+        _img_proc = _clip_image_processor(processor)
         logger.info(
             "CLIP ONNX sessions loaded model_name=%s do_normalize=%s resample=%s",
             model_name,
-            getattr(processor.image_processor, "do_normalize", None),
-            getattr(processor.image_processor, "resample", None),
+            getattr(_img_proc, "do_normalize", None),
+            getattr(_img_proc, "resample", None),
         )
         dummy_text = _dummy_text_inputs(processor)
         dummy_pixels = _dummy_pixel_values(processor)

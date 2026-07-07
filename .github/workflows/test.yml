@@ -47,4 +47,4 @@ jobs:
       - name: Run tests
         env:
           DATABASE_URL: postgresql+psycopg2://rbuser:rescue@127.0.0.1:5433/rescuebox
-        run: HF_HUB_OFFLINE=1 poetry run pytest --ignore=frontend/tests/integration/
+        run: HF_HUB_OFFLINE=0 poetry run pytest --ignore=frontend/tests/integration/

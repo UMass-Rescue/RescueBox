@@ -12,6 +12,7 @@ Usage:
 
 import os
 import platform
+import sys
 from pathlib import Path
 
 # API Configuration
@@ -32,7 +33,20 @@ APP_VERSION = os.getenv("RESCUEBOX_VERSION", "3.0.0")
 # Tab icon: filesystem path so NiceGUI can serve it at /favicon.ico
 APP_FAVICON = Path(__file__).resolve().parent / "icons" / "favicon.png"
 APP_DARK_MODE = os.getenv("RESCUEBOX_DARK_MODE", "false").lower() == "true"
-APP_SHOW_BROWSER = os.getenv("RESCUEBOX_SHOW_BROWSER", "true").lower() == "true"
+
+
+def _default_show_browser() -> bool:
+    """Open a browser tab when running ``python frontend/main.py`` for local dev."""
+    explicit = os.getenv("RESCUEBOX_SHOW_BROWSER")
+    if explicit is not None:
+        return explicit.lower() == "true"
+    # PyInstaller / Tauri sidecar: the shell webview is the UI; do not also launch a browser.
+    if getattr(sys, "frozen", False):
+        return False
+    return True
+
+
+APP_SHOW_BROWSER = _default_show_browser()
 
 # About page (override for packaging / forks)
 ABOUT_AUTHORS = os.getenv("RESCUEBOX_ABOUT_AUTHORS", "RescueBox Team")

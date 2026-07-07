@@ -12,9 +12,11 @@ import sys
 import platform
 import os
 from pathlib import Path
+import frontend.pages  # noqa: F401 # (static import for PyInstaller)
 import asyncio
 import contextlib
 import logging
+import traceback
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from nicegui import app, Client, ui
@@ -29,9 +31,6 @@ from frontend.config import (
     LOG_LEVEL,
     RECONNECT_TIMEOUT,
 )
-import importlib
-import traceback
-
 from frontend import utils as _backend_integration
 from frontend.database import init_db
 from frontend.utils import (
@@ -40,6 +39,11 @@ from frontend.utils import (
     parse_log_level,
     release_demo_folder_for_client,
 )
+
+# Repo root on sys.path for ``python frontend/main.py`` and PyInstaller bundles.
+_project_root = Path(__file__).resolve().parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
 
 logging.basicConfig(level=parse_log_level(LOG_LEVEL))
 configure_logging_with_context(log_file_path=str(LOG_FILE), log_level=LOG_LEVEL)
@@ -64,17 +68,15 @@ if sys.stdout is None or not hasattr(sys.stdout, "write"):
 if getattr(sys, "frozen", False) and _PYINSTALLER_MEIPASS is not None:
     # 1. Safely get APPDATA, falling back to the standard home directory if it's missing
     appdata_path = os.getenv("APPDATA", str(Path.home()))
-    base_dir = Path(appdata_path / ".rescuebox")
+    base_dir = Path(appdata_path) / ".rescuebox"
     if platform.system() == "Windows":
-        base_dir = Path(appdata_path / "RescueBox-Desktop")
+        base_dir = Path(appdata_path) / "RescueBox-Desktop"
 
     # 2. Construct the path
     custom_storage_dir = base_dir / "nicegui"
 
     # 3. Explicitly cast the Path object to a string for the environment variable
     os.environ["NICEGUI_STORAGE_PATH"] = str(custom_storage_dir)
-
-_project_root = Path(__file__).resolve().parent.parent
 
 # Determine the base path for resources in a PyInstaller bundle
 if _PYINSTALLER_MEIPASS is not None:
@@ -90,13 +92,32 @@ if _PYINSTALLER_MEIPASS is not None:
 else:
     base_path = os.path.abspath(".")
 
-# Construct the absolute path to the icon inside the bundle
-if _PYINSTALLER_MEIPASS is not None:
-    APP_FAVICON = os.path.join(_PYINSTALLER_MEIPASS, "icons", "favicon.png")
-else:
-    APP_FAVICON = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "icons", "favicon.png"
-    )
+
+def _resolve_icons_dir() -> Path | None:
+    """Directory for /icons static files (PyInstaller datas live under _MEIPASS/icons)."""
+    candidates: list[Path] = []
+    if _PYINSTALLER_MEIPASS is not None:
+        candidates.append(Path(_PYINSTALLER_MEIPASS) / "icons")
+    candidates.append(Path(__file__).resolve().parent / "icons")
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+        candidates.append(exe_dir / "_internal" / "icons")
+        candidates.append(exe_dir / "icons")
+    for path in candidates:
+        if path.is_dir():
+            return path
+    return None
+
+
+def _resolve_favicon_path() -> str | None:
+    icons_dir = _resolve_icons_dir()
+    if icons_dir is None:
+        return None
+    favicon = icons_dir / "favicon.png"
+    return str(favicon) if favicon.is_file() else None
+
+
+APP_FAVICON = _resolve_favicon_path()
 
 
 try:
@@ -110,7 +131,6 @@ BACKEND_AVAILABLE = _backend_integration.BACKEND_AVAILABLE
 prefetch_and_cache_models = _backend_integration.prefetch_and_cache_models
 setup_backend_routes = _backend_integration.setup_backend_routes
 
-importlib.import_module("frontend.pages")  # register @ui.page handlers
 
 _LICENSES_COPYRIGHT_DIR = _project_root / "License&Copyright"
 
@@ -128,10 +148,12 @@ if __name__ in {"__main__", "__mp_main__"}:
         app.add_static_files(url_path="/demo", local_directory=str(demo_dir))
         logger.debug("Demo static files served at /demo/")
 
-    icons_dir = Path(__file__).parent / "icons"
-    if icons_dir.is_dir():
+    icons_dir = _resolve_icons_dir()
+    if icons_dir is not None:
         app.add_static_files(url_path="/icons", local_directory=str(icons_dir))
-        logger.debug("Icons served at /icons/")
+        logger.debug("Icons served at /icons/ from %s", icons_dir)
+    else:
+        logger.warning("Icons directory not found; /icons/logo.png will 404")
 
     # Same pattern as /demo: NiceGUI static files (not Starlette mount + directory index iframe).
     if _LICENSES_COPYRIGHT_DIR.is_dir():
@@ -195,12 +217,18 @@ if __name__ in {"__main__", "__mp_main__"}:
     async def _on_client_delete(client: Client):
         release_demo_folder_for_client(client)
 
-    ui.run(
+    _run_kwargs = dict(
         title=APP_TITLE,
         port=APP_PORT,
-        favicon=APP_FAVICON,
         show=APP_SHOW_BROWSER,
+        native=False,
         reconnect_timeout=RECONNECT_TIMEOUT,
         storage_secret="REPLACE_WITH_A_REAL_SECRET_KEY",
         reload=False,
+        show_welcome_message=APP_SHOW_BROWSER,
     )
+    if APP_FAVICON:
+        _run_kwargs["favicon"] = APP_FAVICON
+    else:
+        logger.warning("favicon.png missing; starting without tab icon")
+    ui.run(**_run_kwargs)

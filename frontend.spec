@@ -29,6 +29,11 @@ runtime_venvdir=os.environ['VIRTUAL_ENV'] + "/Lib/site-packages"
 
 hiddenimports = ['fastapi' , 'nicegui']
 
+hiddenimports += collect_submodules('frontend.pages')
+hiddenimports += collect_submodules('frontend.components')
+hiddenimports += collect_submodules('frontend.chatbot')
+hiddenimports += collect_submodules('frontend.database')
+
 os.environ['XDG_CACHE_HOME '] = '.'
 
 # for text-summary
@@ -40,7 +45,7 @@ a = Analysis(
     ['frontend/main.py'],
     pathex=['.', 'frontend'],
     binaries=[],
-    datas=[('frontend/icons/rb.webp', 'icons'),],
+    datas=[('frontend/icons', 'icons')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

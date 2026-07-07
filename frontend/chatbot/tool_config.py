@@ -167,7 +167,6 @@ class RescueBoxToolCall(BaseModel):
         "age-gender/predict",
         "text_summarization/summarize",
         "image_summary/summarize-images",
-        "text_embeddings/search",
         "image_embeddings/search_images",
         "image_similarity/search_similar_images",
         "ufdr_mounter/mount",
@@ -198,7 +197,6 @@ SCHEMA_MAP = {
     # List image (CLIP) search before text search so tool JSON order matches typical "search images" intent.
     "image_embeddings/search_images": ImageSearch,
     "image_similarity/search_similar_images": ImageSimilaritySearch,
-    "text_embeddings/search": TextSearch,
     "ufdr_mounter/mount": UfdrMount,
     "face-match/findfacebulk": FaceFindBulk,
     "face-match/bulkupload": FaceBulkUpload,
@@ -341,7 +339,6 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             "   - If the user asks for transcribe AND/OR summarize in the SAME request as "
             '"search text" or "search", that is a multi-step pipeline—emit ALL steps '
             "(see rules 11–12).\n"
-            "   - text_embeddings/search = search inside TEXT FILES (.txt), usually "
             "caption/summary outputs. Use only when the user asks to search summaries/"
             "captions/written text, or the chain first ran image_summary and then "
             "searches that output folder\n"
@@ -350,19 +347,12 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             '"find … in images", or any visual "find X" query over a folder of '
             'images—even if they say "find" without saying "CLIP".\n'
             '   - If the user says "find … in these photos" or similar, choose '
-            "image_embeddings/search_images, NOT text_embeddings/search, unless they "
-            "explicitly mean searching text or .txt summary files.\n"
-            "   - If the user wants ONLY image/photo search, emit image_embeddings/search_images only.\n"
-            "   - If the user wants ONLY text/.txt search, emit text_embeddings/search only.\n"
-            '   - If ONE prompt asks for BOTH "image search" (or photos/CLIP/visual) AND '
-            '"text search" (or summaries/.txt), emit TWO tools: '
-            "image_embeddings/search_images AND text_embeddings/search.\n"
             "7. BOTH summarize AND image-search on the same folder: emit "
             "image_summary/summarize-images AND image_embeddings/search_images with "
             "the SAME input_dir (same image folder); order mount first if UFDR applies.\n"
-            "8. SUMMARIZE + TEXT SEARCH pipeline: If the user wants summaries AND to "
-            "search those written descriptions, use image_summary/summarize-images then "
-            "text_embeddings/search with input_dir = that output_dir.\n"
+            "8. IMAGE SIMILARITY: image_similarity/search_similar_images needs input_dir "
+            "and query_image (a reference photo path). Use when the user wants images "
+            "that look like a given picture—not a text query (use image_embeddings/search_images for text).\n"
             "9. UFDR: If the user mentions mounting UFDR/.ufdr, emit ufdr_mounter/mount "
             "first; downstream input_dir is mount_name.\n"
             "10. AUDIO vs TEXT SUMMARIZE: audio/transcribe converts speech in audio files to text. "
@@ -374,10 +364,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             '"transcribe summarize and search text" mean THREE tools in order—never '
             "answer with only text_embeddings/search. Emit: audio/transcribe, then "
             "text_summarization/summarize, then text_embeddings/search. Summarize "
-            "output_dir feeds text_embeddings/search input_dir.\n"
-            "13. IMAGE SEARCH + TEXT SEARCH (two search tools): Phrases like "
-            '"image search text search" require BOTH image_embeddings/search_images '
-            "and text_embeddings/search.\n\n"
+            "output_dir feeds text_embeddings/search input_dir.\n\n"
             f"<tools>{json.dumps(tools_definitions)}</tools>"
         ),
     }
@@ -548,15 +535,6 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
                     },
                 }
             },
-            {
-                "function": {
-                    "name": "text_embeddings/search",
-                    "arguments": {
-                        "input_dir": "/evidence/batch2/summary",
-                        "query": "boy",
-                    },
-                }
-            },
         ],
     }
     ex_d_user = {"role": "user", "content": "Summarize these images"}
@@ -656,16 +634,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
                         "model": "gemma3:4b",
                     },
                 }
-            },
-            {
-                "function": {
-                    "name": "text_embeddings/search",
-                    "arguments": {
-                        "input_dir": "/evidence/pics/summary",
-                        "query": "backpack",
-                    },
-                }
-            },
+            }
         ],
     }
 
@@ -722,15 +691,6 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
                     },
                 }
             },
-            {
-                "function": {
-                    "name": "text_embeddings/search",
-                    "arguments": {
-                        "input_dir": "/evidence/meeting/summary_text",
-                        "query": "main topics",
-                    },
-                }
-            },
         ],
     }
 
@@ -751,16 +711,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
                         "query": "visual match",
                     },
                 }
-            },
-            {
-                "function": {
-                    "name": "text_embeddings/search",
-                    "arguments": {
-                        "input_dir": "/evidence/case/text_summaries",
-                        "query": "text match",
-                    },
-                }
-            },
+            }
         ],
     }
 
@@ -806,6 +757,30 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ],
     }
 
+    # Reference photo → similar images in folder (image_similarity, not text-query CLIP)
+    ex_sim_user = {
+        "role": "user",
+        "content": (
+            "in /evidence/album1 find images that look like "
+            "/evidence/album1/suspect_ref.jpg"
+        ),
+    }
+    ex_sim_asst = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "image_similarity/search_similar_images",
+                    "arguments": {
+                        "input_dir": "/evidence/album1",
+                        "query_image": "/evidence/album1/suspect_ref.jpg",
+                    },
+                }
+            },
+        ],
+    }
+
     # Build complete message list
     messages = [
         system_msg,
@@ -831,6 +806,8 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ex_i_asst,  # find in photos → image_embeddings only
         ex_j_user,
         ex_j_asst,  # search these images for → image_embeddings only
+        ex_sim_user,
+        ex_sim_asst,  # reference image → image_similarity/search_similar_images
         ex_d_user,
         ex_d_asst,
         # Last: recency — multi-search prompts that models often collapse to one tool.

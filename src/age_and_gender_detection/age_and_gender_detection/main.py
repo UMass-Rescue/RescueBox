@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import typer
 import threading
@@ -77,7 +78,12 @@ server.add_app_metadata(
     gpu=True,
     make_threadsafe=True,
 )
-models_dir = Path("src/age_and_gender_detection/models")
+models_dir = Path(__file__).resolve().parent.parent / "models"
+if getattr(sys, "frozen", False):
+    # We are running as a compiled PyInstaller .exe
+    # sys._MEIPASS points directly to the _internal folder
+    models_dir = Path(sys._MEIPASS) / "src" / "age_and_gender_detection" / "models"
+
 model = AgeGenderDetector(
     face_detector_path=models_dir / "version-RFB-640.onnx",
     age_classifier_path=models_dir / "age_googlenet.onnx",
