@@ -632,8 +632,8 @@ def _build_metadata(
 def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """Find images visually similar to a query image inside ``input_dir``."""
 
-    input_dir = str(inputs["input_dir"].path)
-    query_image_path = str(inputs["query_image"].path)
+    input_dir = os.path.realpath(str(inputs["input_dir"].path))
+    query_image_path = os.path.realpath(str(inputs["query_image"].path))
     model_name = parameters.get("model_name", _DEFAULT_MODEL)
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
