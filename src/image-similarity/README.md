@@ -38,10 +38,10 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
 
 ## Usage
 
-**CLI:** pass folder and query image as `input_dir|||query_image_path`. Parameters: `top_k,min_similarity` (omit trailing values for defaults).
+**CLI:** pass folder and query image as `input_dir|||query_image_path`. Parameters: `model_name,top_k,min_similarity,scoring_mode` (omit trailing values for defaults).
 
 ```bash
-rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/query.jpg" "5,0.5"
+rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/query.jpg" ",5,0.5,combined"
 ```
 
 **Inputs (HTTP/UI):**
@@ -51,10 +51,10 @@ rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/qu
 
 **Parameters:**
 
+- `model_name` — CLIP model (default: `google/siglip2-so400m-patch14-384`)
 - `top_k` (1–20, default: 5) — number of highest-similarity images to return
 - `min_similarity` (0–1, default: 0.5) — Match column uses this floor
-
-The encoder is fixed to `google/siglip2-so400m-patch14-384` (the bundled ONNX model), so it is not a user-facing parameter.
+- `scoring_mode` — `combined` (default), `semantic`, or `pdq`
 
 **Output:** `BatchFileResponse` (`output_type`: `batchfile`) — one `FileResponse` per ranked hit (image path, title with rank/similarity, metadata: Query, Similarity, Match, Model, id). The RescueBox UI renders this as a **sortable table, click a row to open/preview the image**. If there are no hits, `files` is an empty list.
 
@@ -77,7 +77,7 @@ The encoder is fixed to `google/siglip2-so400m-patch14-384` (the bundled ONNX mo
 Embedding-only numbers (not the full plugin pipeline) for SO400M SigLIP-2, measured on the OpenCLIP/timm port `ViT-SO400M-14-SigLIP2-378`. This is the same model family as what the plugin ships (`google/siglip2-so400m-patch14-384` is the HF Transformers port at 384², near-equivalent quality).
 
 - **Hardware**: NVIDIA RTX 5090 (32 GB VRAM), PyTorch 2.11.0, CUDA 13.0
-- **Dataset**: 503 images grouped into **series** of semantically-related images (e.g. photos from the same event, location, or theme — not necessarily the same subject or pixel-level duplicates). A retrieval counts as correct if **any other image from the query's series** appears in the top-`k` results — we're measuring how well the model clusters semantically related content in vector space. Batch size 200.
+- **Dataset**: 503 images from the [UMass-Rescue/image-series-dataset](https://github.com/UMass-Rescue/image-series-dataset), grouped into **series** of images from the same event. A retrieval counts as correct if **any other image from the query's series** appears in the top-`k` results. Batch size 200.
 - **Throughput**: 14.1 images/second
 - **Peak GPU memory**: 11.78 GB — the maximum VRAM used during inference, so any GPU with at least ~12 GB can run this batch size
 - **Retrieval accuracy**: top-1 = 93%, top-5 = 98%, top-10 = 99%
@@ -86,12 +86,13 @@ Selected over three alternatives (LAION CLIP-H, DFN5B, SigLIP-2-gopt) as the bes
 
 ## Dependencies
 
-- `transformers`: image preprocessor (`AutoProcessor`)
+- `transformers`: image preprocessor (`AutoImageProcessor`)
 - `onnxruntime`: vision-tower inference
+- `pdqhash`: perceptual hashing
 - `pillow`: image loading
 - `sqlmodel`, `sqlalchemy`, `pgvector`: storage and similarity search
 
-## Database Schema
+## Database Schema (reference only — managed by the plugin)
 
 ```sql
 CREATE TABLE image_similarity_embeddings (
@@ -99,7 +100,8 @@ CREATE TABLE image_similarity_embeddings (
     path VARCHAR NOT NULL,
     content_sha256 VARCHAR NOT NULL,
     model_name VARCHAR NOT NULL,
-    embedding VECTOR(1152) NOT NULL
+    embedding VECTOR(1152) NOT NULL,
+    pdq_hash VARCHAR NOT NULL DEFAULT ''
 );
 
 CREATE INDEX ON image_similarity_embeddings (path);
@@ -109,9 +111,30 @@ CREATE INDEX ON image_similarity_embeddings USING hnsw (embedding vector_l2_ops)
 
 ## Tips for Best Results
 
-1. **Model Consistency**: Use one model per dataset — embeddings from different CLIP models are not comparable.
-2. **GPU**: On CUDA hosts (`onnxruntime-gpu` installed), inference runs at GPU speed (tens of ms/image). On macOS, ORT falls back to CPU because it has no MPS provider and CoreML doesn't accelerate SigLIP-2's ops well.
-3. **Threshold**: Image-to-image similarity scores are typically higher than text-to-image (~0.5–0.9 for related content).
+1. **The plugin matches whole scenes, not individual objects.** The model embeds the entire image holistically — everything visible (people, objects, background, lighting) contributes to the embedding. This is a strength for finding other photos from the same event or setting, where images share many visual elements (same people, same room, same backdrop). The benchmark dataset of political-figure series contains busy multi-person scenes and still achieves 93% top-1 accuracy.
+2. **Crop only when you want to isolate a specific subject.** If your query image has a person *and* a suitcase but you only care about suitcases, crop to just the suitcase. For event/scene matching, use the full uncropped image.
+3. **This plugin finds visual similarity, not semantic categories.** "Find all sports images" from a photo of someone playing Wii is a *semantic* query — use the **Image Search** plugin (text query) for that instead.
+4. **Model Consistency**: Use one model per dataset — embeddings from different CLIP models are not comparable.
+5. **GPU**: On CUDA hosts (`onnxruntime-gpu` installed), inference runs at GPU speed (tens of ms/image). On macOS, ORT falls back to CPU because it has no MPS provider and CoreML doesn't accelerate SigLIP-2's ops well.
+6. **Threshold**: Image-to-image similarity scores are typically higher than text-to-image (~0.5–0.9 for related content).
+
+**For other use cases, use a different RescueBox plugin:** To search by a text description, use **Image Search**. To generate text descriptions of images, use **Image Summary**. To detect age or gender, use **Age-Gender Classifier**.
+
+## Demo Data & Testing
+
+`src-tauri/demo/image-similarity/inputs/` contains 5 series (at least 5 images each) from the [UMass-Rescue/image-series-dataset](https://github.com/UMass-Rescue/image-series-dataset). A series is a set of photos from the **same event** — same people, same venue, different angles or moments. Each series is a different person at a different event. The full dataset (503 images, 79 series) was used for the benchmarks above.
+
+**How to test:**
+
+Point the plugin at the demo folder directly — all images are in a single flat directory:
+
+1. **Input directory** → `src-tauri/demo/image-similarity/inputs/`
+2. **Query image** → pick any image from the folder
+3. **Top K** → 5
+4. **Scoring mode** → Combined (CLIP + PDQ), or try each mode separately to compare
+
+**What to expect:** The top results should be other images from the same series as the query (same event, same venue). Images of different people at different events should score lower.
+
 
 ## Tests
 
