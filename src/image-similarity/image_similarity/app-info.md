@@ -6,6 +6,17 @@ Embeddings are stored in a dedicated PostgreSQL (pgvector) `image_similarity_emb
 
 **Route:** `/search_similar_images`
 
+## Which Plugin Should I Use?
+
+| I have... | I want... | Use |
+|---|---|---|
+| A **photo** | Other photos that **look like it** | **Image Similarity** (this plugin) |
+| A **text description** | Photos that **match the description** | Image Search |
+| A **photo** | A **text description** of what's in it | Image Summary |
+| A **photo** with people | **Age and gender** of each person | Age-Gender Classifier |
+
+This plugin takes an image as input and finds visually similar images from a folder — same event, same scene, same setting, or near-duplicates. The model considers the entire image (people, objects, background, lighting), so images from the same event naturally match well even with busy multi-person scenes. To isolate a specific object or person, crop the query image so that subject fills most of the frame.
+
 ## Inputs
 
 - **Input directory:** Folder containing image files to search within.
@@ -20,7 +31,7 @@ Embeddings are stored in a dedicated PostgreSQL (pgvector) `image_similarity_emb
 
 - **Match threshold:** Similarity in 0–1; results at or above this count as a match in metadata. Image-to-image similarity scores are typically higher than text-to-image (~0.5–0.9 for related content).
 
-- **Scoring mode:** Combined (CLIP + PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ).
+- **Scoring mode:** Combined (CLIP + PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ). CLIP compares **scene content** (what's in the image); PDQ compares **pixel structure** (exact or near-duplicate detection). Combined uses both.
 
 ## Supported Image Types
 
