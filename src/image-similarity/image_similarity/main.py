@@ -36,7 +36,7 @@ from sqlmodel import Session, select
 from sqlalchemy import update
 
 
-APP_NAME = "image_similarity"
+APP_NAME = "image_series_similarity"
 logger = logging.getLogger(__name__)
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
@@ -281,7 +281,7 @@ with open(info_file_path, "r") as f:
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Similar Image Search",
+    name="Image Series Similarity",
     author="UMass RescueLab",
     version="1.0.0",
     info=info,
@@ -629,7 +629,7 @@ def _build_metadata(
     return meta
 
 
-def search_similar_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
+def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """Find images visually similar to a query image inside ``input_dir``."""
 
     input_dir = os.path.realpath(str(inputs["input_dir"].path))
@@ -737,8 +737,8 @@ def parameters_cli_parse(value: str) -> Parameters:
 
 
 server.add_ml_service(
-    rule="/search_similar_images",
-    ml_function=search_similar_images,
+    rule="/search_series",
+    ml_function=search_series,
     inputs_cli_parser=typer.Argument(
         parser=inputs_cli_parse,
         help="Directory of images and query image as: input_dir|||query_image_path",

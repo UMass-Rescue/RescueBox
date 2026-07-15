@@ -180,7 +180,7 @@ class ToolRegistry:
         "/find-faces": "face-match/findfacebulk",
         "/summarize-text": "text_summarization/summarize",
         "/search-images": "image_embeddings/search_images",
-        "/similar-images": "image_similarity/search_similar_images",
+        "/search-series": "image_series_similarity/search_series",
         "/ufdr-mount": "ufdr_mounter/mount",
         "/models": "pick_tool",
         "/assistant": "smart_analyze",
@@ -235,9 +235,9 @@ class ToolRegistry:
             "desc": "Mount UFDR files",
         },
         "10": {
-            "name": "Similar Images",
-            "endpoint": "image_similarity/search_similar_images",
-            "desc": "Find images similar to a query image",
+            "name": "Image Series Similarity",
+            "endpoint": "image_series_similarity/search_series",
+            "desc": "Find images from the same series as a query image",
         },
     }
 

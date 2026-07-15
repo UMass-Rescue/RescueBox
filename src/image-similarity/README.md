@@ -30,7 +30,7 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
 ## Usage
 
 ```bash
-rescuebox image_similarity /search_similar_images "/path/to/photos|||/path/to/query.jpg" ",5,0.5,combined"
+rescuebox image_series_similarity /search_series "/path/to/photos|||/path/to/query.jpg" ",5,0.5,combined"
 ```
 
 | Parameter | Default | Description |

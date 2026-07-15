@@ -145,11 +145,12 @@ class ImageSearch(BaseModel):
     )
 
 
-class ImageSimilaritySearch(BaseModel):
+class ImageSeriesSearch(BaseModel):
     """
-    CLIP image-to-image similarity search: finds images visually similar to a given query image.
-    Use when the user provides a reference image and wants to find similar-looking images in a folder.
-    e.g. 'find images similar to this photo', 'find images that look like this one'.
+    Image series similarity search: finds images from the same series as a query image.
+    A series is a collection of images related temporally and by subject matter (e.g. same event).
+    Use when the user provides a reference image and wants to find related images in a folder.
+    e.g. 'find images from the same event', 'find images that look like this one'.
     """
 
     input_dir: str = Field(..., description="Directory of image files to search within")
@@ -168,7 +169,7 @@ class RescueBoxToolCall(BaseModel):
         "text_summarization/summarize",
         "image_summary/summarize-images",
         "image_embeddings/search_images",
-        "image_similarity/search_similar_images",
+        "image_series_similarity/search_series",
         "ufdr_mounter/mount",
         "face-match/findfacebulk",
         "face-match/bulkupload",
@@ -196,7 +197,7 @@ SCHEMA_MAP = {
     "image_summary/summarize-images": ImageSummarize,
     # List image (CLIP) search before text search so tool JSON order matches typical "search images" intent.
     "image_embeddings/search_images": ImageSearch,
-    "image_similarity/search_similar_images": ImageSimilaritySearch,
+    "image_series_similarity/search_series": ImageSeriesSearch,
     "ufdr_mounter/mount": UfdrMount,
     "face-match/findfacebulk": FaceFindBulk,
     "face-match/bulkupload": FaceBulkUpload,
@@ -350,7 +351,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
             "7. BOTH summarize AND image-search on the same folder: emit "
             "image_summary/summarize-images AND image_embeddings/search_images with "
             "the SAME input_dir (same image folder); order mount first if UFDR applies.\n"
-            "8. IMAGE SIMILARITY: image_similarity/search_similar_images needs input_dir "
+            "8. IMAGE SIMILARITY: image_series_similarity/search_series needs input_dir "
             "and query_image (a reference photo path). Use when the user wants images "
             "that look like a given picture—not a text query (use image_embeddings/search_images for text).\n"
             "9. UFDR: If the user mentions mounting UFDR/.ufdr, emit ufdr_mounter/mount "
@@ -757,7 +758,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ],
     }
 
-    # Reference photo → similar images in folder (image_similarity, not text-query CLIP)
+    # Reference photo → similar images in folder (image_series_similarity, not text-query CLIP)
     ex_sim_user = {
         "role": "user",
         "content": (
@@ -771,7 +772,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         "tool_calls": [
             {
                 "function": {
-                    "name": "image_similarity/search_similar_images",
+                    "name": "image_series_similarity/search_series",
                     "arguments": {
                         "input_dir": "/evidence/album1",
                         "query_image": "/evidence/album1/suspect_ref.jpg",
@@ -807,7 +808,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         ex_j_user,
         ex_j_asst,  # search these images for → image_embeddings only
         ex_sim_user,
-        ex_sim_asst,  # reference image → image_similarity/search_similar_images
+        ex_sim_asst,  # reference image → image_series_similarity/search_series
         ex_d_user,
         ex_d_asst,
         # Last: recency — multi-search prompts that models often collapse to one tool.

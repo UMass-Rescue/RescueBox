@@ -4,7 +4,7 @@ import inspect
 
 import pytest
 from image_similarity.main import (
-    search_similar_images,
+    search_series,
     task_schema,
     Inputs,
     Parameters,
@@ -45,9 +45,9 @@ def test_task_schema_parameters():
 # ---------------------------------------------------------------------------
 
 
-def test_search_similar_images_callable():
-    assert callable(search_similar_images)
-    sig = inspect.signature(search_similar_images)
+def test_search_series_callable():
+    assert callable(search_series)
+    sig = inspect.signature(search_series)
     assert "inputs" in sig.parameters
     assert "parameters" in sig.parameters
 

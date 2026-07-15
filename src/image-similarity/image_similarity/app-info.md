@@ -6,7 +6,7 @@ This plugin finds images from the **same series** as a query image. It embeds al
 
 Embeddings are stored in a dedicated PostgreSQL (pgvector) `image_similarity_embeddings` table. If images have already been embedded by a prior run, their vectors are **reused** — no double computation.
 
-**Route:** `/search_similar_images`
+**Route:** `/search_series`
 
 ## When to Use This Plugin
 
