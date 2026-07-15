@@ -240,7 +240,7 @@ def task_schema() -> TaskSchema:
             ),
             InputSchema(
                 key="query_image",
-                label="Query image — find visually similar images to this one",
+                label="Query image — find images from the same series as this one",
                 input_type=InputType.FILE,
             ),
         ],
@@ -625,12 +625,12 @@ def _build_metadata(
     }
     if scoring_mode in ("semantic", "combined"):
         meta["CLIP Model"] = model_name
-    meta["Query"] = f"Similar to {query_name}"
+    meta["Query"] = f"Series match for {query_name}"
     return meta
 
 
 def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
-    """Find images visually similar to a query image inside ``input_dir``."""
+    """Find images from the same series as a query image inside ``input_dir``."""
 
     input_dir = os.path.realpath(str(inputs["input_dir"].path))
     query_image_path = os.path.realpath(str(inputs["query_image"].path))
@@ -747,7 +747,7 @@ server.add_ml_service(
         parser=parameters_cli_parse,
         help="model_name,top_k,min_similarity,scoring_mode  (scoring_mode: combined|semantic|pdq)",
     ),
-    short_title="Find similar images (image query)",
+    short_title="Find series matches (image query)",
     order=0,
     task_schema_func=task_schema,
 )

@@ -33,7 +33,7 @@ If you're looking for a concept like "people eating" rather than a specific scen
 
 - **Input directory:** Folder containing image files to search within.
 
-- **Query image:** A reference image file. The plugin returns the most visually similar images from the directory, excluding the query image itself from results.
+- **Query image:** A reference image file. The plugin returns images from the same series in the directory, excluding the query image itself from results.
 
 ## Parameters
 
