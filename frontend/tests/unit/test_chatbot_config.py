@@ -220,7 +220,7 @@ class TestToolRegistry:
         assert uids[0] == "audio"
         assert uids.index("image_summary") < uids.index("image_embeddings")
         assert uids.count("face-match") == 1
-        assert uids[-1] == "image_similarity"
+        assert uids[-1] == "image_series_similarity"
         assert "ufdr_mounter" in uids
 
     def test_blocked_patterns(self):
