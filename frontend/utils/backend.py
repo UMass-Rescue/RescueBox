@@ -1,11 +1,17 @@
+import asyncio
 import logging
 import sys
+
+import httpx
 
 from frontend.api_client import api_client as default_api_client
 from frontend.database.model_cache import cache_models
 from frontend.utils.exceptions import HTTP_CLIENT_ERRORS
 
 logger = logging.getLogger(__name__)
+
+_PREFETCH_RETRY_DELAY_SEC = 2.0
+_PREFETCH_RETRIABLE_HTTP = frozenset({502, 503, 504})
 
 
 class _BackendAvailability:
@@ -30,28 +36,58 @@ def is_backend_available() -> bool:
     return _BackendAvailability.flag
 
 
-async def prefetch_and_cache_models(api_client=None, _backend_url="", _api_timeout=30):
+async def prefetch_and_cache_models(api_client=None, _backend_url="", _api_timeout=60):
     """Prefetch all model metadata and cache it in the database."""
     if api_client is None:
         api_client = default_api_client
 
-    try:
-        logger.info("Prefetching model metadata...")
-        response = await api_client.get("/models", use_api_prefix=True)
-        response.raise_for_status()
+    max_attempts = max(1, int(_api_timeout / _PREFETCH_RETRY_DELAY_SEC))
+    last_err: Exception | None = None
 
-        models_data = await api_client.json(response)
-        if models_data:
+    for attempt in range(1, max_attempts + 1):
+        try:
+            if attempt == 1:
+                logger.info("Prefetching model metadata...")
+            else:
+                logger.info(
+                    "Prefetching model metadata (attempt %s/%s)...",
+                    attempt,
+                    max_attempts,
+                )
+            response = await api_client.get("/models", use_api_prefix=True)
+            response.raise_for_status()
+
+            models_data = await api_client.json(response)
+            if models_data:
+                logger.info(
+                    "Successfully pre-fetched %s models from the backend.",
+                    len(models_data),
+                )
+                await cache_models(models_data)
+            else:
+                logger.warning(
+                    "Pre-fetching models returned no data. Skipping cache update."
+                )
+            return
+        except httpx.HTTPStatusError as e:
+            last_err = e
+            if e.response.status_code not in _PREFETCH_RETRIABLE_HTTP:
+                logger.warning("Failed to prefetch models: %s", e)
+                return
+        except (*HTTP_CLIENT_ERRORS, httpx.RequestError) as e:
+            last_err = e
+
+        if attempt < max_attempts:
             logger.info(
-                "Successfully pre-fetched %s models from the backend.", len(models_data)
+                "Backend not ready (%s); retrying in %ss...",
+                last_err,
+                _PREFETCH_RETRY_DELAY_SEC,
             )
-            await cache_models(models_data)
-        else:
-            logger.warning(
-                "Pre-fetching models returned no data. Skipping cache update."
-            )
-    except HTTP_CLIENT_ERRORS as e:
-        logger.warning("Failed to prefetch models: %s", e)
+            await asyncio.sleep(_PREFETCH_RETRY_DELAY_SEC)
+
+    logger.warning(
+        "Failed to prefetch models after %s attempts: %s", max_attempts, last_err
+    )
 
 
 def setup_backend_routes(api_base_url: str = ""):

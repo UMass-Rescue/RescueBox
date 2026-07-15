@@ -21,7 +21,7 @@
       {
         "label": "main",
         "title": "RescueBox",
-        "url": "http://127.0.0.1:8080/",
+        "url": "about:blank",
         "width": 1280,
         "height": 800,
         "minWidth": 800,
@@ -36,7 +36,7 @@
         "title": "RescueBox",
         "url": "splashscreen.html",
         "width": 440,
-        "height": 300,
+        "height": 360,
         "resizable": false,
         "fullscreen": false,
         "center": true,
@@ -46,11 +46,19 @@
     ],
     "security": {
       "csp": null
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
     "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "windows": {
       "certificateThumbprint": "721DC6509D5643BC3232C43D3A27EF8AF06A1651",
       "digestAlgorithm": "sha1",
@@ -70,13 +78,6 @@
       "frontend/": "frontend",
       "backend/": "backend",
       "demo/": "demo"
-    },
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ]
+    }
   }
 }

@@ -40,10 +40,9 @@ def _default_show_browser() -> bool:
     explicit = os.getenv("RESCUEBOX_SHOW_BROWSER")
     if explicit is not None:
         return explicit.lower() == "true"
-    # PyInstaller / Tauri sidecar: the shell webview is the UI; do not also launch a browser.
     if getattr(sys, "frozen", False):
         return False
-    return True
+    return False
 
 
 APP_SHOW_BROWSER = _default_show_browser()

@@ -217,15 +217,18 @@ if __name__ in {"__main__", "__mp_main__"}:
     async def _on_client_delete(client: Client):
         release_demo_folder_for_client(client)
 
+    # Headless when frozen (PyInstaller): Tauri or install scripts start servers;
+    # use a normal browser at http://127.0.0.1:8080 — no NiceGUI/pywebview window.
+    _headless_server = getattr(sys, "frozen", False)
     _run_kwargs = dict(
         title=APP_TITLE,
         port=APP_PORT,
-        show=APP_SHOW_BROWSER,
+        show=APP_SHOW_BROWSER and not _headless_server,
         native=False,
         reconnect_timeout=RECONNECT_TIMEOUT,
         storage_secret="REPLACE_WITH_A_REAL_SECRET_KEY",
         reload=False,
-        show_welcome_message=APP_SHOW_BROWSER,
+        show_welcome_message=APP_SHOW_BROWSER and not _headless_server,
     )
     if APP_FAVICON:
         _run_kwargs["favicon"] = APP_FAVICON

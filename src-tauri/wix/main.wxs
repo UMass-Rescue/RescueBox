@@ -57,10 +57,18 @@
         {{/if}}
         {{#if license}}
         <WixVariable Id="WixUILicenseRtf" Value="{{license}}" />
+        {{else}}
+        <WixVariable Id="WixUILicenseRtf" Value="C:\work\rel\v3\image-search\RescueBox\src-tauri\License.rtf" />
         {{/if}}
 
-        <Icon Id="ProductIcon" SourceFile="{{icon_path}}"/>
+        {{#if icon_path}}
+        <Icon Id="ProductIcon" SourceFile="{{icon_path}}" />
         <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+        {{/if}}
+
+        <WixVariable Id="WixUIBannerBmp" Value="C:\work\rel\v3\image-search\RescueBox\src-tauri\wix\assets\rb.bmp" />
+        <WixVariable Id="WixUIDialogBmp" Value="C:\work\rel\v3\image-search\RescueBox\src-tauri\wix\assets\rbd.bmp" />
+        
         <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />      <!-- Remove repair -->
         <SetProperty Id="ARPNOMODIFY" Value="1" After="InstallValidate" Sequence="execute"/>
 
@@ -70,6 +78,7 @@
         <Property Id="ARPURLUPDATEINFO" Value="{{homepage}}"/>
         {{/if}}
 
+        
         <!-- NOTE: The order of RegistrySearch elements below matters. In WIX, when multiple
              RegistrySearch elements are listed under a single Property, the LAST successful
              match wins. We list the NSIS default-key search first and the MSI InstallDir
@@ -82,68 +91,18 @@
           <RegistrySearch Id="PrevInstallDirWithName" Root="HKCU" Key="Software\\{{manufacturer}}\\{{product_name}}" Name="InstallDir" Type="raw" />
         </Property>
 
+        
+
         <!-- launch app checkbox -->
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="!(loc.LaunchApp)" />
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1"/>
         <CustomAction Id="LaunchApplication" Impersonate="yes" FileKey="Path" ExeCommand="[LAUNCHAPPARGS]" Return="asyncNoWait" />
+        
 
         <UI>
-            <!-- launch app checkbox -->
             <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
 
             <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
-
-            <!-- No EULA in tauri.conf.json: Welcome -> ONNX models path -> install folder (not LicenseDlg) -->
-            <DialogRef Id="ModelSourceDlg" />
-            <DialogRef Id="ModelsBrowseDlg" />
-
-            <Publish Dialog="WelcomeDlg"
-                     Control="Next"
-                     Event="NewDialog"
-                     Value="ModelSourceDlg"
-                     Order="2">NOT Installed</Publish>
-            <!-- Cancel WixUI_InstallDir default Welcome -> InstallDir on first install -->
-            <Publish Dialog="WelcomeDlg"
-                     Control="Next"
-                     Event="NewDialog"
-                     Value="InstallDirDlg"
-                     Order="3">0</Publish>
-
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Next"
-                     Property="MODELS_ZIP_PATH"
-                     Value="[MODELS_ZIP_DIR]"
-                     Order="1">1</Publish>
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Next"
-                     Event="NewDialog"
-                     Value="InstallDirDlg"
-                     Order="2">1</Publish>
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Back"
-                     Event="NewDialog"
-                     Value="WelcomeDlg"
-                     Order="2">1</Publish>
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Browse"
-                     Property="_BrowseProperty"
-                     Value="[MODELS_ZIP_SOURCE]"
-                     Order="1">1</Publish>
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Browse"
-                     Event="SpawnDialog"
-                     Value="ModelsBrowseDlg"
-                     Order="2">1</Publish>
-            <Publish Dialog="InstallDirDlg"
-                     Control="Back"
-                     Event="NewDialog"
-                     Value="ModelSourceDlg"
-                     Order="2">NOT Installed</Publish>
-            <Publish Dialog="InstallDirDlg"
-                     Control="Back"
-                     Event="NewDialog"
-                     Value="WelcomeDlg"
-                     Order="3">Installed</Publish>
         </UI>
 
         <UIRef Id="WixUI_InstallDir" />
@@ -185,6 +144,7 @@
             </Component>
             <Component Id="Path" Guid="{{path_component_guid}}" Win64="$(var.Win64)">
                 <File Id="Path" Source="{{main_binary_path}}" KeyPath="yes" Checksum="yes"/>
+                <RemoveFolder Id="INSTALLDIR" On="uninstall" />
                 {{#each file_associations as |association| ~}}
                 {{#each association.ext as |ext| ~}}
                 <ProgId Id="{{../../product_name}}.{{ext}}" Advertise="yes" Description="{{association.description}}">
@@ -212,24 +172,6 @@
             </Component>
             {{/if}}
             {{resources}}
-            <Component Id="CMP_UninstallShortcut" Guid="*">
-
-                <Shortcut Id="UninstallShortcut"
-						  Name="Uninstall {{product_name}}"
-						  Description="Uninstalls {{product_name}}"
-						  Target="[System64Folder]msiexec.exe"
-						  Arguments="/x [ProductCode]" />
-
-				<RemoveFolder Id="INSTALLDIR"
-							  On="uninstall" />
-
-				<RegistryValue Root="HKCU"
-							   Key="Software\\{{manufacturer}}\\{{product_name}}"
-							   Name="Uninstaller Shortcut"
-							   Type="integer"
-							   Value="1"
-							   KeyPath="yes" />
-            </Component>
         </DirectoryRef>
 
         <DirectoryRef Id="ApplicationProgramsFolder">
@@ -245,6 +187,19 @@
                 <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
                 <RegistryValue Root="HKCU" Key="Software\\{{manufacturer}}\\{{product_name}}" Name="Start Menu Shortcut" Type="integer" Value="1" KeyPath="yes"/>
            </Component>
+            <Component Id="CMP_UninstallShortcut" Guid="*">
+                <Shortcut Id="UninstallShortcut"
+                          Name="Uninstall {{product_name}}"
+                          Description="Uninstalls {{product_name}}"
+                          Target="[System64Folder]msiexec.exe"
+                          Arguments="/x [ProductCode]" />
+                <RegistryValue Root="HKCU"
+                               Key="Software\\{{manufacturer}}\\{{product_name}}"
+                               Name="Uninstaller Shortcut"
+                               Type="integer"
+                               Value="1"
+                               KeyPath="yes" />
+            </Component>
         </DirectoryRef>
 
         {{#each merge_modules as |msm| ~}}

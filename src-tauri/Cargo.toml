@@ -25,6 +25,7 @@ tauri = { version = "2.11.2", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-shell = "2.3.5"
 tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
 url = "2.5"
 zip = "2.2"
 winreg = "0.52"

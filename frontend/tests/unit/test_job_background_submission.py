@@ -76,6 +76,45 @@ async def test_background_submission_success_enables_input(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_tracked_single_job_skips_chat_results_after_redirect(monkeypatch):
+    """After redirect to /jobs, background success must not touch the chat container."""
+    form_handler = MagicMock()
+    form_handler.state_manager = MagicMock()
+    orchestrator = JobSubmissionOrchestrator(form_handler)
+    orchestrator.lifecycle.record_job_started = AsyncMock()
+    orchestrator.lifecycle.complete_successful_submission = AsyncMock()
+
+    show_results_mock = AsyncMock()
+    navigate_scheduled: list[int] = []
+
+    monkeypatch.setattr(
+        orchestrator_module, "show_results", show_results_mock
+    )
+    monkeypatch.setattr(
+        orchestrator_module,
+        "_schedule_jobs_page_navigation",
+        lambda: navigate_scheduled.append(1),
+    )
+
+    core = MagicMock()
+    core.submit_job = AsyncMock(return_value=MagicMock())
+
+    await orchestrator._run_successful_submit(
+        request_body=MagicMock(),
+        endpoint="test/endpoint",
+        task_schema=MagicMock(),
+        target_container=MagicMock(),
+        core=core,
+        remaining_calls=None,
+        conversation_id="conv1",
+        job_id="JOB_abc",
+        loading_row=None,
+    )
+
+    show_results_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_handle_remaining_calls_passes_on_form_cancel():
     """Test that handle_remaining_calls properly passes on_form_cancel to load_and_show_form."""
     form_handler = MagicMock()

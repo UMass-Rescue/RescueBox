@@ -67,12 +67,12 @@ def normalize_demo_walkthrough_query(value: Optional[str]) -> str:
 
 
 def _resolved_root() -> Path:
-    return DEMO_FILES_BROWSE_ROOT.expanduser().resolve()
+    return DEMO_FILES_BROWSE_ROOT.expanduser().absolute()
 
 
 def _is_under_root(path: Path, root: Path) -> bool:
     try:
-        path = path.resolve()
+        path = path.absolute()
         path.relative_to(root)
         return True
     except (ValueError, OSError, RuntimeError):
@@ -106,7 +106,7 @@ def _list_entries(
         dirs = [p for p in dirs if p.name.lower() not in excl]
 
     try:
-        at_root = directory.resolve() == list_root.resolve()
+        at_root = directory.absolute() == list_root.absolute()
     except OSError:
         at_root = False
 
@@ -162,7 +162,7 @@ def render_demo_files_explorer(
         list_holder = ui.column().classes("w-full min-w-0 gap-1")
 
         def go_to(new_path: str) -> None:
-            target = Path(new_path).resolve()
+            target = Path(new_path).absolute()
             if not _is_under_root(target, root):
                 ui.notify("Invalid path", type="negative", classes="rb-notify-505759")
                 return
@@ -255,7 +255,7 @@ def render_walkthrough_samples_panel(container: ui.element, walkthrough: str) ->
                 )
 
 
-_FRONTEND_DEMO_DIR = Path(__file__).resolve().parent.parent / "demo"
+_FRONTEND_DEMO_DIR = Path(__file__).absolute().parent.parent / "demo"
 
 
 def schedule_hash_fragment_scroll() -> None:
