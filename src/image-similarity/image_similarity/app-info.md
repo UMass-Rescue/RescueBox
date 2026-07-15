@@ -1,21 +1,33 @@
 # Image Similarity Search
 
-This plugin finds **visually similar images** given a query image. It embeds all images in a folder using a SigLIP2 vision encoder (ONNX Runtime) and ranks them using a configurable scoring mode combining semantic similarity and perceptual hashing.
+**Series:** A series is a collection of images that are related **temporally** and in terms of **subject or subject matter**. For example, photos taken at a birthday party would all be part of the same series. Photos of the same person taken at different times and places would **not** be part of the same series. See the [UMass-Rescue/image-series-dataset](https://github.com/UMass-Rescue/image-series-dataset) for examples.
+
+This plugin finds images from the **same series** as a query image. It embeds all images in a folder using a SigLIP2 vision encoder (ONNX Runtime) and ranks them using a configurable scoring mode combining semantic similarity and perceptual hashing.
 
 Embeddings are stored in a dedicated PostgreSQL (pgvector) `image_similarity_embeddings` table. If images have already been embedded by a prior run, their vectors are **reused** — no double computation.
 
 **Route:** `/search_similar_images`
 
-## Which Plugin Should I Use?
+## When to Use This Plugin
 
 | I have... | I want... | Use |
 |---|---|---|
-| A **photo** | Other photos that **look like it** | **Image Similarity** (this plugin) |
+| A **birthday party image** | Other images from the **same birthday party** | **Image Similarity** (this plugin) |
 | A **text description** | Photos that **match the description** | Image Search |
 | A **photo** | A **text description** of what's in it | Image Summary |
 | A **photo** with people | **Age and gender** of each person | Age-Gender Classifier |
 
-This plugin takes an image as input and finds visually similar images from a folder — same event, same scene, same setting, or near-duplicates. The model considers the entire image (people, objects, background, lighting), so images from the same event naturally match well even with busy multi-person scenes. To isolate a specific object or person, crop the query image so that subject fills most of the frame.
+### Use case 1: Find other images from the same series
+
+The model embeds the **entire image** holistically — people, objects, background, lighting all contribute. Images from the same event naturally match well because they share many visual elements (same venue, same people, same lighting). Use a full uncropped photo as the query.
+
+### Use case 2: Find images of a specific subject
+
+To find images containing a specific object or person, **crop the query image** so that subject fills most of the frame. The model will then match based on that subject's visual features.
+
+### Better with a text query?
+
+If you're looking for a concept like "people eating" rather than a specific scene, use the **Image Search** plugin with a text description instead. This plugin works best when the query image clearly represents what you're looking for — a single event, a single subject, or a cropped subject of interest.
 
 ## Inputs
 
