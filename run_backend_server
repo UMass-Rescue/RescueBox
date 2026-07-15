@@ -25,7 +25,7 @@ run_or_fail "$SCRIPT_DIR/startup/cudnn_check.sh"
 run_or_fail "PostgreSQL / pgvector" bash "$SCRIPT_DIR/startup/pgvector_start.sh"
 run_or_fail "Ollama" bash "$SCRIPT_DIR/startup/ollama_check.sh"
 
-echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}"
 echo "Starting RescueBox API..."
 #export HF_HUB_OFFLINE=1 
 #export TRANSFORMERS_OFFLINE=1
