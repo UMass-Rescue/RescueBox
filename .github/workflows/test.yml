@@ -24,19 +24,14 @@ jobs:
         run: |
           pip install gdown
           mkdir =p "src/deepfake-detection/deepfake_detection/onnx_models"
-          ls -l src/deepfake-detection/deepfake_detection/onnx_models
-          gdown "1Yuyt9pZj7dbaYeX0toEgFJfVgjhOS1SG" --continue
-          unzip ./models--Systran--faster-whisper-base.zip
-          mkdir -p ~/.cache/huggingface/hub
-          mv models--Systran--faster-whisper-base ~/.cache/huggingface/hub
+          
           
 
       - name: pull onnx model for facematch
         run: |
           pip install gdown --force-reinstall
           mkdir -p "src/face-detection-recognition/face_detection_recognition/models"
-          gdown "1oDt1i80rUew0UhtY3UiW9EIyd2WfJTZf" -O ./src/face-detection-recognition/face_detection_recognition/models/retinaface-resnet50.onnx --continue
-          gdown "1CVCmumM_6C7giGAXJUwHWT--DPFC9bpI" -O ./src/face-detection-recognition/face_detection_recognition/models/facenet512_model.onnx --continue
+          
           
       - name: Install Poetry and dependencies
         run: |
