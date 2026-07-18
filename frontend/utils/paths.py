@@ -25,6 +25,7 @@ def _absolute_path(path: Path) -> Path:
         p = Path.cwd() / p
     return p.absolute()
 
+
 _COMMON_RASTER_IMAGE_SUFFIXES = (
     ".png",
     ".jpg",

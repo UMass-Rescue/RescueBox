@@ -9,7 +9,6 @@ Usage::
 
 from __future__ import annotations
 import sys
-import platform
 import os
 from pathlib import Path
 import frontend.pages  # noqa: F401 # (static import for PyInstaller)
@@ -66,9 +65,7 @@ if sys.stdout is None or not hasattr(sys.stdout, "write"):
     sys.stderr = sys.stdout
 
 if getattr(sys, "frozen", False) and _PYINSTALLER_MEIPASS is not None:
-    local_appdata = os.getenv(
-        "LOCALAPPDATA", str(Path.home() / "AppData" / "Local")
-    )
+    local_appdata = os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
     base_dir = Path(local_appdata) / "RescueBox"
 
     # 2. Construct the path

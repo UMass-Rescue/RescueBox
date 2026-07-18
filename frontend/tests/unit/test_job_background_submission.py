@@ -87,9 +87,7 @@ async def test_tracked_single_job_skips_chat_results_after_redirect(monkeypatch)
     show_results_mock = AsyncMock()
     navigate_scheduled: list[int] = []
 
-    monkeypatch.setattr(
-        orchestrator_module, "show_results", show_results_mock
-    )
+    monkeypatch.setattr(orchestrator_module, "show_results", show_results_mock)
     monkeypatch.setattr(
         orchestrator_module,
         "_schedule_jobs_page_navigation",

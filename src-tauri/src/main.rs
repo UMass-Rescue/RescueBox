@@ -35,8 +35,8 @@ const BACKEND_EXE: &str = "rescuebox-x86_64-pc-windows-msvc.exe";
 
 const MODELS_REGISTRY_KEY: &str = r"Software\RescueBox\RescueBox";
 const MODELS_REGISTRY_VALUE: &str = "ModelsZipSource";
-const PRE_REQS_ZIP_NAMES: [&str; 1] = ["pre-reqs_3.1.zip"];
-const PRE_REQS_FOLDER_NAMES: [&str; 2] = ["pre-reqs", "pre_reqs"];
+const PRE_REQS_ZIP_NAME: &str = "pre-reqs_3.1.zip";
+const PRE_REQS_FOLDER_NAME: &str = "pre-reqs";
 const PREREQS_BUNDLE_DIR: &str = "prereqs_status";
 const PREREQS_SETUP_MARKER: &str = ".prereqs_setup_done.txt";
 const OLLAMA_SETUP_EXE: &str = "OllamaSetup.exe";
@@ -201,12 +201,10 @@ fn read_registry_models_zip_source() -> Option<String> {
 }
 
 /// Prereqs bundle layout: files live directly under ``root`` (e.g. ``pre-reqs/OllamaSetup.exe``).
-fn find_file_in_tree(root: &Path, names: &[&str]) -> Option<PathBuf> {
-    for name in names {
-        let path = root.join(name);
-        if path.is_file() {
-            return Some(path);
-        }
+fn find_file_in_tree(root: &Path, name: &str) -> Option<PathBuf> {
+    let path = root.join(name);
+    if path.is_file() {
+        return Some(path);
     }
     None
 }
@@ -220,11 +218,10 @@ fn resolve_pre_reqs_folder(source: &str) -> Option<PathBuf> {
     if !path.is_dir() {
         return None;
     }
-    for name in PRE_REQS_FOLDER_NAMES {
-        let candidate = path.join(name);
-        if candidate.is_dir() {
-            return Some(candidate);
-        }
+
+    let candidate = path.join(PRE_REQS_FOLDER_NAME);
+    if candidate.is_dir() {
+        return Some(candidate);
     }
     None
 }
@@ -515,10 +512,8 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
         append_shell_log(app, "WARN", &format!("Offline Ollama models: {e}"));
     }
 
-    let pre_reqs_zip = PRE_REQS_ZIP_NAMES
-        .iter()
-        .map(|name| launch_dir.join(name))
-        .find(|path| path.is_file());
+    let pre_reqs_zip_path = launch_dir.join(PRE_REQS_ZIP_NAME);
+    let pre_reqs_zip = pre_reqs_zip_path.is_file().then_some(pre_reqs_zip_path);
 
     if folder_root.is_none() && pre_reqs_zip.is_none() {
         append_shell_log(
@@ -526,7 +521,7 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
             "INFO",
             &format!(
                 "No pre-reqs in {} (expected {:?} folder or zip).",
-                source, PRE_REQS_FOLDER_NAMES
+                source, PRE_REQS_FOLDER_NAME
             ),
         );
         return Ok(());
@@ -562,7 +557,7 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
         };
         
         set_splash_status(app, "Installing prerequisites (Ollama)…");
-        if let Some(ollama_setup) = find_file_in_tree(&prereqs_root, &[OLLAMA_SETUP_EXE]) {
+        if let Some(ollama_setup) = find_file_in_tree(&prereqs_root, &OLLAMA_SETUP_EXE) {
             if ollama_installed() {
                 append_shell_log(app, "INFO", "Ollama already installed; skipping setup.");
             } else if let Err(e) = run_exe_installer(app, &ollama_setup, "OllamaSetup") {
@@ -786,7 +781,7 @@ fn shell_log_path(app: &tauri::AppHandle) -> PathBuf {
     }
     let path = install_home(app)
         .join("logs")
-        .join("rescuebox-startup.log");
+        .join("rescuebox-installer.log");
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
@@ -855,25 +850,6 @@ fn notify_user(
 
 fn notify_error(app: &tauri::AppHandle, title: impl Into<String>, message: impl Into<String>) {
     notify_user(app, title, message, MessageDialogKind::Error);
-}
-
-/// Python log lines on stderr are not errors; map ``[DEBUG]`` / ``[INFO]`` / … to shell log level.
-fn infer_sidecar_log_level(line: &str) -> &'static str {
-    if line.contains("[CRITICAL]") || line.contains("[ERROR]") {
-        "ERROR"
-    } 
-    else {
-        "INFO"
-    }
-}
-
-fn log_sidecar_line(app: &tauri::AppHandle, sidecar: &str, text: &str) {
-    let trimmed = text.trim_end_matches(['\r', '\n']);
-    if trimmed.is_empty() {
-        return;
-    }
-    let level = infer_sidecar_log_level(trimmed);
-    append_shell_log(app, level, &format!("{sidecar} — {trimmed}"));
 }
 
 fn kill_sidecars(app: &tauri::AppHandle) {
@@ -1037,12 +1013,15 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
     }
 
     let log_path = shell_log_path(app);
+    let logs_dir = install_home(app).join("logs");
     append_shell_log(
         app,
         "INFO",
         &format!(
-            "Starting backend and frontend. Full sidecar log: {}",
-            log_path.display()
+            "Starting backend and frontend. Startup trace: {}. Runtime logs: {} and {}",
+            log_path.display(),
+            logs_dir.join("frontend.log").display(),
+            logs_dir.join("backend.log").display()
         ),
     );
     set_splash_status(app, "Starting backend server…");
@@ -1110,38 +1089,12 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
     *state.frontend.lock().unwrap() = Some(child);
     *state.backend.lock().unwrap() = Some(child_backend);
 
-    let app_fe = app.clone();
+    // Drain stdout/stderr so pipes do not fill; sidecars log to frontend.log / backend.log only.
     tauri::async_runtime::spawn(async move {
-        while let Some(event) = rx.recv().await {
-            match event {
-                tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
-                    let text = String::from_utf8_lossy(&line).into_owned();
-                    log_sidecar_line(&app_fe, "Frontend", &text);
-                }
-                tauri_plugin_shell::process::CommandEvent::Stderr(line) => {
-                    let text = String::from_utf8_lossy(&line).into_owned();
-                    log_sidecar_line(&app_fe, "Frontend", &text);
-                }
-                _ => {}
-            }
-        }
+        while let Some(_event) = rx.recv().await {}
     });
-
-    let app_be = app.clone();
     tauri::async_runtime::spawn(async move {
-        while let Some(event) = rx_backend.recv().await {
-            match event {
-                tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
-                    let text = String::from_utf8_lossy(&line).into_owned();
-                    log_sidecar_line(&app_be, "Backend", &text);
-                }
-                tauri_plugin_shell::process::CommandEvent::Stderr(line) => {
-                    let text = String::from_utf8_lossy(&line).into_owned();
-                    log_sidecar_line(&app_be, "Backend", &text);
-                }
-                _ => {}
-            }
-        }
+        while let Some(_event) = rx_backend.recv().await {}
     });
 
     wait_for_backend(app);

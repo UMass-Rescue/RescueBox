@@ -144,9 +144,7 @@ class DirectoryBrowser:
             with self.file_list:
                 if p_obj.parent != p_obj:
                     _render_parent_directory_row(
-                        lambda: self._render_directory_tree(
-                            path_for_ui(p_obj.parent)
-                        )
+                        lambda: self._render_directory_tree(path_for_ui(p_obj.parent))
                     )
 
                 for item in _sorted_directory_entries(p_obj):
@@ -157,9 +155,9 @@ class DirectoryBrowser:
                                 "items-center gap-3 cursor-pointer flex-1 py-1"
                             ).on(
                                 "click",
-                                lambda *a, p=path_for_ui(item): self._render_directory_tree(
-                                    p
-                                ),
+                                lambda *a, p=path_for_ui(
+                                    item
+                                ): self._render_directory_tree(p),
                             ):
                                 ui.icon("folder", size="sm").classes("text-[#881c1c]")
                                 ui.label(item.name).classes(
