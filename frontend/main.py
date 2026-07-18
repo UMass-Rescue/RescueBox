@@ -66,11 +66,10 @@ if sys.stdout is None or not hasattr(sys.stdout, "write"):
     sys.stderr = sys.stdout
 
 if getattr(sys, "frozen", False) and _PYINSTALLER_MEIPASS is not None:
-    # 1. Safely get APPDATA, falling back to the standard home directory if it's missing
-    appdata_path = os.getenv("APPDATA", str(Path.home()))
-    base_dir = Path(appdata_path) / ".rescuebox"
-    if platform.system() == "Windows":
-        base_dir = Path(appdata_path) / "RescueBox-Desktop"
+    local_appdata = os.getenv(
+        "LOCALAPPDATA", str(Path.home() / "AppData" / "Local")
+    )
+    base_dir = Path(local_appdata) / "RescueBox"
 
     # 2. Construct the path
     custom_storage_dir = base_dir / "nicegui"

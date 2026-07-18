@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::{thread, time::Duration};
 
+use tauri::webview::PageLoadEvent;
 use tauri::{Manager, RunEvent};
 use tauri_plugin_dialog::MessageDialogKind;
 use tauri_plugin_shell::process::CommandChild;
@@ -18,6 +19,7 @@ struct AppState {
     backend: Mutex<Option<CommandChild>>,
     closing_splash_for_main: AtomicBool,
     quit_on_close: AtomicBool,
+    startup_scheduled: AtomicBool,
     shell_log_path: Mutex<Option<PathBuf>>,
 }
 
@@ -30,23 +32,23 @@ const UI_READY_POLL_MS: u64 = 500;
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 const BACKEND_EXE: &str = "rescuebox-x86_64-pc-windows-msvc.exe";
-const BACKEND_EXE_FALLBACK: &str = "rescuebox.exe";
 
-
-const MODELS_REGISTRY_KEY: &str = r"Software\rescuebox-desktop\RescueBox";
+const MODELS_REGISTRY_KEY: &str = r"Software\RescueBox\RescueBox";
 const MODELS_REGISTRY_VALUE: &str = "ModelsZipSource";
-const MODELS_ZIP_CANDIDATE_NAMES: [&str; 2] = ["models.zip", "rb_3.1_onnx_models.zip"];
-const PRE_REQS_ZIP_NAMES: [&str; 1] = ["pre-reqs.zip"];
+const PRE_REQS_ZIP_NAMES: [&str; 1] = ["pre-reqs_3.1.zip"];
 const PRE_REQS_FOLDER_NAMES: [&str; 2] = ["pre-reqs", "pre_reqs"];
 const PREREQS_BUNDLE_DIR: &str = "prereqs_status";
 const PREREQS_SETUP_MARKER: &str = ".prereqs_setup_done.txt";
 const OLLAMA_SETUP_EXE: &str = "OllamaSetup.exe";
-const WINFSP_MSI_NAMES: [&str; 1] = ["winfsp-2.1.25156.msi"];
+const OLLAMA_MODELS_ZIP: &str = "ollama_models_3.1.zip";
+const ONNX_MODELS_ZIP: &str = "onnx_models_3.1.zip";
+const OLLAMA_OFFLINE_MODELS_MARKER: &str = ".ollama_models_installed.txt";
+const WINFSP_MSI_NAME: &str = "winfsp-2.1.25156.msi";
 const POSTGRES_ZIP_NAME: &str = "postgres.zip";
 const POSTGRES_SETUP_BAT: &str = "setup.bat";
 
-fn backend_exe_names() -> [&'static str; 2] {
-    [BACKEND_EXE, BACKEND_EXE_FALLBACK]
+fn backend_exe_names() -> [&'static str; 1] {
+    [BACKEND_EXE]
 }
 
 /// Directory that contains the backend PyInstaller executable.
@@ -93,34 +95,10 @@ fn backend_executable_in(root: &Path) -> Option<PathBuf> {
     None
 }
 
-fn zip_contains_backend_exe(zip_path: &Path) -> Result<bool, String> {
-    let file = File::open(zip_path).map_err(|e| e.to_string())?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
-    for i in 0..archive.len() {
-        let name = archive
-            .by_index(i)
-            .map_err(|e| e.to_string())?
-            .name()
-            .replace('\\', "/");
-        let lower = name.to_lowercase();
-        if lower.ends_with(BACKEND_EXE) || lower.ends_with(BACKEND_EXE_FALLBACK) {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
-fn remove_incomplete_backend_extract(install_home: &Path) {
-    let backend_dir = install_home.join("backend");
-    if backend_dir.is_dir() && resolve_backend_root(&backend_dir).is_none() {
-        let _ = fs::remove_dir_all(&backend_dir);
-    }
-}
-
 /// Writable install root (backend extracted to `<install_home>/backend` on first run).
 fn install_home(app: &tauri::AppHandle) -> PathBuf {
     app.path()
-    .app_data_dir()
+    .app_local_data_dir()
     .unwrap_or_else(|_| PathBuf::from("."))
 }
 
@@ -222,78 +200,6 @@ fn read_registry_models_zip_source() -> Option<String> {
     None
 }
 
-fn resolve_local_models_zip_path(source: &str) -> Result<PathBuf, String> {
-    let source = normalize_models_zip_source(source);
-    if source.is_empty() {
-        return Err("Models source path is empty.".into());
-    }
-    let path = PathBuf::from(&source);
-    if path.is_file() {
-        return Ok(path);
-    }
-    if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("zip")) {
-        return Err(format!("Models zip not found: {}", path.display()));
-    }
-    if !path.is_dir() {
-        return Err(format!(
-            "Models source is not a folder or zip file: {source}"
-        ));
-    }
-    for name in MODELS_ZIP_CANDIDATE_NAMES {
-        let candidate = path.join(name);
-        if candidate.is_file() {
-            return Ok(candidate);
-        }
-    }
-    let mut zips: Vec<PathBuf> = fs::read_dir(&path)
-        .map_err(|e| e.to_string())?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| {
-            p.is_file()
-                && p.extension()
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
-        })
-        .collect();
-    zips.sort();
-    match zips.len() {
-        0 => Err(format!(
-            "No .zip file found in {} (expected one of {:?}).",
-            path.display(),
-            MODELS_ZIP_CANDIDATE_NAMES
-        )),
-        1 => Ok(zips.remove(0)),
-        _ => Err(format!(
-            "Multiple zip files in {}; name one {:?} or set ModelsZipSource to the full zip path.",
-            path.display(),
-            MODELS_ZIP_CANDIDATE_NAMES
-        )),
-    }
-}
-
-fn resolve_zip_from_models_source(source: &str, names: &[&str]) -> Result<Option<PathBuf>, String> {
-    let source = normalize_models_zip_source(source);
-    if source.is_empty() {
-        return Ok(None);
-    }
-    let path = PathBuf::from(&source);
-    if path.is_file() {
-        if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("zip")) {
-            return Ok(Some(path));
-        }
-        return Ok(None);
-    }
-    if path.is_dir() {
-        for name in names {
-            let candidate = path.join(name);
-            if candidate.is_file() {
-                return Ok(Some(candidate));
-            }
-        }
-    }
-    Ok(None)
-}
-
 /// Prereqs bundle layout: files live directly under ``root`` (e.g. ``pre-reqs/OllamaSetup.exe``).
 fn find_file_in_tree(root: &Path, names: &[&str]) -> Option<PathBuf> {
     for name in names {
@@ -374,23 +280,73 @@ fn ollama_exe() -> PathBuf {
     PathBuf::from("ollama")
 }
 
-fn pull_ollama_chat_models(app: &tauri::AppHandle) {
-    for model in ["moondream:latest", "ibm/granite4.1:3b", "gemma3:1b", "gemma3:4b"] {
-        append_shell_log(app, "INFO", &format!("ollama pull {model}"));
-        match Command::new(ollama_exe())
-            .args(["pull", model])
-            .creation_flags(CREATE_NO_WINDOW)
-            .status()
-        {
-            Ok(status) if status.success() => {}
-            Ok(status) => append_shell_log(
-                app,
-                "WARN",
-                &format!("ollama pull {model} exited with code {:?}", status.code()),
-            ),
-            Err(e) => append_shell_log(app, "WARN", &format!("ollama pull {model}: {e}")),
-        }
+/// Default Ollama model store: ``%USERPROFILE%\.ollama\models`` (see ``OLLAMA_MODELS``).
+fn ollama_models_dir() -> PathBuf {
+    if let Ok(path) = std::env::var("OLLAMA_MODELS") {
+        return PathBuf::from(path);
     }
+    std::env::var("USERPROFILE")
+        .map(|home| PathBuf::from(home).join(".ollama").join("models"))
+        .unwrap_or_else(|_| PathBuf::from(".ollama").join("models"))
+}
+
+fn install_ollama_models_from_zip(app: &tauri::AppHandle, launch_dir: &Path) -> Result<(), String> {
+    let zip_path = launch_dir.join(OLLAMA_MODELS_ZIP);
+    if !zip_path.is_file() {
+        append_shell_log(
+            app,
+            "INFO",
+            &format!(
+                "No {} in {}; skipping offline Ollama models.",
+                OLLAMA_MODELS_ZIP,
+                launch_dir.display()
+            ),
+        );
+        return Ok(());
+    }
+
+    let dest = ollama_models_dir();
+    let roaming = install_home(app);
+    let ollama_marker = roaming.join(PREREQS_BUNDLE_DIR);
+    fs::create_dir_all(&ollama_marker).map_err(|e| e.to_string())?;
+    let marker = ollama_marker.join(OLLAMA_OFFLINE_MODELS_MARKER);
+    if !marker.is_file() && dest.join("manifests").join("registry.ollama.ai").join("ibm").is_dir() {
+        fs::write(&marker, zip_path.to_string_lossy().as_bytes()).map_err(|e| e.to_string())?;
+    }
+    if marker.is_file() {
+        append_shell_log(
+            app,
+            "INFO",
+            &format!("Ollama models already installed under {}", dest.display()),
+        );
+        return Ok(());
+    }
+
+    set_splash_status(app, "Extracting Ollama models…");
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    append_shell_log(
+        app,
+        "INFO",
+        &format!(
+            "Extracting {} -> {} (OLLAMA_MODELS)",
+            zip_path.display(),
+            dest.display()
+        ),
+    );
+    extract_zip_to_dir(&zip_path, &dest)?;
+    fs::write(&marker, zip_path.to_string_lossy().as_bytes()).map_err(|e| e.to_string())?;
+    append_shell_log(
+        app,
+        "INFO",
+        &format!("Offline Ollama models ready at {}", dest.display()),
+    );
+    Ok(())
+}
+
+fn ollama_models_env_value() -> String {
+    ollama_models_dir().to_string_lossy().into_owned()
 }
 
 fn run_exe_installer(app: &tauri::AppHandle, installer: &Path, label: &str) -> Result<(), String> {
@@ -552,9 +508,19 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
     };
 
     let folder_root = resolve_pre_reqs_folder(&source);
-    let zip_path = resolve_zip_from_models_source(&source, &PRE_REQS_ZIP_NAMES)?;
+    let source = normalize_models_zip_source(&source);
+    let launch_dir = PathBuf::from(&source);
 
-    if folder_root.is_none() && zip_path.is_none() {
+    if let Err(e) = install_ollama_models_from_zip(app, &launch_dir) {
+        append_shell_log(app, "WARN", &format!("Offline Ollama models: {e}"));
+    }
+
+    let pre_reqs_zip = PRE_REQS_ZIP_NAMES
+        .iter()
+        .map(|name| launch_dir.join(name))
+        .find(|path| path.is_file());
+
+    if folder_root.is_none() && pre_reqs_zip.is_none() {
         append_shell_log(
             app,
             "INFO",
@@ -580,7 +546,7 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
             if bundle_root.exists() {
                 let _ = fs::remove_dir_all(&bundle_root);
             }
-            let zip = zip_path.as_ref().expect("zip_path");
+            let zip = pre_reqs_zip.as_ref().expect("pre_reqs_zip");
             append_shell_log(
                 app,
                 "INFO",
@@ -590,9 +556,11 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
                     bundle_root.display()
                 ),
             );
+            fs::create_dir_all(&bundle_root).map_err(|e| e.to_string())?;
             extract_zip_to_dir(zip, &bundle_root)?;
             bundle_root.clone()
         };
+        
         set_splash_status(app, "Installing prerequisites (Ollama)…");
         if let Some(ollama_setup) = find_file_in_tree(&prereqs_root, &[OLLAMA_SETUP_EXE]) {
             if ollama_installed() {
@@ -600,19 +568,15 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
             } else if let Err(e) = run_exe_installer(app, &ollama_setup, "OllamaSetup") {
                 append_shell_log(app, "WARN", &e);
             }
-            if ollama_installed() {
-                pull_ollama_chat_models(app);
-            }
+            let _ = fs::remove_file(&ollama_setup);
         }
 
         set_splash_status(app, "Installing prerequisites (WinFSP)…");
-        for name in WINFSP_MSI_NAMES {
-            if let Some(msi) = find_file_in_tree(&prereqs_root, &[name]) {
-                if let Err(e) = run_winfsp_msi(app, &msi) {
-                    append_shell_log(app, "WARN", &e);
-                }
-                break;
+        if let Some(msi) = find_file_in_tree(&prereqs_root, &WINFSP_MSI_NAME) {
+            if let Err(e) = run_winfsp_msi(app, &msi) {
+                append_shell_log(app, "WARN", &e);
             }
+            let _ = fs::remove_file(&msi);
         }
         let postgres_zip = prereqs_root.join(POSTGRES_ZIP_NAME);
         append_shell_log(
@@ -621,8 +585,7 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
             &format!("extract postgres_zip: {}", postgres_zip.display()),
         );
         extract_zip_to_dir(&postgres_zip, &roaming.join("postgres"))?;
-       
-        fs::create_dir_all(&bundle_root).map_err(|e| e.to_string())?;
+        let _ = fs::remove_file(&postgres_zip);
         fs::write(&marker, b"pre-reqs installed ok").map_err(|e| e.to_string())?;
     }
 
@@ -652,52 +615,15 @@ fn backend_onnx_models_present(backend_root: &Path) -> bool {
         .is_file()
 }
 
-fn models_zip_entry_to_internal(relative: &Path) -> Option<PathBuf> {
-    let joined = relative.to_string_lossy().replace('\\', "/");
-    let joined = joined.trim_start_matches("./");
-
-    // Zip of the PyInstaller backend tree (e.g. backend-o/models.zip)
-    if let Some(rest) = joined.strip_prefix("backend/_internal/") {
-        return Some(PathBuf::from(rest));
-    }
-    if let Some(rest) = joined.strip_prefix("_internal/") {
-        return Some(PathBuf::from(rest));
-    }
-
-    // Repo src/... layout (rb_3.1_onnx_models.zip)
-    let mut parts: Vec<&str> = joined.split('/').filter(|p| !p.is_empty()).collect();
-    if parts.first().copied() != Some("src") {
-        return None;
-    }
-    parts.remove(0);
-    if parts.is_empty() {
-        return None;
-    }
-    let joined = parts.join("/");
-    let remapped = if let Some(rest) = joined.strip_prefix("image-embeddings/image_embeddings/") {
-        format!("image_embeddings/{rest}")
-    } else if let Some(rest) = joined.strip_prefix("image-similarity/image_similarity/") {
-        format!("image_similarity/{rest}")
-    } else if let Some(rest) = joined.strip_prefix("deepfake-detection/deepfake_detection/") {
-        format!("deepfake_detection/{rest}")
-    } else if let Some(rest) =
-        joined.strip_prefix("face-detection-recognition/face_detection_recognition/")
-    {
-        format!("face_detection_recognition/{rest}")
-    } else if let Some(rest) = joined.strip_prefix("age_and_gender_detection/") {
-        format!("src/age_and_gender_detection/{rest}")
-    } else {
-        joined
-    };
-    Some(PathBuf::from(remapped))
-}
-
 fn extract_models_zip(zip_path: &Path, backend_root: &Path) -> Result<(), String> {
     let internal = backend_internal_dir(backend_root);
     fs::create_dir_all(&internal).map_err(|e| e.to_string())?;
-    let internal_for_map = internal.clone();
+    let target = internal.clone();
     extract_zip_entries(zip_path, move |relative| {
-        models_zip_entry_to_internal(relative).map(|p| internal_for_map.join(p))
+        let name = relative.to_string_lossy().replace('\\', "/");
+        let name = name.trim_start_matches("./");
+        name.strip_prefix("backend/_internal/")
+            .map(|rest| target.join(rest))
     })
 }
 
@@ -718,7 +644,15 @@ fn ensure_models_for_backend(
         return Ok(());
     };
 
-    let zip_path = resolve_local_models_zip_path(&source)?;
+    let launch_dir = PathBuf::from(normalize_models_zip_source(&source));
+    let zip_path = launch_dir.join(ONNX_MODELS_ZIP);
+    if !zip_path.is_file() {
+        return Err(format!(
+            "{} not found next to MSI launch folder: {}",
+            ONNX_MODELS_ZIP,
+            zip_path.display()
+        ));
+    }
 
     set_splash_status(
         app,
@@ -741,35 +675,13 @@ fn ensure_models_for_backend(
             .join("clip_onnx_models")
             .join("text.onnx");
         return Err(format!(
-            "models.zip was extracted but expected ONNX files were not found (e.g. {}). \
-             Use a zip with backend/_internal/... or src/... layout.",
+            "{} was extracted but expected ONNX files were not found (e.g. {}). \
+             Zip entries must start with backend/_internal/.",
+             ONNX_MODELS_ZIP,
             expected.display()
         ));
     }
     Ok(())
-}
-
-fn ensure_backend_zip_on_disk(app: &tauri::AppHandle, home: &Path) -> Result<PathBuf, String> {
-    let zip_path = cached_backend_zip_path(home);
-    if zip_path.is_file() {
-        match zip_contains_backend_exe(&zip_path) {
-            Ok(true) => return Ok(zip_path),
-            Ok(false) => {
-                append_shell_log(
-                    app,
-                    "WARN",
-                    &format!("Removing invalid cached zip {}", zip_path.display()),
-                );
-                let _ = fs::remove_file(&zip_path);
-            }
-            Err(e) => return Err(format!("Could not read cached backend.zip: {e}")),
-        }
-    }
-
-    Err(format!(
-        "No backend bundle found. Copy a valid backend.zip (PyInstaller tree with {BACKEND_EXE}) to {}.",
-        zip_path.display()
-    ))
 }
 
 /// Resolve backend folder: app-data extract, bundled resource dir, or extract from local backend.zip.
@@ -785,9 +697,8 @@ fn ensure_backend_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         return Ok(root);
     }
 
-    let zip_path = ensure_backend_zip_on_disk(app, &home)?;
-
-    remove_incomplete_backend_extract(&home);
+    let zip_path = cached_backend_zip_path(&home);
+   
 
     append_shell_log(
         app,
@@ -799,8 +710,7 @@ fn ensure_backend_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 
     resolve_backend_root(&home).ok_or_else(|| {
         format!(
-            "backend.zip was extracted but neither {BACKEND_EXE} nor {BACKEND_EXE_FALLBACK} \
-             was found under {}.",
+            "backend.zip was extracted but no backend executable was found under {}.",
             home.display()
         )
     })
@@ -892,14 +802,13 @@ fn append_shell_log(app: &tauri::AppHandle, level: &str, message: &str) {
     }
 }
 
-/// Best-effort timestamp without adding the chrono crate.
+/// Eastern Time (America/New_York — EST/EDT) for shell log lines.
 fn chrono_lite_timestamp() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let secs = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-    format!("epoch-{secs}")
+    use chrono_tz::America::New_York;
+    chrono::Utc::now()
+        .with_timezone(&New_York)
+        .format("%Y-%m-%d %H:%M:%S %Z")
+        .to_string()
 }
 
 fn run_splash_js(app: &tauri::AppHandle, script: String) {
@@ -946,6 +855,25 @@ fn notify_user(
 
 fn notify_error(app: &tauri::AppHandle, title: impl Into<String>, message: impl Into<String>) {
     notify_user(app, title, message, MessageDialogKind::Error);
+}
+
+/// Python log lines on stderr are not errors; map ``[DEBUG]`` / ``[INFO]`` / … to shell log level.
+fn infer_sidecar_log_level(line: &str) -> &'static str {
+    if line.contains("[CRITICAL]") || line.contains("[ERROR]") {
+        "ERROR"
+    } 
+    else {
+        "INFO"
+    }
+}
+
+fn log_sidecar_line(app: &tauri::AppHandle, sidecar: &str, text: &str) {
+    let trimmed = text.trim_end_matches(['\r', '\n']);
+    if trimmed.is_empty() {
+        return;
+    }
+    let level = infer_sidecar_log_level(trimmed);
+    append_shell_log(app, level, &format!("{sidecar} — {trimmed}"));
 }
 
 fn kill_sidecars(app: &tauri::AppHandle) {
@@ -1017,10 +945,6 @@ fn open_system_browser(url: &str) {
 
 /// Splash ready state: link + quit checkbox (Flow A or B).
 fn present_splash_ready(app: &tauri::AppHandle, already_running: bool, open_browser: bool) {
-    if let Some(main_window) = app.get_webview_window("main") {
-        let _ = main_window.hide();
-    }
-
     app.state::<AppState>()
         .quit_on_close
         .store(false, Ordering::SeqCst);
@@ -1123,6 +1047,8 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
     );
     set_splash_status(app, "Starting backend server…");
 
+    let ollama_models = ollama_models_env_value();
+
     let (mut rx_backend, child_backend) = match app
         .shell()
         .command(backend_exe.to_str().unwrap())
@@ -1130,6 +1056,7 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
         .env("PYTHONPATH", backend_path.to_str().unwrap())
         .env("NO_PROXY", "127.0.0.1,localhost")
         .env("OLLAMA_HOST", "http://127.0.0.1:11434")
+        .env("OLLAMA_MODELS", &ollama_models)
         .env("RESCUEBOX_HOME", resource_path.to_str().unwrap())
         .spawn()
     {
@@ -1145,7 +1072,7 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
 
     let local_data = app
         .path()
-        .app_data_dir()
+        .app_local_data_dir()
         .expect("failed to get local data dir");
 
     let (mut rx, child) = match app
@@ -1161,6 +1088,7 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
         .env("NO_PROXY", "127.0.0.1,localhost")
         .env("RESCUEBOX_SHOW_BROWSER", "false")
         .env("OLLAMA_HOST", "http://127.0.0.1:11434")
+        .env("OLLAMA_MODELS", &ollama_models)
         .env(
             "RESCUEBOX_HOME",
             resource_path.join("demo").to_str().unwrap(),
@@ -1188,11 +1116,11 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
             match event {
                 tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
                     let text = String::from_utf8_lossy(&line).into_owned();
-                    append_shell_log(&app_fe, "INFO", &format!("[frontend stdout] {text}"));
+                    log_sidecar_line(&app_fe, "Frontend", &text);
                 }
                 tauri_plugin_shell::process::CommandEvent::Stderr(line) => {
                     let text = String::from_utf8_lossy(&line).into_owned();
-                    notify_error(&app_fe, "Frontend", text);
+                    log_sidecar_line(&app_fe, "Frontend", &text);
                 }
                 _ => {}
             }
@@ -1205,11 +1133,11 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
             match event {
                 tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
                     let text = String::from_utf8_lossy(&line).into_owned();
-                    append_shell_log(&app_be, "INFO", &format!("[backend stdout] {text}"));
+                    log_sidecar_line(&app_be, "Backend", &text);
                 }
                 tauri_plugin_shell::process::CommandEvent::Stderr(line) => {
                     let text = String::from_utf8_lossy(&line).into_owned();
-                    notify_error(&app_be, "Backend", text);
+                    log_sidecar_line(&app_be, "Backend", &text);
                 }
                 _ => {}
             }
@@ -1239,13 +1167,54 @@ fn wait_for_frontend_ui(app: &tauri::AppHandle) {
 }
 
 fn show_splash_screen(app: &tauri::AppHandle) {
-    if let Some(main_window) = app.get_webview_window("main") {
-        let _ = main_window.hide();
-    }
     if let Some(splash) = app.get_webview_window("splashscreen") {
         let _ = splash.show();
         let _ = splash.set_focus();
     }
+}
+
+fn schedule_app_startup(app_handle: tauri::AppHandle) {
+    let state = app_handle.state::<AppState>();
+    if state
+        .startup_scheduled
+        .swap(true, Ordering::SeqCst)
+    {
+        return;
+    }
+
+    set_splash_status(&app_handle, "Initializing…");
+
+    tauri::async_runtime::spawn(async move {
+        if services_already_running() {
+            let handle = app_handle.clone();
+            let _ = app_handle.run_on_main_thread(move || {
+                show_manager_splash(&handle);
+            });
+            return;
+        }
+
+        let extract_app = app_handle.clone();
+        let sidecars_ok = tauri::async_runtime::spawn_blocking(move || {
+            spawn_sidecars(&extract_app)
+        })
+        .await
+        .unwrap_or(false);
+
+        if !sidecars_ok {
+            return;
+        }
+
+        let wait_app = app_handle.clone();
+        let _ = tauri::async_runtime::spawn_blocking(move || {
+            wait_for_frontend_ui(&wait_app);
+        })
+        .await;
+
+        let handle = app_handle.clone();
+        let _ = app_handle.run_on_main_thread(move || {
+            finish_startup_for_browser(&handle);
+        });
+    });
 }
 
 fn main() {
@@ -1264,47 +1233,20 @@ fn main() {
             backend: Mutex::new(None),
             closing_splash_for_main: AtomicBool::new(false),
             quit_on_close: AtomicBool::new(false),
+            startup_scheduled: AtomicBool::new(false),
             shell_log_path: Mutex::new(None),
+        })
+        .on_page_load(|webview, payload| {
+            if webview.label() != "splashscreen" {
+                return;
+            }
+            if payload.event() != PageLoadEvent::Finished {
+                return;
+            }
+            schedule_app_startup(webview.app_handle().clone());
         })
         .setup(|app| {
             show_splash_screen(app.handle());
-            set_splash_status(app.handle(), "Initializing…");
-            let app_handle = app.handle().clone();
-
-            tauri::async_runtime::spawn(async move {
-                thread::sleep(Duration::from_millis(200));
-
-                if services_already_running() {
-                    let handle = app_handle.clone();
-                    let _ = app_handle.run_on_main_thread(move || {
-                        show_manager_splash(&handle);
-                    });
-                    return;
-                }
-
-                let extract_app = app_handle.clone();
-                let sidecars_ok = tauri::async_runtime::spawn_blocking(move || {
-                    spawn_sidecars(&extract_app)
-                })
-                .await
-                .unwrap_or(false);
-
-                if !sidecars_ok {
-                    return;
-                }
-
-                let wait_app = app_handle.clone();
-                let _ = tauri::async_runtime::spawn_blocking(move || {
-                    wait_for_frontend_ui(&wait_app);
-                })
-                .await;
-
-                let handle = app_handle.clone();
-                let _ = app_handle.run_on_main_thread(move || {
-                    finish_startup_for_browser(&handle);
-                });
-            });
-
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -1314,12 +1256,6 @@ fn main() {
 
                 if label == "splashscreen" {
                     let state = app.state::<AppState>();
-                    if app
-                        .get_webview_window("main")
-                        .is_some_and(|w| w.is_visible().unwrap_or(false))
-                    {
-                        return;
-                    }
                     if state.closing_splash_for_main.load(Ordering::SeqCst) {
                         return;
                     }
@@ -1330,10 +1266,6 @@ fn main() {
                         let _ = window.hide();
                     }
                     return;
-                }
-
-                if label == "main" {
-                    shutdown_app(&app);
                 }
             }
         })

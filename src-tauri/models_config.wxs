@@ -17,7 +17,7 @@
         <DirectoryRef Id="INSTALLDIR">
             <Component Id="ModelsZipSourceRegistry" Guid="A7C4E2F1-9B3D-4E8A-91F6-2D5C8B0E4A17" Win64="yes">
                 <RegistryValue Root="HKCU"
-                               Key="Software\rescuebox-desktop\RescueBox"
+                               Key="Software\RescueBox\RescueBox"
                                Name="ModelsZipSource"
                                Type="string"
                                Value="[MODELS_ZIP_SOURCE]"
@@ -25,28 +25,34 @@
             </Component>
         </DirectoryRef>
 
-        <!-- Runtime ONNX under [INSTALLDIR]backend\_internal is not in the MSI; remove on uninstall. -->
-        <!-- Runtime ONNX under %APPDATA%\RescueBox-Desktop is not in the MSI; remove on uninstall. -->
-        <Property Id="REMOVEBACKENDDIRCMD" Secure="yes" />
+        <!-- Fragment must declare SystemFolder for deferred ExeCommand CAs (see main.wxs WebView2 CAs). -->
+        <DirectoryRef Id="TARGETDIR">
+            <Directory Id="SystemFolder" Name="SystemFolder" />
+        </DirectoryRef>
 
-        <SetProperty Id="REMOVEBACKENDDIRCMD"
-                     Value="&quot;[SystemFolder]cmd.exe&quot; /c if exist &quot;[INSTALLDIR]&quot; rmdir /s /q &quot;[INSTALLDIR]/backend&quot; &amp; if exist &quot;[AppDataFolder]RescueBox-Desktop&quot; rmdir /s /q &quot;[AppDataFolder]RescueBox-Desktop&quot;"
-                     Before="RemoveExtraFiles"
-                     Sequence="execute">(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)</SetProperty>
-
-        <CustomAction Id="RemoveExtraFiles"
-                      Directory="INSTALLDIR"
-                      ExeCommand="[REMOVEBACKENDDIRCMD]"
-                      Execute="immediate"
+        <!-- RemoveFiles only drops MSI-registered files; rd removes runtime data under Local\RescueBox. -->
+        <CustomAction Id="RemoveRescueBoxLocalAppDataDeferred"
+                      Directory="SystemFolder"
+                      Execute="deferred"
+                      Impersonate="yes"
                       Return="ignore"
-                      Impersonate="no" />
+                      ExeCommand="cmd.exe /c rd /s /q &quot;%LOCALAPPDATA%\RescueBox&quot;" />
+
+        <!-- Prior releases used Roaming\AppData\RescueBox for install/logs. -->
+        <CustomAction Id="RemoveRescueBoxLegacyRoamingDeferred"
+                      Directory="SystemFolder"
+                      Execute="deferred"
+                      Impersonate="yes"
+                      Return="ignore"
+                      ExeCommand="cmd.exe /c rd /s /q &quot;%APPDATA%\RescueBox&quot;" />
 
         <InstallExecuteSequence>
             <Custom Action="SetModelsZipSourceOnExecute"
                     Before="InstallFiles">NOT REMOVE AND NOT MODELS_ZIP_SOURCE</Custom>
-            <Custom Action="RemoveExtraFiles" After="RemoveFiles">
-                (REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)
-            </Custom>
+            <Custom Action="RemoveRescueBoxLocalAppDataDeferred"
+                    After="RemoveFolders">(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)</Custom>
+            <Custom Action="RemoveRescueBoxLegacyRoamingDeferred"
+                    After="RemoveRescueBoxLocalAppDataDeferred">(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)</Custom>
         </InstallExecuteSequence>
     </Fragment>
 </Wix>

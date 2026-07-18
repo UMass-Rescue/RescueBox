@@ -21,7 +21,7 @@ logger = logging.getLogger("rb.api.main")
 
 # 1. Safely set the cache paths FIRST
 # local_appdata = os.getenv("APPDATA", os.path.expanduser("~"))
-# app_cache_dir = Path(local_appdata) / "RescueBox-Desktop"
+# app_cache_dir = Path(local_appdata) / "RescueBox"
 # os.environ["XDG_CACHE_HOME"] = str(app_cache_dir / "xdg_cache")
 
 app = FastAPI(

@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "RescueBox",
   "version": "3.1.0",
-  "identifier": "rescuebox-desktop",
+  "identifier": "RescueBox",
   "build": {
     "frontendDist": "../src-tauri/ui-dist",
     "devUrl": "http://localhost:8080",
@@ -12,25 +12,12 @@
       "wait": false
     },
     "beforeBuildCommand": {
-      "script": "poetry run pyinstaller --noconfirm --distpath src-tauri-frontend frontend.spec && poetry run pyinstaller --noconfirm --distpath src-tauri-backend backend.spec &&  move src-tauri-frontend\\frontend src-tauri && move src-tauri\\frontend\\frontend.exe src-tauri\\frontend\\frontend-x86_64-pc-windows-msvc.exe && move src-tauri-backend\\rescuebox src-tauri && move src-tauri\\rescuebox src-tauri\\backend && move src-tauri\\backend\\rescuebox.exe src-tauri\\backend\\rescuebox-x86_64-pc-windows-msvc.exe",
+      "script": "poetry run pyinstaller --noconfirm --distpath src-tauri-frontend frontend.spec && poetry run pyinstaller --noconfirm --distpath src-tauri-backend backend.spec &&  move src-tauri-frontend\\frontend src-tauri && move src-tauri\\frontend\\frontend.exe src-tauri\\frontend\\frontend-x86_64-pc-windows-msvc.exe && move src-tauri-backend\\rescuebox src-tauri && move src-tauri\\rescuebox src-tauri\\backend && move src-tauri\\backend\\rescuebox.exe src-tauri\\backend\\rescuebox-x86_64-pc-windows-msvc.exe && powershell -NoProfile -ExecutionPolicy Bypass -File install\\win\\sign_bundle_exes.ps1",
       "cwd": ".."
     }
   },
   "app": {
     "windows": [
-      {
-        "label": "main",
-        "title": "RescueBox",
-        "url": "about:blank",
-        "width": 1280,
-        "height": 800,
-        "minWidth": 800,
-        "minHeight": 600,
-        "resizable": true,
-        "fullscreen": false,
-        "center": true,
-        "visible": false
-      },
       {
         "label": "splashscreen",
         "title": "RescueBox",
@@ -41,7 +28,9 @@
         "fullscreen": false,
         "center": true,
         "decorations": true,
-        "alwaysOnTop": true
+        "alwaysOnTop": true,
+        "visible": true,
+        "backgroundColor": "#1c1c1c"
       }
     ],
     "security": {
@@ -52,6 +41,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "licenseFile": "License.rtf",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -60,9 +50,25 @@
       "icons/icon.ico"
     ],
     "windows": {
+      "allowDowngrades": false,
+      "webviewInstallMode": {
+        "type": "embedBootstrapper",
+        "silent": true
+      },
       "certificateThumbprint": "721DC6509D5643BC3232C43D3A27EF8AF06A1651",
       "digestAlgorithm": "sha1",
       "timestampUrl": "http://timestamp.digicert.com",
+      "signCommand": {
+        "cmd": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "../install/win/sign_one_exe.ps1",
+          "%1"
+        ]
+      },
       "nsis": {
         "template": "nsis/custom.nsi",
         "installMode": "perMachine",
@@ -70,6 +76,7 @@
       },
       "wix": {
         "template": "./wix/main.wxs",
+        "bannerPath": "wix/assets/rb.bmp",
         "fragmentPaths": ["./models_config.wxs"],
         "componentRefs": ["ModelsZipSourceRegistry"]
       }
@@ -77,7 +84,8 @@
     "resources": {
       "frontend/": "frontend",
       "backend/": "backend",
-      "demo/": "demo"
+      "demo/": "demo",
+      "../License&Copyright/": "frontend/_internal/License&Copyright"
     }
   }
 }

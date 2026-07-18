@@ -59,8 +59,10 @@ ABOUT_REPO_DESKTOP_URL = os.getenv(
 
 # Database Configuration
 if platform.system() == "Windows":
-    USER_DATA_ROOT = Path(os.getenv("APPDATA", str(Path.home())))
-    DATA_DIR = USER_DATA_ROOT / "RescueBox-Desktop" / "data"
+    USER_DATA_ROOT = Path(
+        os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
+    )
+    DATA_DIR = USER_DATA_ROOT / "RescueBox" / "data"
 else:
     USER_DATA_ROOT = Path(os.getenv("HOME", str(Path.home())))
     DATA_DIR = USER_DATA_ROOT / ".rescuebox" / "data"
@@ -71,10 +73,15 @@ DB_PATH = DATA_DIR / "jobs.db"
 # Logging Configuration
 LOG_LEVEL = os.getenv("RESCUEBOX_LOG_LEVEL", "INFO")
 if platform.system() == "Windows":
-    LOG_FILE = USER_DATA_ROOT / "RescueBox-Desktop" / "logs" / "frontend.log"
+    LOG_FILE = USER_DATA_ROOT / "RescueBox" / "logs" / "frontend.log"
 else:
     LOG_FILE = USER_DATA_ROOT / ".rescuebox" / "logs" / "frontend.log"
 LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+_api_log_env = os.getenv("RESCUEBOX_API_LOG_FILE")
+if _api_log_env:
+    BACKEND_LOG_FILE = Path(_api_log_env).expanduser()
+else:
+    BACKEND_LOG_FILE = LOG_FILE.parent / "backend.log"
 
 # Demo folders: each browser session gets one folder from this pool (Option 1 auto-assign)
 DEMO_BASE = "."

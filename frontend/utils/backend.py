@@ -10,7 +10,7 @@ from frontend.utils.exceptions import HTTP_CLIENT_ERRORS
 
 logger = logging.getLogger(__name__)
 
-_PREFETCH_RETRY_DELAY_SEC = 2.0
+_PREFETCH_RETRY_DELAY_SEC = 5.0
 _PREFETCH_RETRIABLE_HTTP = frozenset({502, 503, 504})
 
 
@@ -29,14 +29,13 @@ class _BackendAvailability:
 def set_backend_available(value: bool) -> None:
     _BackendAvailability.set_flag(value)
     sys.modules[__name__].BACKEND_AVAILABLE = _BackendAvailability.flag
-    logger.info("Backend availability set to: %s", value)
 
 
 def is_backend_available() -> bool:
     return _BackendAvailability.flag
 
 
-async def prefetch_and_cache_models(api_client=None, _backend_url="", _api_timeout=60):
+async def prefetch_and_cache_models(api_client=None, _backend_url="", _api_timeout=180):
     """Prefetch all model metadata and cache it in the database."""
     if api_client is None:
         api_client = default_api_client
@@ -46,14 +45,11 @@ async def prefetch_and_cache_models(api_client=None, _backend_url="", _api_timeo
 
     for attempt in range(1, max_attempts + 1):
         try:
-            if attempt == 1:
-                logger.info("Prefetching model metadata...")
-            else:
-                logger.info(
-                    "Prefetching model metadata (attempt %s/%s)...",
-                    attempt,
-                    max_attempts,
-                )
+            logger.info(
+                "Prefetching model metadata (attempt %s/%s)...",
+                attempt,
+                max_attempts,
+            )
             response = await api_client.get("/models", use_api_prefix=True)
             response.raise_for_status()
 

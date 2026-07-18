@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import sys
 from pathlib import Path
 
 from faster_whisper import WhisperModel, download_model
@@ -30,18 +31,42 @@ def _model_dir_is_ready(model_dir: Path) -> bool:
         return False
 
 
+def _bundled_whisper_cache_dir() -> Path | None:
+    """``backend/_internal/whisper-models`` next to the PyInstaller backend exe or cwd."""
+    candidates: list[Path] = []
+    if getattr(sys, "frozen", False):
+        candidates.append(
+            Path(sys.executable).resolve().parent / "_internal" / "whisper-models"
+        )
+    candidates.append(Path.cwd() / "_internal" / "whisper-models")
+    for path in candidates:
+        if path.is_dir():
+            return path.resolve()
+    return None
+
+
 def whisper_cache_dir() -> Path:
     """Directory for faster-whisper / CTranslate2 weights (writable on desktop installs)."""
     env = os.environ.get("RESCUEBOX_WHISPER_CACHE")
     if env:
         return Path(env).expanduser().resolve()
+    bundled = _bundled_whisper_cache_dir()
+    if bundled is not None:
+        return bundled
     xdg = os.environ.get("XDG_CACHE_HOME")
     if xdg:
         return Path(xdg) / "rescuebox" / "whisper-models"
-    base = os.getenv("APPDATA")
+    base = os.getenv("LOCALAPPDATA") or os.getenv("APPDATA")
     if base is None:
-        base = "~"
-    return Path(base) / "RescueBox-Desktop" / "whisper-models"
+        base = str(Path.home() / "AppData" / "Local")
+    return Path(base) / "RescueBox" / "whisper-models"
+
+
+def whisper_local_files_only() -> bool:
+    """Offline weights: explicit env or bundled ``models.zip`` extract under ``_internal``."""
+    if os.environ.get("RESCUEBOX_WHISPER_CACHE"):
+        return True
+    return _bundled_whisper_cache_dir() is not None
 
 
 def ensure_whisper_model_downloaded(

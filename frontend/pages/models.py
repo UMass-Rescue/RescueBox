@@ -30,7 +30,7 @@ from frontend.utils.backend import prefetch_and_cache_models
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def _sort_models_by_tool_menu(models: List[Dict]) -> List[Dict]:

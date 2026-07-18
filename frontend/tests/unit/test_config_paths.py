@@ -24,14 +24,14 @@ def test_linux_log_file_under_rescuebox_home(tmp_path, monkeypatch):
     assert mod.DATA_DIR == home / ".rescuebox" / "data"
 
 
-def test_windows_data_and_log_under_appdata(tmp_path, monkeypatch):
-    appdata = tmp_path / "AppData" / "Roaming"
-    appdata.mkdir(parents=True)
-    monkeypatch.setenv("APPDATA", str(appdata))
+def test_windows_data_and_log_under_local_appdata(tmp_path, monkeypatch):
+    local = tmp_path / "AppData" / "Local"
+    local.mkdir(parents=True)
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
     with patch("platform.system", return_value="Windows"), patch.object(Path, "mkdir"):
         mod = _reload_config()
-    assert mod.DATA_DIR == appdata / "RescueBox-Desktop" / "data"
-    assert mod.LOG_FILE == appdata / "RescueBox-Desktop" / "logs" / "frontend.log"
+    assert mod.DATA_DIR == local / "RescueBox" / "data"
+    assert mod.LOG_FILE == local / "RescueBox" / "logs" / "frontend.log"
 
 
 def test_app_show_browser_respects_false_env(monkeypatch):

@@ -252,13 +252,15 @@ async def post_job(
                 details = await resolve_json_response(api_client, response)
             except CHATBOT_ERRORS:
                 details = getattr(response, "text", str(response))
+            logger.info("backend response error =%s", details)
             raise httpx.HTTPStatusError(
                 f"HTTP 422 Unprocessable Entity: {details}",
                 request=None,
                 response=response,
             )
+        logger.info("backend response error = %s", str(response))
         raise httpx.HTTPStatusError(
             f"HTTP {status_val}", request=None, response=response
         )
-
+    logger.info("backend response code=%d", status_val)
     return await resolve_json_response(api_client, response)
