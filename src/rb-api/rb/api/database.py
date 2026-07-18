@@ -1,5 +1,5 @@
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Text
+from sqlalchemy import String, Text
 from sqlmodel import Field, SQLModel, create_engine, Column, Index
 import os
 
@@ -192,9 +192,13 @@ class ImageSimilarityEmbedding(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     path: str = Field(index=True)
-    content_sha256: str = Field(default="", index=True)
-    model_name: str = Field(default="google/siglip2-so400m-patch14-384", index=True)
+    content_sha256: str = Field(default="", sa_column=Column(String(64), index=True))
+    model_name: str = Field(
+        default="google/siglip2-so400m-patch14-384",
+        sa_column=Column(String(128), index=True),
+    )
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
+    pdq_hash: str = Field(default="", sa_column=Column(String(64), index=True))
 
 
 class FaceEmbedding(SQLModel, table=True):
