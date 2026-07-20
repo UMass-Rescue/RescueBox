@@ -1,7 +1,7 @@
 """Read-only explorer for demo sample files on /demo and walkthrough pages.
 
 Also includes shared Markdown rendering for in-app guides; screenshot placeholders
-``{{SCREENSHOT:filename.png}}`` load from ``/demo/<filename>`` (under ``frontend/demo/``).
+``{{SCREENSHOT:filename.png}}`` load from ``/demo-media/<filename>`` (under ``frontend/demo/``).
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from typing import FrozenSet, List, NamedTuple, Optional, Tuple, Callable
 from nicegui import ui
 from frontend.config import DEMO_FILES_BROWSE_ROOT
 from frontend.components.results import open_file
+from frontend.constants import DEMO_WALKTHROUGH_MEDIA_URL
 
 _DEMO_NAV_BTN = (
     "text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded "
@@ -331,10 +332,10 @@ def render_guided_markdown_body(
     container: ui.element,
     markdown_text: str,
     *,
-    image_base_url: str = "/demo",
+    image_base_url: str = DEMO_WALKTHROUGH_MEDIA_URL,
 ) -> None:
     """Render markdown; ``{{SCREENSHOT:file.png}}`` lines load images from ``<image_base_url>/file.png``."""
-    base = image_base_url.rstrip("/") or "/demo"
+    base = image_base_url.rstrip("/") or DEMO_WALKTHROUGH_MEDIA_URL
     segments = list(iter_md_and_images(markdown_text))
     if not segments:
         ui.label("Guide content is empty.").classes("text-zinc-500")

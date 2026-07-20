@@ -141,8 +141,16 @@ if __name__ in {"__main__", "__mp_main__"}:
 
     demo_dir = Path(__file__).parent / "demo"
     if demo_dir.exists():
-        app.add_static_files(url_path="/demo", local_directory=str(demo_dir))
-        logger.debug("Demo static files served at /demo/")
+        from frontend.constants import DEMO_WALKTHROUGH_MEDIA_URL
+
+        app.add_static_files(
+            url_path=DEMO_WALKTHROUGH_MEDIA_URL,
+            local_directory=str(demo_dir),
+        )
+        logger.debug(
+            "Demo walkthrough media at %s/ (markdown PNGs; UI routes use /demo)",
+            DEMO_WALKTHROUGH_MEDIA_URL,
+        )
 
     icons_dir = _resolve_icons_dir()
     if icons_dir is not None:

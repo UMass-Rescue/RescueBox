@@ -111,6 +111,9 @@ NAV_LINKS = {
     "case": "/case",
 }
 
+# Walkthrough screenshot PNGs (``frontend/demo/*.png``). Must not use ``/demo`` — that path is the Demo UI page.
+DEMO_WALKTHROUGH_MEDIA_URL = "/demo-media"
+
 # Legacy: License & Copyright UI lives on ``/about``; ``/licenses`` redirects there.
 # Static assets for license markdown images: ``/license-copyright/`` (see ``frontend.main``).
 

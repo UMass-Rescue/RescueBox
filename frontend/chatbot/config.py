@@ -238,7 +238,7 @@ class ToolRegistry:
             "name": "UFDR Mount",
             "endpoint": "ufdr_mounter/mount",
             "desc": "Mount UFDR files",
-        }
+        },
     }
 
     @staticmethod

@@ -11,8 +11,10 @@ use std::{thread, time::Duration};
 use tauri::webview::PageLoadEvent;
 use tauri::{Manager, RunEvent};
 use tauri_plugin_dialog::MessageDialogKind;
-use tauri_plugin_shell::process::CommandChild;
+use tauri_plugin_shell::process::{Command as ShellCommand, CommandChild};
 use tauri_plugin_shell::ShellExt;
+
+mod gpu_dll_paths;
 
 struct AppState {
     frontend: Mutex<Option<CommandChild>>,
@@ -26,7 +28,7 @@ struct AppState {
 const UI_URL: &str = "http://127.0.0.1:8080/";
 const UI_HOST: &str = "127.0.0.1:8080";
 const BACKEND_HOST: &str = "127.0.0.1:8000";
-const UI_READY_MAX_ATTEMPTS: u32 = 280;
+const UI_READY_MAX_ATTEMPTS: u32 = 80;
 const UI_READY_POLL_MS: u64 = 500;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -344,6 +346,31 @@ fn install_ollama_models_from_zip(app: &tauri::AppHandle, launch_dir: &Path) -> 
 
 fn ollama_models_env_value() -> String {
     ollama_models_dir().to_string_lossy().into_owned()
+}
+
+fn apply_backend_gpu_dll_paths(
+    app: &tauri::AppHandle,
+    backend_cmd: ShellCommand,
+) -> ShellCommand {
+    let paths = gpu_dll_paths::BackendGpuDllPaths::detect();
+    #[cfg(windows)]
+    append_shell_log(app, "INFO", &paths.startup_log_line());
+    let mut cmd = backend_cmd;
+    if let Some(ref path) = paths.cudnn_bin {
+        cmd = cmd.env("RESCUEBOX_CUDNN_BIN", path);
+    }
+    if let Some(ref path) = paths.cuda_bin {
+        cmd = cmd.env("RESCUEBOX_CUDA_BIN", path);
+    }
+    if let Some(path) = paths.prepend_path_env() {
+        append_shell_log(
+            app,
+            "INFO",
+            "Prepended CUDA/cuDNN bin dirs to backend PATH (GUI apps often lack NVIDIA entries)",
+        );
+        cmd = cmd.env("PATH", path);
+    }
+    cmd
 }
 
 fn run_exe_installer(app: &tauri::AppHandle, installer: &Path, label: &str) -> Result<(), String> {
@@ -749,7 +776,7 @@ fn services_already_running() -> bool {
 }
 
 fn wait_for_backend(app: &tauri::AppHandle) {
-    set_splash_status(app, "RescueBox Server startup…");
+    set_splash_status(app, "RescueBox Backend check..");
     for attempt in 0..UI_READY_MAX_ATTEMPTS {
         if backend_http_ready() {
             append_shell_log(
@@ -1028,7 +1055,7 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
 
     let ollama_models = ollama_models_env_value();
 
-    let (mut rx_backend, child_backend) = match app
+    let mut backend_cmd = app
         .shell()
         .command(backend_exe.to_str().unwrap())
         .current_dir(backend_path.clone())
@@ -1036,8 +1063,10 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
         .env("NO_PROXY", "127.0.0.1,localhost")
         .env("OLLAMA_HOST", "http://127.0.0.1:11434")
         .env("OLLAMA_MODELS", &ollama_models)
-        .env("RESCUEBOX_HOME", resource_path.to_str().unwrap())
-        .spawn()
+        .env("RESCUEBOX_HOME", resource_path.to_str().unwrap());
+    backend_cmd = apply_backend_gpu_dll_paths(app, backend_cmd);
+
+    let (mut rx_backend, child_backend) = match backend_cmd.spawn()
     {
         Ok(pair) => pair,
         Err(e) => {
