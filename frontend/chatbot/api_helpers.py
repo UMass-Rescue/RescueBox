@@ -262,5 +262,5 @@ async def post_job(
         raise httpx.HTTPStatusError(
             f"HTTP {status_val}", request=None, response=response
         )
-    logger.info("backend response code=%d", status_val)
+    logger.info("backend response code=%s", status_val)
     return await resolve_json_response(api_client, response)
