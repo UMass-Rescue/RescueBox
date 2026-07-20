@@ -2,7 +2,7 @@
 
 **Recommended hardware:** powerful CPU, 32 GB RAM, NVIDIA GPU with latest driver.
 
-Refer to the screenshots PDF in `docs`.
+Refer to the screenshots PDF in `help`.
 
 ---
 
