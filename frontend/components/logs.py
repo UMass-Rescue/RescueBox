@@ -16,7 +16,7 @@ def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:
         if not log_file_path.exists():
             return f"Log file does not exist: {log_file_path}"
 
-        logger.debug("Reading log file: %s", log_file_path)
+        logger.info("Reading log file: %s", log_file_path)
 
         with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
@@ -36,17 +36,42 @@ def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:
         return error_msg
 
 
-def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 1000):
+def render_log_viewer(
+    container: ui.element,
+    log_file: Path | None = None,
+    max_lines: int = 1000,
+    *,
+    log_files: dict[str, Path] | None = None,
+):
     """
     Render a log viewer inside `container` with search/filtering capabilities.
     Returns the code element for updates.
     """
+    if log_files is None:
+        if log_file is None:
+            raise ValueError("render_log_viewer requires log_file or log_files")
+        log_files = {"Log": log_file}
+
+    def _selected_path() -> Path:
+        name = source_select.value if source_select is not None else source_names[0]
+        return log_files[name]
+
+    source_names = list(log_files.keys())
+    source_select: ui.select | None = None
+
     try:
         with container:
             # Controls row with Refresh and Search Input (instant typing filter)
             with ui.row().classes(
                 "gap-4 items-center mb-4 w-full flex-wrap sm:flex-nowrap"
             ):
+                if len(log_files) > 1:
+                    source_select = (
+                        ui.select(source_names, value=source_names[0], label="Log")
+                        .props("outlined dense")
+                        .classes("w-40 bg-white")
+                    )
+
                 refresh_btn = (
                     ui.button("Refresh")
                     .props("icon=refresh")
@@ -62,7 +87,9 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
                     .classes("w-64 bg-white")
                 )
 
-                ui.label(f"Log file: {str(log_file)}").classes("text-sm text-zinc-600")
+            path_label = ui.label("").classes(
+                "text-sm text-zinc-600 w-full break-all font-mono mb-2"
+            )
 
             # Log content display - full width, fill viewport height below navbar
             with ui.card().classes("w-full max-w-full min-w-0"):
@@ -91,6 +118,13 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
             # Initialize attributes on log_display
             log_display.search_input = search_input
             log_display.raw_content = ""
+            log_display.current_log_file = _selected_path()
+
+            def _update_path_label() -> None:
+                path = str(_selected_path())
+                path_label.text = f"Log file: {path}"
+
+            _update_path_label()
 
             def _apply_filter(query: str = None):
                 if query is None:
@@ -124,7 +158,9 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
             # Attach simple refresh handler
             def _refresh():
                 try:
-                    content = read_log_file(log_file, max_lines)
+                    log_display.current_log_file = _selected_path()
+                    _update_path_label()
+                    content = read_log_file(log_display.current_log_file, max_lines)
                     log_display.raw_content = content
                     _apply_filter(search_input.value)
                 except UI_RENDER_ERRORS as e:
@@ -133,6 +169,8 @@ def render_log_viewer(container: ui.element, log_file: Path, max_lines: int = 10
             # Bind event handlers
             refresh_btn.on("click", lambda e=None: _refresh())
             search_input.on_value_change(lambda e: _apply_filter(e.value))
+            if source_select is not None:
+                source_select.on_value_change(lambda e=None: _refresh())
 
             # Return the element for callers to update
             return log_display

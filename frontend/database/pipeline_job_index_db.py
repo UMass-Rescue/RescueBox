@@ -44,7 +44,7 @@ def _sanitize_segment(s: str) -> str:
 
 def index_db_path(user_id: str, root_job_id: str) -> Path:
     """Filesystem path for this user + pipeline root job."""
-    base = Path(__file__).resolve().parent.parent / "data" / "pipeline_index"
+    base = Path(__file__).absolute().parent.parent / "data" / "pipeline_index"
     safe_user = _sanitize_segment(user_id)
     safe_job = _sanitize_segment(root_job_id)
     return base / safe_user / f"{safe_job}.sqlite"
@@ -146,7 +146,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
 
 def _normalize_path(p: str) -> str:
     try:
-        return str(Path(p).resolve())
+        return str(Path(p).absolute())
     except OSError:
         return str(Path(p))
 

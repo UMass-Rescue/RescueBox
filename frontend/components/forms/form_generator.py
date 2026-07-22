@@ -4,6 +4,7 @@ from typing import Callable
 from nicegui import ui
 from rb.api.models import TaskSchema
 from frontend.design_tokens import Design
+from frontend.chatbot.config import ToolRegistry
 from frontend.utils.paths import apply_ufdr_mount_autofill_after_inputs_built
 from frontend.utils.ui import handle_validation_error, show_error_to_user
 from frontend.utils.validators import (
@@ -105,7 +106,13 @@ class FormGenerator:
             with ui.column().classes(
                 f"w-full min-w-0 max-w-full {'p-3 space-y-2' if compact else 'p-6 space-y-4'}"
             ):
-                ui.label("Input form").classes(
+                form_title = "Input form"
+                if endpoint:
+                    form_title = (
+                        f"Input form for "
+                        f"{ToolRegistry.display_name_for_endpoint(endpoint)}"
+                    )
+                ui.label(form_title).classes(
                     "text-xl font-bold" if not compact else "text-lg font-bold"
                 )
 

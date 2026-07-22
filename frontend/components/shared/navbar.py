@@ -156,7 +156,10 @@ def create_navbar():
                             ui.navigate.to("/models")
 
                     def _open_demo() -> None:
-                        ui.navigate.to("/demo")
+                        if _nav_locked:
+                            _nav_blocked_msg()
+                        else:
+                            ui.navigate.to(constants.NAV_LINKS["demo"])
 
                     with ui.dropdown_button(
                         "Resources",
@@ -164,6 +167,7 @@ def create_navbar():
                         auto_close=True,
                     ).classes(_link_cls).props("flat dense no-caps"):
                         ui.menu_item("Readme", on_click=_open_readme)
+                        ui.menu_item("Demo", on_click=_open_demo)
                         ui.menu_item("About", on_click=_open_about)
 
                 # Session display removed for demo safety (avoids accidental user actions)

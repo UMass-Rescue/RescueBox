@@ -8,6 +8,24 @@ from frontend.utils.exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
+
+def path_for_ui(value: Any) -> str:
+    """Return a normal drive/UNC path string (no Windows ``\\\\?\\`` extended prefix)."""
+    s = str(value).strip()
+    if s.startswith("\\\\?\\UNC\\"):
+        return "\\\\" + s[8:]
+    if s.startswith("\\\\?\\"):
+        return s[4:]
+    return s
+
+
+def _absolute_path(path: Path) -> Path:
+    p = path.expanduser()
+    if not p.is_absolute():
+        p = Path.cwd() / p
+    return p.absolute()
+
+
 _COMMON_RASTER_IMAGE_SUFFIXES = (
     ".png",
     ".jpg",
@@ -32,21 +50,21 @@ def _resolve_input_path(path_value: Any) -> Path:
     if p.is_absolute() and p.exists():
         return p
     if p.exists():
-        return p.resolve()
+        return p.absolute()
     try:
         demo_p = DEMO_FOLDERS_BASE / path_str
         if demo_p.exists():
-            return demo_p.resolve()
+            return demo_p.absolute()
     except UI_RENDER_ERRORS:
         pass
-    return p.resolve()
+    return p.absolute()
 
 
 def is_outputs_results_directory(path: str) -> bool:
     if not path:
         return False
     try:
-        return Path(path).resolve().name.casefold() == "outputs"
+        return Path(path).absolute().name.casefold() == "outputs"
     except UI_RENDER_ERRORS:
         return Path(path).name.casefold() == "outputs"
 
@@ -58,7 +76,7 @@ def suggested_outputs_dir_path(valid_input_dir: str) -> str:
     p = Path(raw).expanduser()
     if not p.is_absolute():
         p = Path.cwd() / p
-    return str(p.resolve().parent)
+    return str(p.absolute().parent)
 
 
 def maybe_autofill_output_dir_field(form_widgets, output_field_id, valid_input_dir):
@@ -80,7 +98,7 @@ def suggested_ufdr_mount_folder_path(ufdr_file_path: str) -> str:
     p = Path(raw).expanduser()
     if not p.is_absolute():
         p = Path.cwd() / p
-    return str(p.resolve().parent.parent / "outputs")
+    return str(p.absolute().parent.parent / "outputs")
 
 
 def apply_ufdr_mount_autofill_after_inputs_built(
@@ -148,9 +166,9 @@ def _resolved_existing_directory(initial: Optional[str]) -> Optional[str]:
         p = Path(initial).expanduser()
         if not p.is_absolute():
             p = Path.cwd() / p
-        rp = p.resolve()
+        rp = _absolute_path(p)
         if rp.is_dir():
-            return str(rp)
+            return path_for_ui(rp)
     except UI_RENDER_ERRORS:
         pass
     return None
@@ -163,11 +181,11 @@ def _resolved_file_browser_folder(initial: Optional[str]) -> Optional[str]:
         p = Path(initial).expanduser()
         if not p.is_absolute():
             p = Path.cwd() / p
-        rp = p.resolve()
+        rp = _absolute_path(p)
         if rp.is_dir():
-            return str(rp)
+            return path_for_ui(rp)
         if rp.is_file():
-            return str(rp.parent.resolve())
+            return path_for_ui(rp.parent.absolute())
     except UI_RENDER_ERRORS:
         pass
     return None

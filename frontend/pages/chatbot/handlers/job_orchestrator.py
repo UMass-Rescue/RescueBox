@@ -85,7 +85,7 @@ class JobSubmissionOrchestrator(BaseHandler):
             pipeline_total=pipeline_total,
             **db_kwargs,
         )
-        if job_id:
+        if job_id and not remaining_calls:
             _schedule_jobs_page_navigation()
 
         background_tasks.create(
@@ -203,6 +203,10 @@ class JobSubmissionOrchestrator(BaseHandler):
 
         _delete_loading_row(loading_row)
 
+        # Tracked single-step job: user was sent to /jobs; chat container is stale.
+        if job_id and not remaining_calls:
+            return
+
         try:
             await self._handle_success(
                 request_body,
@@ -240,15 +244,16 @@ class JobSubmissionOrchestrator(BaseHandler):
         except UI_RENDER_ERRORS as db_err:
             self.logger.error("Failed to persist submission failure: %s", db_err)
         _delete_loading_row(loading_row)
-        try:
-            if "demo_???" in message:
-                UIOperations.safe_notify(message, type="warning")
-            else:
-                self.error_handler.display_error_boundary(
-                    target_container, "Submission Failed", message
-                )
-        except UI_RENDER_ERRORS as ui_err:
-            self.logger.debug("Could not display error to UI: %s", ui_err)
+        if not job_id:
+            try:
+                if "demo_???" in message:
+                    UIOperations.safe_notify(message, type="warning")
+                else:
+                    self.error_handler.display_error_boundary(
+                        target_container, "Submission Failed", message
+                    )
+            except UI_RENDER_ERRORS as ui_err:
+                self.logger.debug("Could not display error to UI: %s", ui_err)
 
     async def _handle_success(
         self,

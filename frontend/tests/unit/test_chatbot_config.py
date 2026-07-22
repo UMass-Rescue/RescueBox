@@ -50,12 +50,13 @@ HELP_COMMAND = "/help"
 SUMMARIZE_COMMAND = "/summarize-text"
 
 TRANSCRIBE_ENDPOINT = "audio/transcribe"
+DESCRIBE_IMAGES_ENDPOINT = "image_summary/summarize-images"
 SUMMARIZE_ENDPOINT = "text_summarization/summarize"
 PICK_TOOL_ENDPOINT = "pick_tool"
 SMART_ANALYZE_ENDPOINT = "smart_analyze"
 
 TOOL_MENU_KEY_1 = "1"
-TOOL_MENU_KEY_7 = "7"
+TOOL_MENU_KEY_9 = "9"
 
 # Help text constants
 RESCUEBOX_ASSISTANT_TEXT = "RescueBox Assistant"
@@ -206,21 +207,25 @@ class TestToolRegistry:
         API endpoints, and descriptive text for proper UI display.
         """
         assert TOOL_MENU_KEY_1 in ToolRegistry.TOOL_MENU
-        assert TOOL_MENU_KEY_7 in ToolRegistry.TOOL_MENU
+        assert TOOL_MENU_KEY_9 in ToolRegistry.TOOL_MENU
 
         tool_1 = ToolRegistry.TOOL_MENU[TOOL_MENU_KEY_1]
         assert "name" in tool_1
         assert "endpoint" in tool_1
         assert "desc" in tool_1
-        assert tool_1["endpoint"] == TRANSCRIBE_ENDPOINT
+        assert tool_1["endpoint"] == DESCRIBE_IMAGES_ENDPOINT
+
+        tool_9 = ToolRegistry.TOOL_MENU[TOOL_MENU_KEY_9]
+        assert tool_9["endpoint"] == TRANSCRIBE_ENDPOINT
 
     def test_ordered_plugin_uids_matches_tool_menu(self):
         """`/models` page uses this order; face-match tools appear once."""
         uids = ToolRegistry.ordered_plugin_uids()
-        assert uids[0] == "audio"
+        assert uids[0] == "image_summary"
         assert uids.index("image_summary") < uids.index("image_embeddings")
         assert uids.count("face-match") == 1
-        assert uids[-1] == "image_series_similarity"
+        assert uids[-1] == "ufdr_mounter"
+        assert uids.index("audio") == 7
         assert "ufdr_mounter" in uids
 
     def test_blocked_patterns(self):

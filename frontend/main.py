@@ -9,7 +9,6 @@ Usage::
 
 from __future__ import annotations
 import sys
-import platform
 import os
 from pathlib import Path
 import frontend.pages  # noqa: F401 # (static import for PyInstaller)
@@ -66,11 +65,8 @@ if sys.stdout is None or not hasattr(sys.stdout, "write"):
     sys.stderr = sys.stdout
 
 if getattr(sys, "frozen", False) and _PYINSTALLER_MEIPASS is not None:
-    # 1. Safely get APPDATA, falling back to the standard home directory if it's missing
-    appdata_path = os.getenv("APPDATA", str(Path.home()))
-    base_dir = Path(appdata_path) / ".rescuebox"
-    if platform.system() == "Windows":
-        base_dir = Path(appdata_path) / "RescueBox-Desktop"
+    local_appdata = os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
+    base_dir = Path(local_appdata) / "RescueBox"
 
     # 2. Construct the path
     custom_storage_dir = base_dir / "nicegui"
@@ -145,8 +141,16 @@ if __name__ in {"__main__", "__mp_main__"}:
 
     demo_dir = Path(__file__).parent / "demo"
     if demo_dir.exists():
-        app.add_static_files(url_path="/demo", local_directory=str(demo_dir))
-        logger.debug("Demo static files served at /demo/")
+        from frontend.constants import DEMO_WALKTHROUGH_MEDIA_URL
+
+        app.add_static_files(
+            url_path=DEMO_WALKTHROUGH_MEDIA_URL,
+            local_directory=str(demo_dir),
+        )
+        logger.debug(
+            "Demo walkthrough media at %s/ (markdown PNGs; UI routes use /demo)",
+            DEMO_WALKTHROUGH_MEDIA_URL,
+        )
 
     icons_dir = _resolve_icons_dir()
     if icons_dir is not None:
@@ -217,15 +221,18 @@ if __name__ in {"__main__", "__mp_main__"}:
     async def _on_client_delete(client: Client):
         release_demo_folder_for_client(client)
 
+    # Headless when frozen (PyInstaller): Tauri or install scripts start servers;
+    # use a normal browser at http://127.0.0.1:8080 — no NiceGUI/pywebview window.
+    _headless_server = getattr(sys, "frozen", False)
     _run_kwargs = dict(
         title=APP_TITLE,
         port=APP_PORT,
-        show=APP_SHOW_BROWSER,
+        show=APP_SHOW_BROWSER and not _headless_server,
         native=False,
         reconnect_timeout=RECONNECT_TIMEOUT,
         storage_secret="REPLACE_WITH_A_REAL_SECRET_KEY",
         reload=False,
-        show_welcome_message=APP_SHOW_BROWSER,
+        show_welcome_message=APP_SHOW_BROWSER and not _headless_server,
     )
     if APP_FAVICON:
         _run_kwargs["favicon"] = APP_FAVICON

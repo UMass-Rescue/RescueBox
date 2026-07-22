@@ -3,8 +3,9 @@
   "identifier": "default",
   "description": "Capability for the main window",
   "windows": ["main", "splashscreen"],
-  "permissions": [
+    "permissions": [
     "core:default",
+    "allow-open-ui-url",
     "shell:allow-spawn",
     "shell:allow-execute",
     "dialog:default"

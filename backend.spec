@@ -113,7 +113,7 @@ src_model_facematch_facenet512 = f'{src_models_facematch}/facenet512_model.onnx'
 
 
 # for text-summary
-hiddenimports += ['ollama', 'pypdf2', 'requests']
+hiddenimports += ['ollama', 'pypdf2', 'requests', 'pdqhash', 'pillow']
 
 hiddenimports += ['llama_index','llama_index.core']
 block_cipher = None

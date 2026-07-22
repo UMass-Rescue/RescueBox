@@ -18,8 +18,8 @@
     }
     .panel {
       text-align: center;
-      padding: 2rem 2.5rem;
-      max-width: 22rem;
+      padding: 1.75rem 2rem;
+      max-width: 24rem;
     }
     .title {
       font-size: 1.75rem;
@@ -30,7 +30,7 @@
     .subtitle {
       font-size: 0.95rem;
       color: #cbd5e1;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
       line-height: 1.45;
     }
     .spinner {
@@ -49,9 +49,38 @@
       color: #94a3b8;
       line-height: 1.4;
       min-height: 2.5em;
+      margin-bottom: 1rem;
     }
     .status.error {
       color: #fca5a5;
+    }
+    .status a {
+      color: #93c5fd;
+      text-decoration: underline;
+      word-break: break-all;
+      cursor: pointer;
+    }
+    .status a:hover {
+      color: #bfdbfe;
+    }
+    .quit-option {
+      display: none;
+      text-align: left;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      line-height: 1.35;
+      gap: 0.5rem;
+      align-items: flex-start;
+      cursor: pointer;
+      user-select: none;
+    }
+    .quit-option.visible {
+      display: flex;
+    }
+    .quit-option input {
+      margin-top: 0.15rem;
+      flex-shrink: 0;
+      accent-color: #881c1c;
     }
   </style>
 </head>
@@ -61,10 +90,31 @@
     <h1 class="title">RescueBox</h1>
     <p class="subtitle" id="startup-subtitle">Setup rescuebox assistant&hellip;</p>
     <p class="status" id="startup-status">Initializing&hellip;</p>
+    <label class="quit-option" id="quit-option" for="quit-on-close">
+      <input type="checkbox" id="quit-on-close" />
+      <span>Quit RescueBox when I close this window</span>
+    </label>
   </div>
   <script>
+    function syncQuitPreference(checked) {
+      const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+      if (invoke) {
+        invoke("set_quit_on_close", { quit: checked });
+      }
+    }
+
+    (function bindQuitCheckbox() {
+      const box = document.getElementById("quit-on-close");
+      if (!box) return;
+      box.addEventListener("change", function () {
+        syncQuitPreference(box.checked);
+      });
+    })();
+
     window.setStartupStatus = function (text) {
       const el = document.getElementById("startup-status");
+      const quitRow = document.getElementById("quit-option");
+      if (quitRow) quitRow.classList.remove("visible");
       if (!el) return;
       el.textContent = text;
       el.classList.remove("error");
@@ -73,12 +123,62 @@
       const el = document.getElementById("startup-status");
       const sub = document.getElementById("startup-subtitle");
       const spin = document.getElementById("startup-spinner");
+      const quitRow = document.getElementById("quit-option");
+      if (quitRow) quitRow.classList.remove("visible");
       if (sub) sub.textContent = "Startup failed";
       if (el) {
         el.textContent = text;
         el.classList.add("error");
       }
       if (spin) spin.classList.add("hidden");
+    };
+    window.setStartupReady = function (payload) {
+      const sub = document.getElementById("startup-subtitle");
+      const spin = document.getElementById("startup-spinner");
+      const el = document.getElementById("startup-status");
+      const quitRow = document.getElementById("quit-option");
+      const box = document.getElementById("quit-on-close");
+      const alreadyRunning =
+        payload && typeof payload === "object" && payload.alreadyRunning;
+      if (sub) {
+        sub.textContent = alreadyRunning
+          ? "RescueBox is running."
+          : "Ready";
+      }
+      if (spin) spin.classList.add("hidden");
+      if (!el) return;
+      el.classList.remove("error");
+      const url = typeof payload === "string" ? payload : payload && payload.url;
+      if (!url) {
+        el.textContent = "RescueBox is running.";
+        if (quitRow) quitRow.classList.add("visible");
+        if (box) {
+          box.checked = false;
+          syncQuitPreference(false);
+        }
+        return;
+      }
+      el.replaceChildren();
+      el.appendChild(document.createTextNode("RescueBox is running at "));
+      const link = document.createElement("a");
+      link.href = url;
+      link.textContent = url;
+      link.addEventListener("click", function (event) {
+        event.preventDefault();
+        const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+        if (invoke) {
+          invoke("open_ui_url", { url: url });
+        }
+      });
+      el.appendChild(link);
+      el.appendChild(
+        document.createTextNode(" — open in your web browser.")
+      );
+      if (quitRow) quitRow.classList.add("visible");
+      if (box) {
+        box.checked = false;
+        syncQuitPreference(false);
+      }
     };
   </script>
 </body>

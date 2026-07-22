@@ -12,13 +12,13 @@ from nicegui import ui
 
 from frontend.components.logs import read_log_file, render_log_viewer
 from frontend.components.shared import create_navbar
-from frontend.config import LOG_FILE
+from frontend.config import BACKEND_LOG_FILE, LOG_FILE
 from frontend.constants import UI_TITLES
 from frontend.utils import apply_saved_theme, require_demo_user_session
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class LogsPage:
@@ -32,7 +32,7 @@ class LogsPage:
 
     async def render(self):
         """Render the logs page. Creates the UI components for displaying log content with"""
-        logger.info("Rendering logs page")
+        logger.debug("Rendering logs page")
 
         with ui.column().classes(
             "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16 gap-4 flex flex-col flex-1"
@@ -47,7 +47,12 @@ class LogsPage:
             try:
                 log_container = ui.column().classes("w-full max-w-full min-w-0 flex-1")
                 self.log_display = render_log_viewer(
-                    log_container, LOG_FILE, self.max_lines
+                    log_container,
+                    max_lines=self.max_lines,
+                    log_files={
+                        "Frontend": LOG_FILE,
+                        "Backend": BACKEND_LOG_FILE,
+                    },
                 )
                 # Load initial content into returned element if available
                 if self.log_display is not None:
@@ -56,11 +61,16 @@ class LogsPage:
                 # Fallback to inline rendering if component fails
                 logger.exception("Failed to use log_viewer component: %s", e)
 
-        logger.info("Logs page rendered successfully")
+        logger.debug("Logs page rendered successfully")
 
     async def _load_logs(self):
         """Load and display log file contents. Reads the log file, limits to max_lines, and displays in the UI."""
-        self.log_content = read_log_file(LOG_FILE, self.max_lines)
+        log_path = (
+            self.log_display.current_log_file
+            if self.log_display is not None
+            else LOG_FILE
+        )
+        self.log_content = read_log_file(log_path, self.max_lines)
 
         # Cache raw content in log_display and apply search filter if available
         if hasattr(self, "log_display") and self.log_display is not None:
@@ -86,7 +96,7 @@ class LogsPage:
             timeout=10,
         )
 
-        logger.debug("Loaded log content from: %s", LOG_FILE)
+        logger.debug("Loaded log content from: %s", log_path)
 
     async def refresh_logs(self):
         """Refresh the log display by reloading content."""
@@ -98,7 +108,7 @@ class LogsPage:
 @ui.page("/logs")
 async def logs_page():
     """Page route handler for /logs. Creates the logs page with navigation bar and renders the LogsPage."""
-    logger.info("Logs page route accessed")
+    logger.debug("Logs page route accessed")
     apply_saved_theme()
     create_navbar()
     if not require_demo_user_session():

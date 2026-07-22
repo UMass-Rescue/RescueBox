@@ -9,7 +9,12 @@ from typing import Optional
 from nicegui import ui, app
 from frontend.design_tokens import Design
 from frontend.config import DEMO_FOLDERS_BASE, DEMO_FOLDER_NAMES
-from .paths import _resolved_existing_directory, _resolved_file_browser_folder
+from .paths import (
+    _resolved_existing_directory,
+    _resolved_file_browser_folder,
+    path_for_ui,
+    _absolute_path,
+)
 from .storage import get_user_id
 from frontend.utils.exceptions import UI_RENDER_ERRORS
 
@@ -127,19 +132,19 @@ class DirectoryBrowser:
 
     def _render_directory_tree(self, path):
         self.file_list.clear()
+        path = path_for_ui(path)
         self.state["current_path"] = path
         try:
-            # restrict navigation
-            p_obj = Path(path).resolve()
+            p_obj = _absolute_path(Path(path))
             if not p_obj.exists():
                 return
 
-            self.path_display.set_text(str(p_obj))
+            self.path_display.set_text(path_for_ui(p_obj))
 
             with self.file_list:
                 if p_obj.parent != p_obj:
                     _render_parent_directory_row(
-                        lambda: self._render_directory_tree(str(p_obj.parent))
+                        lambda: self._render_directory_tree(path_for_ui(p_obj.parent))
                     )
 
                 for item in _sorted_directory_entries(p_obj):
@@ -150,7 +155,9 @@ class DirectoryBrowser:
                                 "items-center gap-3 cursor-pointer flex-1 py-1"
                             ).on(
                                 "click",
-                                lambda *a, p=str(item): self._render_directory_tree(p),
+                                lambda *a, p=path_for_ui(
+                                    item
+                                ): self._render_directory_tree(p),
                             ):
                                 ui.icon("folder", size="sm").classes("text-[#881c1c]")
                                 ui.label(item.name).classes(
@@ -160,7 +167,7 @@ class DirectoryBrowser:
                             # Right side: Inline Selection
                             ui.button(
                                 "Select",
-                                on_click=lambda *a, p=str(item): (
+                                on_click=lambda *a, p=path_for_ui(item): (
                                     self.on_select(p),
                                     self.dialog.close(),
                                 ),
@@ -241,23 +248,23 @@ class FileBrowser:
 
     def _render_file_tree(self, path):
         self.file_list.clear()
+        path = path_for_ui(path)
         self.state["current_path"] = path
         self.state["selected_file"] = None
         if self.confirm_btn:
             self.confirm_btn.set_visibility(False)
 
         try:
-            p_obj = Path(path).resolve()
+            p_obj = _absolute_path(Path(path))
             if not p_obj.exists():
                 return
 
-            # Update path display
-            self.path_display.set_text(str(p_obj))
+            self.path_display.set_text(path_for_ui(p_obj))
 
             with self.file_list:
                 if p_obj.parent != p_obj:
                     _render_parent_directory_row(
-                        lambda: self._render_file_tree(str(p_obj.parent))
+                        lambda: self._render_file_tree(path_for_ui(p_obj.parent))
                     )
 
                 entries = _sorted_directory_entries(p_obj)
@@ -266,7 +273,8 @@ class FileBrowser:
 
                 for item in dirs:
                     with ui.row().classes(_DIR_ROW_NAV).on(
-                        "click", lambda *a, p=str(item): self._render_file_tree(p)
+                        "click",
+                        lambda *a, p=path_for_ui(item): self._render_file_tree(p),
                     ):
                         ui.icon("folder", size="sm").classes("text-[#881c1c]")
                         ui.label(item.name).classes("text-sm font-medium text-zinc-800")
@@ -281,7 +289,10 @@ class FileBrowser:
 
                     with ui.row().classes(
                         "w-full items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#881c1c]/10 rounded-lg group"
-                    ).on("click", lambda *a, p=str(item): self._select_file(p)):
+                    ).on(
+                        "click",
+                        lambda *a, p=path_for_ui(item): self._select_file(p),
+                    ):
                         ui.label(item.name).classes(
                             "text-sm text-zinc-700 group-hover:text-zinc-900"
                         )
@@ -290,6 +301,7 @@ class FileBrowser:
             logger.error("Error rendering file tree: %s", e)
 
     def _select_file(self, file_path):
+        file_path = path_for_ui(file_path)
         self.state["selected_file"] = file_path
         if self.confirm_btn:
             self.confirm_btn.set_visibility(True)
@@ -428,15 +440,15 @@ def resolve_demo_folder_for_browser() -> Optional[str]:
         if assigned:
             p = Path(assigned)
             if p.is_dir():
-                return str(p.resolve())
+                return path_for_ui(_absolute_path(p))
 
         base = Path(DEMO_FOLDERS_BASE).expanduser()
         for name in DEMO_FOLDER_NAMES:
             cand = base / name
             if cand.is_dir():
-                return str(cand.resolve())
+                return path_for_ui(_absolute_path(cand))
         if base.is_dir():
-            return str(base.resolve())
+            return path_for_ui(_absolute_path(base))
     except UI_RENDER_ERRORS as e:
         logger.debug("resolve_demo_folder_for_browser: %s", e)
     return None
