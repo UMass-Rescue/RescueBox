@@ -37,7 +37,7 @@ class ToolPicker:
         return self.tool_registry
 
     async def show(self):
-        self.logger.info(
+        self.logger.debug(
             "ToolPicker.show started. Registry type: %s", type(self.tool_registry)
         )
 
@@ -65,7 +65,7 @@ class ToolPicker:
                         )
                     else:
                         for num, tool in menu.items():
-                            self.logger.info(
+                            self.logger.debug(
                                 "Adding tool to UI: %s - %s",
                                 num,
                                 tool.get("name"),
@@ -171,4 +171,4 @@ class AnalysisPicker:
                             with ui.row().classes(_LAUNCH_ROW):
                                 ui.label("Analyze")
                                 ui.icon("arrow_forward", size="16px")
-        self.logger.info("AnalysisPicker.show finished building UI.")
+        self.logger.debug("AnalysisPicker.show finished building UI.")

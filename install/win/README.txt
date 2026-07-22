@@ -16,7 +16,11 @@ cd to folder from step 1 and run rb.ps1
 
   c. installer  extracts and starts the rescuebox app
    
-  d. logs are located here :   C:\Users\<username>\AppData\Roaming\RescueBox-Desktop\logs
+  d. logs are located here :   C:\Users\<username>\AppData\Roaming\RescueBox\logs
+
+  e. Code signing: install "Windows SDK Signing Tools for Desktop Apps" (Visual Studio Installer
+     -> Individual components) so signtool.exe is available, or set SIGNTOOL_PATH to its full path.
+     Local unsigned builds: set RESCUEBOX_SKIP_SIGN=1 before cargo tauri build.
   
 4 Assumption/Issues: Nvidia GPU related driver, cuda, cudnn are installed and in the path for recuebox modules to detect and use.
 

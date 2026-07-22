@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import (
+    Annotated,
     Any,
     Callable,
     List,
@@ -239,10 +240,13 @@ def collect_inline_file_filter(inputs: dict, input_dir: Path) -> List[Path]:
             files = getattr(ff, "files", None)
         if files is None:
             files = []
-        return [
-            Path(f.get("path") if isinstance(f, dict) else getattr(f, "path", f))
-            for f in files
-        ]
+        resolved: List[Path] = []
+        for f in files:
+            raw = f.get("path") if isinstance(f, dict) else getattr(f, "path", f)
+            if raw is None or not str(raw).strip():
+                continue
+            resolved.append(Path(normalize_host_path_str(raw)))
+        return resolved
     except Exception:
         pass
     return [Path(f) for f in input_dir.iterdir() if f.is_file()]
@@ -269,6 +273,78 @@ def collect_inline_output_patterns(inputs: dict) -> List[str]:
             except Exception:
                 continue
     return patterns
+
+
+def normalize_host_path_str(path: Any) -> str:
+    if path is None:
+        return ""
+    s = str(path).strip()
+    if s.startswith("\\\\?\\"):
+        s = s[4:]
+    return s
+
+
+def _normalize_path_fields_in_dict(data: dict) -> dict:
+    out = dict(data)
+    if "path" in out and out["path"] is not None:
+        out["path"] = normalize_host_path_str(out["path"])
+    return out
+
+
+def coerce_ml_service_inputs(raw: Any, input_type: type) -> Any:
+    """
+    Desktop UI POSTs JSON like ``{"input_dir": {"path": "..."}, "query": {"text": "..."}}``.
+    Plugin handlers expect Pydantic models (``.path`` / ``.text``). Coerce each field.
+    """
+    if not isinstance(raw, dict):
+        return raw
+
+    optional_keys = frozenset({"file_filter", "output_filter"})
+    hints = get_type_hints(input_type, include_extras=True)
+    coerced: dict[str, Any] = {}
+
+    for key, hint in hints.items():
+        if key not in raw:
+            if key in optional_keys:
+                continue
+            raise ValueError(f"Missing required input '{key}'")
+
+        val = raw[key]
+        if val is None:
+            raise ValueError(f"Input '{key}' must not be null")
+
+        if get_origin(hint) is Annotated:
+            hint = get_args(hint)[0]
+
+        if not isinstance(hint, type) or not issubclass(hint, BaseModel):
+            coerced[key] = val
+            continue
+
+        if isinstance(val, hint):
+            coerced[key] = val
+            continue
+
+        if isinstance(val, dict):
+            payload = (
+                _normalize_path_fields_in_dict(val) if "path" in val else dict(val)
+            )
+            if "path" in payload and not str(payload.get("path") or "").strip():
+                raise ValueError(f"Input '{key}': path is required")
+            coerced[key] = hint.model_validate(payload)
+        elif isinstance(val, str):
+            if issubclass(hint, TextInput):
+                coerced[key] = hint.model_validate({"text": val})
+            else:
+                path = normalize_host_path_str(val)
+                if not path:
+                    raise ValueError(f"Input '{key}': path is required")
+                coerced[key] = hint.model_validate({"path": path})
+        else:
+            raise ValueError(
+                f"Invalid input '{key}': expected object or string, got {type(val).__name__}"
+            )
+
+    return coerced
 
 
 def apply_torch_cpu_preference() -> None:

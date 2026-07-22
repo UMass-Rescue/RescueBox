@@ -20,8 +20,10 @@ def backend_log_file_path() -> Path:
         return Path(env).expanduser().resolve()
     logfile = Path("rb-backend.log")
     if platform.system() == "Windows":
-        base_dir = Path(os.getenv("APPDATA"))
-        logfile = base_dir / "RescueBox-Desktop" / "logs" / "backend.log"
+        base_dir = Path(
+            os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
+        )
+        logfile = base_dir / "RescueBox" / "logs" / "backend.log"
 
     return logfile
 

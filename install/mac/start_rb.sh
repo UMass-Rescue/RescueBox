@@ -1,5 +1,7 @@
 #!/usr/bin/env zsh
- 
+
+# cd to RescueBox root directory
+cd ../..
 
 echo "Starting Ollama server..."
 brew services start ollama

@@ -1,0 +1,14 @@
+# Project Core
+- Stack: python, nicegui, src-tauri.
+- Infrastructure: python.
+
+# Style & Best Practices
+- provide simple code , don't provide code for many edge cases.
+- Prefer functional components and hooks.
+- Use strict typing; avoid the 'any' type.
+- Keep components simple small and single-purpose.
+
+# Workflow Rules
+- provide simple code , don't provide code for many edge cases.
+- Before refactoring core logic, suggest a plan first.
+- Security: Never commit API keys or environment variables.

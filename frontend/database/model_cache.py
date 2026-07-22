@@ -65,7 +65,7 @@ def init_db():
 
 async def cache_models(models_data: List[Dict[str, Any]]):
     """Caches a list of models into the database, replacing any existing data."""
-    logger.info("Caching %d models to the database.", len(models_data))
+    logger.debug("Caching %d models to the database.", len(models_data))
     with _get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM models")

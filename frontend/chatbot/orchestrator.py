@@ -30,7 +30,7 @@ async def submit_job_orchestrator(
     if not get_user_id_for_jobs():
         raise RuntimeError("Set a demo User ID (demo_???) before submitting jobs.")
 
-    logger.debug("Orchestrating job submission to %s", api_endpoint)
+    logger.info("Orchestrating job execution for %s", api_endpoint)
     try:
         response_data = await post_job(
             api_wrapper, http_client, config, api_endpoint, request_body_dict

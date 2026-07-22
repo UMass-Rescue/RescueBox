@@ -19,7 +19,11 @@ from rb.api.models import (
     TextResponse,
     TaskSchema,
 )
-from audio_transcription.model import AudioTranscriptionModel
+from audio_transcription.model import (
+    AudioTranscriptionModel,
+    whisper_cache_dir,
+    whisper_local_files_only,
+)
 from rb.lib.ml_service import MLService
 
 logger = logging.getLogger(__name__)
@@ -46,7 +50,10 @@ ml_service.add_app_metadata(
     make_threadsafe=False,
 )
 
-model = AudioTranscriptionModel()
+model = AudioTranscriptionModel(
+    cache_dir=whisper_cache_dir(),
+    local_files_only=whisper_local_files_only(),
+)
 
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"}
 

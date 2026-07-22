@@ -22,7 +22,8 @@ def create_db_and_tables():
         with engine.begin() as conn:
             conn.execute(
                 text(
-                    "ALTER TABLE text_embeddings ADD COLUMN model_name VARCHAR(128) DEFAULT 'BAAI/bge-m3' NOT NULL"
+                    "ALTER TABLE text_embeddings ADD COLUMN IF NOT EXISTS "
+                    "model_name VARCHAR(128) DEFAULT 'BAAI/bge-m3' NOT NULL"
                 )
             )
     except Exception:
@@ -105,7 +106,7 @@ def create_db_and_tables():
                 conn.execute(text("ALTER TABLE image_embeddings DROP COLUMN embedding"))
                 conn.execute(
                     text(
-                        "ALTER TABLE image_embeddings ADD COLUMN embedding vector(512))"
+                        "ALTER TABLE image_embeddings ADD COLUMN embedding vector(512)"
                     )
                 )
     except Exception:

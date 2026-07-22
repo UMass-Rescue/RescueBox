@@ -1,7 +1,7 @@
 """Read-only explorer for demo sample files on /demo and walkthrough pages.
 
 Also includes shared Markdown rendering for in-app guides; screenshot placeholders
-``{{SCREENSHOT:filename.png}}`` load from ``/demo/<filename>`` (under ``frontend/demo/``).
+``{{SCREENSHOT:filename.png}}`` load from ``/demo-media/<filename>`` (under ``frontend/demo/``).
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from typing import FrozenSet, List, NamedTuple, Optional, Tuple, Callable
 from nicegui import ui
 from frontend.config import DEMO_FILES_BROWSE_ROOT
 from frontend.components.results import open_file
+from frontend.constants import DEMO_WALKTHROUGH_MEDIA_URL
 
 _DEMO_NAV_BTN = (
     "text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded "
@@ -67,12 +68,12 @@ def normalize_demo_walkthrough_query(value: Optional[str]) -> str:
 
 
 def _resolved_root() -> Path:
-    return DEMO_FILES_BROWSE_ROOT.expanduser().resolve()
+    return DEMO_FILES_BROWSE_ROOT.expanduser().absolute()
 
 
 def _is_under_root(path: Path, root: Path) -> bool:
     try:
-        path = path.resolve()
+        path = path.absolute()
         path.relative_to(root)
         return True
     except (ValueError, OSError, RuntimeError):
@@ -106,7 +107,7 @@ def _list_entries(
         dirs = [p for p in dirs if p.name.lower() not in excl]
 
     try:
-        at_root = directory.resolve() == list_root.resolve()
+        at_root = directory.absolute() == list_root.absolute()
     except OSError:
         at_root = False
 
@@ -162,7 +163,7 @@ def render_demo_files_explorer(
         list_holder = ui.column().classes("w-full min-w-0 gap-1")
 
         def go_to(new_path: str) -> None:
-            target = Path(new_path).resolve()
+            target = Path(new_path).absolute()
             if not _is_under_root(target, root):
                 ui.notify("Invalid path", type="negative", classes="rb-notify-505759")
                 return
@@ -255,7 +256,7 @@ def render_walkthrough_samples_panel(container: ui.element, walkthrough: str) ->
                 )
 
 
-_FRONTEND_DEMO_DIR = Path(__file__).resolve().parent.parent / "demo"
+_FRONTEND_DEMO_DIR = Path(__file__).absolute().parent.parent / "demo"
 
 
 def schedule_hash_fragment_scroll() -> None:
@@ -331,10 +332,10 @@ def render_guided_markdown_body(
     container: ui.element,
     markdown_text: str,
     *,
-    image_base_url: str = "/demo",
+    image_base_url: str = DEMO_WALKTHROUGH_MEDIA_URL,
 ) -> None:
     """Render markdown; ``{{SCREENSHOT:file.png}}`` lines load images from ``<image_base_url>/file.png``."""
-    base = image_base_url.rstrip("/") or "/demo"
+    base = image_base_url.rstrip("/") or DEMO_WALKTHROUGH_MEDIA_URL
     segments = list(iter_md_and_images(markdown_text))
     if not segments:
         ui.label("Guide content is empty.").classes("text-zinc-500")

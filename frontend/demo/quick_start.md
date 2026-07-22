@@ -7,6 +7,7 @@
 RescueBox Desktop  runs in your browser to execute **plugins** (AI/ML tools for images, audio, text) to help with forensics  analysis.
 You choose a plugin, fill in paths and options, run a **job**, then inspect **results** in **Jobs**
 
+All files used for analysis must be local to the machine where rescuebox is installed and readable by user used to install rescuebox.
 
 ## **Navbar** 
 
@@ -15,13 +16,14 @@ You choose a plugin, fill in paths and options, run a **job**, then inspect **re
 
 ## **Home screen**
 
-- When you **start RescueBox for the first time**, enter a **unique user id**. 
+- When you **start RescueBox for the first time**, enter a **unique case number**. 
+Investigators names and path to image files to be used for rescuebox analysis.
 
-- **User ID** must start with `demo_` followed by any 3 characters (use your initials) ,
+-This is a way to group your rescusbox work by case , by investigator.
 
- eg: `demo_ejk` or `demo_shl` 
+-Note the Evidence Directory is local to and readable by user on the machine where Rescuebox is installed. Its not a directory where browser is launched on another machine to access rescuebox.
 
-{{SCREENSHOT:user_id.png}}
+{{SCREENSHOT:case.png}}
 
  **[Home Page](/)**.
 

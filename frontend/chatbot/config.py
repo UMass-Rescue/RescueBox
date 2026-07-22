@@ -190,24 +190,24 @@ class ToolRegistry:
     # Tool picker menu (Method 4: Tool Picker)
     TOOL_MENU: Dict[str, Dict[str, str]] = {
         "1": {
-            "name": "Transcribe Audio",
-            "endpoint": "audio/transcribe",
-            "desc": "Convert speech to text",
-        },
-        "2": {
             "name": "Describe Images",
             "endpoint": "image_summary/summarize-images",
             "desc": "AI descriptions of photos",
         },
-        "3": {
+        "2": {
             "name": "Search Images",
             "endpoint": "image_embeddings/search_images",
             "desc": "description or caption match",
         },
-        "4": {
+        "3": {
             "name": "Age & Gender Predictor",
             "endpoint": "age-gender/predict",
             "desc": "Classify faces by age and gender",
+        },
+        "4": {
+            "name": "Image Series Similarity",
+            "endpoint": "image_series_similarity/search_series",
+            "desc": "Find images from the same series as a query image",
         },
         "5": {
             "name": "Detect Deepfakes",
@@ -230,14 +230,14 @@ class ToolRegistry:
             "desc": "Document summaries",
         },
         "9": {
+            "name": "Transcribe Audio",
+            "endpoint": "audio/transcribe",
+            "desc": "Convert speech to text",
+        },
+        "10": {
             "name": "UFDR Mount",
             "endpoint": "ufdr_mounter/mount",
             "desc": "Mount UFDR files",
-        },
-        "10": {
-            "name": "Image Series Similarity",
-            "endpoint": "image_series_similarity/search_series",
-            "desc": "Find images from the same series as a query image",
         },
     }
 

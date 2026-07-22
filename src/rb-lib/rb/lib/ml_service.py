@@ -16,6 +16,7 @@ from rb.api.models import (
     TaskSchema,
 )
 from rb.lib.utils import (
+    coerce_ml_service_inputs,
     ensure_ml_func_hinting_and_task_schemas_are_valid,
     ensure_ml_func_parameters_are_typed_dict,
 )
@@ -188,7 +189,8 @@ class MLService(object):
                 lock = self._ml_function_locks.get(endpoint.rule)
                 ctx = lock if lock else nullcontext()
                 with ctx:
-                    res = ml_function(inputs, parameters)
+                    bound_inputs = coerce_ml_service_inputs(inputs, merged_inputs_type)
+                    res = ml_function(bound_inputs, parameters)
                 logger.info("%s", res)
                 return res
 
@@ -205,7 +207,8 @@ class MLService(object):
                 lock = self._ml_function_locks.get(endpoint.rule)
                 ctx = lock if lock else nullcontext()
                 with ctx:
-                    res = ml_function(inputs)
+                    bound_inputs = coerce_ml_service_inputs(inputs, merged_inputs_type)
+                    res = ml_function(bound_inputs)
                 logger.info("%s", res)
                 return res
 

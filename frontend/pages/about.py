@@ -16,6 +16,7 @@ from frontend.config import (
     APP_VERSION,
 )
 from frontend.utils.ui import apply_saved_theme
+from frontend.constants import NAV_LINKS
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +158,12 @@ async def about_page(request: Request):
                             "terminal",
                             "/logs",
                             "View real-time application logs",
+                        ),
+                        (
+                            "Demo & walkthroughs",
+                            "school",
+                            NAV_LINKS["demo"],
+                            "Guides and sample input folders",
                         ),
                     )
 

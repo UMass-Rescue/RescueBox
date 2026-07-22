@@ -1,3 +1,5 @@
+import rb.api.dll_paths as dll_paths  # cuDNN/CUDA DLL path before onnxruntime import
+
 import logging
 import multiprocessing
 import os
@@ -16,12 +18,13 @@ from rb.api.database import create_db_and_tables
 from rb.api.logging_setup import configure_backend_logging
 
 configure_backend_logging()
+dll_paths.log_detected_dll_paths()
 logger = logging.getLogger("rb.api.main")
 
 
 # 1. Safely set the cache paths FIRST
 # local_appdata = os.getenv("APPDATA", os.path.expanduser("~"))
-# app_cache_dir = Path(local_appdata) / "RescueBox-Desktop"
+# app_cache_dir = Path(local_appdata) / "RescueBox"
 # os.environ["XDG_CACHE_HOME"] = str(app_cache_dir / "xdg_cache")
 
 app = FastAPI(
@@ -50,6 +53,7 @@ def on_startup():
     # interact badly with root handlers. We pass log_config=None in uvicorn.run below so
     # dictConfig is skipped; re-apply our file + stderr handlers here anyway.
     configure_backend_logging()
+    dll_paths.log_detected_dll_paths()
     log = logging.getLogger("rb.api")
     try:
         log.info("Creating database and tables")

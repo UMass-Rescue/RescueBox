@@ -11,7 +11,8 @@
     <?error Unsupported value of sys.BUILDARCH=$(sys.BUILDARCH)?>
 <?endif?>
 
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
     <Product
             Id="*"
             Name="{{product_name}}"
@@ -25,8 +26,15 @@
                  InstallerVersion="450"
                  Languages="0"
                  Compressed="yes"
-                 InstallScope="perMachine"
+                 InstallScope="perUser"
                  SummaryCodepage="!(loc.TauriCodepage)"/>
+
+        <Property Id="MsiLogging" Value="voicewarmupx" />
+        <Property Id="MsiLogFileLocation" Value="[LocalAppDataFolder]RescueBox\msi.log" />
+
+        <!-- Do not set ALLUSERS=0 or ALLUSERS=1 here. InstallScope=perUser is authoritative.
+             MSIINSTALLPERUSER helps avoid "all users" elevation prompts on Win10+. -->
+        <Property Id="MSIINSTALLPERUSER" Value="1"/>
 
         <!-- https://docs.microsoft.com/en-us/windows/win32/msi/reinstallmode -->
         <!-- reinstall all files; rewrite all registry entries; reinstall all shortcuts -->
@@ -59,8 +67,11 @@
         <WixVariable Id="WixUILicenseRtf" Value="{{license}}" />
         {{/if}}
 
-        <Icon Id="ProductIcon" SourceFile="{{icon_path}}"/>
+        {{#if icon_path}}
+        <Icon Id="ProductIcon" SourceFile="{{icon_path}}" />
         <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+        {{/if}}
+
         <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />      <!-- Remove repair -->
         <SetProperty Id="ARPNOMODIFY" Value="1" After="InstallValidate" Sequence="execute"/>
 
@@ -70,6 +81,7 @@
         <Property Id="ARPURLUPDATEINFO" Value="{{homepage}}"/>
         {{/if}}
 
+        
         <!-- NOTE: The order of RegistrySearch elements below matters. In WIX, when multiple
              RegistrySearch elements are listed under a single Property, the LAST successful
              match wins. We list the NSIS default-key search first and the MSI InstallDir
@@ -82,68 +94,30 @@
           <RegistrySearch Id="PrevInstallDirWithName" Root="HKCU" Key="Software\\{{manufacturer}}\\{{product_name}}" Name="InstallDir" Type="raw" />
         </Property>
 
+        <!-- Default install folder on first run; user may change it on the destination dialog (e.g. D:\Data\RescueBox) -->
+        <SetProperty Id="INSTALLDIR"
+                     Value="[LocalAppDataFolder]{{product_name}}\\"
+                     After="AppSearch"
+                     Sequence="ui">NOT Installed AND INSTALLDIR = ""</SetProperty>
+
+        <Condition Message="Install location cannot be under Program Files. Choose a writable folder (for example D:\Data\{{product_name}} or under your Local AppData folder).">
+            <![CDATA[
+Installed OR NOT INSTALLDIR OR (
+  NOT (ProgramFilesFolder << INSTALLDIR) AND NOT (ProgramFiles64Folder << INSTALLDIR)
+)
+            ]]>
+        </Condition>
+
         <!-- launch app checkbox -->
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="!(loc.LaunchApp)" />
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1"/>
         <CustomAction Id="LaunchApplication" Impersonate="yes" FileKey="Path" ExeCommand="[LAUNCHAPPARGS]" Return="asyncNoWait" />
+        
 
         <UI>
-            <!-- launch app checkbox -->
             <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
 
             <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
-
-            <!-- No EULA in tauri.conf.json: Welcome -> ONNX models path -> install folder (not LicenseDlg) -->
-            <DialogRef Id="ModelSourceDlg" />
-            <DialogRef Id="ModelsBrowseDlg" />
-
-            <Publish Dialog="WelcomeDlg"
-                     Control="Next"
-                     Event="NewDialog"
-                     Value="ModelSourceDlg"
-                     Order="2">NOT Installed</Publish>
-            <!-- Cancel WixUI_InstallDir default Welcome -> InstallDir on first install -->
-            <Publish Dialog="WelcomeDlg"
-                     Control="Next"
-                     Event="NewDialog"
-                     Value="InstallDirDlg"
-                     Order="3">0</Publish>
-
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Next"
-                     Property="MODELS_ZIP_PATH"
-                     Value="[MODELS_ZIP_DIR]"
-                     Order="1">1</Publish>
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Next"
-                     Event="NewDialog"
-                     Value="InstallDirDlg"
-                     Order="2">1</Publish>
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Back"
-                     Event="NewDialog"
-                     Value="WelcomeDlg"
-                     Order="2">1</Publish>
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Browse"
-                     Property="_BrowseProperty"
-                     Value="[MODELS_ZIP_SOURCE]"
-                     Order="1">1</Publish>
-            <Publish Dialog="ModelSourceDlg"
-                     Control="Browse"
-                     Event="SpawnDialog"
-                     Value="ModelsBrowseDlg"
-                     Order="2">1</Publish>
-            <Publish Dialog="InstallDirDlg"
-                     Control="Back"
-                     Event="NewDialog"
-                     Value="ModelSourceDlg"
-                     Order="2">NOT Installed</Publish>
-            <Publish Dialog="InstallDirDlg"
-                     Control="Back"
-                     Event="NewDialog"
-                     Value="WelcomeDlg"
-                     Order="3">Installed</Publish>
         </UI>
 
         <UIRef Id="WixUI_InstallDir" />
@@ -152,10 +126,10 @@
             <Directory Id="DesktopFolder" Name="Desktop">
                 <Component Id="ApplicationShortcutDesktop" Guid="*">
                     <Shortcut Id="ApplicationDesktopShortcut" Name="{{product_name}}" Description="Runs {{product_name}}" Target="[!Path]" WorkingDirectory="INSTALLDIR" />
-                    <RemoveFolder Id="DesktopFolder" On="uninstall" />
                     <RegistryValue Root="HKCU" Key="Software\\{{manufacturer}}\\{{product_name}}" Name="Desktop Shortcut" Type="integer" Value="1" KeyPath="yes" />
                 </Component>
             </Directory>
+            <!-- INSTALLDIR in the Directory table (Program Files) satisfies ICE91; actual path comes from the INSTALLDIR property (default Local AppData, or user browse e.g. D:\Data\RescueBox). -->
             <Directory Id="$(var.PlatformProgramFilesFolder)" Name="PFiles">
                 <Directory Id="INSTALLDIR" Name="{{product_name}}"/>
             </Directory>
@@ -171,7 +145,7 @@
                 </RegistryKey>
                 <!-- Change the Root to HKCU for perUser installations -->
                 {{#each deep_link_protocols as |protocol| ~}}
-                <RegistryKey Root="HKLM" Key="Software\Classes\\{{protocol}}">
+                <RegistryKey Root="HKCU" Key="Software\Classes\\{{protocol}}">
                     <RegistryValue Type="string" Name="URL Protocol" Value=""/>
                     <RegistryValue Type="string" Value="URL:{{bundle_id}} protocol"/>
                     <RegistryKey Key="DefaultIcon">
@@ -185,6 +159,7 @@
             </Component>
             <Component Id="Path" Guid="{{path_component_guid}}" Win64="$(var.Win64)">
                 <File Id="Path" Source="{{main_binary_path}}" KeyPath="yes" Checksum="yes"/>
+                <RemoveFolder Id="INSTALLDIR" On="uninstall" />
                 {{#each file_associations as |association| ~}}
                 {{#each association.ext as |ext| ~}}
                 <ProgId Id="{{../../product_name}}.{{ext}}" Advertise="yes" Description="{{association.description}}">
@@ -212,24 +187,6 @@
             </Component>
             {{/if}}
             {{resources}}
-            <Component Id="CMP_UninstallShortcut" Guid="*">
-
-                <Shortcut Id="UninstallShortcut"
-						  Name="Uninstall {{product_name}}"
-						  Description="Uninstalls {{product_name}}"
-						  Target="[System64Folder]msiexec.exe"
-						  Arguments="/x [ProductCode]" />
-
-				<RemoveFolder Id="INSTALLDIR"
-							  On="uninstall" />
-
-				<RegistryValue Root="HKCU"
-							   Key="Software\\{{manufacturer}}\\{{product_name}}"
-							   Name="Uninstaller Shortcut"
-							   Type="integer"
-							   Value="1"
-							   KeyPath="yes" />
-            </Component>
         </DirectoryRef>
 
         <DirectoryRef Id="ApplicationProgramsFolder">
@@ -245,6 +202,19 @@
                 <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
                 <RegistryValue Root="HKCU" Key="Software\\{{manufacturer}}\\{{product_name}}" Name="Start Menu Shortcut" Type="integer" Value="1" KeyPath="yes"/>
            </Component>
+            <Component Id="CMP_UninstallShortcut" Guid="*">
+                <Shortcut Id="UninstallShortcut"
+                          Name="Uninstall {{product_name}}"
+                          Description="Uninstalls {{product_name}}"
+                          Target="[System64Folder]msiexec.exe"
+                          Arguments="/x [ProductCode]" />
+                <RegistryValue Root="HKCU"
+                               Key="Software\\{{manufacturer}}\\{{product_name}}"
+                               Name="Uninstaller Shortcut"
+                               Type="integer"
+                               Value="1"
+                               KeyPath="yes" />
+            </Component>
         </DirectoryRef>
 
         {{#each merge_modules as |msm| ~}}
@@ -328,8 +298,8 @@
         </Property>
 
         {{#if download_bootstrapper}}
-        <!-- Download webview bootstrapper mode -->
-        <CustomAction Id='DownloadAndInvokeBootstrapper' Directory="INSTALLDIR" Execute="deferred" ExeCommand='powershell.exe -NoProfile -windowstyle hidden try [\{] [\[]Net.ServicePointManager[\]]::SecurityProtocol = [\[]Net.SecurityProtocolType[\]]::Tls12 [\}] catch [\{][\}]; Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile "$env:TEMP\MicrosoftEdgeWebview2Setup.exe" ; Start-Process -FilePath "$env:TEMP\MicrosoftEdgeWebview2Setup.exe" -ArgumentList ({{webview_installer_args}} &apos;/install&apos;) -Wait' Return='check'/>
+        <!-- Download webview bootstrapper mode (ExeCommand must stay under MSI CustomAction Target length; use embedBootstrapper in tauri.conf when possible) -->
+        <CustomAction Id='DownloadAndInvokeBootstrapper' Directory="SystemFolder" Execute="deferred" Impersonate="yes" ExeCommand='powershell.exe -NoProfile -WindowStyle Hidden -Command "$p=$env:TEMP+\&apos;MicrosoftEdgeWebview2Setup.exe\&apos;;(New-Object Net.WebClient).DownloadFile(\&apos;https://go.microsoft.com/fwlink/p/?LinkId=2124703\&apos;,$p);Start-Process $p -ArgumentList \&apos;{{webview_installer_args}} /install\&apos; -Wait"' Return='check'/>
         <InstallExecuteSequence>
             <Custom Action='DownloadAndInvokeBootstrapper' Before='InstallFinalize'>
                 <![CDATA[NOT(REMOVE OR INSTALLED_WEBVIEW2_VERSION)]]>
@@ -340,7 +310,7 @@
         {{#if webview2_bootstrapper_path}}
         <!-- Embedded webview bootstrapper mode -->
         <Binary Id="MicrosoftEdgeWebview2Setup.exe" SourceFile="{{webview2_bootstrapper_path}}"/>
-        <CustomAction Id='InvokeBootstrapper' BinaryKey='MicrosoftEdgeWebview2Setup.exe' Execute="deferred" ExeCommand='{{webview_installer_args}} /install' Return='check' />
+        <CustomAction Id='InvokeBootstrapper' BinaryKey='MicrosoftEdgeWebview2Setup.exe' Execute="deferred" Impersonate="yes" ExeCommand='{{webview_installer_args}} /install /user' Return='check' />
         <InstallExecuteSequence>
             <Custom Action='InvokeBootstrapper' Before='InstallFinalize'>
                 <![CDATA[NOT(REMOVE OR INSTALLED_WEBVIEW2_VERSION)]]>
