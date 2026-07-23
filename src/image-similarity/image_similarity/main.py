@@ -22,6 +22,7 @@ from rb.api.models import (
     RangedFloatParameterDescriptor,
     IntRangeDescriptor,
     FloatRangeDescriptor,
+    TextParameterDescriptor,
     ResponseBody,
     TaskSchema,
     DirectoryInput,
@@ -48,6 +49,7 @@ _DEFAULT_ONNX_PATH = _MODELS_DIR / "siglip2-so400m-patch14-384.onnx"
 # Number of images fed to the ONNX session per GPU kernel launch.
 # Larger values increase GPU utilisation; reduce if VRAM is limited.
 _EMBED_BATCH_SIZE = 32
+_ANONYMIZED_MODEL_SUFFIX = "+anonymized"
 
 _ORT_SESSION: ort.InferenceSession | None = None
 _PROCESSOR: AutoImageProcessor | None = None
@@ -72,6 +74,7 @@ class Parameters(TypedDict):
     top_k: int
     min_similarity: float
     scoring_mode: str
+    user_email: str
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +182,23 @@ def _embed_image(
     return results[image_path]
 
 
+def _embed_pil_image(
+    ort_session: ort.InferenceSession,
+    processor: AutoImageProcessor,
+    image: Image.Image,
+) -> np.ndarray:
+    """Compute a normalised embedding from an in-memory PIL Image via ONNX Runtime."""
+    pixel_values = processor(images=image, return_tensors="np")[
+        "pixel_values"
+    ].astype(np.float32)
+    outputs = ort_session.run(None, {"pixel_values": pixel_values})
+    embeds = outputs[0]
+    if embeds.ndim == 3:
+        embeds = embeds.mean(axis=1)
+    embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
+    return embeds.squeeze()
+
+
 _PDQ_HEX_LEN = 64  # 256 bits = 64 hex chars
 
 
@@ -239,6 +259,8 @@ def task_schema() -> TaskSchema:
         default="combined",
     )
 
+    email_desc = TextParameterDescriptor(default="")
+
     return TaskSchema(
         inputs=[
             InputSchema(
@@ -253,6 +275,12 @@ def task_schema() -> TaskSchema:
             ),
         ],
         parameters=[
+            ParameterSchema(
+                key="user_email",
+                label="Your email",
+                subtitle="Required — identifies embedding ownership for cross-agency sharing",
+                value=email_desc,
+            ),
             ParameterSchema(
                 key="model_name",
                 label="CLIP model",
@@ -628,6 +656,57 @@ def _build_metadata(
     return meta
 
 
+def _create_private_embeddings(
+    session: Session,
+    file_paths: list[str],
+    path_to_hash: dict[str, str],
+    ort_session: ort.InferenceSession,
+    processor: AutoImageProcessor,
+    user_email: str,
+    model_name: str = _DEFAULT_MODEL,
+) -> None:
+    """Create anonymized (private) embeddings for all images that don't already have one.
+
+    Runs SAM3 blackout on each image before embedding so raw pixel content
+    is never encoded. Private embeddings are tagged with the '+anonymized'
+    model name suffix and stored alongside plain embeddings in the same table.
+    """
+    anon_model = model_name + _ANONYMIZED_MODEL_SUFFIX
+    already = _paths_already_embedded(session, file_paths, anon_model)
+    new_paths = [p for p in file_paths if p not in already]
+    if not new_paths:
+        logger.info("Private embeddings: all %d paths already indexed", len(file_paths))
+        return
+
+    from image_similarity.anonymizer import anonymize_image
+
+    anon_storage = ImageSimilarityEmbeddingStorage(
+        session, model_name=anon_model, user_email=user_email,
+    )
+    embedded = 0
+    for path in new_paths:
+        try:
+            original = Image.open(path).convert("RGB")
+            sanitized = anonymize_image(original)
+            embedding = _embed_pil_image(ort_session, processor, sanitized)
+            anon_storage.save_embedding(
+                path,
+                embedding.tolist(),
+                content_sha256=path_to_hash.get(path, ""),
+            )
+            embedded += 1
+            session.flush()
+        except Exception as exc:
+            logger.warning("Private embedding failed for %s: %s", path, exc)
+
+    if embedded:
+        anon_storage.commit()
+    logger.info(
+        "Private embeddings: created %d / %d (skipped %d existing)",
+        embedded, len(new_paths), len(already),
+    )
+
+
 def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """Find images from the same series as a query image inside ``input_dir``."""
 
@@ -637,13 +716,15 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
     scoring_mode = parameters.get("scoring_mode", "combined")
+    user_email = parameters.get("user_email", "")
 
     ort_session, processor = _get_onnx_vision_model()
     logger.info(
-        "Scoring: providers=%s model=%s mode=%s",
+        "Scoring: providers=%s model=%s mode=%s email=%s",
         ort_session.get_providers(),
         model_name,
         scoring_mode,
+        user_email or "(not provided)",
     )
 
     file_paths = _collect_image_paths(input_dir)
@@ -655,7 +736,9 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     all_paths, path_to_hash = _hash_paths(all_paths)
 
     with Session(engine) as session:
-        storage = ImageSimilarityEmbeddingStorage(session, model_name=model_name)
+        storage = ImageSimilarityEmbeddingStorage(
+            session, model_name=model_name, user_email=user_email,
+        )
         paths_for_search = _embed_and_store_images(
             session,
             storage,
@@ -663,6 +746,17 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             path_to_hash,
             ort_session,
             processor,
+            model_name,
+        )
+
+        # Dual ingestion: also create private (anonymized) embeddings
+        _create_private_embeddings(
+            session,
+            all_paths,
+            path_to_hash,
+            ort_session,
+            processor,
+            user_email,
             model_name,
         )
 
