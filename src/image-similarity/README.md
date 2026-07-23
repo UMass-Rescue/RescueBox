@@ -35,12 +35,22 @@ rescuebox image_series_similarity /search_series "/path/to/photos|||/path/to/que
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
+| `user_email` | *(empty)* | Contact email — identifies who ingested the embeddings for cross-agency sharing |
 | `model_name` | `google/siglip2-so400m-patch14-384` | Vision encoder |
 | `top_k` | 5 | Results to return (1–20) |
 | `min_similarity` | 0.5 | Match threshold (0–1) |
 | `scoring_mode` | `combined` | `combined`, `semantic`, or `pdq` |
 
 **Scoring modes:** `combined` = CLIP + PDQ (default). `semantic` = CLIP cosine similarity only. `pdq` = PDQ perceptual hash only (near-duplicate detection).
+
+## Privacy-Preserving Dual Ingestion
+
+During ingestion, every image gets **two** embeddings:
+
+1. **Plain** — embedded from raw pixels (used for local queries in this PR).
+2. **Private** — image is first anonymized via SAM3 (ONNX) which blacks out faces, text, logos, and signs before embedding. Stored with model name `+anonymized` suffix.
+
+Private embeddings are designed for safe cross-agency sharing — they never encode raw sensitive visual content. The anonymization uses Facebook's SAM3 segmentation model running via `samexporter` (pure ONNX, no PyTorch dependency).
 
 ## Benchmarks
 
@@ -79,4 +89,4 @@ No ONNX file needed for unit tests. End-to-end requires the model.
 
 ## Dependencies
 
-`transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, `sqlmodel`, `sqlalchemy`, `pgvector`
+`transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, `samexporter`, `huggingface-hub`, `sqlmodel`, `sqlalchemy`, `pgvector`
