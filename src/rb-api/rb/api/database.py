@@ -99,6 +99,19 @@ def create_db_and_tables():
     except Exception:
         pass
 
+    # Migration: add user_email to image_similarity_embeddings if missing
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_similarity_embeddings ADD COLUMN IF NOT EXISTS "
+                    "user_email VARCHAR(256) DEFAULT '' NOT NULL"
+                )
+            )
+    except Exception:
+        pass
     # Image embeddings: plugin default openai/clip-vit-large-patch14-336 → projection_dim 768.
     try:
         from sqlalchemy import text
@@ -212,6 +225,7 @@ class ImageSimilarityEmbedding(SQLModel, table=True):
     )
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
     pdq_hash: str = Field(default="", sa_column=Column(String(64), index=True))
+    user_email: str = Field(default="", sa_column=Column(String(256), index=True))
 
 
 class FaceEmbedding(SQLModel, table=True):
