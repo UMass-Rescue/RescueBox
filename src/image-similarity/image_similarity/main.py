@@ -49,7 +49,7 @@ _DEFAULT_ONNX_PATH = _MODELS_DIR / "siglip2-so400m-patch14-384.onnx"
 # Number of images fed to the ONNX session per GPU kernel launch.
 # Larger values increase GPU utilisation; reduce if VRAM is limited.
 _EMBED_BATCH_SIZE = 32
-_ANONYMIZED_MODEL_SUFFIX = "+anonymized"
+_PRIVACY_PROTOCOL_V1 = "sam3-blackout-v1"
 
 _ORT_SESSION: ort.InferenceSession | None = None
 _PROCESSOR: AutoImageProcessor | None = None
@@ -70,11 +70,11 @@ class Inputs(TypedDict):
 
 
 class Parameters(TypedDict):
+    user_email: str
     model_name: str
     top_k: int
     min_similarity: float
     scoring_mode: str
-    user_email: str
 
 
 # ---------------------------------------------------------------------------
@@ -656,6 +656,22 @@ def _build_metadata(
     return meta
 
 
+def _paths_with_private_embeddings(
+    session: Session, paths: list[str], model_name: str, protocol: str,
+) -> set[str]:
+    """Return paths that already have a private embedding for the given protocol."""
+    if not paths:
+        return set()
+    rows = session.exec(
+        select(ImageSimilarityEmbedding.path).where(
+            ImageSimilarityEmbedding.path.in_(paths),
+            ImageSimilarityEmbedding.model_name == model_name,
+            ImageSimilarityEmbedding.privacy_protocol == protocol,
+        )
+    ).all()
+    return set(rows)
+
+
 def _create_private_embeddings(
     session: Session,
     file_paths: list[str],
@@ -668,11 +684,12 @@ def _create_private_embeddings(
     """Create anonymized (private) embeddings for all images that don't already have one.
 
     Runs SAM3 blackout on each image before embedding so raw pixel content
-    is never encoded. Private embeddings are tagged with the '+anonymized'
-    model name suffix and stored alongside plain embeddings in the same table.
+    is never encoded. Private embeddings use the same model_name as plain ones
+    but are tagged with privacy_protocol='sam3-blackout-v1'.
     """
-    anon_model = model_name + _ANONYMIZED_MODEL_SUFFIX
-    already = _paths_already_embedded(session, file_paths, anon_model)
+    already = _paths_with_private_embeddings(
+        session, file_paths, model_name, _PRIVACY_PROTOCOL_V1,
+    )
     new_paths = [p for p in file_paths if p not in already]
     if not new_paths:
         logger.info("Private embeddings: all %d paths already indexed", len(file_paths))
@@ -681,9 +698,13 @@ def _create_private_embeddings(
     from image_similarity.anonymizer import anonymize_image
 
     anon_storage = ImageSimilarityEmbeddingStorage(
-        session, model_name=anon_model, user_email=user_email,
+        session,
+        model_name=model_name,
+        user_email=user_email,
+        privacy_protocol=_PRIVACY_PROTOCOL_V1,
     )
     embedded = 0
+    failures: list[tuple[str, str]] = []
     for path in new_paths:
         try:
             original = Image.open(path).convert("RGB")
@@ -697,14 +718,20 @@ def _create_private_embeddings(
             embedded += 1
             session.flush()
         except Exception as exc:
+            failures.append((path, str(exc)))
             logger.warning("Private embedding failed for %s: %s", path, exc)
 
     if embedded:
         anon_storage.commit()
     logger.info(
-        "Private embeddings: created %d / %d (skipped %d existing)",
-        embedded, len(new_paths), len(already),
+        "Private embeddings (%s): created %d / %d (skipped %d existing, %d failed)",
+        _PRIVACY_PROTOCOL_V1, embedded, len(new_paths), len(already), len(failures),
     )
+    if embedded == 0 and failures:
+        raise RuntimeError(
+            f"All {len(failures)} private embeddings failed. "
+            f"First error: {failures[0][1]}"
+        )
 
 
 def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
