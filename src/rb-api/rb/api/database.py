@@ -112,6 +112,19 @@ def create_db_and_tables():
             )
     except Exception:
         pass
+    # Migration: add privacy_protocol to image_similarity_embeddings if missing
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_similarity_embeddings ADD COLUMN IF NOT EXISTS "
+                    "privacy_protocol VARCHAR(128) DEFAULT '' NOT NULL"
+                )
+            )
+    except Exception:
+        pass
     # Image embeddings: plugin default openai/clip-vit-large-patch14-336 → projection_dim 768.
     try:
         from sqlalchemy import text
@@ -226,6 +239,7 @@ class ImageSimilarityEmbedding(SQLModel, table=True):
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
     pdq_hash: str = Field(default="", sa_column=Column(String(64), index=True))
     user_email: str = Field(default="", sa_column=Column(String(256), index=True))
+    privacy_protocol: str = Field(default="", sa_column=Column(String(128), index=True))
 
 
 class FaceEmbedding(SQLModel, table=True):
