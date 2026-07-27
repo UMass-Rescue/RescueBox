@@ -49,7 +49,7 @@ _DEFAULT_ONNX_PATH = _MODELS_DIR / "siglip2-so400m-patch14-384.onnx"
 # Number of images fed to the ONNX session per GPU kernel launch.
 # Larger values increase GPU utilisation; reduce if VRAM is limited.
 _EMBED_BATCH_SIZE = 32
-_PRIVACY_PROTOCOL_V1 = "sam3-blackout-v1"
+_PRIVACY_PROTOCOL_V1 = "clipseg-blackout-v1"
 
 _ORT_SESSION: ort.InferenceSession | None = None
 _PROCESSOR: AutoImageProcessor | None = None
@@ -683,9 +683,9 @@ def _create_private_embeddings(
 ) -> None:
     """Create anonymized (private) embeddings for all images that don't already have one.
 
-    Runs SAM3 blackout on each image before embedding so raw pixel content
+    Runs CLIPSeg blackout on each image before embedding so raw pixel content
     is never encoded. Private embeddings use the same model_name as plain ones
-    but are tagged with privacy_protocol='sam3-blackout-v1'.
+    but are tagged with privacy_protocol='clipseg-blackout-v1'.
     """
     already = _paths_with_private_embeddings(
         session, file_paths, model_name, _PRIVACY_PROTOCOL_V1,
