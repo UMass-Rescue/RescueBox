@@ -1,9 +1,9 @@
 """
-Privacy-preserving image anonymization using SAM3 segmentation (ONNX).
+Privacy-preserving image anonymization using CLIPSeg text-prompted segmentation.
 
 Detects specified visual concepts (faces, text, logos, etc.) in an image using
-Facebook's SAM3 model via ONNX Runtime, then blacks out those regions so that
-downstream embeddings never encode sensitive content.
+CLIPSeg, then blacks out those regions so that downstream embeddings never
+encode sensitive content.
 
 Anonymization approach inspired by:
     Bissias, Bagdasarian & Levine, "Contrastive Privacy: A Semantic Approach
@@ -13,114 +13,132 @@ Anonymization approach inspired by:
 from __future__ import annotations
 
 import logging
-from typing import Optional, Sequence
+from dataclasses import dataclass
+from typing import Any, Optional, Sequence
 
 import numpy as np
-from PIL import Image
+import torch
+from PIL import Image, ImageFilter
+from transformers import CLIPSegProcessor, CLIPSegForImageSegmentation
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_TARGET_LABELS: list[str] = ["face", "person", "text", "sign", "logo"]
-DEFAULT_THRESHOLD = 0.6
-_SAM3_HF_REPO = "vietanhdev/segment-anything-3-onnx-models"
-_SAM3_FILES = {
-    "encoder": "sam3_image_encoder.onnx",
-    "decoder": "sam3_decoder.onnx",
-    "language": "sam3_language_encoder.onnx",
-}
-
-_cached_sam3 = None
+DEFAULT_THRESHOLD = 0.3
+DEFAULT_DILATE = 15
+DEFAULT_BLUR = 5
+_CLIPSEG_MODEL_NAME = "CIDAS/clipseg-rd64-refined"
 
 
-def _download_sam3_onnx() -> dict[str, str]:
-    """Download SAM3 ONNX models from HuggingFace Hub, returning cached paths."""
-    from huggingface_hub import hf_hub_download
-
-    paths = {}
-    for key, filename in _SAM3_FILES.items():
-        paths[key] = hf_hub_download(repo_id=_SAM3_HF_REPO, filename=filename)
-        data_file = filename + ".data"
-        try:
-            hf_hub_download(repo_id=_SAM3_HF_REPO, filename=data_file)
-        except Exception:
-            pass  # .data file may not exist for smaller models
-    return paths
+@dataclass
+class _CLIPSeg:
+    model: Any
+    processor: Any
+    device: str
 
 
-def _load_sam3():
-    """Load SAM3 ONNX model and cache for reuse across images."""
-    global _cached_sam3
-    if _cached_sam3 is not None:
-        return _cached_sam3
+_cached_clipseg: Optional[_CLIPSeg] = None
 
-    from samexporter.sam3_onnx import SegmentAnything3ONNX
 
-    logger.info("Downloading/loading SAM3 ONNX models from %s", _SAM3_HF_REPO)
-    paths = _download_sam3_onnx()
+def _get_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
 
-    model = SegmentAnything3ONNX(
-        image_encoder_path=paths["encoder"],
-        decoder_model_path=paths["decoder"],
-        language_encoder_path=paths["language"],
-    )
-    _cached_sam3 = model
-    logger.info("SAM3 ONNX model loaded and cached.")
-    return _cached_sam3
+
+def _load_clipseg(device: Optional[str] = None) -> _CLIPSeg:
+    """Load CLIPSeg model and processor, caching for reuse across images."""
+    global _cached_clipseg
+    if _cached_clipseg is not None:
+        return _cached_clipseg
+
+    device = device or _get_device()
+    logger.info("Loading CLIPSeg model: %s (device=%s)", _CLIPSEG_MODEL_NAME, device)
+
+    processor = CLIPSegProcessor.from_pretrained(_CLIPSEG_MODEL_NAME)
+    model = CLIPSegForImageSegmentation.from_pretrained(_CLIPSEG_MODEL_NAME)
+    model = model.to(device)
+
+    _cached_clipseg = _CLIPSeg(model=model, processor=processor, device=device)
+    return _cached_clipseg
 
 
 def _create_mask(
     image: Image.Image,
     labels: Sequence[str],
     threshold: float = DEFAULT_THRESHOLD,
-) -> np.ndarray:
-    """Segment *labels* in *image* via SAM3 ONNX and return a binary mask.
+    dilate: int = DEFAULT_DILATE,
+    blur: int = DEFAULT_BLUR,
+    device: Optional[str] = None,
+) -> Image.Image:
+    """Segment *labels* in *image* via CLIPSeg and return a grayscale mask.
 
-    Each label is processed independently and the per-label masks are merged
-    (logical OR). Non-zero pixels in the returned mask mark detected regions.
+    All labels are processed in a single forward pass. White pixels in the
+    returned mask mark detected regions.
     """
-    model = _load_sam3()
-    img_array = np.array(image)[:, :, ::-1]  # PIL RGB -> BGR for samexporter
+    clipseg = _load_clipseg(device)
+    clipseg.model.eval()
 
     h, w = image.size[1], image.size[0]
     combined = np.zeros((h, w), dtype=np.uint8)
 
-    for label in labels:
-        try:
-            embedding = model.encode(img_array, text_prompt=label)
-            masks = model.predict_masks(embedding, prompt=[], threshold=threshold)
+    inputs = clipseg.processor(
+        text=list(labels),
+        images=[image] * len(labels),
+        padding=True,
+        return_tensors="pt",
+    )
+    inputs = {k: v.to(clipseg.device) for k, v in inputs.items()}
 
-            for mask in masks:
-                mask_uint8 = (mask.astype(np.uint8)) * 255
-                if mask_uint8.shape != combined.shape:
-                    from PIL import Image as _Img
-                    mask_uint8 = np.array(
-                        _Img.fromarray(mask_uint8).resize((w, h), Image.Resampling.NEAREST)
-                    )
-                combined = np.maximum(combined, mask_uint8)
+    with torch.inference_mode():
+        outputs = clipseg.model(**inputs)
 
-            logger.info("SAM3 '%s': %d region(s) detected", label, len(masks))
-        except Exception as exc:
-            logger.warning("SAM3 segmentation failed for label '%s': %s", label, exc)
+    logits = outputs.logits  # (num_labels, H, W)
+    for i, label in enumerate(labels):
+        mask_logits = logits[i]
+        mask_prob = torch.sigmoid(mask_logits).cpu().numpy()
+        mask_uint8 = (mask_prob * 255).astype(np.uint8)
+        mask_resized = np.array(
+            Image.fromarray(mask_uint8).resize((w, h), Image.Resampling.BILINEAR)
+        )
+        binary = (mask_resized > int(threshold * 255)).astype(np.uint8) * 255
+        combined = np.maximum(combined, binary)
+        detected = np.any(binary > 0)
+        logger.info("CLIPSeg '%s': %s", label, "detected" if detected else "not detected")
 
-    return combined
+    mask = Image.fromarray(combined, mode="L")
+
+    if dilate > 0:
+        for _ in range(dilate):
+            mask = mask.filter(ImageFilter.MaxFilter(3))
+    if blur > 0:
+        mask = mask.filter(ImageFilter.GaussianBlur(radius=blur))
+
+    return mask
 
 
-def _apply_blackout(image: Image.Image, mask: np.ndarray) -> Image.Image:
+def _apply_blackout(image: Image.Image, mask: Image.Image) -> Image.Image:
     """Replace masked regions with black pixels."""
-    result = np.array(image).copy()
-    result[mask > 127] = 0
-    return Image.fromarray(result)
+    if mask.size != image.size:
+        mask = mask.resize(image.size, Image.Resampling.LANCZOS)
+    if mask.mode != "L":
+        mask = mask.convert("L")
+    black = Image.new("RGB", image.size, (0, 0, 0))
+    return Image.composite(black, image, mask)
 
 
 def anonymize_image(
     image: Image.Image,
     target_labels: Sequence[str] = DEFAULT_TARGET_LABELS,
     threshold: float = DEFAULT_THRESHOLD,
+    dilate: int = DEFAULT_DILATE,
+    blur: int = DEFAULT_BLUR,
+    device: Optional[str] = None,
 ) -> Image.Image:
     """Anonymize an image by blacking out regions matching *target_labels*.
 
     Returns a new PIL Image with sensitive regions replaced by black pixels.
     The original image is never modified.
     """
-    mask = _create_mask(image, target_labels, threshold)
+    mask = _create_mask(image, target_labels, threshold, dilate, blur, device)
     return _apply_blackout(image, mask)
