@@ -6,7 +6,7 @@ build --bundles msi
 cargo tauri build 
 
 # full build includes pyinstaller exe
-cargo tauri build --bundles msi --config tauri.fast.conf.json
+cargo tauri build --bundles msi --config tauri.conf.json
 # or
 # skip pyinstaller build and only rebuild src-tauri main.rs
 cargo tauri build --bundles msi --config '{\"build\": {\"beforeBuildCommand\": \"\"}}'
