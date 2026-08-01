@@ -154,7 +154,9 @@ def render_demo_files_explorer(
                 "text-zinc-900 bg-[#a2aaad]/15 border border-[#a2aaad] rounded-lg p-4"
             )
             ui.label(
-                "Create it or set RESCUEBOX_DEMO_FILES_DIR to an existing directory."
+                "Create the folder, clone sample data into it, or set "
+                "RESCUEBOX_DEMO_FILES_DIR to an existing directory "
+                "(dev checkout: src-tauri/demo)."
             ).classes("text-sm text-zinc-600 mt-2")
             return
 
