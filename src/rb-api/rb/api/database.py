@@ -57,6 +57,18 @@ def create_db_and_tables():
             )
     except Exception:
         pass
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_similarity_embeddings ADD COLUMN IF NOT EXISTS "
+                    "pdq_hash VARCHAR(64) DEFAULT '' NOT NULL"
+                )
+            )
+    except Exception:
+        pass
     # BGE-M3 and other modern text encoders use 1024-dim vectors; legacy was 384 (MiniLM / bge-small).
     try:
         from sqlalchemy import text

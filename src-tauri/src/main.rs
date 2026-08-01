@@ -1054,6 +1054,9 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
     set_splash_status(app, "Starting backend server…");
 
     let ollama_models = ollama_models_env_value();
+    let backend_log = logs_dir.join("backend.log");
+    let _ = std::fs::create_dir_all(&logs_dir);
+    let backend_log_env = backend_log.to_str().unwrap();
 
     let mut backend_cmd = app
         .shell()
@@ -1063,7 +1066,8 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
         .env("NO_PROXY", "127.0.0.1,localhost")
         .env("OLLAMA_HOST", "http://127.0.0.1:11434")
         .env("OLLAMA_MODELS", &ollama_models)
-        .env("RESCUEBOX_HOME", resource_path.to_str().unwrap());
+        .env("RESCUEBOX_HOME", resource_path.to_str().unwrap())
+        .env("RESCUEBOX_API_LOG_FILE", backend_log_env);
     backend_cmd = apply_backend_gpu_dll_paths(app, backend_cmd);
 
     let (mut rx_backend, child_backend) = match backend_cmd.spawn()
@@ -1097,6 +1101,7 @@ fn spawn_sidecars(app: &tauri::AppHandle) -> bool {
         .env("RESCUEBOX_SHOW_BROWSER", "false")
         .env("OLLAMA_HOST", "http://127.0.0.1:11434")
         .env("OLLAMA_MODELS", &ollama_models)
+        .env("RESCUEBOX_API_LOG_FILE", backend_log_env)
         .env(
             "RESCUEBOX_HOME",
             resource_path.join("demo").to_str().unwrap(),

@@ -5,6 +5,8 @@ import multiprocessing
 import os
 import sys
 import traceback
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +17,7 @@ from rb.api.facematch_request_context import FacematchRescueboxUserMiddleware
 from rb.api.database import create_db_and_tables
 
 # Standalone API process: file logging before routes import (routes must not reconfigure).
-from rb.api.logging_setup import configure_backend_logging
+from rb.api.logging_setup import configure_backend_logging, backend_log_file_path
 
 configure_backend_logging()
 dll_paths.log_detected_dll_paths()
@@ -27,28 +29,8 @@ logger = logging.getLogger("rb.api.main")
 # app_cache_dir = Path(local_appdata) / "RescueBox"
 # os.environ["XDG_CACHE_HOME"] = str(app_cache_dir / "xdg_cache")
 
-app = FastAPI(
-    title="RescueBoxAPI",
-    summary="RescueBox is a set of tools for file system investigations.",
-    version="3.0.0",
-    debug=True,
-    contact={
-        "name": "Umass Amherst RescuBox Team",
-    },
-)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
-)
-app.add_middleware(FacematchRescueboxUserMiddleware)
-
-
-@app.on_event("startup")
-def on_startup():
+def _run_startup() -> None:
     # Uvicorn's default log_config runs in Config() before the app is imported; it can
     # interact badly with root handlers. We pass log_config=None in uvicorn.run below so
     # dictConfig is skipped; re-apply our file + stderr handlers here anyway.
@@ -62,10 +44,37 @@ def on_startup():
         log.exception("Startup failed while creating database tables: %s", exc)
         raise
     log.info(
-        "RescueBox API ready "
-        "set RESCUEBOX_API_LOG_LEVEL=DEBUG for full trace. "
-        "API_LOG_FILE rb-backend.log"
+        "RescueBox API ready. set RESCUEBOX_API_LOG_LEVEL=DEBUG for full trace. "
+        "Log file: %s",
+        backend_log_file_path(),
     )
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    _run_startup()
+    yield
+
+
+app = FastAPI(
+    title="RescueBoxAPI",
+    summary="RescueBox is a set of tools for file system investigations.",
+    version="3.0.0",
+    debug=True,
+    contact={
+        "name": "Umass Amherst RescuBox Team",
+    },
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+app.add_middleware(FacematchRescueboxUserMiddleware)
 
 
 app.mount(
