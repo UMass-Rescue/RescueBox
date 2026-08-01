@@ -1,14 +1,12 @@
+import logging
 import os
 import sys
-import logging
-import typer
 import threading
 from pathlib import Path
-from typing import List, TypedDict
+from typing import TypedDict
 
+import typer
 from pydantic import DirectoryPath
-
-from rb.lib.ml_service import MLService
 from rb.api.models import (
     BatchFileResponse,
     FileFilterDirectory,
@@ -19,8 +17,10 @@ from rb.api.models import (
     TaskSchema,
     TextResponse,
 )
-from age_and_gender_detection.model import AgeGenderDetector
+from rb.lib.job_progress import report_file_progress
+from rb.lib.ml_service import MLService
 
+from age_and_gender_detection.model import AgeGenderDetector, get_images_from_dir
 
 APP_NAME = "age-gender"
 
@@ -32,7 +32,7 @@ class AgeGenderImageDirectory(FileFilterDirectory):
     """Directory must exist, be non-empty, and contain at least one allowed image extension."""
 
     path: DirectoryPath
-    file_extensions: List[str] = list(IMAGE_EXTENSIONS)
+    file_extensions: list[str] = list(IMAGE_EXTENSIONS)
 
 
 logging.basicConfig(
@@ -98,7 +98,22 @@ def predict(inputs: Inputs) -> ResponseBody:
     logger.info(f"Input path: {input_path}")
 
     with _PREDICT_LOCK:
-        predictions_by_image = model.predict_age_and_gender_on_dir(input_path)
+        image_files = get_images_from_dir(input_path, model.image_file_extensions)
+        total = len(image_files)
+        processed = 0
+        last_reported = 0
+        predictions_by_image: dict[str, list] = {}
+        for image_file in image_files:
+            try:
+                pred = model.predict_age_and_gender(str(image_file))
+                predictions_by_image[str(image_file)] = pred
+            finally:
+                processed += 1
+                last_reported = report_file_progress(
+                    None, processed, total, last_reported
+                )
+        if total > 0:
+            report_file_progress(None, total, total, last_reported)
     logger.info(f"Response: {predictions_by_image}")
 
     file_responses: list[FileResponse] = []

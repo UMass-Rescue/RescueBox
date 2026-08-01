@@ -87,6 +87,13 @@ async def render_job_details_panel(
                             ui.label(
                                 "No error message was recorded for this run."
                             ).classes("text-sm text-zinc-600 italic")
+                elif _status == "Running" and _status_text:
+                    with ui.column().classes("gap-2 w-full min-w-0"):
+                        ui.label("Progress").classes("font-semibold text-zinc-800")
+                        ui.label(_status_text).classes(
+                            "text-sm text-zinc-900 rounded p-3 "
+                            "bg-rose-50/80 border border-rose-100"
+                        )
 
                 # Request body (read-only form)
                 if task_schema_dict:
@@ -103,6 +110,4 @@ async def render_job_details_panel(
                         logger.error(
                             "Error parsing schema in details panel: %s", str(e)
                         )
-                        ui.label(f"Error parsing schema: {str(e)}").classes(
-                            "text-red-600"
-                        )
+                        ui.label(f"Error parsing schema: {e!s}").classes("text-red-600")

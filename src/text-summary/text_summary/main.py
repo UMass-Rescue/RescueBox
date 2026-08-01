@@ -1,13 +1,12 @@
 import json
 import logging
 import os
-from pathlib import Path
-from typing import List, TypedDict
 import threading
+from pathlib import Path
+from typing import TypedDict
 
 import typer
 from pydantic import DirectoryPath
-from rb.lib.ml_service import MLService
 from rb.api.models import (
     DirectoryInput,
     EnumParameterDescriptor,
@@ -20,6 +19,8 @@ from rb.api.models import (
     TaskSchema,
     TextResponse,
 )
+from rb.lib.ml_service import MLService
+
 from text_summary.model import SUPPORTED_MODELS
 from text_summary.summarize import process_files
 from text_summary.text_parser import PARSERS
@@ -37,7 +38,7 @@ class TextSummaryInputDirectory(FileFilterDirectory):
     """Directory must exist, be non-empty, and contain at least one supported input file."""
 
     path: DirectoryPath
-    file_extensions: List[str] = list(TEXT_SUMMARY_EXTENSIONS)
+    file_extensions: list[str] = list(TEXT_SUMMARY_EXTENSIONS)
 
 
 class Inputs(TypedDict):

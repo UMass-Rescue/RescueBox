@@ -15,13 +15,13 @@ Key Features:
 
 import json
 import logging
-from typing import List, Any, Optional, Literal
+from typing import Any, Literal
 
 from nicegui import app
 from pydantic import BaseModel, Field
 
-from frontend.chatbot.pipeline_context import get_pipeline_output_path
 from frontend.chatbot.exceptions import CHATBOT_ERRORS
+from frontend.chatbot.pipeline_context import get_pipeline_output_path
 from frontend.utils import get_active_case
 
 logger = logging.getLogger(__name__)
@@ -182,7 +182,7 @@ class RescueBoxToolCall(BaseModel):
 class ToolCallList(BaseModel):
     """Wrapper for a list of legacy tool calls."""
 
-    calls: List[RescueBoxToolCall] = Field(
+    calls: list[RescueBoxToolCall] = Field(
         ..., description="List of tool calls (legacy format)"
     )
 
@@ -234,8 +234,7 @@ def remove_tool_schema(tool_name: str) -> None:
     Args:
         tool_name: The tool endpoint name to remove
     """
-    if tool_name in SCHEMA_MAP:
-        del SCHEMA_MAP[tool_name]
+    SCHEMA_MAP.pop(tool_name, None)
 
 
 def generate_tool_definitions() -> list[dict]:
@@ -822,7 +821,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     return messages
 
 
-def parse_tool_calls_response(response_text: str) -> Optional[list[dict[str, Any]]]:
+def parse_tool_calls_response(response_text: str) -> list[dict[str, Any]] | None:
     """
     Parse the Granite model's tool calls response into a list of tool call dictionaries.
 

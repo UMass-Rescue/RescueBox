@@ -4,6 +4,7 @@ import logging
 
 from frontend.chatbot.config import ToolRegistry
 from frontend.components.chat import show_help_dialog
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.pages.chatbot.form_submit_handler import FormSubmitHandler
 from frontend.pages.chatbot.state import ChatbotStateManager, ChatMessage
 from frontend.pages.chatbot.ui_flow import (
@@ -13,7 +14,6 @@ from frontend.pages.chatbot.ui_flow import (
     show_tool_selection,
 )
 from frontend.utils import notify_info
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ class ResultProcessor:
             update_status_callback("Ready", scroll_to_form=False)
         except UI_RENDER_ERRORS as e:
             logger.error("Error processing result: %s", str(e))
-            show_error_callback(f"Error processing response: {str(e)}")
+            show_error_callback(f"Error processing response: {e!s}")
 
     def _create_form_submit_handler(self, container, core):
         async def form_submit_handler(

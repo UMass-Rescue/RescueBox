@@ -21,11 +21,12 @@ to interact with the UI, hence they are marked as integration tests.
 """
 
 from pathlib import Path
-from nicegui.testing import User
 from unittest.mock import patch
 
-from frontend.components.results import ResultsPreview
 import pytest
+from nicegui.testing import User
+
+from frontend.components.results import ResultsPreview
 
 # Test constants
 TEST_FILE_PATH = "/path/to/image1.jpg"
@@ -122,7 +123,7 @@ class TestResultsPreview:
         explore the contents of processed directories.
         """
         from nicegui import ui
-        from rb.api.models import ResponseBody, DirectoryResponse
+        from rb.api.models import DirectoryResponse, ResponseBody
 
         @ui.page("/test")
         def test_page():
@@ -179,10 +180,10 @@ class TestResultsPreview:
         """
         from nicegui import ui
         from rb.api.models import (
-            ResponseBody,
             BatchFileResponse,
             FileResponse,
             FileType,
+            ResponseBody,
         )
 
         @ui.page("/test")
@@ -228,7 +229,7 @@ class TestResultsPreview:
         other markdown elements for rich text display.
         """
         from nicegui import ui
-        from rb.api.models import ResponseBody, MarkdownResponse
+        from rb.api.models import MarkdownResponse, ResponseBody
 
         @ui.page("/test")
         def test_page():
@@ -252,7 +253,7 @@ class TestResultsPreview:
         and compare multiple text outputs from batch processing.
         """
         from nicegui import ui
-        from rb.api.models import ResponseBody, BatchTextResponse, TextResponse
+        from rb.api.models import BatchTextResponse, ResponseBody, TextResponse
 
         @ui.page("/test")
         def test_page():
@@ -291,9 +292,9 @@ class TestResultsPreview:
         """
         from nicegui import ui
         from rb.api.models import (
-            ResponseBody,
             BatchDirectoryResponse,
             DirectoryResponse,
+            ResponseBody,
         )
 
         @ui.page("/test")

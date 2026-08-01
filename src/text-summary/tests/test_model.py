@@ -1,12 +1,13 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+from ollama._types import ListResponse
 from text_summary.model import (
-    extract_response_after_think,
     ensure_model_exists,
+    extract_response_after_think,
     summarize,
 )
 from text_summary.summary_prompt import PROMPT
-from ollama._types import ListResponse
 
 
 def test_extract_response_after_think():

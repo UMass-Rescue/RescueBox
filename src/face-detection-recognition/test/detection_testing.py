@@ -1,7 +1,8 @@
+import os
+
 from face_detection_recognition.face_representation import (
     detect_faces_and_get_embeddings,
 )
-import os
 
 path = "/Users/davidthibodeau/Desktop/CS596E/group_proj/face-detection-recognition/face_detection_recognition/models/yolov8-face-detection.onnx"
 print(f"Model exists: {os.path.exists(path)}")

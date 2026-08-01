@@ -4,7 +4,7 @@ import json
 import logging
 import sqlite3
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from frontend.config import DATA_DIR
 from frontend.database.db_exceptions import DB_ERRORS
@@ -63,7 +63,7 @@ def init_db():
         logger.error("Failed to initialize cache database: %s", e, exc_info=True)
 
 
-async def cache_models(models_data: List[Dict[str, Any]]):
+async def cache_models(models_data: list[dict[str, Any]]):
     """Caches a list of models into the database, replacing any existing data."""
     logger.debug("Caching %d models to the database.", len(models_data))
     with _get_db_connection() as conn:
@@ -83,7 +83,7 @@ async def cache_models(models_data: List[Dict[str, Any]]):
     logger.debug("Models cached successfully.")
 
 
-async def get_cached_models() -> List[Dict[str, Any]]:
+async def get_cached_models() -> list[dict[str, Any]]:
     """Retrieves all cached models from the database."""
     with _get_db_connection() as conn:
         cursor = conn.cursor()
@@ -107,7 +107,7 @@ async def get_cached_models() -> List[Dict[str, Any]]:
         return models
 
 
-async def get_cached_model_by_uid(uid: str) -> Optional[Dict[str, Any]]:
+async def get_cached_model_by_uid(uid: str) -> dict[str, Any] | None:
     """Retrieves a single cached model from the database by its UID."""
     with _get_db_connection() as conn:
         cursor = conn.cursor()
@@ -124,8 +124,8 @@ async def get_cached_model_by_uid(uid: str) -> Optional[Dict[str, Any]]:
 
 __all__ = [
     "CACHE_DB_PATH",
-    "init_db",
     "cache_models",
-    "get_cached_models",
     "get_cached_model_by_uid",
+    "get_cached_models",
+    "init_db",
 ]

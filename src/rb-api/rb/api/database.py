@@ -1,7 +1,8 @@
+import os
+
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import String, Text
-from sqlmodel import Field, SQLModel, create_engine, Column, Index
-import os
+from sqlmodel import Column, Field, Index, SQLModel, create_engine
 
 ## Create the data model and connect to the DB
 
@@ -53,6 +54,18 @@ def create_db_and_tables():
                 text(
                     "ALTER TABLE image_embeddings ADD COLUMN IF NOT EXISTS "
                     "content_sha256 VARCHAR(64) DEFAULT '' NOT NULL"
+                )
+            )
+    except Exception:
+        pass
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_similarity_embeddings ADD COLUMN IF NOT EXISTS "
+                    "pdq_hash VARCHAR(64) DEFAULT '' NOT NULL"
                 )
             )
     except Exception:
@@ -258,4 +271,4 @@ try:
     )
     face_index.create(engine)
 except Exception:
-    print("Index probably already exists")
+    print("Index already exists")

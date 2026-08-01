@@ -8,14 +8,14 @@ Requires ``case-utils`` (``case_validate`` on PATH) for full SHACL checks — in
 from __future__ import annotations
 
 import json
-from typing import Any, List, Tuple
+from typing import Any
 
 from case_uco import CASEGraph
 
 from case_export.fragment import KB_PREFIX
 
 
-def validate_fragment_jsonld(doc: dict[str, Any]) -> Tuple[bool, List[str]]:
+def validate_fragment_jsonld(doc: dict[str, Any]) -> tuple[bool, list[str]]:
     """
     Validate ``doc`` using :meth:`CASEGraph.validate` (SHACL via ``case_validate``).
 

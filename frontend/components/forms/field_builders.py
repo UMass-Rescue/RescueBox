@@ -1,29 +1,32 @@
 import logging
-from typing import Dict, Optional, Any, Union
 from pathlib import Path
-from nicegui import ui
+from typing import Any
 
+from nicegui import ui
 from rb.api.models import (
+    DirectoryInput,
+    EnumParameterDescriptor,
+    FileInput,
+    FloatParameterDescriptor,
     InputSchema,
     InputType,
-    DirectoryInput,
-    FileInput,
+    IntParameterDescriptor,
     ParameterSchema,
     RangedFloatParameterDescriptor,
     RangedIntParameterDescriptor,
-    FloatParameterDescriptor,
-    IntParameterDescriptor,
-    EnumParameterDescriptor,
     TextParameterDescriptor,
 )
-from frontend.design_tokens import Design
+
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.design_tokens import Design
 from frontend.utils import (
     browse_directory_simple,
     browse_file_simple,
     get_active_case,
     maybe_autofill_output_dir_field,
     maybe_autofill_ufdr_mount_name_field,
+)
+from frontend.utils import (
     select as safe_select,
 )
 
@@ -32,10 +35,10 @@ logger = logging.getLogger(__name__)
 
 async def create_input_field(
     input_schema: InputSchema,
-    form_widgets: Dict,
-    initial_values: Dict,
-    autofill_output_key: Optional[str] = None,
-    autofill_ufdr_mount_key: Optional[str] = None,
+    form_widgets: dict,
+    initial_values: dict,
+    autofill_output_key: str | None = None,
+    autofill_ufdr_mount_key: str | None = None,
 ) -> None:
     field_id = input_schema.key
     label = input_schema.label
@@ -80,7 +83,7 @@ async def create_input_field(
 
 
 async def create_parameter_field(
-    param_schema: Union[ParameterSchema, Dict], form_widgets: Dict, initial_values: Dict
+    param_schema: ParameterSchema | dict, form_widgets: dict, initial_values: dict
 ) -> None:
     if isinstance(param_schema, dict):
         param_id = param_schema.get("key", "")
@@ -223,9 +226,6 @@ def create_directory_input(
                         "text-red-500", remove="text-green-500 text-zinc-400"
                     )
 
-            dir_input.on("change", validate)
-            if dir_input.value:
-                validate()
             ui.button(
                 "Browse",
                 on_click=lambda: browse_directory_simple(

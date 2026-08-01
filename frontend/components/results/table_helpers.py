@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import os
-from typing import Dict, List, Optional, Tuple
 
 from nicegui import ui
 from PIL import Image, ImageDraw
@@ -19,8 +18,8 @@ _MAX_PREVIEW_SIDE = 1600
 
 
 def create_metadata_table_columns(
-    base_columns: List[Dict], metadata_keys: List[str]
-) -> List[Dict]:
+    base_columns: list[dict], metadata_keys: list[str]
+) -> list[dict]:
     columns = base_columns.copy()
     for key in metadata_keys:
         columns.append(
@@ -35,7 +34,7 @@ def create_metadata_table_columns(
     return columns
 
 
-def resolve_table_row_index(e, rows: List[Dict]) -> Optional[int]:
+def resolve_table_row_index(e, rows: list[dict]) -> int | None:
     try:
         candidate = e.args[1] if len(e.args) > 1 else None
         if isinstance(candidate, int):
@@ -59,11 +58,11 @@ def resolve_table_row_index(e, rows: List[Dict]) -> Optional[int]:
     return None
 
 
-def resolve_row_idx(e, rows: List[Dict]) -> Optional[int]:
+def resolve_row_idx(e, rows: list[dict]) -> int | None:
     return resolve_table_row_index(e, rows)
 
 
-def parse_int_bbox(value: object) -> Optional[Tuple[int, int, int, int]]:
+def parse_int_bbox(value: object) -> tuple[int, int, int, int] | None:
     if value is None:
         return None
     if isinstance(value, (list, tuple)) and len(value) == 4:
@@ -88,7 +87,7 @@ def parse_int_bbox(value: object) -> Optional[Tuple[int, int, int, int]]:
 
 
 def _pil_image_with_bbox_drawn(
-    source: Image.Image, bbox: Tuple[int, int, int, int]
+    source: Image.Image, bbox: tuple[int, int, int, int]
 ) -> Image.Image:
     x1, y1, x2, y2 = bbox
     im = source.convert("RGB")
@@ -122,7 +121,7 @@ def _pil_image_with_bbox_drawn(
 
 
 def open_image_bbox_preview_dialog(
-    abs_path: str, bbox: Tuple[int, int, int, int], row: Dict
+    abs_path: str, bbox: tuple[int, int, int, int], row: dict
 ) -> None:
     try:
         with Image.open(abs_path) as im0:
@@ -158,7 +157,7 @@ def open_image_bbox_preview_dialog(
     dialog.open()
 
 
-def create_bbox_preview_row_click_handler(rows: List[Dict], open_file_func):
+def create_bbox_preview_row_click_handler(rows: list[dict], open_file_func):
     def on_row_click(e):
         idx = resolve_table_row_index(e, rows)
         if idx is None:
@@ -215,7 +214,7 @@ def create_sortable_table(
         return table
 
 
-def path_title_subtitle_columns() -> List[Dict]:
+def path_title_subtitle_columns() -> list[dict]:
     """Quasar table columns for path / title / subtitle rows."""
     return [
         {
@@ -242,7 +241,7 @@ def path_title_subtitle_columns() -> List[Dict]:
     ]
 
 
-def filename_sortable_columns() -> List[Dict]:
+def filename_sortable_columns() -> list[dict]:
     return [
         {
             "name": "filename",
@@ -255,8 +254,8 @@ def filename_sortable_columns() -> List[Dict]:
 
 
 def file_search_result_row(
-    fp: str, content: str, *, image_path: Optional[str] = None
-) -> Dict:
+    fp: str, content: str, *, image_path: str | None = None
+) -> dict:
     row = {
         "path": fp,
         "filename": os.path.basename(fp),
@@ -272,8 +271,8 @@ def render_batch_path_table(
     container,
     *,
     title: str,
-    cols: List[Dict],
-    rows: List[Dict],
+    cols: list[dict],
+    rows: list[dict],
     row_key: str,
     on_row_click,
     tip_message: str,

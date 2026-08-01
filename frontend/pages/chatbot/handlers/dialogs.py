@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 from nicegui import ui
 
 from frontend.design_tokens import Design
 
 
-async def show_case_notes_dialog() -> Optional[str]:
+async def show_case_notes_dialog() -> str | None:
     loop = asyncio.get_running_loop()
     future = loop.create_future()
     with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_NARROW):

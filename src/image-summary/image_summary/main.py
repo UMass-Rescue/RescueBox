@@ -1,17 +1,12 @@
-from typing import Any, List, Mapping, TypedDict, cast
-from pathlib import Path
-import logging
 import json
-import typer
+import logging
 import os
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any, TypedDict, cast
 
+import typer
 from pydantic import DirectoryPath
-from rb.lib.ml_service import MLService
-from rb.lib.utils import (
-    extract_filter_id,
-    load_saved_filter,
-    collect_inline_file_filter,
-)
 from rb.api.models import (
     DirectoryInput,
     EnumParameterDescriptor,
@@ -24,11 +19,17 @@ from rb.api.models import (
     TaskSchema,
     TextResponse,
 )
+from rb.lib.ml_service import MLService
+from rb.lib.utils import (
+    collect_inline_file_filter,
+    extract_filter_id,
+    load_saved_filter,
+)
 
 from image_summary.model import SUPPORTED_MODELS
 from image_summary.process import (
-    ImageSummaryFilePair,
     SUPPORTED_IMAGE_EXTENSIONS,
+    ImageSummaryFilePair,
     process_images,
 )
 
@@ -42,7 +43,7 @@ class ImageSummaryInputDirectory(FileFilterDirectory):
     """``input_dir`` must contain at least one supported raster image (see ``process``)."""
 
     path: DirectoryPath
-    file_extensions: List[str] = list(SUPPORTED_IMAGE_EXTENSIONS)
+    file_extensions: list[str] = list(SUPPORTED_IMAGE_EXTENSIONS)
 
 
 class Inputs(TypedDict):
@@ -161,7 +162,7 @@ def summarize_images(
     # If any output patterns provided, filter pairs by summary text content.
     # Preserve processing order (same as pipeline / CLIP order when file_filter is set).
     if output_patterns:
-        matched_pairs: List[ImageSummaryFilePair] = []
+        matched_pairs: list[ImageSummaryFilePair] = []
         for pair in file_pairs:
             out_file = pair["output_path"]
             try:

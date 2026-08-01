@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from nicegui import ui
 
 from frontend.chatbot.config import ToolRegistry
 from frontend.components.chat import rerun_tool_call
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.design_tokens import Design
 from frontend.pages.chatbot.state import ChatMessage
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def render_message(container: ui.element, message: ChatMessage):
 
 def _history_record_to_chat_message(msg: Any) -> ChatMessage:
     """Map DB ``ChatMessageRecord`` to in-memory :class:`ChatMessage` (preserve type & payload)."""
-    meta: Dict[str, Any] = {}
+    meta: dict[str, Any] = {}
     raw = getattr(msg, "metadata", None)
     if isinstance(raw, dict):
         meta.update(raw)
@@ -101,50 +101,47 @@ def render_merged_job_tool_results(
 
     Uses ``started_msg`` for inputs/parameters (only the start row stores the snapshot).
     """
-    with container:
-        with ui.card().classes(
-            "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
-            "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
+    with container, ui.card().classes(
+        "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
+        "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
+    ):
+        ui.label("Assistant").classes(
+            "text-sm font-semibold text-slate-500 uppercase tracking-wider"
+        )
+        ui.label((getattr(started_msg, "content", "") or "").strip()).classes(
+            "text-base text-slate-800 whitespace-pre-wrap break-words font-medium"
+        )
+        ui.label((getattr(completed_msg, "content", "") or "").strip()).classes(
+            "text-base text-emerald-700 font-semibold whitespace-pre-wrap break-words"
+        )
+        ep = getattr(started_msg, "tool_call_endpoint", None)
+        if ep:
+            try:
+                dn = ToolRegistry.display_name_for_endpoint(ep)
+            except UI_RENDER_ERRORS:
+                dn = ep
+            ui.label(f"Plugin: {dn}").classes("text-sm text-slate-500")
+        args = getattr(started_msg, "tool_call_arguments", None)
+        if isinstance(args, dict) and (
+            args.get("inputs") is not None or args.get("parameters") is not None
         ):
-            ui.label("Assistant").classes(
-                "text-sm font-semibold text-slate-500 uppercase tracking-wider"
-            )
-            ui.label((getattr(started_msg, "content", "") or "").strip()).classes(
-                "text-base text-slate-800 whitespace-pre-wrap break-words font-medium"
-            )
-            ui.label((getattr(completed_msg, "content", "") or "").strip()).classes(
-                "text-base text-emerald-700 font-semibold whitespace-pre-wrap break-words"
-            )
-            ep = getattr(started_msg, "tool_call_endpoint", None)
-            if ep:
-                try:
-                    dn = ToolRegistry.display_name_for_endpoint(ep)
-                except UI_RENDER_ERRORS:
-                    dn = ep
-                ui.label(f"Plugin: {dn}").classes("text-sm text-slate-500")
-            args = getattr(started_msg, "tool_call_arguments", None)
-            if isinstance(args, dict) and (
-                args.get("inputs") is not None or args.get("parameters") is not None
-            ):
-                with ui.expansion("Job inputs & parameters", value=False).classes(
-                    "w-full"
-                ):
-                    ui.code(json.dumps(args, indent=2, default=str)).classes(
-                        "text-xs w-full whitespace-pre-wrap break-all"
-                    )
-            meta = getattr(started_msg, "metadata", None) or {}
-            jid = meta.get("job_id") if isinstance(meta, dict) else None
-            if jid:
+            with ui.expansion("Job inputs & parameters", value=False).classes("w-full"):
+                ui.code(json.dumps(args, indent=2, default=str)).classes(
+                    "text-xs w-full whitespace-pre-wrap break-all"
+                )
+        meta = getattr(started_msg, "metadata", None) or {}
+        jid = meta.get("job_id") if isinstance(meta, dict) else None
+        if jid:
 
-                def _open_job() -> None:
-                    ui.navigate.to(f"/jobs/{jid}")
+            def _open_job() -> None:
+                ui.navigate.to(f"/jobs/{jid}")
 
-                ui.button(
-                    "Open job details",
-                    color=None,
-                    on_click=_open_job,
-                ).classes(f"mt-1 {Design.BTN_MEDIUM_GRAY}")
-            _append_rerun_job_button(started_msg)
+            ui.button(
+                "Open job details",
+                color=None,
+                on_click=_open_job,
+            ).classes(f"mt-1 {Design.BTN_MEDIUM_GRAY}")
+        _append_rerun_job_button(started_msg)
 
 
 def _append_rerun_job_button(msg: Any) -> None:
@@ -173,72 +170,69 @@ def render_persisted_history_message(container: ui.element, msg: Any) -> None:
     content = (getattr(msg, "content", None) or "").strip()
 
     if mt == "tool_result":
-        with container:
-            with ui.card().classes(
-                "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
-                "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
+        with container, ui.card().classes(
+            "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
+            "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
+        ):
+            ui.label("Assistant").classes(
+                "text-sm font-semibold text-slate-500 uppercase tracking-wider"
+            )
+            ui.label(content).classes(
+                "text-base text-slate-800 whitespace-pre-wrap break-words font-medium"
+            )
+            ep = getattr(msg, "tool_call_endpoint", None)
+            if ep:
+                try:
+                    dn = ToolRegistry.display_name_for_endpoint(ep)
+                except UI_RENDER_ERRORS:
+                    dn = ep
+                ui.label(f"Plugin: {dn}").classes("text-sm text-slate-500")
+            args = getattr(msg, "tool_call_arguments", None)
+            if isinstance(args, dict) and (
+                args.get("inputs") is not None or args.get("parameters") is not None
             ):
-                ui.label("Assistant").classes(
-                    "text-sm font-semibold text-slate-500 uppercase tracking-wider"
-                )
-                ui.label(content).classes(
-                    "text-base text-slate-800 whitespace-pre-wrap break-words font-medium"
-                )
-                ep = getattr(msg, "tool_call_endpoint", None)
-                if ep:
-                    try:
-                        dn = ToolRegistry.display_name_for_endpoint(ep)
-                    except UI_RENDER_ERRORS:
-                        dn = ep
-                    ui.label(f"Plugin: {dn}").classes("text-sm text-slate-500")
-                args = getattr(msg, "tool_call_arguments", None)
-                if isinstance(args, dict) and (
-                    args.get("inputs") is not None or args.get("parameters") is not None
+                with ui.expansion("Job inputs & parameters", value=False).classes(
+                    "w-full"
                 ):
-                    with ui.expansion("Job inputs & parameters", value=False).classes(
-                        "w-full"
-                    ):
-                        ui.code(json.dumps(args, indent=2, default=str)).classes(
-                            "text-xs w-full whitespace-pre-wrap break-all"
-                        )
-                meta = getattr(msg, "metadata", None) or {}
-                if isinstance(meta, dict) and meta.get("job_id"):
-                    jid = meta["job_id"]
+                    ui.code(json.dumps(args, indent=2, default=str)).classes(
+                        "text-xs w-full whitespace-pre-wrap break-all"
+                    )
+            meta = getattr(msg, "metadata", None) or {}
+            if isinstance(meta, dict) and meta.get("job_id"):
+                jid = meta["job_id"]
 
-                    def _open_job() -> None:
-                        ui.navigate.to(f"/jobs/{jid}")
+                def _open_job() -> None:
+                    ui.navigate.to(f"/jobs/{jid}")
 
-                    ui.button(
-                        "Open job details",
-                        color=None,
-                        on_click=_open_job,
-                    ).classes(f"mt-1 {Design.BTN_MEDIUM_GRAY}")
-                _append_rerun_job_button(msg)
+                ui.button(
+                    "Open job details",
+                    color=None,
+                    on_click=_open_job,
+                ).classes(f"mt-1 {Design.BTN_MEDIUM_GRAY}")
+            _append_rerun_job_button(msg)
 
     if mt == "tool_call":
-        with container:
-            with ui.card().classes(
-                "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 "
-                "bg-amber-50/80 space-y-2 border-l-4 border-l-[#881c1c]"
-            ):
-                ui.label("Tool call").classes(
-                    "text-sm font-semibold text-[#881c1c] uppercase tracking-wider"
+        with container, ui.card().classes(
+            "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 "
+            "bg-amber-50/80 space-y-2 border-l-4 border-l-[#881c1c]"
+        ):
+            ui.label("Tool call").classes(
+                "text-sm font-semibold text-[#881c1c] uppercase tracking-wider"
+            )
+            tcalls = getattr(msg, "tool_calls", None) or []
+            if tcalls:
+                ui.code(json.dumps(tcalls, indent=2, default=str)).classes(
+                    "text-xs w-full whitespace-pre-wrap"
                 )
-                tcalls = getattr(msg, "tool_calls", None) or []
-                if tcalls:
-                    ui.code(json.dumps(tcalls, indent=2, default=str)).classes(
-                        "text-xs w-full whitespace-pre-wrap"
-                    )
-                elif content:
-                    ui.label(content).classes("text-base text-slate-800")
-                _append_rerun_job_button(msg)
+            elif content:
+                ui.label(content).classes("text-base text-slate-800")
+            _append_rerun_job_button(msg)
     if mt == "error":
-        with container:
-            with ui.card().classes(
-                "w-full max-w-3xl border border-red-200 bg-red-50 p-4 space-y-1"
-            ):
-                ui.label("Error").classes("text-sm font-semibold text-red-800")
-                ui.label(content).classes("text-base text-red-900 whitespace-pre-wrap")
+        with container, ui.card().classes(
+            "w-full max-w-3xl border border-red-200 bg-red-50 p-4 space-y-1"
+        ):
+            ui.label("Error").classes("text-sm font-semibold text-red-800")
+            ui.label(content).classes("text-base text-red-900 whitespace-pre-wrap")
         return
 
     with container:

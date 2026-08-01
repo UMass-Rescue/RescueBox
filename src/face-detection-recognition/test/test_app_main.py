@@ -1,19 +1,20 @@
 import os
-import uuid
 import unittest
+import uuid
 from pathlib import Path
 
 import onnxruntime
 import pytest
-
 from face_detection_recognition.database_functions import (
     _face_tables_ready_marker,
     get_vector_database,
 )
 from face_detection_recognition.face_match_server import (
     APP_NAME,
-    app as cli_app,
     server,
+)
+from face_detection_recognition.face_match_server import (
+    app as cli_app,
 )
 
 DB = None  # initialized in TestFaceMatch.setup_class when Postgres is up
@@ -59,9 +60,8 @@ TEST_DETECTOR_BACKEND = "retinaface"  # Default detector
 def _postgres_pgvector_available() -> bool:
     """True when RescueBox Postgres (pgvector) accepts connections."""
     try:
-        from sqlalchemy import text
-
         from rb.api.database import engine
+        from sqlalchemy import text
 
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -123,7 +123,7 @@ class TestFaceMatch(RBAppTest):
                     DB.client.delete_collection(cls.full_collection_name)
                     print(f"Deleted test collection: {cls.full_collection_name}")
         except Exception as e:
-            print(f"Error during cleanup: {str(e)}")
+            print(f"Error during cleanup: {e!s}")
 
     def setup_method(self):
         """Set up before each test method"""
@@ -136,14 +136,14 @@ class TestFaceMatch(RBAppTest):
     def get_all_ml_services(self):
         """Return all ML services for testing"""
         from face_detection_recognition.face_match_server import (
-            # get_ingest_query_image_task_schema,
-            get_ingest_bulk_query_image_task_schema,
-            # get_ingest_bulk_test_query_image_task_schema,
-            get_ingest_images_task_schema,
             delete_collection_task_schema,
             # list_collections_task_schema,
             # get_multi_pipeline_face_find_bulk_task_schema,
             # get_multi_pipeline_ingest_images_task_schema,
+            # get_ingest_query_image_task_schema,
+            get_ingest_bulk_query_image_task_schema,
+            # get_ingest_bulk_test_query_image_task_schema,
+            get_ingest_images_task_schema,
         )
 
         return [
@@ -245,10 +245,10 @@ class TestFaceMatch(RBAppTest):
 
         # Check task schemas
         from face_detection_recognition.face_match_server import (
-            get_ingest_query_image_task_schema,
+            delete_collection_task_schema,
             get_ingest_bulk_query_image_task_schema,
             get_ingest_images_task_schema,
-            delete_collection_task_schema,
+            get_ingest_query_image_task_schema,
             get_multi_pipeline_face_find_bulk_task_schema,
             get_multi_pipeline_ingest_images_task_schema,
             list_collections_task_schema,
@@ -501,18 +501,18 @@ class TestFaceMatch(RBAppTest):
     def test_10_cli_parsers(self):
         """Test the CLI parser functions"""
         from face_detection_recognition.face_match_server import (
+            bulk_upload_cli_parser,
+            bulk_upload_param_parser,
+            delete_collection_parameter_parser,
             face_find_cli_parser,
             face_find_param_parser,
             find_face_bulk_cli_parser,
             find_face_bulk_param_parser,
-            bulk_upload_cli_parser,
-            bulk_upload_param_parser,
-            delete_collection_parameter_parser,
             list_collections_cli_parser,
         )
 
         # Test face_find_cli_parser
-        input_str = f"{str(TEST_QUERY_IMAGE)}"
+        input_str = f"{TEST_QUERY_IMAGE!s}"
         parsed_input = face_find_cli_parser(input_str)
         assert "image_paths" in parsed_input
         assert len(parsed_input["image_paths"].files) == 1

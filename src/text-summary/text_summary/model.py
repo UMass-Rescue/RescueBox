@@ -1,4 +1,6 @@
 import ollama
+import rb.lib.ollama  # noqa: F401
+
 from text_summary.summary_prompt import PROMPT
 
 SUPPORTED_MODELS = [

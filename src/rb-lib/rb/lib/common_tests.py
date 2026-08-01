@@ -1,12 +1,12 @@
-from abc import ABC, abstractmethod
-import json
 import ast
+import json
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Tuple
-from rb.api.models import AppMetadata, TaskSchema
-from typer.testing import CliRunner
+
 from fastapi.testclient import TestClient
 from rb.api.main import app as api_app
+from rb.api.models import AppMetadata, TaskSchema
+from typer.testing import CliRunner
 
 
 def read_app_info_markdown(info_path: Path) -> str:
@@ -33,18 +33,16 @@ class RBAppTest(ABC):
         """
         Return the app metadata.
         """
-        pass
 
     @abstractmethod
-    def get_all_ml_services(self) -> List[Tuple[int, str, str, TaskSchema]]:
+    def get_all_ml_services(self) -> list[tuple[int, str, str, TaskSchema]]:
         """
         Return a list of all ml services with their order, name, short_title, and task schema.
         Ex: [(0, "transcribe", "Audio Transcription", task_schema),
              (1, "summarize", "Text Summarization", task_schema)]
         """
-        pass
 
-    def get_expected_routes(self) -> List[dict]:
+    def get_expected_routes(self) -> list[dict]:
         """
         Return the expected routes for the app.
         """
@@ -80,7 +78,7 @@ class RBAppTest(ABC):
                     str(route["order"]) in message for message in caplog.messages
                 )
 
-    def check_if_str_in_messages(self, str_to_check: str, messages: List[str]):
+    def check_if_str_in_messages(self, str_to_check: str, messages: list[str]):
         """
         Check if a string is in the messages.
         """

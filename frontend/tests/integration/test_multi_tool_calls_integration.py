@@ -8,8 +8,8 @@ import pytest
 @pytest.mark.ollama
 async def test_multiple_tool_calls_extraction_with_ollama():
     """Test extracting multiple tool calls from real Ollama Granite model"""
-    from frontend.chatbot.core import ChatbotCore
     from frontend.chatbot.config import ChatbotConfig
+    from frontend.chatbot.core import ChatbotCore
 
     config = ChatbotConfig()
     core = ChatbotCore(config)
@@ -42,10 +42,11 @@ async def test_multiple_tool_calls_extraction_with_ollama():
 @pytest.mark.api
 async def test_chain_output_to_input_integration():
     """Test output chaining with real schema"""
-    from frontend.chatbot.multi_tool_handler import chain_output_to_input
-    from frontend.chatbot.core import ChatbotCore
+    from rb.api.models import DirectoryResponse, ResponseBody
+
     from frontend.chatbot.config import ChatbotConfig
-    from rb.api.models import ResponseBody, DirectoryResponse
+    from frontend.chatbot.core import ChatbotCore
+    from frontend.chatbot.multi_tool_handler import chain_output_to_input
 
     config = ChatbotConfig()
     core = ChatbotCore(config)
@@ -76,7 +77,7 @@ async def test_chain_output_to_input_integration():
                 # matches keys containing "dir" (see multi_tool_handler).
                 assert result.get("input_dir") == "/output/summaries"
         except Exception as e:
-            pytest.skip(f"Could not load schema: {str(e)}")
+            pytest.skip(f"Could not load schema: {e!s}")
 
     finally:
         await core.close()
@@ -88,9 +89,9 @@ async def test_chain_output_to_input_integration():
 @pytest.mark.ollama
 async def test_multiple_tool_calls_workflow():
     """Test complete workflow with multiple tool calls"""
-    from frontend.chatbot.message_handler import MessageHandler
-    from frontend.chatbot.core import ChatbotCore
     from frontend.chatbot.config import ChatbotConfig
+    from frontend.chatbot.core import ChatbotCore
+    from frontend.chatbot.message_handler import MessageHandler
 
     config = ChatbotConfig()
     core = ChatbotCore(config)

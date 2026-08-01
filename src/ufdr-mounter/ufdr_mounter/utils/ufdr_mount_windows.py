@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-import os
-import sys
-import zipfile
-import logging
-import signal
 import errno
-import time
+import logging
+import os
 import platform
+import signal
+import sys
+import time
+import zipfile
 
-from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
+from fuse import FUSE, FuseOSError, LoggingMixIn, Operations
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)

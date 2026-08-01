@@ -86,18 +86,17 @@ class TestFileRenderersErrorHandling:
 
         with patch(
             "frontend.components.results.file.os.path.exists", return_value=False
-        ):
-            with patch("frontend.components.results.file.ui") as mock_ui:
-                render_file(container, response)
+        ), patch("frontend.components.results.file.ui") as mock_ui:
+            render_file(container, response)
 
-                # Verify error message is displayed
-                mock_ui.label.assert_called()
-                # Check that appropriate error text is shown
-                call_args_list = [str(call) for call in mock_ui.label.call_args_list]
-                assert any(
-                    "not found" in str(call) or "Error" in str(call)
-                    for call in call_args_list
-                )
+            # Verify error message is displayed
+            mock_ui.label.assert_called()
+            # Check that appropriate error text is shown
+            call_args_list = [str(call) for call in mock_ui.label.call_args_list]
+            assert any(
+                "not found" in str(call) or "Error" in str(call)
+                for call in call_args_list
+            )
 
     def test_render_file_image_load_error(self):
         """Test handling of error loading image file.
@@ -114,21 +113,20 @@ class TestFileRenderersErrorHandling:
 
         with patch(
             "frontend.components.results.file.os.path.exists", return_value=True
-        ):
-            with patch("frontend.components.results.file.ui") as mock_ui:
-                # Simulate image loading failure
-                mock_ui.image.side_effect = RuntimeError(IMAGE_LOAD_ERROR_MSG)
+        ), patch("frontend.components.results.file.ui") as mock_ui:
+            # Simulate image loading failure
+            mock_ui.image.side_effect = RuntimeError(IMAGE_LOAD_ERROR_MSG)
 
-                render_file(container, response)
+            render_file(container, response)
 
-                # Verify error message is displayed
-                mock_ui.label.assert_called()
-                # Check that appropriate error content is shown
-                call_args_list = [str(call) for call in mock_ui.label.call_args_list]
-                assert any(
-                    "Error loading image" in str(call) or "error" in str(call).lower()
-                    for call in call_args_list
-                )
+            # Verify error message is displayed
+            mock_ui.label.assert_called()
+            # Check that appropriate error content is shown
+            call_args_list = [str(call) for call in mock_ui.label.call_args_list]
+            assert any(
+                "Error loading image" in str(call) or "error" in str(call).lower()
+                for call in call_args_list
+            )
 
     def test_render_file_generic_exception(self):
         """Test handling of generic exception during file rendering.

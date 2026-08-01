@@ -7,10 +7,11 @@ persisting embeddings to various storage backends.
 
 from abc import abstractmethod
 from typing import Any, Protocol, cast
+
 from rb.api.database import (
-    TextEmbedding,
     ImageEmbedding,
     ImageSimilarityEmbedding,
+    TextEmbedding,
 )
 
 

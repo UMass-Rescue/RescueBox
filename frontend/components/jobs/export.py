@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from case_export.persist import build_jsonld_bytes_from_job_dict
 from nicegui import ui
 
-from frontend.design_tokens import Design
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 
 
-def render_case_export_button(job_fields: Dict[str, Any]) -> None:
+def render_case_export_button(job_fields: dict[str, Any]) -> None:
     """
     Add a button that downloads ``job-{uid}.jsonld`` built from the current job record.
 

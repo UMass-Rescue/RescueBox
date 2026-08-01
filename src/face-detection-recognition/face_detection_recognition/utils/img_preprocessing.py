@@ -1,4 +1,5 @@
 import os
+
 import cv2
 
 # Define input and output directories

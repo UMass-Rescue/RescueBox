@@ -6,11 +6,13 @@ matching the frontend's expectations for /models and /servers endpoints.
 """
 
 import logging
-from typing import List, Dict, Optional, Any
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, status
 from rb.api.models import API_APPMETDATA
-from rescuebox.main import app as rescuebox_app
 from rb.api.routes.cli import static_endpoint
+
+from rescuebox.main import app as rescuebox_app
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,7 @@ logger = logging.getLogger(__name__)
 models_router = APIRouter()
 
 
-def _get_plugin_metadata(plugin_name: str) -> Optional[Dict[str, Any]]:
+def _get_plugin_metadata(plugin_name: str) -> dict[str, Any] | None:
     """
     Get metadata for a plugin by calling its app_metadata endpoint.
 
@@ -72,7 +74,7 @@ def _get_plugin_metadata(plugin_name: str) -> Optional[Dict[str, Any]]:
 
 
 @models_router.get("/models")
-async def get_models() -> List[Dict[str, Any]]:
+async def get_models() -> list[dict[str, Any]]:
     """
     Get list of all available models/plugins.
 
@@ -133,7 +135,7 @@ async def get_models() -> List[Dict[str, Any]]:
 
 
 @models_router.get("/models/{model_uid}")
-async def get_model_by_uid(model_uid: str) -> Dict[str, Any]:
+async def get_model_by_uid(model_uid: str) -> dict[str, Any]:
     """
     Get metadata for a specific model by UID (plugin name).
 
@@ -176,7 +178,7 @@ async def get_model_by_uid(model_uid: str) -> Dict[str, Any]:
 
 
 @models_router.get("/models/{model_uid}/info")
-async def get_model_info(model_uid: str) -> Dict[str, Any]:
+async def get_model_info(model_uid: str) -> dict[str, Any]:
     """
     Alternative endpoint for model metadata (alias for /models/{model_uid}).
 
@@ -195,7 +197,7 @@ async def get_model_info(model_uid: str) -> Dict[str, Any]:
 
 
 @models_router.get("/servers")
-async def get_servers() -> List[Dict[str, Any]]:
+async def get_servers() -> list[dict[str, Any]]:
     """
     Get list of all registered servers.
 
@@ -234,7 +236,7 @@ async def get_servers() -> List[Dict[str, Any]]:
 
 
 @models_router.get("/servers/{model_uid}/status")
-async def get_server_status(model_uid: str) -> Dict[str, Any]:
+async def get_server_status(model_uid: str) -> dict[str, Any]:
     """
     Get server status for a specific model.
 

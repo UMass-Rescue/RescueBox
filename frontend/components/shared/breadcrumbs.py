@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
 
 from nicegui import ui
 
 logger = logging.getLogger(__name__)
 
 
-def create_breadcrumbs(items: List[Dict[str, Optional[str]]], container=None):
+def create_breadcrumbs(items: list[dict[str, str | None]], container=None):
     logger.debug("Creating breadcrumbs with %d items", len(items))
 
     if container:

@@ -117,7 +117,7 @@ class FaceMatchModel:
                 + collection_name
             )
         except Exception as e:
-            return f"Bulk Upload Error: {str(e)}"
+            return f"Bulk Upload Error: {e!s}"
 
     # Function that takes in path to image and returns all images that have the same person.
     def find_face(self, image_file_path, threshold=None, collection_name=None):
@@ -158,7 +158,7 @@ class FaceMatchModel:
             else:
                 return False, "Error: Provided file is not of image type"
         except Exception as e:
-            return False, f"An error occurred: {str(e)}"
+            return False, f"An error occurred: {e!s}"
 
     # Function that takes in path to image and returns all images that have the same person.
     def find_face_bulk(
@@ -235,4 +235,4 @@ class FaceMatchModel:
             return True, results
 
         except Exception as e:
-            return False, f"An error occurred: {str(e)}"
+            return False, f"An error occurred: {e!s}"

@@ -11,8 +11,8 @@ Usage:
 """
 
 import os
-import time
 import subprocess
+import time
 from pathlib import Path
 
 import httpx

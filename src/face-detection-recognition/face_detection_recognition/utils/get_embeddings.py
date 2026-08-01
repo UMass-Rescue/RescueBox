@@ -1,14 +1,15 @@
 # built-in dependencies
 import os
 
+import cv2
+
 # 3rd party dependencies
 import numpy as np
-import cv2
 import onnxruntime as ort
+from face_detection_recognition.utils import preprocessing
 
 # project dependencies
 from face_detection_recognition.utils.logger import log_info
-from face_detection_recognition.utils import preprocessing
 
 
 def get_embedding(
@@ -41,9 +42,7 @@ def get_embedding(
             )
             log_info("SFace model loaded successfully!")
         except Exception as err:
-            log_info(
-                f"Exception while calling opencv.FaceRecognizerSF module: {str(err)}"
-            )
+            log_info(f"Exception while calling opencv.FaceRecognizerSF module: {err!s}")
             raise ValueError(
                 "Exception while calling opencv.FaceRecognizerSF module."
                 + "This is an optional dependency."
@@ -96,14 +95,14 @@ def get_embedding(
             # embedding = embeddings[0].reshape(-1)
             log_info(f"Embedding type: {type(embedding)}")
         except Exception as e:
-            log_info(f"Failed to run inference: {str(e)}")
+            log_info(f"Failed to run inference: {e!s}")
     else:  # Facenet512, ArcFace, GhostFaceNet
         input_name = ort_session.get_inputs()[0].name
         log_info(f"Input name: {input_name}")
         try:
             result = ort_session.run(None, {input_name: img})
         except Exception as e:
-            log_info(f"Failed to run inference: {str(e)}")
+            log_info(f"Failed to run inference: {e!s}")
         # log_info(f"Result: {result[0][0]}")
         # embedding = result[0].flatten()
         # log_info(f"Embedding shape: {embedding.shape}")

@@ -6,7 +6,7 @@ their server statuses, and actions (inspect, run, connect).
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from fastapi import HTTPException
 from nicegui import ui
@@ -16,6 +16,7 @@ from frontend.api_client import api_client
 from frontend.chatbot.config import ToolRegistry
 from frontend.components.models import render_model_info_card, render_models_list
 from frontend.components.shared import render_page_header
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.constants import (
     ERROR_MESSAGES,
     NAV_LINKS,
@@ -27,13 +28,12 @@ from frontend.database import get_cached_model_by_uid, get_cached_models
 from frontend.pages.page_shell import begin_demo_session_page
 from frontend.utils import handle_api_error
 from frontend.utils.backend import prefetch_and_cache_models
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def _sort_models_by_tool_menu(models: List[Dict]) -> List[Dict]:
+def _sort_models_by_tool_menu(models: list[dict]) -> list[dict]:
     """Order like chatbot TOOL_MENU; unknown plugins (e.g. future additions) sort last by uid."""
     rank = {uid: i for i, uid in enumerate(ToolRegistry.ordered_plugin_uids())}
     return sorted(
@@ -74,7 +74,7 @@ def _clear_loading_spinner(loading) -> None:
         pass
 
 
-async def _load_cached_models_with_prefetch() -> List[Dict]:
+async def _load_cached_models_with_prefetch() -> list[dict]:
     models_data = await get_cached_models()
     if models_data:
         return models_data
@@ -86,7 +86,7 @@ async def _load_cached_models_with_prefetch() -> List[Dict]:
     return models_data or []
 
 
-def extract_model_info(model_info, model_info_dict: Dict[str, Any]) -> Dict[str, Any]:
+def extract_model_info(model_info, model_info_dict: dict[str, Any]) -> dict[str, Any]:
     """Extract model metadata from AppMetadata or a plain dict."""
     if model_info:
         return {
@@ -105,7 +105,7 @@ def extract_model_info(model_info, model_info_dict: Dict[str, Any]) -> Dict[str,
     }
 
 
-def _parse_app_metadata(model_info_dict: Dict[str, Any]):
+def _parse_app_metadata(model_info_dict: dict[str, Any]):
     try:
         return AppMetadata(**model_info_dict)
     except UI_RENDER_ERRORS as e:
@@ -130,7 +130,7 @@ async def _fetch_server_status(model_uid: str) -> str:
 
 async def _load_model_details_context(
     model_uid: str,
-) -> Optional[Tuple[Any, Dict[str, Any], str]]:
+) -> tuple[Any, dict[str, Any], str] | None:
     model_info_dict = await get_cached_model_by_uid(model_uid)
     if not model_info_dict:
         raise HTTPException(
@@ -148,8 +148,8 @@ class ModelsPage:
         """Initialize ModelsPage. Sets up API client and initializes empty state containers."""
         logger.info("Initializing ModelsPage")
         self.api_client = api_client
-        self.models: List[Dict] = []
-        self.server_statuses: Dict[str, str] = {}
+        self.models: list[dict] = []
+        self.server_statuses: dict[str, str] = {}
         self.models_container = None
         self.loading = None
         logger.debug("ModelsPage initialized successfully")
@@ -173,7 +173,7 @@ class ModelsPage:
             logger.info("Models page rendered successfully")
         except UI_RENDER_ERRORS as e:
             logger.error("Error rendering models page: %s", e, exc_info=True)
-            ui.label(f"Error rendering models page: {str(e)}").classes("text-red-600")
+            ui.label(f"Error rendering models page: {e!s}").classes("text-red-600")
 
     def cached_model_count(self) -> int:
         """Number of models currently loaded in memory."""
@@ -273,7 +273,7 @@ async def models_page():
         logger.info("Models page render completed")
     except UI_RENDER_ERRORS as e:
         logger.error("Error in models page: %s", e, exc_info=True)
-        ui.label(f"Error loading models page: {str(e)}").classes("text-red-600")
+        ui.label(f"Error loading models page: {e!s}").classes("text-red-600")
 
 
 @ui.page("/models/{model_uid}/details")
@@ -299,32 +299,29 @@ async def model_details_page(model_uid: str):
 
     with ui.column().classes(
         "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
-    ):
-        with ui.row().classes("gap-6 w-full"):
-            with ui.column().classes("flex-1"):
-                ui.label(model_uid + " Model Documentation").classes(
-                    "text-2xl font-bold mb-4"
+    ), ui.row().classes("gap-6 w-full"):
+        with ui.column().classes("flex-1"):
+            ui.label(model_uid + " Model Documentation").classes(
+                "text-2xl font-bold mb-4"
+            )
+
+            model_data = extract_model_info(model_info, model_info_dict)
+            info_text = model_data["info"]
+            _ = model_data["version"]
+            _ = model_data["author"]
+
+            with ui.card().classes("bg-white p-6"):
+                ui.markdown(info_text).classes("prose max-w-none")
+
+        with ui.column().classes("w-80"):
+            try:
+                render_model_info_card(
+                    ui.column(),
+                    model_info if model_info else {},
+                    model_info_dict,
+                    server_status,
                 )
-
-                model_data = extract_model_info(model_info, model_info_dict)
-                info_text = model_data["info"]
-                _ = model_data["version"]
-                _ = model_data["author"]
-
-                with ui.card().classes("bg-white p-6"):
-                    ui.markdown(info_text).classes("prose max-w-none")
-
-            with ui.column().classes("w-80"):
-                try:
-                    render_model_info_card(
-                        ui.column(),
-                        model_info if model_info else {},
-                        model_info_dict,
-                        server_status,
-                    )
-                except UI_RENDER_ERRORS as e:
-                    logger.exception(
-                        "Failed to render model info card component: %s", e
-                    )
+            except UI_RENDER_ERRORS as e:
+                logger.exception("Failed to render model info card component: %s", e)
 
     logger.info("Model details page rendered successfully")

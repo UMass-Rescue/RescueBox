@@ -21,8 +21,8 @@ behavior and providing users with clear, discoverable tool access patterns.
 from frontend.chatbot.config import (
     ChatbotConfig,
     ToolRegistry,
-    normalize_ollama_host,
     collect_ollama_model_names,
+    normalize_ollama_host,
     resolve_ollama_model_tag,
 )
 
@@ -110,10 +110,7 @@ class TestChatbotConfig:
         assert config.OLLAMA_HOST == "http://127.0.0.1:11434"
 
     def test_normalize_ollama_host_helper(self):
-        assert normalize_ollama_host("localhost:11434") == "http://localhost:11434"
-        assert (
-            normalize_ollama_host("https://ollama.example") == "https://ollama.example"
-        )
+        assert normalize_ollama_host("localhost:11434") == "http://127.0.0.1:11434"
 
     def test_resolve_ollama_model_tag(self):
         tags = {

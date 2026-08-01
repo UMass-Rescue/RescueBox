@@ -6,8 +6,9 @@ testing complete user workflows and component interactions using NiceGUI's
 testing framework.
 """
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from frontend.tests.unit.chatbot_test_utils import TestUtilities
 
@@ -77,13 +78,15 @@ class TestChatbotUIIntegration:
     def test_invalid_message_processing_flow(self):
         """Test complete flow for invalid message processing and rejection display."""
         try:
-            from frontend.pages.chatbot import MessageFlowCoordinator
-            from frontend.pages.chatbot import MessageProcessor
-            from frontend.pages.chatbot import ResultProcessor
-            from frontend.chatbot.utils import get_rejection_message
-
             # Create mock components
             from unittest.mock import MagicMock
+
+            from frontend.chatbot.utils import get_rejection_message
+            from frontend.pages.chatbot import (
+                MessageFlowCoordinator,
+                MessageProcessor,
+                ResultProcessor,
+            )
 
             state_manager = MagicMock()
             state_manager.is_processing = False

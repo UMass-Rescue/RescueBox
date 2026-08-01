@@ -7,14 +7,17 @@ tool calls. It enables users to recall previous conversations and re-run
 tool calls from history.
 """
 
+import json
 import logging
 import sqlite3
-import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
+
+from frontend.utils.storage import get_user_id_for_jobs
 
 # Import refactored components
 from .base_db import BaseDatabase
@@ -26,7 +29,6 @@ from .schemas import (
     chat_history_runtime_index_statements,
 )
 from .validation import DatabaseValidator
-from frontend.utils.storage import get_user_id_for_jobs
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -47,7 +49,7 @@ class ConversationRecord(BaseModel):
     message_count: int = Field(
         default=0, description="Number of messages in conversation"
     )
-    metadata: Optional[Dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         None, description="Additional metadata as JSON"
     )
 
@@ -70,17 +72,17 @@ class ChatMessageRecord(BaseModel):
         default="text",
         description="Message type: 'text', 'tool_call', 'tool_result', 'error'",
     )
-    tool_calls: Optional[List[Dict[str, Any]]] = Field(
+    tool_calls: list[dict[str, Any]] | None = Field(
         None, description="Tool calls as list of dicts"
     )
-    tool_call_endpoint: Optional[str] = Field(
+    tool_call_endpoint: str | None = Field(
         None, description="Endpoint name from tool call"
     )
-    tool_call_arguments: Optional[Dict[str, Any]] = Field(
+    tool_call_arguments: dict[str, Any] | None = Field(
         None, description="Tool call arguments"
     )
     timestamp: str = Field(..., description="Message timestamp (ISO format)")
-    metadata: Optional[Dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         None, description="Additional metadata as JSON"
     )
 
@@ -93,7 +95,7 @@ class ChatHistoryDB(BaseDatabase):
     functionality to store, retrieve, and manage chat history.
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         """
         Initialize ChatHistoryDB.
 
@@ -151,7 +153,7 @@ class ChatHistoryDB(BaseDatabase):
             else:
                 raise
 
-    def _get_current_user(self) -> Optional[str]:
+    def _get_current_user(self) -> str | None:
         """Return current NiceGUI session/user id or None."""
         try:
             return get_user_id_for_jobs()
@@ -160,7 +162,7 @@ class ChatHistoryDB(BaseDatabase):
 
     def _conversation_user_id(
         self, conn: sqlite3.Connection, conversation_id: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return the userId for a conversation or None if not set/found."""
         try:
             cursor = conn.execute(
@@ -174,9 +176,7 @@ class ChatHistoryDB(BaseDatabase):
             logger.debug("Failed to fetch conversation userId: %s", e)
         return None
 
-    async def create_conversation(
-        self, title: Optional[str] = None
-    ) -> ConversationRecord:
+    async def create_conversation(self, title: str | None = None) -> ConversationRecord:
         """
         Create a new conversation.
 
@@ -242,9 +242,7 @@ class ChatHistoryDB(BaseDatabase):
             logger.error("Unexpected error creating conversation: %s", str(e))
             raise RuntimeError(f"Unexpected error creating conversation: {e}") from e
 
-    async def get_conversation(
-        self, conversation_id: str
-    ) -> Optional[ConversationRecord]:
+    async def get_conversation(self, conversation_id: str) -> ConversationRecord | None:
         """
         Get conversation by ID.
 
@@ -272,7 +270,7 @@ class ChatHistoryDB(BaseDatabase):
             return ConversationRecord(**self._row_to_dict(row))
         return None
 
-    async def get_all_conversations(self) -> List[ConversationRecord]:
+    async def get_all_conversations(self) -> list[ConversationRecord]:
         """
         Get all conversations, sorted by updated_at (newest first).
 
@@ -327,7 +325,7 @@ class ChatHistoryDB(BaseDatabase):
         logger.debug("Fetched %d conversations total", len(conversations))
         return conversations
 
-    async def get_message(self, message_id: str) -> Optional[ChatMessageRecord]:
+    async def get_message(self, message_id: str) -> ChatMessageRecord | None:
         """
         Get message by ID with ownership check (if current session available).
         """
@@ -414,10 +412,10 @@ class ChatHistoryDB(BaseDatabase):
         role: str,
         content: str,
         message_type: str = "text",
-        tool_calls: Optional[List[Dict[str, Any]]] = None,
-        tool_call_endpoint: Optional[str] = None,
-        tool_call_arguments: Optional[Dict[str, Any]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        tool_calls: list[dict[str, Any]] | None = None,
+        tool_call_endpoint: str | None = None,
+        tool_call_arguments: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> ChatMessageRecord:
         """
         Add a message to a conversation.
@@ -518,7 +516,7 @@ class ChatHistoryDB(BaseDatabase):
             metadata=metadata,
         )
 
-    async def get_messages(self, conversation_id: str) -> List[ChatMessageRecord]:
+    async def get_messages(self, conversation_id: str) -> list[ChatMessageRecord]:
         """
         Get all messages for a conversation, sorted by timestamp.
 
@@ -623,8 +621,8 @@ class ChatHistoryDB(BaseDatabase):
         return False
 
     async def get_tool_call_history(
-        self, endpoint: Optional[str] = None
-    ) -> List[ChatMessageRecord]:
+        self, endpoint: str | None = None
+    ) -> list[ChatMessageRecord]:
         """
         Get history of tool calls, optionally filtered by endpoint.
 
@@ -686,7 +684,7 @@ class ChatHistoryDB(BaseDatabase):
         logger.info("Fetched %d tool calls", len(messages))
         return messages
 
-    async def get_tool_call_by_id(self, message_id: str) -> Optional[ChatMessageRecord]:
+    async def get_tool_call_by_id(self, message_id: str) -> ChatMessageRecord | None:
         """
         Get a tool call message by ID.
 
@@ -704,7 +702,7 @@ class ChatHistoryDB(BaseDatabase):
             return message
         return None
 
-    def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
+    def _row_to_dict(self, row: sqlite3.Row) -> dict[str, Any]:
         """Convert SQLite Row to dictionary."""
         result = dict(row)
 
@@ -743,7 +741,7 @@ class ChatHistoryDB(BaseDatabase):
         return ChatMessageRecord(**data)
 
 
-_CHAT_HISTORY_DB_SINGLETON: Dict[str, Optional[ChatHistoryDB]] = {"instance": None}
+_CHAT_HISTORY_DB_SINGLETON: dict[str, ChatHistoryDB | None] = {"instance": None}
 
 
 def get_chat_history_db() -> ChatHistoryDB:

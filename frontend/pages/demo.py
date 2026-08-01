@@ -1,15 +1,14 @@
 """Demo page - view RescueBox step-by-step guides and sample files."""
 
 import logging
-from typing import Optional
 
 from nicegui import ui
 
 from frontend.components.demo import (
     normalize_demo_walkthrough_query,
     render_demo_files_explorer,
+    schedule_hash_fragment_scroll,
 )
-from frontend.components.demo import schedule_hash_fragment_scroll
 from frontend.components.shared import create_navbar
 from frontend.constants import NAV_LINKS
 from frontend.utils.ui import apply_saved_theme, require_demo_user_session
@@ -39,7 +38,7 @@ _BACK_TO_GUIDE_LABEL: dict[str, str] = {
 
 
 @ui.page("/demo")
-async def demo_page(walkthrough: Optional[str] = None):
+async def demo_page(walkthrough: str | None = None):
     """Plain ``/demo`` = full landing. ``?walkthrough=…`` = folders only (matches embedded walkthrough samples)."""
     apply_saved_theme()
     create_navbar()

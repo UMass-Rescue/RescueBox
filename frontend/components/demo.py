@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import FrozenSet, List, NamedTuple, Optional, Tuple, Callable
+from typing import NamedTuple
+
 from nicegui import ui
-from frontend.config import DEMO_FILES_BROWSE_ROOT
+
 from frontend.components.results import open_file
+from frontend.config import DEMO_FILES_BROWSE_ROOT
 from frontend.constants import DEMO_WALKTHROUGH_MEDIA_URL
 
 _DEMO_NAV_BTN = (
@@ -27,9 +30,9 @@ logger.setLevel(logging.INFO)
 class WalkthroughPreset(NamedTuple):
     """Per-walkthrough browsing: start folder and top-level filters under demo root."""
 
-    initial_subpath: Optional[str] = None
-    include_top_level: Optional[FrozenSet[str]] = None
-    exclude_dirs: Optional[FrozenSet[str]] = None
+    initial_subpath: str | None = None
+    include_top_level: frozenset[str] | None = None
+    exclude_dirs: frozenset[str] | None = None
 
 
 # Presets aligned with frontend/demo/*.md walkthroughs.
@@ -53,7 +56,7 @@ _WALKTHROUGH_PRESETS: dict[str, WalkthroughPreset] = {
 }
 
 
-def normalize_demo_walkthrough_query(value: Optional[str]) -> str:
+def normalize_demo_walkthrough_query(value: str | None) -> str:
     """
     Map a URL query value (e.g. ``?walkthrough=transcribe``) to a preset key for
     :func:`render_demo_files_explorer` / :func:`render_walkthrough_samples_panel`.
@@ -80,7 +83,7 @@ def _is_under_root(path: Path, root: Path) -> bool:
         return False
 
 
-def _name_set(names: Optional[FrozenSet[str]]) -> Optional[set[str]]:
+def _name_set(names: frozenset[str] | None) -> set[str] | None:
     if not names:
         return None
     return {n.lower() for n in names}
@@ -90,9 +93,9 @@ def _list_entries(
     directory: Path,
     *,
     list_root: Path,
-    include_top_level: Optional[FrozenSet[str]],
-    exclude_dirs: Optional[FrozenSet[str]],
-) -> List[Tuple[Path, bool]]:
+    include_top_level: frozenset[str] | None,
+    exclude_dirs: frozenset[str] | None,
+) -> list[tuple[Path, bool]]:
     """Sorted list of (path, is_dir). Filters apply to directory entries only."""
     try:
         entries = list(directory.iterdir())
@@ -121,7 +124,7 @@ def _list_entries(
 def render_demo_files_explorer(
     container: ui.element,
     *,
-    walkthrough: Optional[str] = "all",
+    walkthrough: str | None = "all",
 ) -> None:
     """
     Render breadcrumb-style navigation and a clickable file/folder list.
@@ -154,7 +157,9 @@ def render_demo_files_explorer(
                 "text-zinc-900 bg-[#a2aaad]/15 border border-[#a2aaad] rounded-lg p-4"
             )
             ui.label(
-                "Create it or set RESCUEBOX_DEMO_FILES_DIR to an existing directory."
+                "Create the folder, clone sample data into it, or set "
+                "RESCUEBOX_DEMO_FILES_DIR to an existing directory "
+                "(dev checkout: src-tauri/demo)."
             ).classes("text-sm text-zinc-600 mt-2")
             return
 
@@ -239,21 +244,20 @@ def render_demo_files_explorer(
 
 def render_walkthrough_samples_panel(container: ui.element, walkthrough: str) -> None:
     """Section with title + filtered explorer for a walkthrough page."""
-    with container:
-        with ui.column().props("id=walkthrough-samples").classes(
-            "w-full scroll-mt-24 mt-6"
+    with container, ui.column().props("id=walkthrough-samples").classes(
+        "w-full scroll-mt-24 mt-6"
+    ):
+        ui.label("Sample inputs & outputs").classes("text-xl font-bold mb-1")
+        ui.label("Browse folders and files for this demo. ").classes(
+            "text-sm text-zinc-600 mb-3"
+        )
+        with ui.card().classes(
+            "w-full p-4 bg-zinc-50 border border-zinc-200 rounded-lg"
         ):
-            ui.label("Sample inputs & outputs").classes("text-xl font-bold mb-1")
-            ui.label("Browse folders and files for this demo. ").classes(
-                "text-sm text-zinc-600 mb-3"
+            render_demo_files_explorer(
+                ui.column().classes("w-full min-w-0"),
+                walkthrough=walkthrough,
             )
-            with ui.card().classes(
-                "w-full p-4 bg-zinc-50 border border-zinc-200 rounded-lg"
-            ):
-                render_demo_files_explorer(
-                    ui.column().classes("w-full min-w-0"),
-                    walkthrough=walkthrough,
-                )
 
 
 _FRONTEND_DEMO_DIR = Path(__file__).absolute().parent.parent / "demo"

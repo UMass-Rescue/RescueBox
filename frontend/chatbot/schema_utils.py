@@ -1,15 +1,17 @@
 """Map task schemas and tool arguments to form-friendly values."""
 
 import logging
-from typing import Dict, Any, Union
-from rb.api.models import TaskSchema, InputType
+from typing import Any
+
+from rb.api.models import InputType, TaskSchema
+
 from frontend.chatbot.utils import normalize_arguments
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def _unwrap_input_value_for_form(value: Any, wrapper: str) -> Union[str, Any]:
+def _unwrap_input_value_for_form(value: Any, wrapper: str) -> str | Any:
     """
     Tool args and API bodies sometimes use plain strings; other times ``{'text': ...}``
     or ``{'path': ...}``. If we ``str()`` a dict we get ``\"{'text': '/tmp/x'}\"``, which
@@ -28,8 +30,8 @@ def _unwrap_input_value_for_form(value: Any, wrapper: str) -> Union[str, Any]:
 
 
 def convert_arguments_to_initial_values(
-    arguments: Dict[str, Any], task_schema: TaskSchema, endpoint: str = ""
-) -> Dict[str, Any]:
+    arguments: dict[str, Any], task_schema: TaskSchema, endpoint: str = ""
+) -> dict[str, Any]:
     """
     Convert tool call arguments to initial_values format for form pre-filling.
     Extracted utility from core to keep core thin.
