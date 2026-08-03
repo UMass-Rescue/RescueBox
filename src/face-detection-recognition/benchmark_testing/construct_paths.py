@@ -1,5 +1,5 @@
-import os
 import argparse
+import os
 
 parser = argparse.ArgumentParser(description="To parse text arguments")
 

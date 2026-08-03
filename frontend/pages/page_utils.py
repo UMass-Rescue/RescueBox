@@ -1,7 +1,7 @@
 """Page Utilities This module provides shared utilities and constants for all pages."""
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any
 
 from frontend.constants import UI_TITLES
 
@@ -15,7 +15,7 @@ def get_page_title(page_key: str, default: str = "Page") -> str:
     return UI_TITLES.get(page_key, default)
 
 
-def create_page_metadata(page_name: str) -> Dict[str, Any]:
+def create_page_metadata(page_name: str) -> dict[str, Any]:
     """Create metadata for a page. Args:"""
     return {
         "name": page_name,
@@ -24,7 +24,7 @@ def create_page_metadata(page_name: str) -> Dict[str, Any]:
     }
 
 
-def log_page_action(page_name: str, action: str, details: Optional[str] = None):
+def log_page_action(page_name: str, action: str, details: str | None = None):
     """Log a page-related action. Args:"""
     message = f"{page_name} page: {action}"
     if details:

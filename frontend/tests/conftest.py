@@ -5,11 +5,12 @@ This file contains common fixtures, constants, and utilities used across
 all test modules to reduce duplication and ensure consistency.
 """
 
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 import pytest_asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 from nicegui import app
-import asyncio
 
 # Test constants
 TEST_CONVERSATION_ID = "conv-123"
@@ -116,14 +117,14 @@ def mock_ui():
 def sample_task_schema():
     """Create sample task schema for testing."""
     from rb.api.models import (
-        TaskSchema,
-        InputSchema,
-        ParameterSchema,
-        InputType,
-        RangedFloatParameterDescriptor,
-        FloatRangeDescriptor,
         EnumParameterDescriptor,
         EnumVal,
+        FloatRangeDescriptor,
+        InputSchema,
+        InputType,
+        ParameterSchema,
+        RangedFloatParameterDescriptor,
+        TaskSchema,
     )
 
     return TaskSchema(
@@ -159,7 +160,7 @@ def sample_task_schema():
 @pytest.fixture
 def sample_response_body():
     """Create sample response body for testing."""
-    from rb.api.models import ResponseBody, FileResponse, FileType
+    from rb.api.models import FileResponse, FileType, ResponseBody
 
     # Create a FileResponse first
     file_response = FileResponse(
@@ -189,14 +190,14 @@ def sample_files():
 @pytest_asyncio.fixture
 async def user():
     """NiceGUI User fixture for integration testing."""
-    import httpx
-    from nicegui.testing import User
-    from nicegui import ui
-
     # Ensure NiceGUI core has a running loop so background tasks can be created
     # during tests (nicegui.background_tasks.create asserts core.loop is set).
     import asyncio as _asyncio
+
+    import httpx
     from nicegui import core as nice_core
+    from nicegui import ui
+    from nicegui.testing import User
 
     # Use the running loop if available, otherwise get the default event loop.
     try:
@@ -336,7 +337,7 @@ async def user():
         import rb.api.models as _rbm
 
         if hasattr(_rbm, "FileType") and not hasattr(_rbm.FileType, "TXT"):
-            setattr(_rbm.FileType, "TXT", getattr(_rbm.FileType, "TEXT", None))
+            _rbm.FileType.TXT = getattr(_rbm.FileType, "TEXT", None)
     except Exception:
         pass
 
@@ -363,13 +364,13 @@ async def user():
                 return res
             raise AttributeError("Element not clickable")
 
-        setattr(_user, "click", _click)
+        _user.click = _click
         # Expose the NiceGUI app object on the User fixture for tests that register pages via user.app.page
         try:
             # Expose the NiceGUI ui module on the User fixture so tests can register pages via user.app.page
             from nicegui import ui as _nicegui_ui
 
-            setattr(_user, "app", _nicegui_ui)
+            _user.app = _nicegui_ui
         except Exception:
             pass
         yield _user

@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 from nicegui import ui
 
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.pages.chatbot.form_submit_handler import FormSubmitHandler
 from frontend.pages.chatbot.message_processor import MessageProcessor
 from frontend.pages.chatbot.result_processor import ResultProcessor
 from frontend.pages.chatbot.state import ChatbotStateManager
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class MessageFlowCoordinator:
     """Unified coordinator for all chatbot message processing workflows."""
 
     def __init__(
-        self, state_manager: ChatbotStateManager, form_loader: Optional[Callable] = None
+        self, state_manager: ChatbotStateManager, form_loader: Callable | None = None
     ):
         self.state_manager = state_manager
         self.form_loader = form_loader
@@ -46,7 +47,7 @@ class MessageFlowCoordinator:
         add_message_func: Callable,
         show_error_func: Callable,
         update_status_func: Callable,
-        core: Optional[Any] = None,
+        core: Any | None = None,
     ) -> None:
         try:
             self.logger.info("Starting user message processing flow")
@@ -76,7 +77,7 @@ class MessageFlowCoordinator:
                 )
         except UI_RENDER_ERRORS as e:
             self.logger.error("Error in message processing flow: %s", str(e))
-            await show_error_func(f"Message processing failed: {str(e)}")
+            await show_error_func(f"Message processing failed: {e!s}")
 
     def _create_result_processor(
         self,
@@ -87,7 +88,7 @@ class MessageFlowCoordinator:
         update_status_func,
         core,
     ):
-        async def process_result(result: Dict[str, Any]) -> None:
+        async def process_result(result: dict[str, Any]) -> None:
             await self._route_message_result(
                 result=result,
                 input_field=input_field,
@@ -132,7 +133,7 @@ class MessageFlowCoordinator:
         add_message_func,
         show_error_func,
         update_status_func,
-    ) -> Dict[str, Callable]:
+    ) -> dict[str, Callable]:
         def add_assistant_message_func(message, scroll_after=True):
             add_message_func(message, scroll_after)
 

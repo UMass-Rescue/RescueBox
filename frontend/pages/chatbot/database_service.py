@@ -1,12 +1,13 @@
 import logging
 import re
-from typing import Optional, Dict, Any
-from frontend.utils import set_logging_context
+from typing import Any
+
+from frontend.chatbot.config import ToolRegistry
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database.chat_history_db import get_chat_history_db
 from frontend.database.job_db import get_job_db
 from frontend.database.job_models import JobStatus
-from frontend.chatbot.config import ToolRegistry
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.utils import set_logging_context
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class DatabaseService:
         return conv.conversation_id
 
     @staticmethod
-    def _should_apply_job_list_title(current_title: Optional[str]) -> bool:
+    def _should_apply_job_list_title(current_title: str | None) -> bool:
         """
         Replace list title for default placeholders and for titles we set from a previous job
         (so a second job in the same thread updates the history row).
@@ -104,7 +105,7 @@ class DatabaseService:
         await job_db.update_job_status(uid=job_uid, status=status, **kwargs)
 
     @staticmethod
-    def _job_request_snapshot(request_body: Any) -> Optional[Dict[str, Any]]:
+    def _job_request_snapshot(request_body: Any) -> dict[str, Any] | None:
         """Coerce submitted job payload to JSON-friendly ``inputs`` / ``parameters`` for history UI."""
         if request_body is None:
             return None
@@ -115,7 +116,7 @@ class DatabaseService:
                 data = request_body
             else:
                 return None
-            snap: Dict[str, Any] = {}
+            snap: dict[str, Any] = {}
             if "inputs" in data:
                 snap["inputs"] = data["inputs"]
             if "parameters" in data:
@@ -169,7 +170,7 @@ class DatabaseService:
 
     @staticmethod
     async def save_tool_result_to_history(
-        conversation_id: str, endpoint: str, job_id: Optional[str] = None
+        conversation_id: str, endpoint: str, job_id: str | None = None
     ):
         chat_history = get_chat_history_db()
         content = (

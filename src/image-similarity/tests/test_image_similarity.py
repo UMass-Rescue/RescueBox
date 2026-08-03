@@ -4,21 +4,20 @@ import inspect
 
 import pytest
 from image_similarity.main import (
-    search_series,
-    task_schema,
     Inputs,
     Parameters,
+    _compute_pdq_hash,
     inputs_cli_parse,
     parameters_cli_parse,
-    _compute_pdq_hash,
+    search_series,
+    task_schema,
 )
 from image_similarity.scorers import (
-    hamming_distance,
     CombinedScorer,
+    hamming_distance,
 )
-from rb.api.models import DirectoryInput, FileInput
 from PIL import Image
-
+from rb.api.models import DirectoryInput, FileInput
 
 # ---------------------------------------------------------------------------
 #  Task schema

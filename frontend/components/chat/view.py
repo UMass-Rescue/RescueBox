@@ -5,9 +5,8 @@ from nicegui import ui
 
 from frontend import utils
 from frontend.components.chat.dialogs import show_conversation_view_dialog
-from frontend.database import get_chat_history_db
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
-
+from frontend.database import get_chat_history_db
 from frontend.utils.ui import is_ephemeral_ui_error
 
 logger = logging.getLogger(__name__)

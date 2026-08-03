@@ -100,12 +100,12 @@ def _process_images_unlocked(
                 )
                 logger.info("ImageSummary: done -> %s", image_path.name)
             except Exception as e:
-                logger.error("ImageSummary: error processing %s: %s", image_path.name, e)
+                logger.error(
+                    "ImageSummary: error processing %s: %s", image_path.name, e
+                )
         finally:
             processed += 1
-            last_reported = report_file_progress(
-                None, processed, total, last_reported
-            )
+            last_reported = report_file_progress(None, processed, total, last_reported)
 
     if total > 0:
         report_file_progress(None, total, total, last_reported)

@@ -1,15 +1,17 @@
-from typing import Any, List, NotRequired, TypedDict, cast
 import json
 import logging
 import os
 from pathlib import Path
+from typing import Any, NotRequired, TypedDict, cast
+
 import typer
+from langchain_text_splitters import RecursiveCharacterTextSplitter  # type: ignore
+from llama_index.core.node_parser import SentenceSplitter
 from pydantic import DirectoryPath
-from rb.lib.ml_service import MLService
-from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
+from rb.api.database import TextEmbeddingChunk, engine
 from rb.api.models import (
-    FloatRangeDescriptor,
     FileFilterDirectory,
+    FloatRangeDescriptor,
     InputSchema,
     InputType,
     IntRangeDescriptor,
@@ -21,10 +23,10 @@ from rb.api.models import (
     TextInput,
     TextResponse,
 )
-from llama_index.core.node_parser import SentenceSplitter
-from langchain_text_splitters import RecursiveCharacterTextSplitter  # type: ignore
-from rb.api.database import TextEmbeddingChunk, engine
-from sqlalchemy import bindparam, text as sql_text, update
+from rb.lib.ml_service import MLService
+from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
+from sqlalchemy import bindparam, update
+from sqlalchemy import text as sql_text
 from sqlmodel import Session, delete, select
 
 # _MODEL_NAME = "BAAI/bge-small-en-v1.5"
@@ -52,7 +54,7 @@ class TextCorpusDirectory(FileFilterDirectory):
     """Directory must exist, be non-empty, and contain at least one allowed text extension."""
 
     path: DirectoryPath
-    file_extensions: List[str] = list(TEXT_EXTENSIONS)
+    file_extensions: list[str] = list(TEXT_EXTENSIONS)
 
 
 class Inputs(TypedDict):

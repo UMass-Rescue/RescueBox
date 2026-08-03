@@ -1,4 +1,5 @@
 import logging
+
 from nicegui import ui
 
 logger = logging.getLogger(__name__)

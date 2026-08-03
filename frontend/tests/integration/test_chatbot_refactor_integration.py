@@ -21,10 +21,9 @@ from rb.api.models import (
 
 from frontend.chatbot.pipeline_context import inject_pipeline_path
 from frontend.database.job_db import init_database
-from frontend.pages.chatbot import handlers
+from frontend.pages.chatbot import handlers, ui_flow
 from frontend.pages.chatbot.handlers.pipeline import PipelineHandler
 from frontend.pages.chatbot.handlers.pipeline_planner import plan_next_pipeline_step
-from frontend.pages.chatbot import ui_flow
 
 
 @pytest.mark.integration

@@ -11,12 +11,14 @@ To run these tests:
 Marked with @pytest.mark.api to indicate they require API access.
 """
 
-import pytest
-import pytest_asyncio
-import httpx
 import logging
 import os
-from typing import List, Dict, Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
+
+import httpx
+import pytest
+import pytest_asyncio
 
 # Configure logging for tests
 logger = logging.getLogger(__name__)
@@ -42,7 +44,7 @@ async def api_client():
 @pytest_asyncio.fixture
 async def available_models(
     api_client: httpx.AsyncClient,
-) -> AsyncGenerator[List[Dict[str, Any]], None]:
+) -> AsyncGenerator[list[dict[str, Any]], None]:
     """
     Fetch available models from backend.
 
@@ -151,7 +153,7 @@ class TestModelsEndpoints:
 
     @pytest.mark.asyncio
     async def test_get_model_by_uid(
-        self, api_client: httpx.AsyncClient, available_models: List[Dict]
+        self, api_client: httpx.AsyncClient, available_models: list[dict]
     ):
         """
         Test GET /models/{model_uid} returns specific model metadata.
@@ -194,7 +196,7 @@ class TestModelsEndpoints:
 
     @pytest.mark.asyncio
     async def test_get_model_info_endpoint(
-        self, api_client: httpx.AsyncClient, available_models: List[Dict]
+        self, api_client: httpx.AsyncClient, available_models: list[dict]
     ):
         """
         Test GET /models/{model_uid}/info returns model metadata (alias endpoint).
@@ -296,7 +298,7 @@ class TestServersEndpoints:
 
     @pytest.mark.asyncio
     async def test_get_server_status(
-        self, api_client: httpx.AsyncClient, available_models: List[Dict]
+        self, api_client: httpx.AsyncClient, available_models: list[dict]
     ):
         """
         Test GET /servers/{model_uid}/status returns server status.
@@ -416,7 +418,7 @@ class TestModelsEndpointsIntegration:
 
     @pytest.mark.asyncio
     async def test_model_details_flow(
-        self, api_client: httpx.AsyncClient, available_models: List[Dict]
+        self, api_client: httpx.AsyncClient, available_models: list[dict]
     ):
         """
         Test complete flow: list models -> get model details -> get server status.
@@ -504,7 +506,7 @@ class TestEndpointErrorHandling:
 
     @pytest.mark.asyncio
     async def test_server_status_timeout(
-        self, api_client: httpx.AsyncClient, available_models: List[Dict]
+        self, api_client: httpx.AsyncClient, available_models: list[dict]
     ):
         """
         Test that server status endpoint respects timeout.

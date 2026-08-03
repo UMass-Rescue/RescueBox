@@ -1,9 +1,9 @@
+import contextvars
 import logging
 import re
-import contextvars
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from frontend.config import LOG_FILE
 from frontend.database.chat_history_db import get_chat_history_db
@@ -13,13 +13,13 @@ from frontend.utils.exceptions import UI_RENDER_ERRORS
 logger = logging.getLogger(__name__)
 
 # Context variables for tracking IDs
-_job_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+_job_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "job_id", default=None
 )
-_model_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+_model_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "model_id", default=None
 )
-_session_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+_session_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "session_id", default=None
 )
 
@@ -158,7 +158,7 @@ def apply_per_logger_levels_for_verbose_root(_level):
         logging.getLogger(n).setLevel(logging.INFO)
 
 
-async def generate_audit_trail_for_job(job_id: str) -> Dict[str, Any]:
+async def generate_audit_trail_for_job(job_id: str) -> dict[str, Any]:
     job_db = get_job_db()
     job = await job_db.get_job_by_uid(job_id)
     if not job:
@@ -245,7 +245,7 @@ def parse_log_line(line):
     }
 
 
-def format_audit_trail_markdown(audit_trail: Dict[str, Any]) -> str:
+def format_audit_trail_markdown(audit_trail: dict[str, Any]) -> str:
     lines = [
         "# RescueBox Audit Trail",
         "",

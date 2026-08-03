@@ -38,7 +38,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from rb.api.models import RequestBody, ResponseBody, TaskSchema
 
@@ -54,12 +54,12 @@ from frontend.database.job_db_queries import (
     fetch_all_jobs_for_current_user,
     fetch_job_by_uid,
 )
+from frontend.database.job_models import JobRecord, JobStatus
 from frontend.database.schemas import (
     jobs_runtime_create_statements,
     jobs_runtime_index_statements,
 )
 from frontend.database.validation import DatabaseValidator
-from frontend.database.job_models import JobRecord, JobStatus
 from frontend.utils.storage import get_user_id_for_jobs
 
 logger = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ class JobDB(BaseDatabase):
     model/task jobs and chatbot endpoint-based jobs.
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         super().__init__(db_path, "jobs.db")
         self.validator = DatabaseValidator()
 
@@ -104,16 +104,16 @@ class JobDB(BaseDatabase):
 
     async def create_job(
         self,
-        request_body: Union[RequestBody, Dict[str, Any]],
-        task_schema: Union[TaskSchema, Dict[str, Any]],
-        model_uid: Optional[str] = None,
-        task_uid: Optional[str] = None,
-        endpoint: Optional[str] = None,
-        case_notes: Optional[str] = None,
-        user_id: Optional[str] = None,
-        endpoint_chain: Optional[List[str]] = None,
-        pipeline_root_job_id: Optional[str] = None,
-        pipeline_total_steps: Optional[Any] = None,
+        request_body: RequestBody | dict[str, Any],
+        task_schema: TaskSchema | dict[str, Any],
+        model_uid: str | None = None,
+        task_uid: str | None = None,
+        endpoint: str | None = None,
+        case_notes: str | None = None,
+        user_id: str | None = None,
+        endpoint_chain: list[str] | None = None,
+        pipeline_root_job_id: str | None = None,
+        pipeline_total_steps: Any | None = None,
     ) -> JobRecord:
         if not model_uid and not endpoint:
             raise ValueError("Either model_uid/task_uid or endpoint must be provided")
@@ -146,13 +146,13 @@ class JobDB(BaseDatabase):
         except DB_ERRORS:
             maybe_filter_id = None
 
-        chain: Optional[List[str]] = None
+        chain: list[str] | None = None
         if endpoint_chain:
             chain = [str(x) for x in endpoint_chain]
         elif endpoint:
             chain = [endpoint]
 
-        stored_pipeline_root: Optional[str] = None
+        stored_pipeline_root: str | None = None
         if pipeline_root_job_id and str(pipeline_root_job_id).strip():
             stored_pipeline_root = str(pipeline_root_job_id).strip()
         elif pipeline_total_steps is not None:
@@ -254,22 +254,22 @@ class JobDB(BaseDatabase):
         )
         raise RuntimeError("Failed to create job due to database errors")
 
-    def get_job_by_uid_sync(self, uid: str) -> Optional[JobRecord]:
+    def get_job_by_uid_sync(self, uid: str) -> JobRecord | None:
         conn = self.connect()
         _try_ensure_columns(conn)
         return fetch_job_by_uid(conn, uid, enforce_user_scope=True)
 
-    async def get_job_by_uid(self, uid: str) -> Optional[JobRecord]:
+    async def get_job_by_uid(self, uid: str) -> JobRecord | None:
         return self.get_job_by_uid_sync(uid)
 
-    async def get_all_jobs(self) -> List[Dict[str, Any]]:
+    async def get_all_jobs(self) -> list[dict[str, Any]]:
         conn = self.connect()
         _try_ensure_columns(conn)
         return fetch_all_jobs_for_current_user(conn)
 
     async def list_jobs_for_pipeline_root(
         self, user_id: str, root_uid: str
-    ) -> List[JobRecord]:
+    ) -> list[JobRecord]:
         conn = self.connect()
         return list_jobs_for_pipeline_root(conn, user_id, root_uid)
 
@@ -279,16 +279,16 @@ class JobDB(BaseDatabase):
         conn = self.connect()
         return update_pipeline_metadata_filter_criteria(conn, uid, criteria)
 
-    def get_job_count_for_user(self, user_id: Optional[str]) -> int:
+    def get_job_count_for_user(self, user_id: str | None) -> int:
         return count_jobs_for_user(self.connect(), user_id)
 
     async def update_job_status(
         self,
         uid: str,
         status: JobStatus,
-        response_body: Optional[Union[ResponseBody, Dict[str, Any]]] = None,
-        status_text: Optional[str] = None,
-        end_time: Optional[datetime] = None,
+        response_body: ResponseBody | dict[str, Any] | None = None,
+        status_text: str | None = None,
+        end_time: datetime | None = None,
     ) -> bool:
         conn = self.connect()
         if isinstance(status, str):
@@ -359,10 +359,10 @@ class JobDB(BaseDatabase):
         return False
 
 
-_JOB_DB_SINGLETON: Dict[str, Optional[JobDB]] = {"instance": None}
+_JOB_DB_SINGLETON: dict[str, JobDB | None] = {"instance": None}
 
 
-async def init_database(db_path: Optional[Path] = None) -> JobDB:
+async def init_database(db_path: Path | None = None) -> JobDB:
     if _JOB_DB_SINGLETON["instance"] is None:
         _JOB_DB_SINGLETON["instance"] = JobDB(db_path)
         await _JOB_DB_SINGLETON["instance"].initialize_schema()

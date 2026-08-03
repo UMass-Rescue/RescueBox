@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from nicegui import ui
 
 
-def short_endpoint_label(endpoint: Optional[str]) -> str:
+def short_endpoint_label(endpoint: str | None) -> str:
     if not endpoint:
         return "?"
     parts = [p for p in endpoint.strip().split("/") if p]

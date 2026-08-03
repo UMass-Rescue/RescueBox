@@ -13,7 +13,8 @@ Key Functions:
 
 import logging
 import re
-from typing import Dict, Any, Tuple
+from typing import Any
+
 from frontend.chatbot.config import ToolRegistry
 
 # Configure logging for this module
@@ -22,8 +23,8 @@ logger.setLevel(logging.INFO)
 
 
 def normalize_arguments(
-    user_args: Dict[str, Any], endpoint: str = ""
-) -> Dict[str, Any]:
+    user_args: dict[str, Any], endpoint: str = ""
+) -> dict[str, Any]:
     """
     Normalize user argument keys to match API expectations.
 
@@ -85,10 +86,12 @@ def normalize_arguments(
             new_key = key_mappings.get(key_lower, key)
 
         # text_embeddings/search: "query" is search text, not query_directory — keep key and value.
-        if "text_embeddings" in endpoint and key_lower == "query":
-            new_key = "query"
-        # image_embeddings/search_images: same — do not blank the model's search phrase.
-        elif "image_embeddings" in endpoint and key_lower == "query":
+        if (
+            "text_embeddings" in endpoint
+            and key_lower == "query"
+            or "image_embeddings" in endpoint
+            and key_lower == "query"
+        ):
             new_key = "query"
         # Endpoint-specific overrides (from rescuebox_tool.py)
         elif (
@@ -113,7 +116,7 @@ def normalize_arguments(
 
 def is_rescuebox_request(
     user_input: str, filter_enabled: bool = True
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Check if input is a valid RescueBox forensic request.
 

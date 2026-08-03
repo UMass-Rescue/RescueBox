@@ -1,11 +1,15 @@
-from typing import Callable, Any, Optional
+from collections.abc import Callable
+from typing import Any
+
 from nicegui import ui
+
 from frontend.design_tokens import Design
+
 from .rendering import render_welcome_message
 from .utils import set_latest_input_area
 
 
-def create_chat_header(on_show_history: Optional[Callable] = None):
+def create_chat_header(on_show_history: Callable | None = None):
     with ui.row().classes(
         "rb-chat-toolbar-floating items-center justify-end w-full px-4 py-3 sticky top-0 z-10 gap-3"
     ):
@@ -36,7 +40,7 @@ def create_chat_window() -> Any:
     return container
 
 
-def create_input_area(status_text_ref: Optional[object], on_send: Callable):
+def create_input_area(status_text_ref: object | None, on_send: Callable):
     input_area = ui.column().classes(
         "rb-chat-input-area w-full flex-none bg-white border-t border-slate-200 p-4"
     )

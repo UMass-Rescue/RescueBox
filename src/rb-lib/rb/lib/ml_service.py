@@ -1,12 +1,12 @@
+import threading
+from collections.abc import Callable
+from contextlib import nullcontext
 from dataclasses import dataclass
 from logging import getLogger
-from typing import Any, Callable, Dict, List, Optional, get_type_hints, Annotated
-from contextlib import nullcontext
+from typing import Annotated, Any, get_type_hints
 
-from fastapi import Body
 import typer
-import threading
-
+from fastapi import Body
 from rb.api.models import (
     APIRoutes,
     AppMetadata,
@@ -20,7 +20,6 @@ from rb.lib.utils import (
     ensure_ml_func_hinting_and_task_schemas_are_valid,
     ensure_ml_func_parameters_are_typed_dict,
 )
-
 
 logger = getLogger(__name__)
 
@@ -39,7 +38,7 @@ class EndpointDetails(EndpointDetailsNoSchema):
     order: int
 
 
-class MLService(object):
+class MLService:
     """
     The MLService object is a wrapper class for the app object. It
     provides a decorator for turning a machine learning prediction function
@@ -52,10 +51,10 @@ class MLService(object):
         """
         self.name = name
         self.app = typer.Typer()
-        self.endpoints: List[EndpointDetails] = []
-        self._app_metadata: Optional[AppMetadata] = None
+        self.endpoints: list[EndpointDetails] = []
+        self._app_metadata: AppMetadata | None = None
         self.plugin_name = name
-        self._ml_function_locks: Dict[str, Optional[threading.Lock]] = {}  # New line
+        self._ml_function_locks: dict[str, threading.Lock | None] = {}  # New line
         self._make_threadsafe: bool = True
 
         @self.app.command(f"/{self.name}/api/routes")
@@ -113,8 +112,8 @@ class MLService(object):
         ml_function: Callable[[Any, Any], ResponseBody],
         inputs_cli_parser,
         parameters_cli_parser=None,
-        task_schema_func: Optional[Callable[[], TaskSchema]] = None,
-        short_title: Optional[str] = None,
+        task_schema_func: Callable[[], TaskSchema] | None = None,
+        short_title: str | None = None,
         order: int = 0,
         is_workflow_step: bool = False,
     ):

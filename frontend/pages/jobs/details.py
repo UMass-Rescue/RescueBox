@@ -1,7 +1,9 @@
 import logging
+
 import httpx
 from nicegui import ui
 
+from frontend.components.chat import UIOperations
 from frontend.components.jobs import (
     render_job_details_panel,
     render_job_outputs_card,
@@ -11,13 +13,13 @@ from frontend.components.shared import (
     create_breadcrumbs,
     render_page_header,
 )
-from frontend.components.chat import UIOperations
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database import get_job_db
-from frontend.utils.storage import get_user_id_for_jobs
+from frontend.job_progress import mirror_progress_to_jobs_db
 from frontend.pages.page_shell import begin_demo_session_page
+from frontend.utils.storage import get_user_id_for_jobs
 
 from .utils import extract_job_fields
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +51,15 @@ async def job_details_page_route(job_id: str):
 
     try:
         job = await get_job_db().get_job_by_uid(job_id)
+        if job and str(job.status) == "Running":
+            await mirror_progress_to_jobs_db(job_id)
+            job = await get_job_db().get_job_by_uid(job_id)
         if not job:
             ui.label(f"Job not found: {job_id}").classes("text-red-600")
             return
     except UI_RENDER_ERRORS as e:
         logger.error("Error loading job %s: %s", job_id, e)
-        ui.label(f"Error loading job: {str(e)}").classes("text-red-600")
+        ui.label(f"Error loading job: {e!s}").classes("text-red-600")
         return
 
     jf = extract_job_fields(job)

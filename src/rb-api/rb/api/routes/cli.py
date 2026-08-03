@@ -2,7 +2,8 @@ import inspect
 import json
 import logging
 import time
-from typing import Any, Callable, Generator, Optional
+from collections.abc import Callable, Generator
+from typing import Any, Optional
 
 import typer
 from fastapi import APIRouter, HTTPException, status
@@ -22,8 +23,10 @@ from rb.api.models import (
     ResponseBody,
     TextResponse,
 )
-from rb.lib.stdout import Capturing  # type: ignore
-from rb.lib.stdout import capture_stdout_as_generator
+from rb.lib.stdout import (
+    Capturing,  # type: ignore
+    capture_stdout_as_generator,
+)
 
 from rescuebox.main import app as rescuebox_app
 
@@ -137,7 +140,7 @@ def streaming_endpoint(callback: Callable, *args, **kwargs) -> Generator:
         except Exception as e:
             logger.error(f"Error processing streaming output: {e}")
             yield ResponseBody(
-                root=TextResponse(value=f"Error: {str(e)}")
+                root=TextResponse(value=f"Error: {e!s}")
             ).model_dump_json()
 
         time.sleep(0.01)

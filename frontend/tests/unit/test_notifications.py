@@ -16,8 +16,9 @@ All notifications include proper accessibility features, positioning,
 and configurable duration settings.
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 # Test constants
 TEST_SUCCESS_MESSAGE = "Job completed successfully"
@@ -177,15 +178,14 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_success
 
-        with patch("nicegui.ui.notify"):
-            with patch(
-                "frontend.components.shared.notifications.logger"
-            ) as mock_logger:
-                notify_success("Test message")
+        with patch("nicegui.ui.notify"), patch(
+            "frontend.components.shared.notifications.logger"
+        ) as mock_logger:
+            notify_success("Test message")
 
-                # Should log debug message for audit trail
-                mock_logger.debug.assert_called_once()
-                assert "Success notification shown" in mock_logger.debug.call_args[0][0]
+            # Should log debug message for audit trail
+            mock_logger.debug.assert_called_once()
+            assert "Success notification shown" in mock_logger.debug.call_args[0][0]
 
     @pytest.mark.parametrize("position", ["top", "bottom", "left", "right"])
     def test_notify_positions(self, position):

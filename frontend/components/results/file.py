@@ -6,6 +6,7 @@ import os
 
 from nicegui import ui
 
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.design_tokens import Design
 
 from .serve_paths import (
@@ -21,7 +22,6 @@ from .table_helpers import (
     render_batch_path_table,
     resolve_table_row_index,
 )
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 
 def render_batch_file(container, response):
@@ -85,7 +85,7 @@ def render_batch_file(container, response):
         title=f"Batch File Result ({len(files)})",
         cols=cols,
         rows=rows,
-        row_key="path",
+        row_key="filename",
         on_row_click=on_click,
         tip_message="Click a row to open the file.",
     )

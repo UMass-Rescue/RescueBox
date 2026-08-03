@@ -1,18 +1,20 @@
+import logging
 import uuid
 from pathlib import Path
-from PIL import Image
-import onnxruntime as ort
+
 import numpy as np
+import onnxruntime as ort
+from PIL import Image
+
 from deepfake_detection.process.facedetector import faceDetector
 from deepfake_detection.process.utils import (
+    CenterCrop,
     Compose,
     InterpolationMode,
     Resize,
-    CenterCrop,
-    ToImage,
     ToDtype,
+    ToImage,
 )
-import logging
 
 logging.basicConfig(
     level=logging.INFO,

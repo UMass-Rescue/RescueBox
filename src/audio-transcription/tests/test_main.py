@@ -1,8 +1,9 @@
 import json
 from pathlib import Path
 
+from audio_transcription.main import APP_NAME, ml_service, task_schema
+from audio_transcription.main import app as cli_app
 from rb.api.models import ResponseBody
-from audio_transcription.main import app as cli_app, APP_NAME, task_schema, ml_service
 from rb.lib.common_tests import RBAppTest
 
 

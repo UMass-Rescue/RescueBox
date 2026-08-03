@@ -12,10 +12,10 @@ import logging
 from typing import Protocol, runtime_checkable
 
 import numpy as np
+from rb.api.database import ImageSimilarityEmbedding
+from image_similarity import sql_filters
 from sqlalchemy import bindparam, text
 from sqlmodel import Session, select
-
-from rb.api.database import ImageSimilarityEmbedding
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +101,8 @@ def pdq_similarity_search(
 
     rows = session.exec(
         select(ImageSimilarityEmbedding.path, ImageSimilarityEmbedding.pdq_hash).where(
-            ImageSimilarityEmbedding.path.in_(candidate_paths),
-            ImageSimilarityEmbedding.pdq_hash != "",
+            sql_filters.path_in(candidate_paths),
+            sql_filters.pdq_hash_nonempty(),
         )
     ).all()
 

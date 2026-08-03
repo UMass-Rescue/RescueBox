@@ -1,9 +1,11 @@
-from image_summary.main import app as cli_app, APP_NAME, task_schema, server
-from rb.lib.common_tests import RBAppTest
+import json
 from pathlib import Path
 from unittest.mock import patch
+
+from image_summary.main import APP_NAME, server, task_schema
+from image_summary.main import app as cli_app
 from image_summary.process import SUPPORTED_IMAGE_EXTENSIONS, iter_image_files
-import json
+from rb.lib.common_tests import RBAppTest
 
 
 def _mock_process_images(model, input_dir, output_dir, file_filter):
@@ -56,7 +58,7 @@ class TestImageSummary(RBAppTest):
                 f.unlink()
             except Exception:
                 pass
-        input_str = f"{str(full_path)},{str(output_path)}"
+        input_str = f"{full_path!s},{output_path!s}"
         parameter_str = "gemma3:4b"
 
         result = self.runner.invoke(
@@ -138,7 +140,7 @@ class TestImageSummary(RBAppTest):
     def test_invalid_path(self, ensure_model_exists_mock):
         summarize_api = f"/{APP_NAME}/summarize-images"
         bad_path = Path.cwd() / "src" / "image-summary" / "bad_tests"
-        input_str = f"{str(bad_path)},{str(bad_path)}"
+        input_str = f"{bad_path!s},{bad_path!s}"
         parameter_str = "gemma3:4b"
         result = self.runner.invoke(
             self.cli_app, [summarize_api, input_str, parameter_str]

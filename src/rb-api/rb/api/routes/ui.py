@@ -7,7 +7,6 @@ from fastapi import APIRouter, Request
 from fastapi.templating import Jinja2Templates
 from rb.lib.typer import typer_app_to_tree
 
-
 from rescuebox.main import app as rescuebox_app
 
 ui_router = APIRouter()

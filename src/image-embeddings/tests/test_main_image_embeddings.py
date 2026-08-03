@@ -4,10 +4,10 @@ import pytest
 from image_embeddings.main import (
     DEFAULT_CLIP_MODEL,
     ClipImageDirectory,
-    search_images,
-    task_schema,
     Inputs,
     Parameters,
+    search_images,
+    task_schema,
 )
 from rb.api.models import TextInput
 

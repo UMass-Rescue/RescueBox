@@ -1,14 +1,14 @@
 import inspect
 import typing
 
-from rb.api.models import InputType
 import typer
 from anytree import Node
+from rb.api.models import InputType
 
 
 def get_inputs_from_signature(
     signature: inspect.Signature,
-    command: typing.Optional[typer.models.CommandInfo] = None,
+    command: typer.models.CommandInfo | None = None,
     schema_commands: dict = None,
 ) -> list[dict]:
     result = []

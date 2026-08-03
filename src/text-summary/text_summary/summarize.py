@@ -1,7 +1,8 @@
-from pathlib import Path
-from text_summary.text_parser import PARSERS
-from text_summary.model import summarize, ensure_model_exists
 import logging
+from pathlib import Path
+
+from text_summary.model import ensure_model_exists, summarize
+from text_summary.text_parser import PARSERS
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

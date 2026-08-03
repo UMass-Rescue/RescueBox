@@ -1,4 +1,5 @@
 from importlib.metadata import version
+
 import typer
 from rich import print
 

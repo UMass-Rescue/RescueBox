@@ -1,16 +1,17 @@
 """Tests for text embeddings search functionality."""
 
+from pathlib import Path
+
 import pytest
+from rb.api.models import BatchFileInput, FileInput, TextInput
+from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
 from text_embeddings.main import (
     Inputs,
     Parameters,
+    TextCorpusDirectory,
     search,
     task_schema,
-    TextCorpusDirectory,
 )
-from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
-from rb.api.models import TextInput, BatchFileInput, FileInput
-from pathlib import Path
 
 
 def test_search_task_schema():

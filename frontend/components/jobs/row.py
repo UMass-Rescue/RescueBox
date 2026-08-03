@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
-from typing import Callable, Dict, Optional
 
 from nicegui import ui
 
-from frontend.design_tokens import Design
 from frontend.components.jobs.status_badge import append_job_status_icon_and_label
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +26,11 @@ _ROW_DELETE_BTN = (
 
 def render_job_row(
     container,
-    job: Dict,
-    plugin_name: Optional[str] = None,
-    on_view: Optional[Callable] = None,
-    on_cancel: Optional[Callable] = None,
-    on_delete: Optional[Callable] = None,
+    job: dict,
+    plugin_name: str | None = None,
+    on_view: Callable | None = None,
+    on_cancel: Callable | None = None,
+    on_delete: Callable | None = None,
 ):
     """
     Render a job row in table format.
@@ -116,7 +116,7 @@ def render_job_row(
             with ui.row().classes(
                 f"w-32 shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold {pill_cls}"
             ):
-                append_job_status_icon_and_label(status)
+                append_job_status_icon_and_label(status, job.get("statusText"))
 
             # Actions
             with ui.row().classes("gap-2 w-48 shrink-0 flex-nowrap"):

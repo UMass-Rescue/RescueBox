@@ -15,8 +15,8 @@ from frontend.config import (
     APP_TITLE,
     APP_VERSION,
 )
-from frontend.utils.ui import apply_saved_theme
 from frontend.constants import NAV_LINKS
+from frontend.utils.ui import apply_saved_theme
 
 logger = logging.getLogger(__name__)
 
