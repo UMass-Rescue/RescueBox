@@ -9,13 +9,14 @@ To run these tests:
 2. Run: pytest frontend/tests/integration/test_pages_integration.py -v -m api
 """
 
-import pytest
-import pytest_asyncio
-import httpx
+import asyncio
 import logging
 import os
 import uuid
-import asyncio
+
+import httpx
+import pytest
+import pytest_asyncio
 from nicegui.testing import User  # type: ignore
 
 from frontend.tests.integration.chatbot_ui_helpers import (
@@ -78,8 +79,8 @@ class TestChatbotPageIntegration:
     @pytest.mark.asyncio
     async def test_chatbot_creates_conversation(self, user: User):
         """Test that chatbot creates conversation on load"""
-        from frontend.utils import get_current_conversation_id
         from frontend.database import get_chat_history_db
+        from frontend.utils import get_current_conversation_id
 
         await open_chatbot_and_wait_for_ready(user)
 

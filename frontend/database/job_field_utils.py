@@ -2,7 +2,7 @@
 
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from rb.api.models import RequestBody, TaskSchema
 
@@ -13,7 +13,7 @@ from frontend.database.job_models import JobRecord
 logger = logging.getLogger(__name__)
 
 
-def extract_job_fields(job) -> Dict[str, Any]:
+def extract_job_fields(job) -> dict[str, Any]:
     """Extract job fields with backward compatibility for JobRecord and dict."""
     if isinstance(job, JobRecord):
         request = (
@@ -56,9 +56,7 @@ def extract_job_fields(job) -> Dict[str, Any]:
     return job if isinstance(job, dict) else {}
 
 
-async def get_plugin_name(
-    api_client: APIClient, model_uid: Optional[str]
-) -> Optional[str]:
+async def get_plugin_name(api_client: APIClient, model_uid: str | None) -> str | None:
     """Get model name by model UID."""
     if not model_uid:
         return None
@@ -72,8 +70,8 @@ async def get_plugin_name(
 
 
 def partition_jobs_by_pipeline(
-    jobs: List[Dict[str, Any]],
-) -> List[List[Dict[str, Any]]]:
+    jobs: list[dict[str, Any]],
+) -> list[list[dict[str, Any]]]:
     """Split flat job rows into display groups."""
     if not jobs:
         return []
@@ -81,7 +79,7 @@ def partition_jobs_by_pipeline(
         j.get("pipelineRootJobId") for j in jobs if j.get("pipelineRootJobId")
     }
 
-    def bucket_key(j: Dict[str, Any]) -> str:
+    def bucket_key(j: dict[str, Any]) -> str:
         pr = j.get("pipelineRootJobId")
         if pr:
             return str(pr)
@@ -90,11 +88,11 @@ def partition_jobs_by_pipeline(
             return uid
         return f"__single:{uid}"
 
-    buckets: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    buckets: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for j in jobs:
         buckets[bucket_key(j)].append(j)
 
-    groups: List[List[Dict[str, Any]]] = []
+    groups: list[list[dict[str, Any]]] = []
     for members in buckets.values():
         members_sorted = sorted(members, key=lambda x: x.get("startTime") or "")
         groups.append(members_sorted)
@@ -106,14 +104,14 @@ def partition_jobs_by_pipeline(
     return groups
 
 
-def pipeline_group_root_id(group: List[Dict[str, Any]]) -> str:
+def pipeline_group_root_id(group: list[dict[str, Any]]) -> str:
     if not group:
         return ""
     return group[0].get("pipelineRootJobId") or group[0].get("uid") or ""
 
 
 def compute_job_results_title(
-    endpoint_name: Optional[str], endpoint_name_chain: Optional[List[str]]
+    endpoint_name: str | None, endpoint_name_chain: list[str] | None
 ) -> str:
     chain = (
         endpoint_name_chain

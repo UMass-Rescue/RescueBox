@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from nicegui import ui
 
@@ -12,7 +11,7 @@ from frontend.utils.ui import _safe_ui_call
 class BaseHandler:
     """Base class for all handler classes providing common functionality."""
 
-    def __init__(self, logger_name: Optional[str] = None):
+    def __init__(self, logger_name: str | None = None):
         self.logger = logging.getLogger(logger_name or self.__class__.__name__)
 
     def log_debug(self, message: str, *args) -> None:

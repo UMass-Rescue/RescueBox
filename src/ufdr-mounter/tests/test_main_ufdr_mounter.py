@@ -1,18 +1,20 @@
+import os
 import uuid
+from pathlib import Path
+
+import pytest
+from rb.lib.common_tests import RBAppTest
 
 from ufdr_mounter.ufdr_server import (
-    app as cli_app,
     APP_NAME,
-    ufdr_task_schema,
     server,
+    ufdr_task_schema,
     validate_mount_folder,
     validate_mount_name_tmp,
 )
-from rb.lib.common_tests import RBAppTest
-from pathlib import Path
-import os
-
-import pytest
+from ufdr_mounter.ufdr_server import (
+    app as cli_app,
+)
 
 # Note : pre req libfuse library must be available in the test environment
 

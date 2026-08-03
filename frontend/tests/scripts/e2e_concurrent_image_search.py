@@ -29,9 +29,9 @@ from __future__ import annotations
 
 import asyncio
 import os
+import random
 import sys
 import time
-import random
 from typing import Any
 
 import httpx

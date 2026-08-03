@@ -10,9 +10,10 @@ Note: We use mocks for ui.notify because:
 This is an acceptable use of mocks for UI side effects.
 """
 
+from unittest.mock import patch
+
 import pytest
 from nicegui.testing import User
-from unittest.mock import patch
 
 
 class TestNotificationsUI:
@@ -22,6 +23,7 @@ class TestNotificationsUI:
     async def test_notify_success_displays(self, user: User):
         """Test that success notification is triggered"""
         from nicegui import ui
+
         from frontend.components.shared import notify_success
 
         notification_called = False
@@ -51,6 +53,7 @@ class TestNotificationsUI:
     async def test_notify_error_displays(self, user: User):
         """Test that error notification is triggered"""
         from nicegui import ui
+
         from frontend.components.shared import notify_error
 
         notification_called = False
@@ -78,6 +81,7 @@ class TestNotificationsUI:
     async def test_notify_info_displays(self, user: User):
         """Test that info notification is triggered"""
         from nicegui import ui
+
         from frontend.components.shared import notify_info
 
         notification_called = False
@@ -103,6 +107,7 @@ class TestNotificationsUI:
     async def test_notify_warning_displays(self, user: User):
         """Test that warning notification is triggered"""
         from nicegui import ui
+
         from frontend.components.shared import notify_warning
 
         notification_called = False

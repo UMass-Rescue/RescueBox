@@ -1,10 +1,10 @@
-import os
-import cv2
-import numpy as np
 import logging
-import matplotlib.pyplot as plt
-import matplotlib
+import os
 
+import cv2
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 from face_detection_recognition.hash import sha256_image
 
 matplotlib.use("Agg")
@@ -554,7 +554,7 @@ def process_yolo_detections(
         embeddings = get_embedding(detections, model_name, "base")
 
     except Exception as e:
-        logger.error(f"Error getting embedding for face {i}: {str(e)}")
+        logger.error(f"Error getting embedding for face {i}: {e!s}")
 
     i = 0
     for num_detections in detections_per_image:

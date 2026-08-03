@@ -12,15 +12,15 @@ layer should use :func:`resolve_text_file_corpus_paths` so that:
 from __future__ import annotations
 
 import os
-from typing import Any, FrozenSet, Optional
+from typing import Any
 
-_DEFAULT_TEXT_EXTENSIONS: FrozenSet[str] = frozenset({".txt", ".text", ".md", ".log"})
+_DEFAULT_TEXT_EXTENSIONS: frozenset[str] = frozenset({".txt", ".text", ".md", ".log"})
 
 
 def list_text_files_in_directory(
     input_dir: str,
     *,
-    allowed_extensions: Optional[FrozenSet[str]] = None,
+    allowed_extensions: frozenset[str] | None = None,
 ) -> list[str]:
     """Return sorted list of text file paths directly under ``input_dir`` (non-recursive)."""
     exts = (
@@ -51,7 +51,7 @@ def resolve_text_file_corpus_paths(
     inputs: Any,
     input_dir: str,
     *,
-    allowed_extensions: Optional[FrozenSet[str]] = None,
+    allowed_extensions: frozenset[str] | None = None,
     empty_dir_error: str = "No text files found in directory",
 ) -> tuple[list[str], str]:
     """

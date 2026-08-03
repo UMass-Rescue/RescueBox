@@ -1,39 +1,41 @@
 from __future__ import annotations
 
-from typing import Any, List, TypedDict, cast
 import hashlib
 import logging
 import os
 import threading
-from pathlib import Path
 from functools import cache
+from pathlib import Path
+from typing import Any, TypedDict, cast
+
 import numpy as np
 import onnxruntime as ort
 import typer
 from pydantic import DirectoryPath
-from rb.lib.ml_service import MLService
-from rb.api.models import (
-    InputSchema,
-    InputType,
-    ParameterSchema,
-    EnumParameterDescriptor,
-    EnumVal,
-    RangedIntParameterDescriptor,
-    RangedFloatParameterDescriptor,
-    IntRangeDescriptor,
-    FloatRangeDescriptor,
-    ResponseBody,
-    TaskSchema,
-    FileFilterDirectory,
-    TextInput,
-    BatchFileResponse,
-    FileResponse,
-    FileType,
-)
 from rb.api.database import ImageEmbedding, engine
 from rb.api.embedding_storage import ImageEmbeddingStorage
-from sqlmodel import Session, select
+from rb.api.models import (
+    BatchFileResponse,
+    EnumParameterDescriptor,
+    EnumVal,
+    FileFilterDirectory,
+    FileResponse,
+    FileType,
+    FloatRangeDescriptor,
+    InputSchema,
+    InputType,
+    IntRangeDescriptor,
+    ParameterSchema,
+    RangedFloatParameterDescriptor,
+    RangedIntParameterDescriptor,
+    ResponseBody,
+    TaskSchema,
+    TextInput,
+)
+from rb.lib.job_progress import report_file_progress
+from rb.lib.ml_service import MLService
 from sqlalchemy import bindparam, text
+from sqlmodel import Session, select
 from transformers.models.clip.processing_clip import CLIPProcessor
 
 APP_NAME = "image_embeddings"
@@ -57,7 +59,7 @@ class ClipImageDirectory(FileFilterDirectory):
     """Directory must exist, be non-empty, and contain at least one allowed image extension."""
 
     path: DirectoryPath
-    file_extensions: List[str] = list(CLIP_IMAGE_EXTENSIONS)
+    file_extensions: list[str] = list(CLIP_IMAGE_EXTENSIONS)
 
 
 class Inputs(TypedDict):
@@ -338,91 +340,115 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             storage = ImageEmbeddingStorage(session)
             already = _paths_already_embedded(session, file_paths)
             file_paths_set = set(file_paths)
+            total_paths = len(file_paths)
+            processed_paths = 0
+            last_reported = 0
 
             for path in file_paths:
-                if path in already:
-                    paths_for_search.append(path)
-                    reused_count += 1
-                    continue
-                h = path_to_hash[path]
-                row = (
-                    session.execute(
-                        select(ImageEmbedding).where(ImageEmbedding.content_sha256 == h)
-                    )
-                    .scalars()
-                    .first()
-                )
-                if row is None:
-                    try:
-                        image = Image.open(path).convert("RGB")
-                        inputs_processed = dict(
-                            processor(
-                                images=image, return_tensors="np", do_rescale=True
-                            )
-                        )
-                        vision_inputs = {**inputs_processed, **dummy_text}
-                        onnx_session, required = _pick_session_for_inputs(
-                            (text_session, vision_session),
-                            vision_inputs,
-                            "vision",
-                        )
-                        if "pixel_values" not in required:
-                            raise ValueError(
-                                f"Vision ONNX session missing pixel_values input: {sorted(required)}"
-                            )
-                        outputs = onnx_session.run(
-                            ["image_embeds"],
-                            {k: v for k, v in vision_inputs.items() if k in required},
-                        )
-                        image_features = outputs[0]
-                        if image_features.shape[-1] != expected_dim:
-                            raise ValueError(
-                                f"CLIP ONNX vision output dim={image_features.shape[-1]}; "
-                                f"image_embeddings.embedding is vector({expected_dim})."
-                            )
-                        image_features = image_features / np.linalg.norm(
-                            image_features, axis=-1, keepdims=True
-                        )
-                        embedding = image_features.squeeze()
-                        embedding_list = embedding.tolist()
-                        storage.save_embedding(path, embedding_list, content_sha256=h)
+                try:
+                    if path in already:
                         paths_for_search.append(path)
-                        newly_embedded_count += 1
-                        already.add(path)
-                        session.flush()
-                    except Exception as e:
-                        logger.warning("Could not process %s: %s", path, e)
+                        reused_count += 1
                         continue
-                if row is not None:
-                    row_path_str = str(row.path)
-                    if row_path_str == path or os.path.normpath(
-                        row_path_str
-                    ) == os.path.normpath(path):
+                    h = path_to_hash[path]
+                    row = (
+                        session.execute(
+                            select(ImageEmbedding).where(
+                                ImageEmbedding.content_sha256 == h
+                            )
+                        )
+                        .scalars()
+                        .first()
+                    )
+                    if row is None:
+                        try:
+                            image = Image.open(path).convert("RGB")
+                            inputs_processed = dict(
+                                processor(
+                                    images=image, return_tensors="np", do_rescale=True
+                                )
+                            )
+                            vision_inputs = {**inputs_processed, **dummy_text}
+                            onnx_session, required = _pick_session_for_inputs(
+                                (text_session, vision_session),
+                                vision_inputs,
+                                "vision",
+                            )
+                            if "pixel_values" not in required:
+                                raise ValueError(
+                                    f"Vision ONNX session missing pixel_values input: {sorted(required)}"
+                                )
+                            outputs = onnx_session.run(
+                                ["image_embeds"],
+                                {
+                                    k: v
+                                    for k, v in vision_inputs.items()
+                                    if k in required
+                                },
+                            )
+                            image_features = outputs[0]
+                            if image_features.shape[-1] != expected_dim:
+                                raise ValueError(
+                                    f"CLIP ONNX vision output dim={image_features.shape[-1]}; "
+                                    f"image_embeddings.embedding is vector({expected_dim})."
+                                )
+                            image_features = image_features / np.linalg.norm(
+                                image_features, axis=-1, keepdims=True
+                            )
+                            embedding = image_features.squeeze()
+                            embedding_list = embedding.tolist()
+                            storage.save_embedding(
+                                path, embedding_list, content_sha256=h
+                            )
+                            paths_for_search.append(path)
+                            newly_embedded_count += 1
+                            already.add(path)
+                            session.flush()
+                        except Exception as e:
+                            logger.warning("Could not process %s: %s", path, e)
+                            continue
+                    if row is not None:
+                        row_path_str = str(row.path)
+                        if row_path_str == path or os.path.normpath(
+                            row_path_str
+                        ) == os.path.normpath(path):
+                            paths_for_search.append(path)
+                            reused_count += 1
+                            already.add(path)
+                            session.flush()
+                            continue
+                        if row_path_str not in file_paths_set:
+                            row.path = path
+                            session.add(row)
+                            relocated_count += 1
+                            logger.info(
+                                "Reused image embedding by content hash (path updated): %s -> %s",
+                                row.path,
+                                path,
+                            )
+                        else:
+                            emb = (
+                                list(row.embedding) if row.embedding is not None else []
+                            )
+                            session.add(
+                                ImageEmbedding(
+                                    path=path, embedding=emb, content_sha256=h
+                                )
+                            )
+                            cloned_count += 1
                         paths_for_search.append(path)
                         reused_count += 1
                         already.add(path)
                         session.flush()
                         continue
-                    if row_path_str not in file_paths_set:
-                        row.path = path
-                        session.add(row)
-                        relocated_count += 1
-                        logger.info(
-                            "Reused image embedding by content hash (path updated): %s -> %s",
-                            row.path,
-                            path,
-                        )
-                    else:
-                        emb = list(row.embedding) if row.embedding is not None else []
-                        session.add(
-                            ImageEmbedding(path=path, embedding=emb, content_sha256=h)
-                        )
-                        cloned_count += 1
-                    paths_for_search.append(path)
-                    reused_count += 1
-                    already.add(path)
-                    session.flush()
-                    continue
+                finally:
+                    processed_paths += 1
+                    last_reported = report_file_progress(
+                        None, processed_paths, total_paths, last_reported
+                    )
+
+            if total_paths > 0:
+                report_file_progress(None, total_paths, total_paths, last_reported)
 
             if newly_embedded_count or relocated_count or cloned_count:
                 storage.commit()

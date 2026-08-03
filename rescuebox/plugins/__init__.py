@@ -1,32 +1,42 @@
 from dataclasses import dataclass
 
 import typer
+from age_and_gender_detection.main import APP_NAME as AGE_GENDER_APP_NAME
+from age_and_gender_detection.main import app as age_gender_app  # type: ignore
+from audio_transcription.main import (
+    APP_NAME as AUDIO_APP_NAME,
+)
 from audio_transcription.main import (
     app as audio_transcription_app,
-    APP_NAME as AUDIO_APP_NAME,
 )  # type: ignore
-from text_summary.main import app as text_summary_app, APP_NAME as TEXT_SUM_APP_NAME  # type: ignore
-from age_and_gender_detection.main import app as age_gender_app, APP_NAME as AGE_GENDER_APP_NAME  # type: ignore
-from deepfake_detection.main import app as deepfake_detection_app, APP_NAME as DEEPFAKE_APP_NAME  # type: ignore
+from deepfake_detection.main import APP_NAME as DEEPFAKE_APP_NAME
+from deepfake_detection.main import app as deepfake_detection_app  # type: ignore
 
 # Import plugin modules
 from doc_parser.main import app as doc_parser_app  # type: ignore
-from file_utils.main import app as file_utils_app  # type: ignore
+from face_detection_recognition.face_match_server import (
+    APP_NAME as FACE_MATCH_APP_NAME,
+)
 from face_detection_recognition.face_match_server import (
     app as face_detection_app,
-    APP_NAME as FACE_MATCH_APP_NAME,
 )  # type: ignore
-
-from image_summary.main import app as image_summary_app, APP_NAME as IMAGE_SUM_APP_NAME  # type: ignore
-
-from text_embeddings.main import app as text_embeddings_app, APP_NAME as TEXT_EMB_APP_NAME  # type: ignore
-from image_embeddings.main import app as image_embeddings_app, APP_NAME as IMAGE_EMB_APP_NAME  # type: ignore
-from image_similarity.main import app as image_similarity_app, APP_NAME as IMAGE_SIM_APP_NAME  # type: ignore
+from file_utils.main import app as file_utils_app  # type: ignore
+from image_embeddings.main import APP_NAME as IMAGE_EMB_APP_NAME
+from image_embeddings.main import app as image_embeddings_app  # type: ignore
+from image_similarity.main import APP_NAME as IMAGE_SIM_APP_NAME
+from image_similarity.main import app as image_similarity_app  # type: ignore
+from image_summary.main import APP_NAME as IMAGE_SUM_APP_NAME
+from image_summary.main import app as image_summary_app  # type: ignore
+from text_embeddings.main import APP_NAME as TEXT_EMB_APP_NAME
+from text_embeddings.main import app as text_embeddings_app  # type: ignore
+from text_summary.main import APP_NAME as TEXT_SUM_APP_NAME
+from text_summary.main import app as text_summary_app  # type: ignore
 
 ufdr_app = None
 try:
-    from ufdr_mounter.ufdr_server import app as ufdr_app, APP_NAME as UFDR_APP_NAME  # type: ignore
-except EnvironmentError:
+    from ufdr_mounter.ufdr_server import APP_NAME as UFDR_APP_NAME
+    from ufdr_mounter.ufdr_server import app as ufdr_app  # type: ignore
+except OSError:
     print(
         "Warning: UFDR pre req for mount not available. Hence skipping the UFDR plugin. "
     )

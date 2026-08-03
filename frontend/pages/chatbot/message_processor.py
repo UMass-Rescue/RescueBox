@@ -4,10 +4,10 @@ import asyncio
 import logging
 
 from frontend.chatbot.message_handler import MessageHandler
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database.chat_history_db import get_chat_history_db
 from frontend.pages.chatbot.database_service import DatabaseService
 from frontend.pages.chatbot.state import ChatbotStateManager, ChatMessage
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -107,5 +107,5 @@ class MessageProcessor:
         except UI_RENDER_ERRORS as e:
             logger.error("Error sending message: %s", str(e))
             self.state_manager.set_processing(False)
-            show_error_callback(f"Failed to send message: {str(e)}")
+            show_error_callback(f"Failed to send message: {e!s}")
             return None

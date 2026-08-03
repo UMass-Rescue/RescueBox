@@ -1,17 +1,19 @@
-from PIL import Image
-import onnxruntime as ort
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import onnxruntime as ort
+from PIL import Image
+
+from deepfake_detection.process.facedetector import faceDetector
 from deepfake_detection.process.utils import (
-    Compose,
     # InterpolationMode,
     # Resize,
     CenterCrop,
-    ToImage,
-    ToDtype,
+    Compose,
     Normalize,
+    ToDtype,
+    ToImage,
 )
-from deepfake_detection.process.facedetector import faceDetector
 
 
 # Trained on COCOFake dataset
@@ -73,9 +75,7 @@ class Resnet50ModelONNX:
 
     def decode_prediction(self, confidence):
         confidence = confidence.item()
-        if confidence < 0.2:
-            label = "likely fake"
-        elif confidence < 0.4:
+        if confidence < 0.2 or confidence < 0.4:
             label = "likely fake"
         elif confidence < 0.6:
             label = "uncertain"

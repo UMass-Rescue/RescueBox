@@ -16,15 +16,16 @@ The tests cover:
 - File type detection and appropriate rendering
 """
 
-import pytest
-from nicegui.testing import User
-from nicegui import ui
 from unittest.mock import patch
+
+import pytest
+from nicegui import ui
+from nicegui.testing import User
 
 # Import file rendering components
 from frontend.components.results import (
-    render_file,
     render_batch_file,
+    render_file,
 )
 
 # Test constants
@@ -109,7 +110,7 @@ class TestFileRenderers:
         rendered in a tabular format showing file information alongside
         associated metadata fields like age, gender, etc.
         """
-        from rb.api.models import FileResponse, BatchFileResponse, FileType
+        from rb.api.models import BatchFileResponse, FileResponse, FileType
 
         files = [
             FileResponse(
@@ -155,7 +156,7 @@ class TestFileRenderers:
         in a clean grid layout showing only essential file information
         like type and title, without metadata columns.
         """
-        from rb.api.models import FileResponse, BatchFileResponse, FileType
+        from rb.api.models import BatchFileResponse, FileResponse, FileType
 
         files = [
             FileResponse(

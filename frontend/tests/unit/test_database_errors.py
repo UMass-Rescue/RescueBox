@@ -15,9 +15,11 @@ providing appropriate error messages while maintaining data integrity
 and preventing application crashes during database operations.
 """
 
-import pytest
 import sqlite3
 from unittest.mock import Mock, patch
+
+import pytest
+
 from frontend.database.chat_history_db import ChatHistoryDB
 
 # Test constants

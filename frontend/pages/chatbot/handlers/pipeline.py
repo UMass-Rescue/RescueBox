@@ -14,6 +14,7 @@ from frontend.chatbot.multi_tool_handler import (
     extract_batch_file_items,
 )
 from frontend.components.chat import UIOperations
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database import get_job_db
 from frontend.design_tokens import Design
 from frontend.pages.chatbot.handlers.job_submit_params import JobSubmitParams
@@ -23,7 +24,6 @@ from frontend.pages.chatbot.handlers.pipeline_planner import (
 )
 from frontend.pages.chatbot.ui_flow import load_and_show_form
 from frontend.utils import notify_info, notify_warning
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 if TYPE_CHECKING:
     from .job_orchestrator import JobSubmissionOrchestrator
@@ -46,7 +46,7 @@ def compose_age_gender_pipeline_filter(gender, age_op, age_val):
 class PipelineHandler:
     """Handles multi-step job submission workflows."""
 
-    def __init__(self, orchestrator: "JobSubmissionOrchestrator"):
+    def __init__(self, orchestrator: JobSubmissionOrchestrator):
         self.orchestrator = orchestrator
         self.logger = logging.getLogger(__name__)
 

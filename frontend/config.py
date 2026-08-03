@@ -69,6 +69,10 @@ else:
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DATA_DIR / "jobs.db"
+PROGRESS_DIR = Path(os.getenv("RESCUEBOX_PROGRESS_DIR", str(DATA_DIR / "progress")))
+PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
+if "RESCUEBOX_PROGRESS_DIR" not in os.environ:
+    os.environ["RESCUEBOX_PROGRESS_DIR"] = str(PROGRESS_DIR)
 
 # Logging Configuration
 LOG_LEVEL = os.getenv("RESCUEBOX_LOG_LEVEL", "INFO")

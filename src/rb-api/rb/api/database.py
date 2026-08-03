@@ -1,7 +1,8 @@
+import os
+
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import String, Text
-from sqlmodel import Field, SQLModel, create_engine, Column, Index
-import os
+from sqlmodel import Column, Field, Index, SQLModel, create_engine
 
 ## Create the data model and connect to the DB
 
@@ -270,4 +271,4 @@ try:
     )
     face_index.create(engine)
 except Exception:
-    print("Index probably already exists")
+    print("Index already exists")

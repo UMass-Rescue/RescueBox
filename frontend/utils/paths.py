@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
-from typing import Optional, List, Any, Dict
+from typing import Any
+
 from rb.api.models import InputType
 
 from frontend.config import DEMO_FOLDERS_BASE
@@ -102,7 +103,7 @@ def suggested_ufdr_mount_folder_path(ufdr_file_path: str) -> str:
 
 
 def apply_ufdr_mount_autofill_after_inputs_built(
-    form_widgets: Dict, ufdr_file_field_id: str, mount_folder_field_id: str
+    form_widgets: dict, ufdr_file_field_id: str, mount_folder_field_id: str
 ):
     """Effect helper to link a UFDR file selection to an automatic output path suggestion."""
     ufdr_w = form_widgets.get(ufdr_file_field_id)
@@ -120,7 +121,7 @@ def apply_ufdr_mount_autofill_after_inputs_built(
 
 
 def maybe_autofill_ufdr_mount_name_field(
-    form_widgets: Dict, mount_name_field_id: str, ufdr_file_path: str
+    form_widgets: dict, mount_name_field_id: str, ufdr_file_path: str
 ):
     """Effect helper to pre-fill a UFDR mount point name based on the selected file."""
     w = form_widgets.get(mount_name_field_id)
@@ -159,7 +160,7 @@ def _directory_contains_raster_image(
     return False
 
 
-def _resolved_existing_directory(initial: Optional[str]) -> Optional[str]:
+def _resolved_existing_directory(initial: str | None) -> str | None:
     if not initial:
         return None
     try:
@@ -174,7 +175,7 @@ def _resolved_existing_directory(initial: Optional[str]) -> Optional[str]:
     return None
 
 
-def _resolved_file_browser_folder(initial: Optional[str]) -> Optional[str]:
+def _resolved_file_browser_folder(initial: str | None) -> str | None:
     if not initial:
         return None
     try:
@@ -193,7 +194,7 @@ def _resolved_file_browser_folder(initial: Optional[str]) -> Optional[str]:
 
 def _input_schema_directory_requires_raster_image_corpus(
     input_schema: Any,
-    all_inputs: List[Any] = None,
+    all_inputs: list[Any] = None,
     input_index: int = -1,
 ) -> bool:
     """True when the given directory input likely needs to contain raster images."""

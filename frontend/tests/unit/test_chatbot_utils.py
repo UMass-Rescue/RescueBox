@@ -18,9 +18,9 @@ user-friendly interactions with the RescueBox AI assistant.
 """
 
 from frontend.chatbot.utils import (
-    normalize_arguments,
-    is_rescuebox_request,
     get_rejection_message,
+    is_rescuebox_request,
+    normalize_arguments,
 )
 
 # Test constants for argument normalization

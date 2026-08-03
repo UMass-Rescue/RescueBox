@@ -84,15 +84,13 @@ class ToolPicker:
                             with row:
                                 with ui.row().classes(
                                     "items-center gap-4 flex-1 min-w-0"
-                                ):
-
-                                    with ui.column().classes("flex-1 min-w-0 gap-0.5"):
-                                        ui.label(f'{num}. {tool["name"]}').classes(
-                                            "text-lg font-bold text-slate-800 leading-snug"
-                                        )
-                                        ui.label(
-                                            tool.get("desc", "No description")
-                                        ).classes(_TOOL_DESC)
+                                ), ui.column().classes("flex-1 min-w-0 gap-0.5"):
+                                    ui.label(f'{num}. {tool["name"]}').classes(
+                                        "text-lg font-bold text-slate-800 leading-snug"
+                                    )
+                                    ui.label(
+                                        tool.get("desc", "No description")
+                                    ).classes(_TOOL_DESC)
 
                                 with ui.row().classes(_LAUNCH_ROW):
                                     ui.label("Run")

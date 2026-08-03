@@ -96,8 +96,8 @@ async def test_granite_selects_expected_tool_first(
     caplog,
 ):
     """First tool call from Granite must match ``expected_endpoint`` for the given prompt."""
-    from frontend.chatbot.core import ChatbotCore
     from frontend.chatbot.config import ChatbotConfig
+    from frontend.chatbot.core import ChatbotCore
 
     config = ChatbotConfig(OLLAMA_HOST=OLLAMA_HOST, GRANITE_MODEL=granite_model_tag)
     core = ChatbotCore(config)

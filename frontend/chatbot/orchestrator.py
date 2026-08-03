@@ -2,7 +2,7 @@
 
 import inspect
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import httpx
 from rb.api.models import ResponseBody
@@ -20,8 +20,9 @@ async def submit_job_orchestrator(
     api_wrapper,
     http_client,
     config,
-    request_body_dict: Dict[str, Any],
+    request_body_dict: dict[str, Any],
     api_endpoint: str,
+    job_id: str | None = None,
 ) -> ResponseBody:
     """
     Orchestrate job submission using api_helpers.post_job and normalize the response
@@ -33,7 +34,7 @@ async def submit_job_orchestrator(
     logger.info("Orchestrating job execution for %s", api_endpoint)
     try:
         response_data = await post_job(
-            api_wrapper, http_client, config, api_endpoint, request_body_dict
+            api_wrapper, http_client, config, api_endpoint, request_body_dict, job_id
         )
     except httpx.HTTPStatusError as e:
         status = getattr(e.response, "status_code", None)
@@ -57,7 +58,7 @@ async def submit_job_orchestrator(
             detail_text or f"Job submission failed: HTTP {status}"
         ) from e
     except httpx.RequestError as e:
-        raise RuntimeError(f"Network error submitting job: {str(e)}") from e
+        raise RuntimeError(f"Network error submitting job: {e!s}") from e
 
     # Normalize mappings to plain dict if needed
     if inspect.isawaitable(response_data):

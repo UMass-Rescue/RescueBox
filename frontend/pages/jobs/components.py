@@ -6,6 +6,7 @@ from datetime import datetime
 from nicegui import ui
 
 from frontend.components import jobs as job_ui
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.utils.logging import (
     format_audit_trail_markdown,
     generate_audit_trail_for_job,
@@ -13,7 +14,6 @@ from frontend.utils.logging import (
 from frontend.utils.ui import notify_error, notify_info, notify_success
 
 from .utils import get_plugin_name
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 _AUDIT_BTN = (
     "bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg "
@@ -43,7 +43,7 @@ async def create_audit_trail_button(job_id: str):
             notify_success(f"Audit trail exported: {filename}")
         except UI_RENDER_ERRORS as e:
             logger.error("Error exporting audit trail: %s", e)
-            notify_error(f"Error exporting audit trail: {str(e)}")
+            notify_error(f"Error exporting audit trail: {e!s}")
 
     return ui.button(
         "Export Audit Trail",
@@ -73,13 +73,13 @@ async def render_job_details_panel(container, api_client, job_fields):
 # Re-export for callers that import get_plugin_name from this module historically.
 __all__ = [
     "create_audit_trail_button",
-    "render_job_action_buttons",
+    "get_plugin_name",
     "render_compact_inputs_summary",
-    "render_readonly_form",
     "render_error_status",
-    "render_model_info",
+    "render_job_action_buttons",
+    "render_job_details_panel",
     "render_job_metadata",
     "render_job_outputs_card",
-    "render_job_details_panel",
-    "get_plugin_name",
+    "render_model_info",
+    "render_readonly_form",
 ]

@@ -1,16 +1,18 @@
-from PIL import Image
-import onnxruntime as ort
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import onnxruntime as ort
+from PIL import Image
+
+from deepfake_detection.process.facedetector import faceDetector
 from deepfake_detection.process.utils import (
+    CenterCrop,
     Compose,
     InterpolationMode,
     Resize,
-    CenterCrop,
-    ToImage,
     ToDtype,
+    ToImage,
 )
-from deepfake_detection.process.facedetector import faceDetector
 
 
 # Trained on COCOFake dataset

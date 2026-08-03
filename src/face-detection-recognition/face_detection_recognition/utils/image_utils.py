@@ -1,19 +1,19 @@
 # built-in dependencies
-import os
-import io
-from typing import List, Union, Tuple
-import hashlib
 import base64
+import hashlib
+import io
+import os
 from pathlib import Path
+
+import cv2
+import numpy as np
 
 # 3rd party dependencies
 import requests
-import numpy as np
-import cv2
 from PIL import Image
 
 
-def list_images(path: str) -> List[str]:
+def list_images(path: str) -> list[str]:
     """
     List images in a given path
     Args:
@@ -60,7 +60,7 @@ def find_image_hash(file_path: str) -> str:
     return hasher.hexdigest()
 
 
-def load_image(img: Union[str, np.ndarray]) -> Tuple[np.ndarray, str]:
+def load_image(img: str | np.ndarray) -> tuple[np.ndarray, str]:
     """
     Load image from path, url, base64 or numpy array.
     Args:

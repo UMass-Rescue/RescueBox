@@ -3,10 +3,9 @@
 import json
 import logging
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 from rb.api.models import RequestBody, ResponseBody, TaskSchema
 
 from frontend.database.db_exceptions import DB_ERRORS
@@ -33,41 +32,37 @@ class JobRecord(BaseModel):
     """
 
     uid: str = Field(..., description="Unique job identifier")
-    userId: Optional[str] = Field(
-        None, description="NiceGUI session or user identifier"
-    )
-    modelUid: Optional[str] = Field(None, description="Model UID for traditional jobs")
-    taskUid: Optional[str] = Field(None, description="Task UID for traditional jobs")
-    endpoint: Optional[str] = Field(None, description="Endpoint name for chatbot jobs")
-    endpointChain: Optional[List[str]] = Field(
+    userId: str | None = Field(None, description="NiceGUI session or user identifier")
+    modelUid: str | None = Field(None, description="Model UID for traditional jobs")
+    taskUid: str | None = Field(None, description="Task UID for traditional jobs")
+    endpoint: str | None = Field(None, description="Endpoint name for chatbot jobs")
+    endpointChain: list[str] | None = Field(
         None,
         description="Ordered endpoints for multi-step chatbot pipelines (includes current job endpoint)",
     )
-    pipelineRootJobId: Optional[str] = Field(
+    pipelineRootJobId: str | None = Field(
         None,
         description="Stable id for the first job in a multi-step pipeline; links sibling step jobs",
     )
-    pipelineMetadataFilterCriteria: Optional[str] = Field(
+    pipelineMetadataFilterCriteria: str | None = Field(
         None,
         description="Classifier metadata filter (e.g. age/gender) applied when chaining to the next pipeline step",
     )
-    filterId: Optional[str] = Field(
+    filterId: str | None = Field(
         None, description="Optional persisted filter id linking to file_filters"
     )
-    caseNotes: Optional[str] = Field(
+    caseNotes: str | None = Field(
         None, description="User-entered case notes for the job"
     )
     startTime: str = Field(..., description="Job start time in ISO format")
-    endTime: Optional[str] = Field(None, description="Job end time in ISO format")
+    endTime: str | None = Field(None, description="Job end time in ISO format")
     status: JobStatus = Field(..., description="Job status")
-    statusText: Optional[str] = Field(None, description="Status text for errors")
-    request: Union[RequestBody, Dict[str, Any]] = Field(..., description="Request body")
-    response: Optional[Union[ResponseBody, Dict[str, Any]]] = Field(
+    statusText: str | None = Field(None, description="Status text for errors")
+    request: RequestBody | dict[str, Any] = Field(..., description="Request body")
+    response: ResponseBody | dict[str, Any] | None = Field(
         None, description="Response body"
     )
-    taskSchema: Union[TaskSchema, Dict[str, Any]] = Field(
-        ..., description="Task schema"
-    )
+    taskSchema: TaskSchema | dict[str, Any] = Field(..., description="Task schema")
 
     @field_validator("request", mode="before")
     @classmethod
@@ -145,7 +140,7 @@ class JobRecord(BaseModel):
                 return JobStatus.RUNNING
         return v
 
-    def model_dump_for_db(self) -> Dict[str, Any]:
+    def model_dump_for_db(self) -> dict[str, Any]:
         """Convert JobRecord to dict for database storage."""
         data = self.model_dump(mode="json")
 
@@ -177,4 +172,4 @@ class JobRecord(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)
 
 
-__all__ = ["JobStatus", "JobRecord"]
+__all__ = ["JobRecord", "JobStatus"]

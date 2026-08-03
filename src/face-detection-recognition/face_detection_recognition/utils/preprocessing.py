@@ -1,15 +1,15 @@
-import os
-from typing import Union, Tuple
 import base64
+import os
 from pathlib import Path
+
+import cv2
 
 # 3rd party
 import numpy as np
-import cv2
 import requests
 
 
-def load_image(img: Union[str, np.ndarray]) -> Tuple[np.ndarray, str]:
+def load_image(img: str | np.ndarray) -> tuple[np.ndarray, str]:
     """
     Load image from path, url, base64 or numpy array.
     Args:
