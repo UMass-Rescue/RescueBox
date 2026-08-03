@@ -1,24 +1,28 @@
 import logging
+
 from nicegui import ui
-from frontend.chatbot.config import ToolRegistry
-from frontend.components.shared import create_navbar
-from frontend.components.jobs import render_job_row
-from frontend.database import get_job_db, JobStatus
+
 from frontend.api_client import api_client
-from frontend.constants import UI_TITLES, SUCCESS_MESSAGES
-from frontend.utils import (
-    handle_api_error,
-    show_success_to_user,
-    show_error_to_user,
-    ensure_user_id,
-    apply_saved_theme,
-)
+from frontend.chatbot.config import ToolRegistry
+from frontend.components.jobs import render_job_row
+from frontend.components.shared import create_navbar
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.constants import SUCCESS_MESSAGES, UI_TITLES
+from frontend.database import JobStatus, get_job_db
+from frontend.job_progress import mirror_running_jobs
+from frontend.utils import (
+    apply_saved_theme,
+    ensure_user_id,
+    handle_api_error,
+    show_error_to_user,
+    show_success_to_user,
+)
+
 from .utils import (
-    partition_jobs_by_pipeline,
-    pipeline_group_root_id,
     extract_job_fields,
     get_plugin_name,
+    partition_jobs_by_pipeline,
+    pipeline_group_root_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,6 +47,7 @@ class JobsPage:
         try:
             job_db = get_job_db()
             jobs_data = await job_db.get_all_jobs()
+            await mirror_running_jobs(jobs_data)
             self.jobs = sorted(
                 jobs_data, key=lambda j: j.get("startTime") or "", reverse=True
             )
@@ -124,14 +129,22 @@ async def jobs_page_route():
     page = JobsPage()
     await page.render()
 
-    # Auto-refresh if there are any running or pending jobs in the list
+    async def refresh_if_active() -> None:
+        try:
+            await page.load_jobs()
+            active = any(
+                str(j.get("status", "")).lower() in ("running", "pending")
+                for j in page.jobs
+            )
+            if not active:
+                return
+        except UI_RENDER_ERRORS:
+            return
+        ui.timer(10.0, refresh_if_active, once=True)
+
     has_active_jobs = any(
         str(job.get("status", "")).lower() in ("running", "pending")
         for job in page.jobs
     )
     if has_active_jobs:
-
-        def _reload_jobs_page() -> None:
-            ui.navigate.reload()
-
-        ui.timer(3.0, _reload_jobs_page, once=True)
+        ui.timer(10.0, refresh_if_active, once=True)

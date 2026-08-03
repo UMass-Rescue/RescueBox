@@ -208,7 +208,10 @@ class DatabaseService:
     async def complete_job(job_id: str, response_body) -> bool:
         job_db = get_job_db()
         await job_db.update_job_status(
-            uid=job_id, status=JobStatus.COMPLETED, response_body=response_body
+            uid=job_id,
+            status=JobStatus.COMPLETED,
+            response_body=response_body,
+            status_text="",
         )
         return True
 

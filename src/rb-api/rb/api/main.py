@@ -1,5 +1,3 @@
-import rb.api.dll_paths as dll_paths  # cuDNN/CUDA DLL path before onnxruntime import
-
 import logging
 import multiprocessing
 import os
@@ -7,20 +5,27 @@ import sys
 import traceback
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from rb.api import routes
-from rb.api.facematch_request_context import FacematchRescueboxUserMiddleware
+from rb.api import (
+    dll_paths,  # cuDNN/CUDA DLL path before onnxruntime import
+    routes,
+)
 from rb.api.database import create_db_and_tables
+from rb.api.facematch_request_context import FacematchRescueboxUserMiddleware
+from rb.api.job_progress_middleware import JobProgressMiddleware
 
 # Standalone API process: file logging before routes import (routes must not reconfigure).
-from rb.api.logging_setup import configure_backend_logging, backend_log_file_path
+from rb.api.logging_setup import backend_log_file_path, configure_backend_logging
+import rb.lib.ollama  # noqa: F401
 
 configure_backend_logging()
 dll_paths.log_detected_dll_paths()
+
 logger = logging.getLogger("rb.api.main")
 
 
@@ -43,6 +48,13 @@ def _run_startup() -> None:
     except Exception as exc:
         log.exception("Startup failed while creating database tables: %s", exc)
         raise
+    from rb.lib.job_progress import progress_dir
+
+    if "RESCUEBOX_PROGRESS_DIR" not in os.environ:
+        os.environ["RESCUEBOX_PROGRESS_DIR"] = str(progress_dir())
+    else:
+        progress_dir()
+    log.info("Job progress directory: %s", progress_dir())
     log.info(
         "RescueBox API ready. set RESCUEBOX_API_LOG_LEVEL=DEBUG for full trace. "
         "Log file: %s",
@@ -75,6 +87,7 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 app.add_middleware(FacematchRescueboxUserMiddleware)
+app.add_middleware(JobProgressMiddleware)
 
 
 app.mount(

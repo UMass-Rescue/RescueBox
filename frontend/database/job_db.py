@@ -325,6 +325,19 @@ class JobDB(BaseDatabase):
         logger.warning("Job %s not found for update", uid)
         return False
 
+    async def update_job_status_text(self, uid: str, status_text: str) -> bool:
+        """Update ``statusText`` only (for Running progress polls)."""
+        conn = self.connect()
+        cursor = conn.execute(
+            "UPDATE jobs SET statusText = ? WHERE uid = ?",
+            (status_text, uid),
+        )
+        conn.commit()
+        if cursor.rowcount > 0:
+            return True
+        logger.warning("Job %s not found for statusText update", uid)
+        return False
+
     async def disassociate_job_from_case(self, uid: str) -> bool:
         conn = self.connect()
         logger.info("Disassociating job %s from case", uid)
