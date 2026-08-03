@@ -4,11 +4,11 @@ Unit tests for form components.
 This module tests the form generation, handling, and builder components.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from frontend.components.forms import FormGenerator
-from frontend.components.forms import handle_form_submit
+import pytest
+
+from frontend.components.forms import FormGenerator, handle_form_submit
 
 
 class TestFormGenerator:
@@ -114,9 +114,12 @@ class TestFormIntegration:
     def test_form_components_coordination(self):
         """Test that form components work together."""
         # Test imports work together
-        from frontend.components.forms import FormGenerator
-        from frontend.components.forms import create_input_field, create_parameter_field
-        from frontend.components.forms import handle_form_submit
+        from frontend.components.forms import (
+            FormGenerator,
+            create_input_field,
+            create_parameter_field,
+            handle_form_submit,
+        )
 
         # Verify all components are available
         assert FormGenerator is not None

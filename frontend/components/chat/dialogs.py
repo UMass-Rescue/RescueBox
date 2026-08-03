@@ -1,5 +1,6 @@
 import json
-from typing import Optional, Callable, List, Any
+from collections.abc import Callable
+from typing import Any
 
 from nicegui import ui
 
@@ -8,7 +9,7 @@ from frontend.database import get_chat_history_db
 from frontend.design_tokens import Design
 
 
-def show_help_dialog(help_text: str, title: Optional[str] = "RescueBox Help") -> None:
+def show_help_dialog(help_text: str, title: str | None = "RescueBox Help") -> None:
     with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_WIDE):
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
             ui.label(title or "Help").classes(Design.PANEL_SHELL_HEADER_TITLE)
@@ -56,7 +57,7 @@ async def show_history_dialog(
 
 
 def show_conversation_view_dialog(
-    _conversation: Any, messages: List[Any], title: str = None
+    _conversation: Any, messages: list[Any], title: str = None
 ):
     """Render persisted messages; include JSON for tool calls and job payloads when present."""
 
@@ -70,7 +71,7 @@ def show_conversation_view_dialog(
                 "text-sm font-medium text-zinc-900 break-words w-full min-w-0"
             )
 
-            extras: List[tuple[str, str]] = []
+            extras: list[tuple[str, str]] = []
 
             args = getattr(msg, "tool_call_arguments", None)
             if isinstance(args, dict) and (

@@ -9,6 +9,7 @@ from pprint import pprint
 import cv2
 import numpy as np
 import onnxruntime as ort
+
 from age_and_gender_detection.box_utils import predict
 
 # Suppress "Initializer appears in graph inputs" warnings (harmless, model still works)

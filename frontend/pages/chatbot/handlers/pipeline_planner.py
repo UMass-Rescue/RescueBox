@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any
 
 from rb.api.models import TaskSchema
 
@@ -20,14 +20,14 @@ class NextPipelineStepPlan:
     """Prepared data needed to render and submit the next pipeline form."""
 
     next_endpoint: str
-    next_arguments: Dict[str, Any]
-    items: List[Dict[str, Any]]
+    next_arguments: dict[str, Any]
+    items: list[dict[str, Any]]
     has_age_gender_metadata: bool
 
 
 def plan_next_pipeline_step(
     response_body: Any,
-    next_call: Dict[str, Any],
+    next_call: dict[str, Any],
     next_schema: TaskSchema | None,
     *,
     coerce_response_fn=coerce_pipeline_response,
@@ -51,7 +51,7 @@ def plan_next_pipeline_step(
 
 
 def inject_filtered_paths_into_request(
-    request_body: Any, filtered_paths: List[str] | None
+    request_body: Any, filtered_paths: list[str] | None
 ) -> Any:
     """Inject file-filter payload for next call when metadata filtering was applied."""
     if filtered_paths is None:
@@ -65,5 +65,5 @@ def inject_filtered_paths_into_request(
         inputs["file_filter"] = ff_value
         return request_body
     if inputs is not None:
-        setattr(inputs, "file_filter", ff_value)
+        inputs.file_filter = ff_value
     return request_body

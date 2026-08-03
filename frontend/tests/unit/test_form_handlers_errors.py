@@ -8,8 +8,9 @@ gracefully with appropriate user feedback and error reporting.
 
 from unittest.mock import Mock, patch
 
-from frontend.components.forms import handle_form_submit, collect_form_data
 import pytest
+
+from frontend.components.forms import collect_form_data, handle_form_submit
 
 
 class TestFormHandlersErrorHandling:
@@ -59,24 +60,21 @@ class TestFormHandlersErrorHandling:
         with patch(
             "frontend.components.forms.form_generator.validate_form_data",
             return_value={"is_valid": False, "errors": {"input_dir": "Invalid path"}},
-        ):
-            with patch(
-                "frontend.components.forms.form_generator.handle_validation_error"
-            ) as mock_handle_error:
-                submit_called = False
+        ), patch(
+            "frontend.components.forms.form_generator.handle_validation_error"
+        ) as mock_handle_error:
+            submit_called = False
 
-                def mock_submit(data):
-                    nonlocal submit_called
-                    submit_called = True
+            def mock_submit(data):
+                nonlocal submit_called
+                submit_called = True
 
-                await handle_form_submit(
-                    sample_task_schema, mock_form_widgets, mock_submit
-                )
+            await handle_form_submit(sample_task_schema, mock_form_widgets, mock_submit)
 
-                # Verify submit callback was not executed due to validation failure
-                assert not submit_called
-                # Verify validation error handler was called appropriately
-                mock_handle_error.assert_called_once()
+            # Verify submit callback was not executed due to validation failure
+            assert not submit_called
+            # Verify validation error handler was called appropriately
+            mock_handle_error.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_form_submit_data_collection_error(
@@ -94,32 +92,26 @@ class TestFormHandlersErrorHandling:
         with patch(
             "frontend.components.forms.form_generator.validate_form_data",
             return_value={"is_valid": True, "errors": {}},
-        ):
-            with patch.object(
-                form_generator,
-                "collect_form_data",
-                side_effect=RuntimeError("Collection error"),
-            ):
-                with patch(
-                    "frontend.components.forms.form_generator.show_error_to_user"
-                ) as mock_show_error:
-                    submit_called = False
+        ), patch.object(
+            form_generator,
+            "collect_form_data",
+            side_effect=RuntimeError("Collection error"),
+        ), patch(
+            "frontend.components.forms.form_generator.show_error_to_user"
+        ) as mock_show_error:
+            submit_called = False
 
-                    def mock_submit(data):
-                        nonlocal submit_called
-                        submit_called = True
+            def mock_submit(data):
+                nonlocal submit_called
+                submit_called = True
 
-                    await handle_form_submit(
-                        sample_task_schema, mock_form_widgets, mock_submit
-                    )
+            await handle_form_submit(sample_task_schema, mock_form_widgets, mock_submit)
 
-                    # Verify form submission was prevented due to collection failure
-                    assert not submit_called
-                    # Verify user was notified of the collection error
-                    mock_show_error.assert_called_once()
-                    assert "Failed to collect form data" in str(
-                        mock_show_error.call_args
-                    )
+            # Verify form submission was prevented due to collection failure
+            assert not submit_called
+            # Verify user was notified of the collection error
+            mock_show_error.assert_called_once()
+            assert "Failed to collect form data" in str(mock_show_error.call_args)
 
     @pytest.mark.asyncio
     async def test_handle_form_submit_submit_callback_error(
@@ -137,26 +129,22 @@ class TestFormHandlersErrorHandling:
         with patch(
             "frontend.components.forms.form_generator.validate_form_data",
             return_value={"is_valid": True, "errors": {}},
-        ):
-            with patch.object(
-                form_generator,
-                "collect_form_data",
-                return_value={"inputs": {}, "parameters": {}},
-            ):
-                with patch(
-                    "frontend.components.forms.form_generator.show_error_to_user"
-                ) as mock_show_error:
+        ), patch.object(
+            form_generator,
+            "collect_form_data",
+            return_value={"inputs": {}, "parameters": {}},
+        ), patch(
+            "frontend.components.forms.form_generator.show_error_to_user"
+        ) as mock_show_error:
 
-                    def mock_submit(data):
-                        raise RuntimeError("Submit error")
+            def mock_submit(data):
+                raise RuntimeError("Submit error")
 
-                    await handle_form_submit(
-                        sample_task_schema, mock_form_widgets, mock_submit
-                    )
+            await handle_form_submit(sample_task_schema, mock_form_widgets, mock_submit)
 
-                    # Verify user was notified of submission failure
-                    mock_show_error.assert_called_once()
-                    assert "Form submission failed" in str(mock_show_error.call_args)
+            # Verify user was notified of submission failure
+            mock_show_error.assert_called_once()
+            assert "Form submission failed" in str(mock_show_error.call_args)
 
     @pytest.mark.asyncio
     async def test_handle_form_submit_no_callback(
@@ -168,22 +156,18 @@ class TestFormHandlersErrorHandling:
         with patch(
             "frontend.components.forms.form_generator.validate_form_data",
             return_value={"is_valid": True, "errors": {}},
-        ):
-            with patch.object(
-                form_generator,
-                "collect_form_data",
-                return_value={"inputs": {}, "parameters": {}},
-            ):
-                with patch(
-                    "frontend.components.forms.form_generator.show_error_to_user"
-                ) as mock_show_error:
-                    await handle_form_submit(
-                        sample_task_schema, mock_form_widgets, None
-                    )
+        ), patch.object(
+            form_generator,
+            "collect_form_data",
+            return_value={"inputs": {}, "parameters": {}},
+        ), patch(
+            "frontend.components.forms.form_generator.show_error_to_user"
+        ) as mock_show_error:
+            await handle_form_submit(sample_task_schema, mock_form_widgets, None)
 
-                    # Should show error to user
-                    mock_show_error.assert_called_once()
-                    assert "not configured" in str(mock_show_error.call_args)
+            # Should show error to user
+            mock_show_error.assert_called_once()
+            assert "not configured" in str(mock_show_error.call_args)
 
     @pytest.mark.asyncio
     async def test_handle_form_submit_unexpected_error(
@@ -194,25 +178,22 @@ class TestFormHandlersErrorHandling:
         with patch(
             "frontend.components.forms.form_generator.validate_form_data",
             side_effect=RuntimeError("Unexpected error"),
-        ):
-            with patch(
-                "frontend.components.forms.form_generator.show_error_to_user"
-            ) as mock_show_error:
-                submit_called = False
+        ), patch(
+            "frontend.components.forms.form_generator.show_error_to_user"
+        ) as mock_show_error:
+            submit_called = False
 
-                def mock_submit(data):
-                    nonlocal submit_called
-                    submit_called = True
+            def mock_submit(data):
+                nonlocal submit_called
+                submit_called = True
 
-                await handle_form_submit(
-                    sample_task_schema, mock_form_widgets, mock_submit
-                )
+            await handle_form_submit(sample_task_schema, mock_form_widgets, mock_submit)
 
-                # Should not call submit callback
-                assert not submit_called
-                # Should show error to user
-                mock_show_error.assert_called_once()
-                assert "Unexpected error" in str(mock_show_error.call_args)
+            # Should not call submit callback
+            assert not submit_called
+            # Should show error to user
+            mock_show_error.assert_called_once()
+            assert "Unexpected error" in str(mock_show_error.call_args)
 
     def test_collect_form_data_missing_widget(self, sample_task_schema):
         """Test collecting form data when widget is missing"""

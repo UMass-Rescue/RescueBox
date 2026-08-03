@@ -5,16 +5,18 @@ Focuses on behavior introduced for chatbot tool chains without requiring NiceGUI
 """
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from frontend.database import JobStatus, JobRecord
-from frontend.pages.jobs import extract_job_fields, compute_job_results_title
+import pytest
+from rb.api.models import RequestBody, TaskSchema
+
+from frontend.database import JobRecord, JobStatus
 from frontend.pages.jobs import (
+    compute_job_results_title,
+    extract_job_fields,
     partition_jobs_by_pipeline,
     pipeline_group_root_id,
 )
-from rb.api.models import RequestBody, TaskSchema
 
 
 def _minimal_request_and_schema():
@@ -161,17 +163,16 @@ class TestDatabaseServiceJobHelpers:
 
         with patch(
             "frontend.pages.chatbot.database_service.get_job_db", return_value=mock_db
-        ):
-            with patch.object(ds, "set_logging_context", MagicMock()):
-                out = await ds.DatabaseService.create_and_track_job(
-                    RequestBody(inputs={}, parameters={}),
+        ), patch.object(ds, "set_logging_context", MagicMock()):
+            out = await ds.DatabaseService.create_and_track_job(
+                RequestBody(inputs={}, parameters={}),
+                "text_embeddings/search",
+                task_schema=TaskSchema(inputs=[], parameters=[]),
+                endpoint_chain=[
+                    "image_summary/summarize-images",
                     "text_embeddings/search",
-                    task_schema=TaskSchema(inputs=[], parameters=[]),
-                    endpoint_chain=[
-                        "image_summary/summarize-images",
-                        "text_embeddings/search",
-                    ],
-                )
+                ],
+            )
 
         assert out is not None
         assert captured.get("endpoint_chain") == [

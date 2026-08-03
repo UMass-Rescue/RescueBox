@@ -7,13 +7,15 @@ on the business logic layer, mocking external dependencies like APIs
 and file systems.
 """
 
-import pytest
-import httpx
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, patch, Mock
-from frontend.chatbot.core import ChatbotCore
+from unittest.mock import AsyncMock, Mock, patch
+
+import httpx
+import pytest
+
 from frontend.chatbot.config import ChatbotConfig
+from frontend.chatbot.core import ChatbotCore
 
 
 class TestChatbotCore:
@@ -165,7 +167,7 @@ class TestChatbotCore:
 
     def test_convert_arguments_unwraps_nested_text_dict(self, core):
         """UFDR mount_name sometimes arrives as {'text': '/tmp/x'}; do not str() the dict."""
-        from rb.api.models import TaskSchema, InputSchema, InputType
+        from rb.api.models import InputSchema, InputType, TaskSchema
 
         schema = TaskSchema(
             inputs=[
@@ -182,7 +184,7 @@ class TestChatbotCore:
 
     def test_convert_arguments_preserves_image_search_query(self, core):
         """Granite tool args include ``query``; form pre-fill must not drop the phrase."""
-        from rb.api.models import TaskSchema, InputSchema, InputType
+        from rb.api.models import InputSchema, InputType, TaskSchema
 
         schema = TaskSchema(
             inputs=[
@@ -209,7 +211,7 @@ class TestChatbotCore:
     @pytest.mark.asyncio
     async def test_submit_job_success(self, core):
         """Test successful job submission"""
-        from rb.api.models import RequestBody, DirectoryInput, TextInput, ResponseBody
+        from rb.api.models import DirectoryInput, RequestBody, ResponseBody, TextInput
 
         # Create a temporary directory for testing
         with tempfile.TemporaryDirectory() as temp_dir:

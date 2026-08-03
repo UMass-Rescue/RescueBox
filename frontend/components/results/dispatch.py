@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from rb.api import models as rb_api_models
 
@@ -94,8 +94,8 @@ class ResultsPreview:
 
 
 def augment_response_model_dump_for_image_summary(
-    dump: Dict[str, Any], job_fields: Dict[str, Any]
-) -> Dict[str, Any]:
+    dump: dict[str, Any], job_fields: dict[str, Any]
+) -> dict[str, Any]:
     """Inject image-summary metadata into response dump for thumbnail rendering."""
     try:
         root = dump.get("root")

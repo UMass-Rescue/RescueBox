@@ -10,6 +10,7 @@ import pdqhash
 import typer
 from PIL import Image
 from transformers import AutoImageProcessor
+from rb.lib.job_progress import report_file_progress
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     InputSchema,
@@ -32,8 +33,8 @@ from rb.api.models import (
 from rb.api.database import ImageSimilarityEmbedding, engine
 from rb.api.embedding_storage import ImageSimilarityEmbeddingStorage
 from image_similarity.scorers import ClipScorer, CombinedScorer, ImageScorer, PdqScorer
+from image_similarity import sql_filters
 from sqlmodel import Session, select
-from sqlalchemy import update
 
 
 APP_NAME = "image_series_similarity"
@@ -132,6 +133,9 @@ def _embed_images_batch(
     """
     dynamic = _supports_dynamic_batch(ort_session)
     effective_batch = batch_size if dynamic else 1
+    total = len(image_paths)
+    processed = 0
+    last_reported = 0
 
     results: dict[str, np.ndarray] = {}
     for i in range(0, len(image_paths), effective_batch):
@@ -156,6 +160,10 @@ def _embed_images_batch(
         embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
         for path, vec in zip(valid_paths, embeds):
             results[path] = vec
+        processed += len(valid_paths)
+        last_reported = report_file_progress(None, processed, total, last_reported)
+    if total > 0:
+        report_file_progress(None, total, total, last_reported)
     return results
 
 
@@ -296,8 +304,8 @@ def _paths_already_embedded(
         return set()
     rows = session.exec(
         select(ImageSimilarityEmbedding.path).where(
-            ImageSimilarityEmbedding.path.in_(paths),
-            ImageSimilarityEmbedding.model_name == model_name,
+            sql_filters.path_in(paths),
+            sql_filters.model_name_eq(model_name),
         )
     ).all()
     return set(rows)
@@ -327,8 +335,8 @@ def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
     logger.info("Backfill: checking %d paths for missing PDQ hashes", len(paths))
     rows = session.exec(
         select(ImageSimilarityEmbedding).where(
-            ImageSimilarityEmbedding.path.in_(paths),
-            ImageSimilarityEmbedding.pdq_hash == "",
+            sql_filters.path_in(paths),
+            sql_filters.pdq_hash_empty(),
         )
     ).all()
     logger.info("Backfill: found %d rows with empty pdq_hash", len(rows))
@@ -336,11 +344,7 @@ def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
     for row in rows:
         pdq = _compute_pdq_hash(row.path)
         if pdq:
-            session.execute(
-                update(ImageSimilarityEmbedding)
-                .where(ImageSimilarityEmbedding.id == row.id)
-                .values(pdq_hash=pdq)
-            )
+            row.pdq_hash = pdq
             filled += 1
     if filled:
         session.flush()
@@ -458,16 +462,11 @@ def _persist_new_path(
         return
 
     if row.path not in file_paths_set:
-        update_vals: dict = {"path": path}
+        row.path = path
         if not row.pdq_hash:
             pdq = batch_pdq.get(h) or _compute_pdq_hash(path)
             if pdq:
-                update_vals["pdq_hash"] = pdq
-        session.execute(
-            update(ImageSimilarityEmbedding)
-            .where(ImageSimilarityEmbedding.id == row.id)
-            .values(**update_vals)
-        )
+                row.pdq_hash = pdq
         counters["relocated"] += 1
         logger.info(
             "Reused embedding by content hash (path updated): %s -> %s", row.path, path
@@ -669,8 +668,8 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
         query_row = session.exec(
             select(ImageSimilarityEmbedding).where(
-                ImageSimilarityEmbedding.path == query_image_path,
-                ImageSimilarityEmbedding.model_name == model_name,
+                sql_filters.path_eq(query_image_path),
+                sql_filters.model_name_eq(model_name),
             )
         ).first()
 

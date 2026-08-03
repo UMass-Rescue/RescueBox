@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from nicegui import background_tasks, ui
 
 from frontend.chatbot.config import ToolRegistry
 from frontend.components.chat import UIOperations
 from frontend.components.shared import render_loading_row
-from frontend.pages.chatbot.ui_flow import show_results
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.job_progress import (
+    JobProgressPoller,
+    cleanup_job_progress,
+    init_job_progress,
+)
+from frontend.pages.chatbot.ui_flow import show_results
 from frontend.utils.ui import _safe_ui_call
 
 from .base import BaseHandler, FormErrorHandler
@@ -87,6 +92,8 @@ class JobSubmissionOrchestrator(BaseHandler):
         )
         if job_id and not remaining_calls:
             _schedule_jobs_page_navigation()
+        if job_id:
+            init_job_progress(job_id)
 
         background_tasks.create(
             self._background_submit(
@@ -105,7 +112,7 @@ class JobSubmissionOrchestrator(BaseHandler):
 
     def _prepare_loading_ui(
         self, container, endpoint: str, form_element
-    ) -> Tuple[Any, Any]:
+    ) -> tuple[Any, Any]:
         target_container = form_element or container
         loading_row = None
         if not target_container:
@@ -126,7 +133,7 @@ class JobSubmissionOrchestrator(BaseHandler):
         *,
         pipeline_total,
         **db_kwargs,
-    ) -> Optional[str]:
+    ) -> str | None:
         return await self.lifecycle.create_tracked_job(
             request_body,
             endpoint,
@@ -148,6 +155,10 @@ class JobSubmissionOrchestrator(BaseHandler):
         job_id,
         loading_row,
     ) -> None:
+        poller: JobProgressPoller | None = None
+        if job_id:
+            poller = JobProgressPoller(job_id)
+            poller.start()
         try:
             await self._run_successful_submit(
                 request_body=request_body,
@@ -170,6 +181,9 @@ class JobSubmissionOrchestrator(BaseHandler):
                 target_container=target_container,
             )
         finally:
+            if poller:
+                await poller.stop()
+            cleanup_job_progress(job_id)
             _reset_form_state(self.state_manager)
 
     async def _run_successful_submit(
@@ -192,7 +206,7 @@ class JobSubmissionOrchestrator(BaseHandler):
             request_body=request_body,
         )
 
-        response_body = await core.submit_job(request_body, endpoint)
+        response_body = await core.submit_job(request_body, endpoint, job_id=job_id)
 
         await self.lifecycle.complete_successful_submission(
             job_id=job_id,

@@ -1,6 +1,8 @@
 from pathlib import Path
-import onnxruntime as ort
+
 import numpy as np
+import onnxruntime as ort
+
 from deepfake_detection.process.facedetector import faceDetector
 
 

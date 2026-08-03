@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from rb.api.models import (
     BatchDirectoryResponse,
@@ -27,7 +27,7 @@ def _path_from_directory_path(path: str) -> str:
     return p.parent.as_posix() if p.is_file() else p.as_posix()
 
 
-def _path_from_batch_text(root: BatchTextResponse) -> Optional[str]:
+def _path_from_batch_text(root: BatchTextResponse) -> str | None:
     if not getattr(root, "transcripts_dir", None):
         return None
     td = Path(root.transcripts_dir).as_posix()
@@ -35,7 +35,7 @@ def _path_from_batch_text(root: BatchTextResponse) -> Optional[str]:
     return td
 
 
-def _path_from_text_mount_message(value: str) -> Optional[str]:
+def _path_from_text_mount_message(value: str) -> str | None:
     vm = (value or "").strip()
     if not vm.lower().startswith("mounted at "):
         return None
@@ -50,7 +50,7 @@ def _path_from_text_mount_message(value: str) -> Optional[str]:
     return files_root.as_posix()
 
 
-def _path_from_text_json_file_list(value: str) -> Optional[str]:
+def _path_from_text_json_file_list(value: str) -> str | None:
     try:
         parsed = json.loads(value)
     except (json.JSONDecodeError, TypeError):
@@ -73,7 +73,7 @@ def _path_from_text_json_file_list(value: str) -> Optional[str]:
     return output_path
 
 
-def _path_from_text_response(root: TextResponse) -> Optional[str]:
+def _path_from_text_response(root: TextResponse) -> str | None:
     if not root.value:
         return None
     mount = _path_from_text_mount_message(root.value)
@@ -82,7 +82,7 @@ def _path_from_text_response(root: TextResponse) -> Optional[str]:
     return _path_from_text_json_file_list(root.value)
 
 
-def _path_from_response_root(root: Any) -> Optional[str]:
+def _path_from_response_root(root: Any) -> str | None:
     if isinstance(root, BatchTextResponse):
         return _path_from_batch_text(root)
     if isinstance(root, TextResponse):
@@ -107,7 +107,7 @@ def _path_from_response_root(root: Any) -> Optional[str]:
     return None
 
 
-def extract_output_path(response_body: ResponseBody) -> Optional[str]:
+def extract_output_path(response_body: ResponseBody) -> str | None:
     """Extract output directory/path from a plugin ``ResponseBody``."""
     try:
         path = _path_from_response_root(response_body.root)

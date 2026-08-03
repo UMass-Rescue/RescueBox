@@ -13,7 +13,7 @@ import mimetypes
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from case_uco import CASEGraph
 from case_uco.case.investigation import InvestigativeAction, ProvenanceRecord
@@ -54,12 +54,12 @@ def _json_safe(obj: Any) -> Any:
     return str(obj)
 
 
-def _summarize_request(req: Any) -> Dict[str, Any]:
+def _summarize_request(req: Any) -> dict[str, Any]:
     """Legacy compact summary for consumers that still read rb:requestSummary."""
     if not req:
         return {}
     if isinstance(req, dict):
-        out: Dict[str, Any] = {}
+        out: dict[str, Any] = {}
         ins = req.get("inputs") or {}
         params = req.get("parameters") or {}
         if isinstance(ins, dict):
@@ -85,14 +85,14 @@ def _summarize_request(req: Any) -> Dict[str, Any]:
 
 def _parse_request_structure(
     request: Any,
-) -> Tuple[List[str], List[Tuple[str, str]], Dict[str, Any]]:
+) -> tuple[list[str], list[tuple[str, str]], dict[str, Any]]:
     """
     Return (directory_paths, (input_key, full_text) pairs, flat parameters dict).
     Text inputs are not truncated.
     """
-    dirs: List[str] = []
-    texts: List[Tuple[str, str]] = []
-    params_flat: Dict[str, Any] = {}
+    dirs: list[str] = []
+    texts: list[tuple[str, str]] = []
+    params_flat: dict[str, Any] = {}
     if not request or not isinstance(request, dict):
         return dirs, texts, params_flat
     ins = request.get("inputs") or {}
@@ -121,7 +121,7 @@ def _parse_request_structure(
     return dirs, texts, params_flat
 
 
-def _infer_output_type_from_root(root: Dict[str, Any]) -> Optional[str]:
+def _infer_output_type_from_root(root: dict[str, Any]) -> str | None:
     """
     Normalize ``output_type`` when the wire payload omits it but shape matches a known union.
     Keeps ``rb:outputType`` aligned with ``rb:outputSummary["output_type"]``.
@@ -141,11 +141,11 @@ def _infer_output_type_from_root(root: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _parse_batch_file_rows(response: Any) -> List[Dict[str, Any]]:
+def _parse_batch_file_rows(response: Any) -> list[dict[str, Any]]:
     """
     Rows from batchfile / BatchFileResponse: path, rank, similarity, model_name, metadata.
     """
-    rows: List[Dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
     if not response or not isinstance(response, dict):
         return rows
     root = response.get("root") or response
@@ -159,7 +159,7 @@ def _parse_batch_file_rows(response: Any) -> List[Dict[str, Any]]:
             continue
         path = str(f["path"])
         meta = f.get("metadata") if isinstance(f.get("metadata"), dict) else {}
-        sim: Optional[float] = None
+        sim: float | None = None
         raw_sim = meta.get("Similarity")
         if raw_sim is not None:
             try:
@@ -181,11 +181,11 @@ def _parse_batch_file_rows(response: Any) -> List[Dict[str, Any]]:
     return rows
 
 
-def _extract_output_paths(response: Any) -> List[str]:
+def _extract_output_paths(response: Any) -> list[str]:
     rows = _parse_batch_file_rows(response)
     if rows:
         return [r["path"] for r in rows]
-    paths: List[str] = []
+    paths: list[str] = []
     if not response:
         return paths
     if isinstance(response, dict):
@@ -202,12 +202,12 @@ def _extract_output_paths(response: Any) -> List[str]:
     return paths
 
 
-def _extract_input_dir_paths(request: Any) -> List[str]:
+def _extract_input_dir_paths(request: Any) -> list[str]:
     dirs, _, _ = _parse_request_structure(request)
     return dirs
 
 
-def _output_summary(response: Any) -> Dict[str, Any]:
+def _output_summary(response: Any) -> dict[str, Any]:
     if not response:
         return {}
     if isinstance(response, dict):
@@ -215,7 +215,7 @@ def _output_summary(response: Any) -> Dict[str, Any]:
         if not isinstance(root, dict):
             return {"raw": json.dumps(response, default=str)[:2000]}
         ot = _infer_output_type_from_root(root)
-        summary: Dict[str, Any] = {"output_type": ot}
+        summary: dict[str, Any] = {"output_type": ot}
         paths = _extract_output_paths(response)
         if paths:
             summary["artifact_paths"] = paths[:500]
@@ -237,12 +237,12 @@ def _endpoint_slug(endpoint: str) -> str:
     return s[:120] if len(s) > 120 else s
 
 
-def _ordered_pipeline_endpoints(endpoint: str, chain: Any) -> List[str]:
+def _ordered_pipeline_endpoints(endpoint: str, chain: Any) -> list[str]:
     """
     Ordered list of RescueBox plugin endpoints for this job (pipeline + final).
     Used to emit one ``uco-tool:AnalyticTool`` per step on ``uco-action:instrument``.
     """
-    out: List[str] = []
+    out: list[str] = []
     if isinstance(chain, list):
         for x in chain:
             s = str(x).strip() if x is not None else ""
@@ -283,9 +283,9 @@ def _is_raster_path(path: str) -> bool:
         return False
 
 
-def _local_file_forensics(path: str) -> Dict[str, Any]:
+def _local_file_forensics(path: str) -> dict[str, Any]:
     """Best-effort size, mtimes, mime, sha256 when the path is a readable file."""
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     try:
         st = os.stat(path)
         out["size_in_bytes"] = int(st.st_size)
@@ -308,7 +308,7 @@ def _local_file_forensics(path: str) -> Dict[str, Any]:
 
 
 def _file_facet(
-    path: str, *, is_dir: bool, forensics: Optional[Dict[str, Any]] = None
+    path: str, *, is_dir: bool, forensics: dict[str, Any] | None = None
 ) -> FileFacet:
     p = Path(path)
     name = p.name or path
@@ -345,8 +345,8 @@ def _raster_facet(path: str) -> RasterPictureFacet:
     return rf
 
 
-def _content_facet_for_file(forensics: Dict[str, Any]) -> Optional[ContentDataFacet]:
-    hashes: List[Hash] = []
+def _content_facet_for_file(forensics: dict[str, Any]) -> ContentDataFacet | None:
+    hashes: list[Hash] = []
     if forensics.get("sha256_hex"):
         hashes.append(
             Hash(
@@ -367,7 +367,7 @@ def _content_facet_for_file(forensics: Dict[str, Any]) -> Optional[ContentDataFa
     return cdf
 
 
-def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
+def build_case_fragment_from_job_dict(job: dict[str, Any]) -> dict[str, Any]:
     """
     Return JSON-LD with @context and @graph for one RescueBox job using ``CASEGraph``.
 
@@ -431,7 +431,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         version="3.0.0",
     )
 
-    instruments: List[Any] = []
+    instruments: list[Any] = []
     for ep_step in pipeline_eps:
         instruments.append(
             graph.create(
@@ -443,13 +443,13 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         )
 
     # --- Input observables (action object) ---
-    input_observables: List[Any] = []
+    input_observables: list[Any] = []
     for d in sorted(set(input_dir_paths)):
         ff = _file_facet(d, is_dir=True)
         did = _kb_id(d, "dir")
         input_observables.append(graph.create(Directory, id=did, has_facet=[ff]))
 
-    query_text_full: Optional[str] = None
+    query_text_full: str | None = None
     for key, txt in text_inputs:
         if txt and "query" in key.lower():
             query_text_full = txt
@@ -474,12 +474,12 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
             )
         )
 
-    input_path_files: List[str] = []
+    input_path_files: list[str] = []
     for key, p in text_inputs:
         if ":path_file" in key:
             input_path_files.append(p)
 
-    output_rows: List[Dict[str, Any]] = list(batch_rows)
+    output_rows: list[dict[str, Any]] = list(batch_rows)
     if not output_rows and output_paths:
         output_rows = [
             {
@@ -495,7 +495,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     input_file_path_set = set(input_path_files)
     output_path_set = {str(r["path"]) for r in output_rows}
 
-    file_obs_by_path: Dict[str, Any] = {}
+    file_obs_by_path: dict[str, Any] = {}
 
     def _ensure_file_observable(path: str, *, as_input: bool, as_output: bool) -> Any:
         p = str(path)
@@ -504,14 +504,14 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         forensics = _local_file_forensics(p) if not p.endswith(os.sep) else {}
         is_raster = _is_raster_path(p) and not os.path.isdir(p)
         ff = _file_facet(p, is_dir=False, forensics=forensics)
-        facets: List[Any] = [ff]
+        facets: list[Any] = [ff]
         if is_raster:
             facets.append(_raster_facet(p))
         cdf = _content_facet_for_file(forensics)
         if cdf:
             facets.append(cdf)
         ctor = RasterPicture if is_raster else File
-        tags: List[str] = []
+        tags: list[str] = []
         if as_input:
             tags.append("rb:input_file")
         if as_output:
@@ -534,8 +534,8 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         p = str(row["path"])
         _ensure_file_observable(p, as_input=(p in input_file_path_set), as_output=True)
 
-    output_observables: List[Any] = []
-    seen_out: Set[int] = set()
+    output_observables: list[Any] = []
+    seen_out: set[int] = set()
     for r in output_rows:
         p = str(r["path"])
         o = _ensure_file_observable(
@@ -574,7 +574,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     st = _parse_datetime(str(start) if start else "")
     et = _parse_datetime(str(end) if end else "")
 
-    step_assertions: List[Any] = []
+    step_assertions: list[Any] = []
     if n_steps > 1:
         for i in range(n_steps - 1):
             ep = pipeline_eps[i]
@@ -589,17 +589,15 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
                 )
             )
 
-    obj_list: List[Any] = list(input_observables)
-    res_list: List[Any] = [result_assertion] + output_observables
+    obj_list: list[Any] = list(input_observables)
+    res_list: list[Any] = [result_assertion] + output_observables
 
     # CASEGraph snapshots each node at ``create()`` — pass ``object``, ``result``,
     # ``was_informed_by`` in the constructor so they appear in serialized JSON-LD.
-    inv_actions: List[Any] = []
-    prev_inv: Optional[Any] = None
+    inv_actions: list[Any] = []
+    prev_inv: Any | None = None
     for step_i in range(n_steps):
-        if n_steps == 1:
-            iid = f"kb:inv-{uid}"
-        elif step_i == n_steps - 1:
+        if n_steps == 1 or step_i == n_steps - 1:
             iid = f"kb:inv-{uid}"
         else:
             iid = f"kb:inv-{uid}-step{step_i}"
@@ -609,7 +607,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
             if n_steps > 1
             else f"RescueBox job: {ep or 'unknown'}"
         )
-        ia_kwargs: Dict[str, Any] = {
+        ia_kwargs: dict[str, Any] = {
             "id": iid,
             "name": name,
             "description": [f"Endpoint {ep} for job {uid}."],
@@ -621,10 +619,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         }
         if prev_inv is not None:
             ia_kwargs["was_informed_by"] = [prev_inv]
-        if n_steps == 1:
-            ia_kwargs["object"] = obj_list
-            ia_kwargs["result"] = res_list
-        elif step_i == n_steps - 1:
+        if n_steps == 1 or step_i == n_steps - 1:
             ia_kwargs["object"] = obj_list
             ia_kwargs["result"] = res_list
         else:
@@ -637,7 +632,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     primary_inv = inv_actions[-1]
 
     # Search-hit relationships (primary action -> each ranked output file observable)
-    hit_relationships: List[Any] = []
+    hit_relationships: list[Any] = []
     for i, row in enumerate(output_rows):
         p = str(row["path"])
         tgt = file_obs_by_path.get(p)
@@ -653,7 +648,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         )
         hit_relationships.append(rel)
 
-    dir_paths: Set[str] = set(input_dir_paths)
+    dir_paths: set[str] = set(input_dir_paths)
     for op in output_paths:
         try:
             parent = str(Path(op).parent)
@@ -662,7 +657,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         except Exception:
             pass
 
-    extra_dirs: List[Any] = []
+    extra_dirs: list[Any] = []
     for d in sorted(dir_paths):
         if d in input_dir_paths:
             continue
@@ -670,7 +665,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
         extra_dirs.append(graph.create(Directory, id=_kb_id(d, "dir"), has_facet=[ff]))
 
     # Provenance bundle
-    prov_objects: List[Any] = []
+    prov_objects: list[Any] = []
     prov_objects.extend(inv_actions)
     prov_objects.append(result_assertion)
     prov_objects.extend(step_assertions)
@@ -694,8 +689,8 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     doc = json.loads(graph.serialize())
 
     # --- Post-process: rb: first-class fields (avoid JSON-in-string for core facts) ---
-    chain_list: List[str] = [str(x) for x in chain] if isinstance(chain, list) else []
-    structured_action: Dict[str, Any] = {
+    chain_list: list[str] = [str(x) for x in chain] if isinstance(chain, list) else []
+    structured_action: dict[str, Any] = {
         "rb:jobUid": uid,
         "rb:endpoint": str(endpoint),
         "rb:endpointChain": chain_list,
@@ -775,7 +770,7 @@ def build_case_fragment_from_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
     return doc
 
 
-def build_jsonld_text(job: Dict[str, Any]) -> str:
+def build_jsonld_text(job: dict[str, Any]) -> str:
     doc = build_case_fragment_from_job_dict(job)
     doc = _json_safe(doc)
     return json.dumps(doc, indent=2, ensure_ascii=False)

@@ -1,36 +1,30 @@
 import os
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import (
     Annotated,
     Any,
-    Callable,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
     get_args,
     get_origin,
     get_type_hints,
 )
 
 from pydantic import BaseModel
-from typing_extensions import assert_never
-
-from rb.lib.errors import BadRequestError
 from rb.api.models import (
-    InputType,
-    NewFileInputType,
-    ParameterType,
-    ResponseBody,
-    TaskSchema,
     BatchDirectoryInput,
     BatchFileInput,
     BatchTextInput,
     DirectoryInput,
     FileInput,
+    InputType,
+    NewFileInputType,
+    ParameterType,
+    ResponseBody,
+    TaskSchema,
     TextInput,
 )
+from rb.lib.errors import BadRequestError
+from typing_extensions import assert_never
 
 
 def is_typeddict(cls):
@@ -52,7 +46,7 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
 ):
     hints = get_type_hints(ml_function)
     input_type_hints: Mapping[str, BaseModel] = get_type_hints(hints["inputs"])
-    parameters_type_hints: Mapping[str, Union[str, int, float]] = (
+    parameters_type_hints: Mapping[str, str | int | float] = (
         get_type_hints(hints["parameters"]) if "parameters" in hints else {}
     )
 
@@ -158,7 +152,7 @@ def ensure_ml_func_hinting_and_task_schemas_are_valid(
 # ---Pipeline Filter helper utilities for plugins ----------------------------------
 
 
-def extract_filter_id(inputs: dict, parameters: dict) -> Optional[str]:
+def extract_filter_id(inputs: dict, parameters: dict) -> str | None:
     """Extract a filter id from parameters or inputs if present."""
     fid = None
     try:
@@ -191,15 +185,15 @@ def extract_filter_id(inputs: dict, parameters: dict) -> Optional[str]:
     return fid
 
 
-def load_saved_filter(filter_id: str, input_dir: Path) -> Tuple[List[Path], List[str]]:
+def load_saved_filter(filter_id: str, input_dir: Path) -> tuple[list[Path], list[str]]:
     """
     Load a persisted filter and return (input_paths, output_patterns).
     Input paths are resolved against input_dir when stored as relative paths.
     """
     from frontend.database.file_filter_store import load_filter
 
-    input_paths: List[Path] = []
-    output_patterns: List[str] = []
+    input_paths: list[Path] = []
+    output_patterns: list[str] = []
     if not filter_id:
         return input_paths, output_patterns
     saved = load_filter(filter_id)
@@ -221,7 +215,7 @@ def load_saved_filter(filter_id: str, input_dir: Path) -> Tuple[List[Path], List
     return input_paths, output_patterns
 
 
-def collect_inline_file_filter(inputs: dict, input_dir: Path) -> List[Path]:
+def collect_inline_file_filter(inputs: dict, input_dir: Path) -> list[Path]:
     """Collect input file list from uploaded BatchFileInput in the request (inline).
     Supports both Pydantic model (.files) and plain dict (["files"]) for file_filter.
 
@@ -240,7 +234,7 @@ def collect_inline_file_filter(inputs: dict, input_dir: Path) -> List[Path]:
             files = getattr(ff, "files", None)
         if files is None:
             files = []
-        resolved: List[Path] = []
+        resolved: list[Path] = []
         for f in files:
             raw = f.get("path") if isinstance(f, dict) else getattr(f, "path", f)
             if raw is None or not str(raw).strip():
@@ -252,9 +246,9 @@ def collect_inline_file_filter(inputs: dict, input_dir: Path) -> List[Path]:
     return [Path(f) for f in input_dir.iterdir() if f.is_file()]
 
 
-def collect_inline_output_patterns(inputs: dict) -> List[str]:
+def collect_inline_output_patterns(inputs: dict) -> list[str]:
     """Collect output patterns from uploaded output_filter files (inline)."""
-    patterns: List[str] = []
+    patterns: list[str] = []
     try:
         output_filter_files = inputs.get("output_filter").files
     except Exception:
@@ -279,8 +273,7 @@ def normalize_host_path_str(path: Any) -> str:
     if path is None:
         return ""
     s = str(path).strip()
-    if s.startswith("\\\\?\\"):
-        s = s[4:]
+    s = s.removeprefix("\\\\?\\")
     return s
 
 

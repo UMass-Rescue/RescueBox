@@ -7,14 +7,15 @@ For tests with real API dependencies, see test_pages_integration.py
 This file is kept for fast unit-style testing of page UI logic.
 """
 
-import pytest
 import asyncio
 import uuid
-from nicegui.testing import User  # type: ignore
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from nicegui.testing import User  # type: ignore
+
 import frontend.database
 import frontend.database.job_db
-
 from frontend.tests.integration.chatbot_ui_helpers import (
     assert_chatbot_header_visible,
     find_chat_textarea,
@@ -124,8 +125,8 @@ class TestChatbotPage:
     async def test_chatbot_creates_conversation(self, mock_client_class, user: User):
         """Test that chatbot creates conversation on load"""
         self._setup_mock_client(mock_client_class)
-        from frontend.utils import get_current_conversation_id
         from frontend.database import get_chat_history_db
+        from frontend.utils import get_current_conversation_id
 
         await open_chatbot_and_wait_for_ready(user)
 

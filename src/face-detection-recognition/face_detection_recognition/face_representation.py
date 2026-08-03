@@ -1,21 +1,21 @@
-from face_detection_recognition.utils.yolo_utils import (
-    get_target_size,
-    process_yolov8_output,
-    visualize_detections,
-    process_yolo_detections,
-)
-
-from face_detection_recognition.utils.retinaface_utils import (
-    detect_with_retinaface,
-    process_retinaface_detections_for_facenet512,
-    process_retinaface_detections_for_arcface,
-)
-
+import logging
 import os
+
 import cv2
 import numpy as np
 import onnxruntime as ort
-import logging
+
+from face_detection_recognition.utils.retinaface_utils import (
+    detect_with_retinaface,
+    process_retinaface_detections_for_arcface,
+    process_retinaface_detections_for_facenet512,
+)
+from face_detection_recognition.utils.yolo_utils import (
+    get_target_size,
+    process_yolo_detections,
+    process_yolov8_output,
+    visualize_detections,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -124,7 +124,7 @@ def detect_faces_and_get_embeddings(
                 return False, []
 
             except Exception as e:
-                logger.error(f"Error in RetinaFace: {str(e)}")
+                logger.error(f"Error in RetinaFace: {e!s}")
                 # Fall back to YOLO detector
                 detector_backend = "yolov8"
                 detector_onnx_path = os.path.join(
@@ -238,5 +238,5 @@ def detect_faces_and_get_embeddings(
             return False, []
 
     except Exception as e:
-        logger.error(f"Error in detect_faces_and_get_embeddings: {str(e)}")
+        logger.error(f"Error in detect_faces_and_get_embeddings: {e!s}")
         return False, [e]

@@ -12,10 +12,10 @@ from nicegui import ui
 
 from frontend.components.logs import read_log_file, render_log_viewer
 from frontend.components.shared import create_navbar
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.config import BACKEND_LOG_FILE, LOG_FILE
 from frontend.constants import UI_TITLES
 from frontend.utils import apply_saved_theme, require_demo_user_session
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

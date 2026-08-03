@@ -1,11 +1,10 @@
-import re
-import os
-import csv
 import argparse
-from dotenv import load_dotenv
+import csv
+import os
+import re
 
 import pandas as pd
-
+from dotenv import load_dotenv
 
 parser = argparse.ArgumentParser(description="To parse text arguments")
 load_dotenv()

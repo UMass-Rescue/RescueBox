@@ -7,7 +7,6 @@ for different database types used in the application.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,7 @@ class DatabaseSchema(ABC):
     """Abstract base class for database schemas."""
 
     @abstractmethod
-    def get_create_statements(self) -> List[str]:
+    def get_create_statements(self) -> list[str]:
         """
         Get SQL CREATE statements for this schema.
 
@@ -26,7 +25,7 @@ class DatabaseSchema(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_index_statements(self) -> List[str]:
+    def get_index_statements(self) -> list[str]:
         """
         Get SQL CREATE INDEX statements for this schema.
 
@@ -35,7 +34,7 @@ class DatabaseSchema(ABC):
         """
         raise NotImplementedError
 
-    def get_all_statements(self) -> List[str]:
+    def get_all_statements(self) -> list[str]:
         """
         Get all SQL statements (tables and indexes).
 
@@ -48,7 +47,7 @@ class DatabaseSchema(ABC):
 class JobDatabaseSchema(DatabaseSchema):
     """Schema for job database."""
 
-    def get_create_statements(self) -> List[str]:
+    def get_create_statements(self) -> list[str]:
         """Get CREATE TABLE statements for job database."""
         return [
             """
@@ -97,7 +96,7 @@ class JobDatabaseSchema(DatabaseSchema):
             """,
         ]
 
-    def get_index_statements(self) -> List[str]:
+    def get_index_statements(self) -> list[str]:
         """Get CREATE INDEX statements for job database."""
         return [
             "CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)",
@@ -115,7 +114,7 @@ class JobDatabaseSchema(DatabaseSchema):
 class ChatHistoryDatabaseSchema(DatabaseSchema):
     """Schema for chat history database."""
 
-    def get_create_statements(self) -> List[str]:
+    def get_create_statements(self) -> list[str]:
         """Get CREATE TABLE statements for chat history database."""
         return [
             """
@@ -143,7 +142,7 @@ class ChatHistoryDatabaseSchema(DatabaseSchema):
             """,
         ]
 
-    def get_index_statements(self) -> List[str]:
+    def get_index_statements(self) -> list[str]:
         """Get CREATE INDEX statements for chat history database."""
         return [
             "CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at DESC)",
@@ -198,7 +197,7 @@ class SchemaManager:
         }
 
 
-def jobs_runtime_create_statements() -> List[str]:
+def jobs_runtime_create_statements() -> list[str]:
     """
     Canonical CREATE statements used by ``JobDB.initialize_schema``.
 
@@ -228,7 +227,7 @@ def jobs_runtime_create_statements() -> List[str]:
     ]
 
 
-def jobs_runtime_index_statements() -> List[str]:
+def jobs_runtime_index_statements() -> list[str]:
     """Canonical index statements paired with :func:`jobs_runtime_create_statements`."""
     return [
         "CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)",
@@ -239,7 +238,7 @@ def jobs_runtime_index_statements() -> List[str]:
     ]
 
 
-def chat_history_runtime_create_statements() -> List[str]:
+def chat_history_runtime_create_statements() -> list[str]:
     """
     Canonical CREATE statements used by ``ChatHistoryDB._create_schema``.
 
@@ -276,7 +275,7 @@ def chat_history_runtime_create_statements() -> List[str]:
     ]
 
 
-def chat_history_runtime_index_statements() -> List[str]:
+def chat_history_runtime_index_statements() -> list[str]:
     """Canonical index statements paired with :func:`chat_history_runtime_create_statements`."""
     return [
         "CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_id ON chat_messages(conversation_id)",
@@ -286,7 +285,7 @@ def chat_history_runtime_index_statements() -> List[str]:
     ]
 
 
-def cases_runtime_create_statements() -> List[str]:
+def cases_runtime_create_statements() -> list[str]:
     """Canonical CREATE statements used by ``CaseDB._create_schema``."""
     return [
         """
@@ -302,14 +301,14 @@ def cases_runtime_create_statements() -> List[str]:
     ]
 
 
-def cases_runtime_index_statements() -> List[str]:
+def cases_runtime_index_statements() -> list[str]:
     """Canonical index statements paired with :func:`cases_runtime_create_statements`."""
     return [
         "CREATE INDEX IF NOT EXISTS idx_cases_case_number ON cases(caseNumber)",
     ]
 
 
-def file_filters_runtime_create_statements() -> List[str]:
+def file_filters_runtime_create_statements() -> list[str]:
     """Canonical CREATE statements used by ``file_filter_store`` helpers."""
     return [
         """
@@ -331,7 +330,7 @@ def file_filters_runtime_create_statements() -> List[str]:
     ]
 
 
-def file_filters_runtime_index_statements() -> List[str]:
+def file_filters_runtime_index_statements() -> list[str]:
     """Canonical index statements paired with :func:`file_filters_runtime_create_statements`."""
     return [
         "CREATE INDEX IF NOT EXISTS idx_file_filters_input_dir ON file_filters(input_dir)",

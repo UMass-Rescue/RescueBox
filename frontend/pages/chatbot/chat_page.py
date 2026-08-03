@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional
 
 from frontend.chatbot.config import ChatbotConfig, ToolRegistry
 from frontend.chatbot.core import ChatbotCore
@@ -14,14 +13,14 @@ from frontend.components.chat import (
     get_latest_input_area,
     render_welcome_message,
 )
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database import get_chat_history_db, get_job_db
 from frontend.pages.chatbot.conversation_restore import restore_conversation
 from frontend.pages.chatbot.database_service import DatabaseService
-from frontend.pages.chatbot.message_flow_coordinator import MessageFlowCoordinator
 from frontend.pages.chatbot.history_ui import render_message
+from frontend.pages.chatbot.message_flow_coordinator import MessageFlowCoordinator
 from frontend.pages.chatbot.state import ChatbotStateManager, ChatMessage
 from frontend.pages.chatbot.ui_builder import ChatUIBuilder
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.pages.chatbot.ui_flow import (
     load_and_show_form,
     show_error_message,
@@ -38,7 +37,7 @@ class ChatbotPage:
     def get_instance(cls):
         return cls._instance
 
-    def __init__(self, config: Optional[ChatbotConfig] = None):
+    def __init__(self, config: ChatbotConfig | None = None):
         ChatbotPage._instance = self
         self.config = config or ChatbotConfig()
         self.core = ChatbotCore(self.config)
@@ -65,7 +64,7 @@ class ChatbotPage:
         await self._handle_rerun_tool(message_id)
 
     @property
-    def conversation_id(self) -> Optional[str]:
+    def conversation_id(self) -> str | None:
         return self.state_manager.conversation_id
 
     async def new_conversation(self) -> str:

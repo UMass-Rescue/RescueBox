@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.pages.chatbot.database_service import DatabaseService
@@ -21,9 +21,9 @@ class JobLifecycleService:
         endpoint: str,
         task_schema: Any,
         *,
-        pipeline_total_steps: Optional[int],
+        pipeline_total_steps: int | None,
         **db_kwargs: Any,
-    ) -> Optional[str]:
+    ) -> str | None:
         try:
             job_record = await DatabaseService.create_and_track_job(
                 request_body,
@@ -42,9 +42,9 @@ class JobLifecycleService:
     async def record_job_started(
         self,
         *,
-        conversation_id: Optional[str],
+        conversation_id: str | None,
         endpoint: str,
-        job_id: Optional[str],
+        job_id: str | None,
         request_body: Any,
     ) -> None:
         if conversation_id and job_id:
@@ -58,9 +58,9 @@ class JobLifecycleService:
     async def complete_successful_submission(
         self,
         *,
-        job_id: Optional[str],
+        job_id: str | None,
         response_body: Any,
-        conversation_id: Optional[str],
+        conversation_id: str | None,
         endpoint: str,
     ) -> None:
         if job_id:
@@ -73,9 +73,9 @@ class JobLifecycleService:
     async def mark_submission_failed(
         self,
         *,
-        job_id: Optional[str],
+        job_id: str | None,
         message: str,
-        conversation_id: Optional[str],
+        conversation_id: str | None,
         endpoint: str,
     ) -> None:
         if job_id:

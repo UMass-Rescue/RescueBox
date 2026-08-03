@@ -17,6 +17,7 @@ sqlmodel = "*"
 sqlalchemy = "*"
 pgvector = "*"
 pdqhash = "*"
+rb-lib = { path = "../rb-lib", develop = true }
 rb-api = { path = "../rb-api", develop = true }
 
 [build-system]

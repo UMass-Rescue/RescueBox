@@ -8,23 +8,24 @@ from nicegui import ui
 from rb.api.models import ResponseBody, TaskSchema
 
 from frontend.chatbot.config import ToolRegistry
-from frontend.database.job_field_utils import (
-    coerce_task_schema_and_request_body,
-    compute_job_results_title,
-    extract_job_fields,
-)
-from frontend.components.results import (
-    ResultsPreview,
-    augment_response_model_dump_for_image_summary,
-)
 from frontend.components.jobs.export import render_case_export_button
 from frontend.components.jobs.forms import render_compact_inputs_summary
 from frontend.components.jobs.header_actions import (
     render_error_status,
     render_job_action_buttons,
     render_job_actions,
+    render_running_status,
+)
+from frontend.components.results import (
+    ResultsPreview,
+    augment_response_model_dump_for_image_summary,
 )
 from frontend.components.ui_exceptions import SCHEMA_PARSE_ERRORS, UI_RENDER_ERRORS
+from frontend.database.job_field_utils import (
+    coerce_task_schema_and_request_body,
+    compute_job_results_title,
+    extract_job_fields,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,9 @@ async def render_job_outputs_card(container, _api_client, job):
                     "request inputs, and parameters."
                 ).classes("text-sm text-zinc-600 mt-1")
                 return
+            if st == "Running":
+                render_running_status(status_text)
+                return
             logger.warning("Job has no response, showing error status: %s", status)
             render_error_status(status, status_text)
             return
@@ -77,7 +81,7 @@ async def render_job_outputs_card(container, _api_client, job):
                 response_body = ResponseBody(**response)
         except UI_RENDER_ERRORS as e:
             logger.error("Invalid response format: %s", str(e))
-            ui.label(f"Invalid response format: {str(e)}").classes("text-red-600")
+            ui.label(f"Invalid response format: {e!s}").classes("text-red-600")
             return
 
         with ui.card().classes(

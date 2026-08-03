@@ -27,7 +27,7 @@ import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -154,9 +154,9 @@ def _normalize_path(p: str) -> str:
 def insert_pipeline_job_step(
     user_id: str,
     root_job_id: str,
-    step_job_id: Optional[str],
+    step_job_id: str | None,
     endpoint: str,
-    detail: Dict[str, Any],
+    detail: dict[str, Any],
 ) -> None:
     """
     Record a completed pipeline step for lineage (which endpoint ran, when, summary of output shape).
@@ -194,7 +194,7 @@ def insert_pipeline_job_step(
 def list_pipeline_job_steps(
     user_id: str,
     root_job_id: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Return completed steps for a pipeline root job, oldest first."""
     if not user_id or not root_job_id:
         return []
@@ -211,9 +211,9 @@ def list_pipeline_job_steps(
             ORDER BY id ASC
             """
         )
-        out: List[Dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         for row in cur.fetchall():
-            detail: Dict[str, Any]
+            detail: dict[str, Any]
             try:
                 detail = json.loads(row["detail_json"])
             except (json.JSONDecodeError, TypeError):
@@ -237,9 +237,9 @@ def list_pipeline_job_steps(
 def insert_pipeline_response_rows(
     user_id: str,
     root_job_id: str,
-    step_job_id: Optional[str],
+    step_job_id: str | None,
     endpoint: str,
-    rows: List[Dict[str, Any]],
+    rows: list[dict[str, Any]],
 ) -> None:
     """
     Persist flattened response items: each element is
@@ -262,7 +262,7 @@ def insert_pipeline_response_rows(
             "DELETE FROM pipeline_response_rows WHERE step_job_id = ?",
             (sid,),
         )
-        next_ord: Dict[str, int] = defaultdict(int)
+        next_ord: dict[str, int] = defaultdict(int)
         for r in rows:
             container = str(r.get("container") or "unknown")
             ord_i = next_ord[container]
@@ -304,8 +304,8 @@ def insert_pipeline_response_rows(
 def list_pipeline_response_rows(
     user_id: str,
     root_job_id: str,
-    step_job_id: Optional[str] = None,
-) -> List[Dict[str, Any]]:
+    step_job_id: str | None = None,
+) -> list[dict[str, Any]]:
     """Return persisted response rows, optionally filtered by step_job_id."""
     if not user_id or not root_job_id:
         return []
@@ -333,7 +333,7 @@ def list_pipeline_response_rows(
                 ORDER BY id ASC
                 """
             )
-        out: List[Dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         for row in cur.fetchall():
             try:
                 payload = json.loads(row["payload_json"])
@@ -361,7 +361,7 @@ def list_pipeline_response_rows(
 def insert_pipeline_io_links(
     user_id: str,
     root_job_id: str,
-    rows: List[Dict[str, Any]],
+    rows: list[dict[str, Any]],
 ) -> None:
     """
     Insert or replace rows: each item has ``input_path``, ``output_path``, and
@@ -419,7 +419,7 @@ def insert_pipeline_io_links(
 def insert_chunks(
     user_id: str,
     root_job_id: str,
-    rows: List[Dict[str, Any]],
+    rows: list[dict[str, Any]],
 ) -> None:
     """
     Backward-compatible insert for summarize-style rows: ``text_path``,
@@ -430,7 +430,7 @@ def insert_chunks(
     """
     if not rows or not user_id or not root_job_id:
         return
-    generic: List[Dict[str, Any]] = []
+    generic: list[dict[str, Any]] = []
     for r in rows:
         tp = str(r.get("text_path") or "")
         si = str(r.get("source_image_path") or "")
@@ -458,7 +458,7 @@ def lookup_input_for_output(
     user_id: str,
     root_job_id: str,
     output_path: str,
-) -> Optional[str]:
+) -> str | None:
     """
     Return **input_path** for a stored row keyed by **output_path** (e.g. summary
     ``.txt`` or any plugin output path), or None.
@@ -513,7 +513,7 @@ def lookup_source_image(
     user_id: str,
     root_job_id: str,
     text_path: str,
-) -> Optional[str]:
+) -> str | None:
     """Alias: summary text file path → source image path (uses ``lookup_input_for_output``)."""
     return lookup_input_for_output(user_id, root_job_id, text_path)
 
@@ -522,7 +522,7 @@ def lookup_metadata_for_output(
     user_id: str,
     root_job_id: str,
     output_path: str,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Return parsed metadata JSON for a row keyed by output_path, if present."""
     if not user_id or not root_job_id or not output_path:
         return None

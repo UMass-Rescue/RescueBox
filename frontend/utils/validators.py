@@ -1,5 +1,6 @@
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import Any
+
 from pydantic import ValidationError
 from rb.api.models import (
     DirectoryInput,
@@ -14,11 +15,13 @@ from rb.api.models import (
     TaskSchema,
     TextInput,
 )
+
 from frontend.utils.exceptions import UI_RENDER_ERRORS
+
 from .paths import (
-    _resolve_input_path,
-    _input_schema_directory_requires_raster_image_corpus,
     _directory_contains_raster_image,
+    _input_schema_directory_requires_raster_image_corpus,
+    _resolve_input_path,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,7 +46,7 @@ def _input_schema_is_text_or_textarea(input_schema: InputSchema) -> bool:
     return it in (InputType.TEXT, InputType.TEXTAREA)
 
 
-def _coerce_input_type(schema: Any) -> Optional[Any]:
+def _coerce_input_type(schema: Any) -> Any | None:
     it = getattr(schema, "input_type", None)
     if it is None:
         return None
@@ -55,9 +58,7 @@ def _coerce_input_type(schema: Any) -> Optional[Any]:
         return None
 
 
-def paired_output_directory_field_id(
-    inputs_list: List[Any], index: int
-) -> Optional[str]:
+def paired_output_directory_field_id(inputs_list: list[Any], index: int) -> str | None:
     if not inputs_list or index < 0 or index >= len(inputs_list):
         return None
     cur = inputs_list[index]
@@ -77,9 +78,7 @@ def paired_output_directory_field_id(
     return nxt_key
 
 
-def paired_ufdr_mount_name_field_id(
-    inputs_list: List[Any], index: int
-) -> Optional[str]:
+def paired_ufdr_mount_name_field_id(inputs_list: list[Any], index: int) -> str | None:
     if not inputs_list or index < 0 or index >= len(inputs_list):
         return None
     cur = inputs_list[index]
@@ -97,9 +96,7 @@ def paired_ufdr_mount_name_field_id(
     return "mount_name"
 
 
-def paired_ufdr_mount_folder_field_id(
-    inputs_list: List[Any], index: int
-) -> Optional[str]:
+def paired_ufdr_mount_folder_field_id(inputs_list: list[Any], index: int) -> str | None:
     """Directory field id (``mount_folder``) paired with ``ufdr_file`` for path autofill."""
     if not inputs_list or index < 0 or index >= len(inputs_list):
         return None
@@ -117,10 +114,10 @@ def paired_ufdr_mount_folder_field_id(
 
 
 def validate_form_data(
-    form_data: Dict,
-    schema: Union[TaskSchema, Dict],
-    _endpoint: Optional[str] = None,
-) -> Dict[str, Any]:
+    form_data: dict,
+    schema: TaskSchema | dict,
+    _endpoint: str | None = None,
+) -> dict[str, Any]:
     """Validate form inputs against a TaskSchema using Pydantic models."""
     errors = {}
     try:
@@ -192,7 +189,7 @@ def _create_input_model(input_schema, value):
     raise ValueError(f"Unsupported type: {it}")
 
 
-def validate_response_body(data: Dict) -> Union[ResponseBody, Dict[str, Any]]:
+def validate_response_body(data: dict) -> ResponseBody | dict[str, Any]:
     try:
         return ResponseBody(**data)
     except ValidationError as e:
@@ -200,8 +197,8 @@ def validate_response_body(data: Dict) -> Union[ResponseBody, Dict[str, Any]]:
 
 
 def validate_request_body(
-    data: Dict, _task_schema: Optional[TaskSchema] = None, _endpoint: str = ""
-) -> Union[RequestBody, Dict[str, Any]]:
+    data: dict, _task_schema: TaskSchema | None = None, _endpoint: str = ""
+) -> RequestBody | dict[str, Any]:
     """Validate a request body dictionary against the RequestBody model."""
     try:
         return RequestBody(**data)

@@ -1,9 +1,9 @@
 import pytest
+from rb.api.models import RequestBody
 
 from frontend.database.file_filter_store import create_filter
-from frontend.pages.chatbot import DatabaseService
 from frontend.database.job_db import init_database
-from rb.api.models import RequestBody
+from frontend.pages.chatbot import DatabaseService
 
 
 @pytest.mark.asyncio

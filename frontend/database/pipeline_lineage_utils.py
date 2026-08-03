@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
 
 _IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".gif")
 
 
-def source_image_path_from_summary(
-    summary_txt_path: str, input_dir: str
-) -> Optional[str]:
+def source_image_path_from_summary(summary_txt_path: str, input_dir: str) -> str | None:
     """
     Infer source image path for image-summary output files.
 

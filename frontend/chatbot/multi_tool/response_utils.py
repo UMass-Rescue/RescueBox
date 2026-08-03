@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from rb.api.models import BatchFileResponse, FileResponse, ResponseBody
 
@@ -43,7 +43,7 @@ def coerce_pipeline_response(raw: Any) -> Any:
         return raw
 
 
-def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
+def extract_batch_file_items(response_body: Any) -> list[dict[str, Any]]:
     """
     Extract ``path``/``metadata`` from each row in a batch-file shaped payload.
 
@@ -56,7 +56,7 @@ def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
         elif isinstance(response_body, dict):
             root = response_body.get("root", response_body)
 
-        files: List[Any] = []
+        files: list[Any] = []
         if isinstance(root, BatchFileResponse) and root.files:
             files = list(root.files)
         elif isinstance(root, dict) and root.get("output_type") == "batchfile":
@@ -65,7 +65,7 @@ def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
         if not files:
             return []
 
-        items: List[Dict[str, Any]] = []
+        items: list[dict[str, Any]] = []
         for fr in files:
             if isinstance(fr, FileResponse):
                 items.append(
@@ -103,7 +103,7 @@ def extract_batch_file_items(response_body: Any) -> List[Dict[str, Any]]:
         return []
 
 
-def batch_items_have_age_gender_metadata(items: List[Dict[str, Any]]) -> bool:
+def batch_items_have_age_gender_metadata(items: list[dict[str, Any]]) -> bool:
     """True if any batch row has Age/Gender metadata fields."""
     for it in items:
         meta = it.get("metadata") or {}

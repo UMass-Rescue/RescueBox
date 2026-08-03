@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from nicegui import ui
 
-from .table_helpers import file_search_result_row
-from .serve_paths import open_file, serve_path
-from frontend.design_tokens import Design
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database.pipeline_lineage_utils import source_image_path_from_summary
+from frontend.design_tokens import Design
+
+from .serve_paths import open_file, serve_path
+from .table_helpers import file_search_result_row
 
 _IMAGE_SUMMARY_MODAL_CSS_DONE = False  # kept for test patches referencing module state
 
@@ -92,7 +93,7 @@ def ensure_image_summary_modal_css() -> None:
     )
 
 
-def _open_image_summary_markdown_modal(file_info: Dict[str, Any]) -> None:
+def _open_image_summary_markdown_modal(file_info: dict[str, Any]) -> None:
     ensure_image_summary_modal_css()
     txt, name, path_full = (
         file_info.get("content", ""),

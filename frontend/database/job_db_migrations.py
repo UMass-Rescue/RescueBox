@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from typing import Callable, Optional
+from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def _add_column_if_missing(
     *,
     column: str,
     alter_sql: str,
-    index_sql: Optional[str] = None,
+    index_sql: str | None = None,
 ) -> None:
     try:
         conn.execute(f"SELECT {column} FROM jobs LIMIT 1")

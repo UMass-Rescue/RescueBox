@@ -5,7 +5,9 @@ from __future__ import annotations
 from nicegui import ui
 
 
-def append_job_status_icon_and_label(status: str) -> None:
+def append_job_status_icon_and_label(
+    status: str, status_text: str | None = None
+) -> None:
     """Add status icon and label inside the caller's ``ui.row`` context."""
     if status == "Completed":
         ui.icon("check_circle", size="14px")
@@ -15,4 +17,7 @@ def append_job_status_icon_and_label(status: str) -> None:
         ui.icon("error", size="14px")
     else:
         ui.icon("cancel", size="14px")
-    ui.label(status)
+    label = status
+    if status == "Running" and (status_text or "").strip():
+        label = status_text.strip()
+    ui.label(label)
