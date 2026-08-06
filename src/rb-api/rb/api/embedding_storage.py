@@ -11,6 +11,7 @@ from typing import Any, Protocol, cast
 from rb.api.database import (
     ImageEmbedding,
     ImageSimilarityEmbedding,
+    ImageSimilarityPrivateEmbedding,
     TextEmbedding,
 )
 
@@ -140,7 +141,46 @@ class ImageEmbeddingStorage(DatabaseEmbeddingStorage):
 
 
 class ImageSimilarityEmbeddingStorage(DatabaseEmbeddingStorage):
-    """Persists image embeddings for the image-similarity plugin, keyed by path and content hash."""
+    """Persists public image embeddings for the image-similarity plugin."""
+
+    def __init__(
+        self,
+        session,
+        model_name: str = "google/siglip2-so400m-patch14-384",
+        user_email: str = "",
+    ):
+        super().__init__(session)
+        self.model_name = model_name
+        self.user_email = user_email
+
+    def save_embedding(
+        self,
+        path: str,
+        embedding: list[float],
+        *,
+        content_sha256: str = "",
+        pdq_hash: str = "",
+    ) -> None:
+        self.session.add(
+            ImageSimilarityEmbedding(
+                path=path,
+                embedding=embedding,
+                content_sha256=content_sha256,
+                model_name=self.model_name,
+                pdq_hash=pdq_hash,
+                user_email=self.user_email,
+            )
+        )
+
+    def _create_record(self, path: str, embedding: list[float]):
+        return ImageSimilarityEmbedding(
+            path=path, embedding=embedding, model_name=self.model_name,
+            user_email=self.user_email,
+        )
+
+
+class ImageSimilarityPrivateEmbeddingStorage(DatabaseEmbeddingStorage):
+    """Persists anonymized image embeddings in the dedicated private table."""
 
     def __init__(
         self,
@@ -161,26 +201,23 @@ class ImageSimilarityEmbeddingStorage(DatabaseEmbeddingStorage):
         *,
         content_sha256: str = "",
         pdq_hash: str = "",
-        user_email: str | None = None,
-        privacy_protocol: str | None = None,
     ) -> None:
         self.session.add(
-            ImageSimilarityEmbedding(
+            ImageSimilarityPrivateEmbedding(
                 path=path,
                 embedding=embedding,
                 content_sha256=content_sha256,
                 model_name=self.model_name,
                 pdq_hash=pdq_hash,
-                user_email=user_email if user_email is not None else self.user_email,
-                privacy_protocol=privacy_protocol if privacy_protocol is not None else self.privacy_protocol,
+                user_email=self.user_email,
+                privacy_protocol=self.privacy_protocol,
             )
         )
 
     def _create_record(self, path: str, embedding: list[float]):
-        return ImageSimilarityEmbedding(
+        return ImageSimilarityPrivateEmbedding(
             path=path, embedding=embedding, model_name=self.model_name,
-            user_email=self.user_email,
-            privacy_protocol=self.privacy_protocol,
+            user_email=self.user_email, privacy_protocol=self.privacy_protocol,
         )
 
 

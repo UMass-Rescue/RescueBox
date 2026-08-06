@@ -12,7 +12,7 @@ import logging
 from typing import Protocol, runtime_checkable
 
 import numpy as np
-from rb.api.database import ImageSimilarityEmbedding
+from rb.api.database import ImageSimilarityEmbedding, ImageSimilarityPrivateEmbedding
 from image_similarity import sql_filters
 from sqlalchemy import bindparam, text
 from sqlmodel import Session, select
@@ -52,6 +52,7 @@ def cosine_similarity_search(
     search_paths: list[str],
     top_k: int,
     model_name: str = "google/siglip2-so400m-patch14-384",
+    use_private_table: bool = False,
 ) -> list[dict]:
     """Find the top-K most similar embeddings using pgvector's cosine distance.
 
@@ -61,13 +62,15 @@ def cosine_similarity_search(
     """
     if not search_paths:
         return []
+    table = "image_similarity_private_embeddings" if use_private_table else "image_similarity_embeddings"
     qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
     stmt = text(
-        """
+        f"""
             SELECT path,
                    1 - (embedding <=> CAST(:qvec AS vector)) AS score
-            FROM image_similarity_embeddings
-            WHERE path IN :paths AND model_name = :model_name
+            FROM {table}
+            WHERE path IN :paths
+              AND model_name = :model_name
             ORDER BY embedding <=> CAST(:qvec AS vector)
             LIMIT :top_k
             """
@@ -94,17 +97,26 @@ def pdq_similarity_search(
     query_pdq: str,
     candidate_paths: list[str],
     top_k: int,
+    use_private_table: bool = False,
 ) -> list[dict]:
     """Rank candidates by PDQ Hamming similarity to the query hash."""
     if not candidate_paths or not query_pdq:
         return []
 
-    rows = session.exec(
-        select(ImageSimilarityEmbedding.path, ImageSimilarityEmbedding.pdq_hash).where(
-            sql_filters.path_in(candidate_paths),
-            sql_filters.pdq_hash_nonempty(),
-        )
-    ).all()
+    if use_private_table:
+        rows = session.exec(
+            select(ImageSimilarityPrivateEmbedding.path, ImageSimilarityPrivateEmbedding.pdq_hash).where(
+                sql_filters.priv_path_in(candidate_paths),
+                ImageSimilarityPrivateEmbedding.pdq_hash != "",
+            )
+        ).all()
+    else:
+        rows = session.exec(
+            select(ImageSimilarityEmbedding.path, ImageSimilarityEmbedding.pdq_hash).where(
+                sql_filters.path_in(candidate_paths),
+                sql_filters.pdq_hash_nonempty(),
+            )
+        ).all()
 
     if not rows:
         logger.warning("pdq_similarity_search: no PDQ hashes found for candidates")
@@ -132,16 +144,19 @@ class ClipScorer:
         session: Session,
         query_vec: np.ndarray,
         model_name: str = "google/siglip2-so400m-patch14-384",
+        use_private_table: bool = False,
     ) -> None:
         self._session = session
         self._query_vec = query_vec
         self._model_name = model_name
+        self._use_private_table = use_private_table
 
     def score(
         self, query_path: str, candidate_paths: list[str], top_k: int
     ) -> list[dict]:
         return cosine_similarity_search(
-            self._session, self._query_vec, candidate_paths, top_k, self._model_name
+            self._session, self._query_vec, candidate_paths, top_k,
+            self._model_name, self._use_private_table,
         )
 
 
@@ -151,15 +166,16 @@ class PdqScorer:
     Similarity = 1 - (hamming_distance / 256).
     """
 
-    def __init__(self, session: Session, query_pdq: str) -> None:
+    def __init__(self, session: Session, query_pdq: str, use_private_table: bool = False) -> None:
         self._session = session
         self._query_pdq = query_pdq
+        self._use_private_table = use_private_table
 
     def score(
         self, query_path: str, candidate_paths: list[str], top_k: int
     ) -> list[dict]:
         return pdq_similarity_search(
-            self._session, self._query_pdq, candidate_paths, top_k
+            self._session, self._query_pdq, candidate_paths, top_k, self._use_private_table,
         )
 
 
