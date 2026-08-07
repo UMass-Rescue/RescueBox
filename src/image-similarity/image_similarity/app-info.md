@@ -37,6 +37,8 @@ If you're looking for a concept like "people eating" rather than a specific scen
 
 ## Parameters
 
+- **Your email:** Contact email that identifies who ingested the embeddings. Required for cross-agency sharing — when embeddings are exported and matched on another machine, this lets the receiving agency know who to contact about a match.
+
 - **CLIP model:** `google/siglip2-so400m-patch14-384` (SigLIP2-SO400M, 1152-dim, Apache 2.0).
 
 - **Top K:** How many highest-similarity images to return (1–20, default 5).
@@ -60,9 +62,10 @@ If you're looking for a concept like "people eating" rather than a specific scen
 ## How It Works (brief)
 
 1. Scan the input directory; for each image, check if its embedding already exists in `image_similarity_embeddings` (by path or content SHA-256). Only compute and store new vectors for files not already in the database.
-2. Compute PDQ perceptual hashes for all images (backfilling any that are missing).
-3. Look up or compute the **query image's** embedding and PDQ hash.
-4. Rank **only** the directory images using the selected scoring mode, return **top-k** results.
+2. **Dual ingestion:** For each image, create both a **plain** embedding and PDQ hash (`privacy_protocol = ""`) and a **private** embedding and PDQ hash (`privacy_protocol = "clipseg-blackout-v1"`). Private values use the same CLIPSeg mask: faces, text, logos, and other selected labels are blacked out before both encoding and PDQ hashing.
+3. Backfill missing PDQ hashes for existing embeddings.
+4. Look up or compute the **query image's** embedding and PDQ hash.
+5. Rank **only** the directory images using the selected scoring mode against plain embeddings, or private embeddings and masked-image PDQ hashes when anonymization is selected, then return **top-k** results.
 
 ## Notes
 
@@ -74,4 +77,4 @@ If you're looking for a concept like "people eating" rather than a specific scen
 
 ## Dependencies
 
-- `transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, PostgreSQL with **pgvector**, `sqlmodel` / `sqlalchemy`.
+- `transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, `torch`, PostgreSQL with **pgvector**, `sqlmodel` / `sqlalchemy`.

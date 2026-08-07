@@ -28,6 +28,7 @@ MANIFEST
 *.bat
 *.exe
 *.onnx
+*.onnx.data
 frontend/data/
 # PyInstaller
 #  Usually these files are written by a python script from a template

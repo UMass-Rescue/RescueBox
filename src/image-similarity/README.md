@@ -19,13 +19,17 @@ If you're looking for a concept like "people eating" rather than a specific scen
 poetry install
 ```
 
-Download the ONNX model (~1.7 GB):
+Download the ONNX models into `onnx_models/`:
+
+**SigLIP2** (~1.7 GB) — vision encoder for embeddings:
 
 ```bash
 mkdir -p src/image-similarity/image_similarity/onnx_models
 curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patch14-384.onnx \
   https://huggingface.co/onnx-community/siglip2-so400m-patch14-384-ONNX/resolve/main/onnx/vision_model.onnx
 ```
+
+**CLIPSeg** (~300 MB) — text-prompted segmentation for privacy-preserving anonymization. Auto-downloaded from HuggingFace on first use (cached in `~/.cache/huggingface/`).
 
 ## Usage
 
@@ -35,12 +39,24 @@ rescuebox image_series_similarity /search_series "/path/to/photos|||/path/to/que
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
+| `user_email` | *(empty)* | Contact email — identifies who ingested the embeddings for cross-agency sharing |
 | `model_name` | `google/siglip2-so400m-patch14-384` | Vision encoder |
 | `top_k` | 5 | Results to return (1–20) |
 | `min_similarity` | 0.5 | Match threshold (0–1) |
 | `scoring_mode` | `combined` | `combined`, `semantic`, or `pdq` |
 
 **Scoring modes:** `combined` = CLIP + PDQ (default). `semantic` = CLIP cosine similarity only. `pdq` = PDQ perceptual hash only (near-duplicate detection).
+
+## Privacy-Preserving Dual Ingestion
+
+During ingestion, every image gets **two** embeddings stored in the same table:
+
+1. **Plain** (`privacy_protocol = ""`) — embedded from raw pixels. Used for local queries.
+2. **Private** (`privacy_protocol = "clipseg-blackout-v1"`) — image is first anonymized via CLIPSeg which blacks out faces, person bodies, text, logos, and signs before embedding.
+
+Both use the same `model_name`. The `privacy_protocol` column is the self-describing tag that identifies exactly how the embedding was produced. Cross-agency comparison only happens between embeddings with the **same** `privacy_protocol` value.
+
+Private embeddings are designed for safe cross-agency sharing — they never encode raw sensitive visual content. The anonymization uses CLIPSeg text-prompted segmentation (via `transformers` + PyTorch). The model is auto-downloaded from HuggingFace on first use.
 
 ## Benchmarks
 
@@ -79,4 +95,4 @@ No ONNX file needed for unit tests. End-to-end requires the model.
 
 ## Dependencies
 
-`transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, `sqlmodel`, `sqlalchemy`, `pgvector`
+`transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, `torch`, `sqlmodel`, `sqlalchemy`, `pgvector`
