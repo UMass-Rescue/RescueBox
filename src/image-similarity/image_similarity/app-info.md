@@ -62,10 +62,10 @@ If you're looking for a concept like "people eating" rather than a specific scen
 ## How It Works (brief)
 
 1. Scan the input directory; for each image, check if its embedding already exists in `image_similarity_embeddings` (by path or content SHA-256). Only compute and store new vectors for files not already in the database.
-2. **Dual ingestion:** For each image, create both a **plain** embedding (`privacy_protocol = ""`) and a **private** embedding (`privacy_protocol = "clipseg-blackout-v1"` — faces, text, logos blacked out via CLIPSeg before encoding). Both use the same `model_name`.
-3. Compute PDQ perceptual hashes for all images (backfilling any that are missing).
+2. **Dual ingestion:** For each image, create both a **plain** embedding and PDQ hash (`privacy_protocol = ""`) and a **private** embedding and PDQ hash (`privacy_protocol = "clipseg-blackout-v1"`). Private values use the same CLIPSeg mask: faces, text, logos, and other selected labels are blacked out before both encoding and PDQ hashing.
+3. Backfill missing PDQ hashes for existing embeddings.
 4. Look up or compute the **query image's** embedding and PDQ hash.
-5. Rank **only** the directory images using the selected scoring mode against **plain** embeddings, return **top-k** results. (Future PRs will add cross-machine query merging plain + private results.)
+5. Rank **only** the directory images using the selected scoring mode against plain embeddings, or private embeddings and masked-image PDQ hashes when anonymization is selected, then return **top-k** results.
 
 ## Notes
 

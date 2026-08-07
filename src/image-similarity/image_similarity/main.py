@@ -202,31 +202,21 @@ def _embed_pil_image(
 _PDQ_HEX_LEN = 64  # 256 bits = 64 hex chars
 
 
-def _compute_pdq_hash(image_path: str) -> str:
-    """Return the 64-char hex-encoded 256-bit PDQ perceptual hash for an image.
-
-    PDQ (Facebook/Meta) is a robust perceptual hash that is invariant to minor
-    crops, rotations, and compression artefacts.  Returns an empty string on
-    failure so callers can treat missing hashes gracefully.
-    """
+def _compute_pdq_hash(source: Image.Image | str) -> str:
+    """Compute a 64-char hex PDQ hash from a PIL Image or file path."""
     try:
-        img = Image.open(image_path).convert("RGB")
-        img_array = np.array(img, dtype=np.uint8)
-        hash_vector, _quality = pdqhash.compute(img_array)
+        img = Image.open(source).convert("RGB") if isinstance(source, str) else source.convert("RGB")
+        hash_vector, _quality = pdqhash.compute(np.array(img, dtype=np.uint8))
         bits = 0
         for bit in hash_vector:
             bits = (bits << 1) | int(bit)
         hex_hash = format(bits, "064x")
         if len(hex_hash) != _PDQ_HEX_LEN:
-            logger.warning(
-                "PDQ hash length mismatch for %s: got %d chars",
-                image_path,
-                len(hex_hash),
-            )
+            logger.warning("PDQ hash length mismatch: got %d chars", len(hex_hash))
             return ""
         return hex_hash
     except Exception as exc:
-        logger.warning("PDQ hash failed for %s: %s", image_path, exc)
+        logger.warning("PDQ hash failed for %s: %s", source if isinstance(source, str) else "image", exc)
         return ""
 
 
@@ -608,6 +598,15 @@ def _hash_paths(paths: list[str]) -> tuple[list[str], dict[str, str]]:
     return valid, path_to_hash
 
 
+def _load_query_image(query_image_path: str, anonymize: bool) -> Image.Image:
+    """Open query image, applying CLIPSeg anonymization when requested."""
+    img = Image.open(query_image_path).convert("RGB")
+    if anonymize:
+        from image_similarity.anonymizer import anonymize_image
+        return anonymize_image(img)
+    return img
+
+
 def _build_scorer(
     session: Session,
     scoring_mode: str,
@@ -618,34 +617,36 @@ def _build_scorer(
     processor: AutoImageProcessor,
     use_private_table: bool = False,
 ) -> ImageScorer:
-    """Construct the appropriate scorer based on scoring_mode."""
+    """Build a scorer that ranks candidates against the query image."""
+    has_vec = query_row is not None and query_row.embedding is not None
+    has_pdq = query_row is not None and bool(query_row.pdq_hash)
+    needs_image = (
+        (scoring_mode in ("semantic", "combined") and not has_vec) or
+        (scoring_mode in ("pdq", "combined") and not has_pdq)
+    )
+
+    query_img = _load_query_image(query_image_path, use_private_table) if needs_image else None
+
     query_vec: np.ndarray | None = None
     if scoring_mode in ("semantic", "combined"):
-        if query_row is not None and query_row.embedding is not None:
+        if has_vec:
             query_vec = np.array(list(query_row.embedding), dtype=np.float32)
         else:
-            query_vec = _embed_image(ort_session, processor, query_image_path)
+            query_vec = _embed_pil_image(ort_session, processor, query_img)
 
     query_pdq = ""
     if scoring_mode in ("pdq", "combined"):
-        if query_row is not None and query_row.pdq_hash:
-            query_pdq = query_row.pdq_hash
-        else:
-            query_pdq = _compute_pdq_hash(query_image_path)
+        query_pdq = query_row.pdq_hash if has_pdq else _compute_pdq_hash(query_img)
 
     if scoring_mode == "semantic":
-        assert query_vec is not None
         return ClipScorer(session, query_vec, model_name, use_private_table=use_private_table)
     if scoring_mode == "pdq":
         return PdqScorer(session, query_pdq, use_private_table=use_private_table)
 
-    assert query_vec is not None
-    return CombinedScorer(
-        [
-            ("clip", ClipScorer(session, query_vec, model_name, use_private_table=use_private_table), 0.5),
-            ("pdq", PdqScorer(session, query_pdq, use_private_table=use_private_table), 0.5),
-        ]
-    )
+    return CombinedScorer([
+        ("clip", ClipScorer(session, query_vec, model_name, use_private_table=use_private_table), 0.5),
+        ("pdq", PdqScorer(session, query_pdq, use_private_table=use_private_table), 0.5),
+    ])
 
 
 def _build_metadata(
@@ -715,12 +716,8 @@ def _create_private_embeddings(
     processor: AutoImageProcessor,
     user_email: str,
     model_name: str = _DEFAULT_MODEL,
-) -> None:
-    """Create anonymized embeddings for images not yet cached.
-
-    Embeds each unique content hash once via CLIPSeg blackout + CLIP,
-    then saves for all paths sharing that hash.
-    """
+) -> str:
+    """Anonymize images via CLIPSeg and store private embeddings + PDQ hashes."""
     from image_similarity.anonymizer import anonymize_image, DEFAULT_TARGET_LABELS
 
     protocol = _privacy_protocol_tag(list(DEFAULT_TARGET_LABELS))
@@ -729,7 +726,7 @@ def _create_private_embeddings(
     )
     if not new_paths:
         logger.info("Private embeddings: all %d paths already cached", len(file_paths))
-        return
+        return protocol
 
     storage = ImageSimilarityPrivateEmbeddingStorage(
         session, model_name=model_name, user_email=user_email,
@@ -742,9 +739,11 @@ def _create_private_embeddings(
     for h, paths in groups.items():
         try:
             img = Image.open(paths[0]).convert("RGB")
-            emb = _embed_pil_image(ort_session, processor, anonymize_image(img)).tolist()
+            anonymized = anonymize_image(img)
+            emb = _embed_pil_image(ort_session, processor, anonymized).tolist()
+            pdq_hash = _compute_pdq_hash(anonymized)
             for path in paths:
-                storage.save_embedding(path, emb, content_sha256=h)
+                storage.save_embedding(path, emb, content_sha256=h, pdq_hash=pdq_hash)
             embedded += 1
             cloned += len(paths) - 1
             session.flush()
@@ -763,6 +762,38 @@ def _create_private_embeddings(
             f"All {len(failures)} private embeddings failed. "
             f"First error: {failures[0][1]}"
         )
+    return protocol
+
+
+def _backfill_private_pdq_hashes(
+    session: Session, file_paths: list[str], model_name: str, protocol: str
+) -> None:
+    """Fill in empty pdq_hash on existing private rows using the anonymized image."""
+    from image_similarity.anonymizer import anonymize_image
+
+    rows = session.exec(
+        select(ImageSimilarityPrivateEmbedding).where(
+            sql_filters.priv_path_in(file_paths),
+            sql_filters.priv_model_name_eq(model_name),
+            ImageSimilarityPrivateEmbedding.privacy_protocol == protocol,
+            ImageSimilarityPrivateEmbedding.pdq_hash == "",
+        )
+    ).all()
+    if not rows:
+        return
+
+    computed: dict[str, str] = {}
+    for row in rows:
+        try:
+            h = row.content_sha256
+            if h not in computed:
+                img = Image.open(row.path).convert("RGB")
+                computed[h] = _compute_pdq_hash(anonymize_image(img))
+            row.pdq_hash = computed[h]
+        except Exception as exc:
+            logger.warning("Private PDQ backfill failed for %s: %s", row.path, exc)
+
+    session.commit()
 
 
 def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
@@ -811,7 +842,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         )
 
         if enable_anonymized:
-            _create_private_embeddings(
+            protocol = _create_private_embeddings(
                 session,
                 all_paths,
                 path_to_hash,
@@ -819,6 +850,12 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                 processor,
                 user_email,
                 model_name,
+            )
+            _backfill_private_pdq_hashes(
+                session,
+                all_paths,
+                model_name,
+                protocol,
             )
 
         if enable_anonymized:
