@@ -780,7 +780,7 @@ def _backfill_private_pdq_hashes(
             h = row.content_sha256
             if h not in computed:
                 img = Image.open(row.path).convert("RGB")
-                computed[h] = _compute_pdq_hash_image(anonymize_image(img))
+                computed[h] = _compute_pdq_hash(anonymize_image(img))
             row.pdq_hash = computed[h]
         except Exception as exc:
             logger.warning("Private PDQ backfill failed for %s: %s", row.path, exc)

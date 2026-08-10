@@ -7,7 +7,7 @@ Finds images from the **same series** as a query image.
 ## When It Works
 
 1. **Same series** — query with a full photo, get back other photos from the same event/scene.
-2. **Specific subject** — crop the query to one subject (a person, an object), get back images of that subject.
+2. **Specific subject** — crop the query image to one subject (a person, an object), get back images of that subject.
 
 ## Better with a Text Query?
 
@@ -29,7 +29,7 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
   https://huggingface.co/onnx-community/siglip2-so400m-patch14-384-ONNX/resolve/main/onnx/vision_model.onnx
 ```
 
-**CLIPSeg** (~545 MB) — text-prompted segmentation for privacy-preserving anonymization. Download `onnx/model.onnx` from [Xenova/clipseg-rd64-refined](https://huggingface.co/Xenova/clipseg-rd64-refined) and save as `clipseg-rd64-refined.onnx`.
+**CLIPSeg** (~545 MB) — detects and blacks out faces, people, text, signs, and logos for privacy. Download `onnx/model.onnx` from [Xenova/clipseg-rd64-refined](https://huggingface.co/Xenova/clipseg-rd64-refined) and save as `clipseg-rd64-refined.onnx`.
 
 ## Usage
 
@@ -60,24 +60,26 @@ Perceptual hashing identifies images that look the same or similar despite minor
 
 ## Privacy-Preserving Dual Ingestion
 
-Every image gets **two** sets of data stored during ingestion — one plain, one anonymized.
+Every image gets **two** sets of data stored during ingestion — one **plain** and one **private** (anonymized).
 
 ### Step-by-Step Breakdown
 
 **Ingestion (runs once per image):**
 
 1. **Load image** — read `photo.jpg` from disk
-2. **Plain path** — embed raw pixels → store embedding + PDQ hash with `privacy_protocol = ""`
-3. **Anonymize** — black out faces, people, text, signs, and logos
-4. **Private path** — embed anonymized image → store embedding + PDQ hash with `privacy_protocol = "clipseg-blackout-v1"`
+2. **Plain path** — embed raw pixels → store embedding + PDQ hash
+3. **Anonymize** — use CLIPSeg to black out faces, people, text, signs, and logos
+   - Labels are fixed — all five are always applied, users cannot select individual labels
+   - CLIPSeg finds where each label appears and blacks out those regions; layout and background remain
+4. **Private path** — embed the anonymized image → store embedding + PDQ hash
 
-Result: one image → two database rows (same `image_path`, different `privacy_protocol`).
+Result: one image → two database rows (plain + private).
 
 **Query (runs each search):**
 
 1. **Load query image**
 2. **Check anonymization toggle:**
-   - OFF → use plain embedding/PDQ for query, compare against plain directory embeddings
+   - OFF → use plain embedding/PDQ for query image, compare against plain directory embeddings
    - ON → anonymize query image, use private embedding/PDQ, compare against private directory embeddings
 3. **Score matches** using selected mode (`combined`, `semantic`, or `pdq`)
 4. **Return top-k** results above threshold
@@ -95,15 +97,26 @@ Imagine ingesting `Bernie_Sanders_2016_063.jpg` showing Bernie at a podium with 
 
 **Querying with `Bernie_Sanders_2016_001.jpg`:**
 
-- **Anonymization OFF:** Query's raw embedding compared against all `privacy_protocol = ""` embeddings → finds other Bernie rally photos by matching his face, crowd patterns, signs
-- **Anonymization ON:** Query is anonymized first, then compared against all `privacy_protocol = "clipseg-blackout-v1"` embeddings → finds rally photos by matching stage layout, podium shape, crowd density (without encoding any faces)
+- **Anonymization OFF:** Query image's raw embedding compared against plain embeddings → finds Bernie rally photos by matching his face, crowd, signs
+- **Anonymization ON:** Query image is anonymized first, then compared against private embeddings → finds rally photos by matching stage layout, podium shape, crowd density (no faces encoded)
+
+### Simple Example: Anonymization ON
+
+Query image has a **person** and a **logo**.
+
+1. CLIPSeg detects person and logo in query image → blacks them out
+2. Blacked-out query image is embedded
+3. Compare against directory's private embeddings (already blacked out during ingestion)
+4. Return top-k matches based on remaining visual content (background, objects, layout)
+
+Both query image and directory images are processed the same way — private embeddings always compare blacked-out to blacked-out.
 
 ### Why Two Embeddings?
 
 - **Plain** — maximum accuracy for local use where privacy isn't a concern
 - **Private** — safe for cross-agency sharing; never encodes raw faces, text, or identifying content
 
-Cross-agency comparison only happens between embeddings with the **same** `privacy_protocol` value. The anonymization uses CLIPSeg text-prompted segmentation via ONNX Runtime.
+Cross-agency comparison only works between embeddings of the same type (both plain or both private).
 
 ## Benchmarks
 
@@ -129,7 +142,7 @@ Cross-agency comparison only happens between embeddings with the **same** `priva
 | `Marine_Le_Pen_2017_*` | 2017 Lille rally | 5 |
 | `Naftali_Bennett_2021_*` | 2021 U.S. Embassy Jerusalem | 29 |
 
-**Correct:** Query `Bernie_Sanders_2016_063_*` → results are other `Bernie_Sanders_2016_*` images.
+**Correct:** Query image `Bernie_Sanders_2016_063_*` → results are other `Bernie_Sanders_2016_*` images.
 **Incorrect:** Results are `Kamala_Harris_2024_*` — different person, different event.
 
 ### How to Test
