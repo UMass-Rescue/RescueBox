@@ -78,9 +78,9 @@ Use this mode when you want to find similar scenes without relying on who is in 
 
 ### Example
 
-**Image:** A photo with a person wearing a company logo shirt, standing in front of a building.
+**Query image:** A photo with a person wearing a company logo shirt, standing in front of a building.
 
-**Anonymization ON:** The person and the logo are both blacked out. The search finds similar images based on the building, background, and layout — not based on who the person is or what logo appears.
+**Anonymization ON:** The person and the logo are blacked out in the query image. The same blackout is also applied to all images in the folder being searched. The search then finds similar images based on the building, background, and layout — not based on who the person is or what logo appears.
 
 **Result:** Other photos of the same building or similar scenes are returned, regardless of who is in them.
 
