@@ -37,13 +37,26 @@ If you're looking for a concept like "people eating" rather than a specific scen
 
 ## Parameters
 
+- **Your email:** Contact email that identifies who ingested the embeddings. Required for cross-agency sharing — when embeddings are exported and matched on another machine, this lets the receiving agency know who to contact about a match.
+
 - **CLIP model:** `google/siglip2-so400m-patch14-384` (SigLIP2-SO400M, 1152-dim, Apache 2.0).
 
 - **Top K:** How many highest-similarity images to return (1–20, default 5).
 
 - **Match threshold:** Similarity in 0–1; results at or above this count as a match in metadata. Image-to-image similarity scores are typically higher than text-to-image (~0.5–0.9 for related content).
 
-- **Scoring mode:** Combined (CLIP + PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ). CLIP compares **scene content** (what's in the image); PDQ compares **pixel structure** (exact or near-duplicate detection). Combined uses both.
+- **Scoring mode:** Combined (60% CLIP + 40% PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ). CLIP compares **scene content** (what's in the image); PDQ compares **pixel structure** (exact or near-duplicate detection). Combined uses both.
+
+### About PDQ (Perceptual Hashing)
+
+Perceptual hashing identifies images that look the same or similar despite minor changes such as resizing, compression, cropping, or slight color and brightness adjustments. It compares how an image looks, including the arrangement of visual patterns, rather than what the image contains. As a result, images that look similar may match even if they contain different subjects, while images of the same subject may not match if they have different viewpoints, scales, or layouts.
+
+**Examples:**
+
+- **Potential match:** A photo of a red apple and a photo of a red tomato placed in the same position on the same white table and taken from the same angle may produce similar hashes because the overall appearance and arrangement of visual patterns are similar.
+- **Potential non-match:** Two photos of the same car, where one is a close-up of the headlight and the other shows the entire vehicle, may produce different hashes because the images have different framing and visual layouts.
+
+**Note:** When using PDQ-only scoring mode, the input folder should contain images from only one series (e.g., only Bernie Sanders rally photos or only Kamala Harris event photos). Mixing multiple series will produce confusing results since PDQ matches visual structure, not semantic content.
 
 ## Supported Image Types
 
@@ -59,10 +72,11 @@ If you're looking for a concept like "people eating" rather than a specific scen
 
 ## How It Works (brief)
 
-1. Scan the input directory; for each image, check if its embedding already exists in `image_similarity_embeddings` (by path or content SHA-256). Only compute and store new vectors for files not already in the database.
-2. Compute PDQ perceptual hashes for all images (backfilling any that are missing).
-3. Look up or compute the **query image's** embedding and PDQ hash.
-4. Rank **only** the directory images using the selected scoring mode, return **top-k** results.
+1. Scan the input directory; for each image, check if its embedding already exists (by path or content SHA-256). Only compute and store new vectors for files not already in the database.
+2. **Plain embeddings** are always created and stored in the plain table.
+3. **When anonymization is ON:** CLIPSeg blacks out faces, people, text, signs, and logos, then the anonymized image is embedded and stored in a separate private table.
+4. Look up or compute the **query image's** embedding and PDQ hash.
+5. Compare query image against directory images and return **top-k** results. With anonymization ON, both query image and directory use their private embeddings.
 
 ## Notes
 
