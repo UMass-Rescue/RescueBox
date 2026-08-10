@@ -45,7 +45,7 @@ rescuebox image_series_similarity /search_series "/path/to/photos|||/path/to/que
 | `min_similarity` | 0.5 | Match threshold (0–1) |
 | `scoring_mode` | `combined` | `combined`, `semantic`, or `pdq` |
 
-**Scoring modes:** `combined` = CLIP + PDQ (default). `semantic` = CLIP cosine similarity only. `pdq` = PDQ perceptual hash only (near-duplicate detection).
+**Scoring modes:** `combined` = 60% CLIP + 40% PDQ (default). `semantic` = CLIP cosine similarity only. `pdq` = PDQ perceptual hash only (near-duplicate detection).
 
 ### About PDQ (Perceptual Hashing)
 
@@ -60,14 +60,50 @@ Perceptual hashing identifies images that look the same or similar despite minor
 
 ## Privacy-Preserving Dual Ingestion
 
-During ingestion, every image gets **two** embeddings stored in the same table:
+Every image gets **two** sets of data stored during ingestion — one plain, one anonymized.
 
-1. **Plain** (`privacy_protocol = ""`) — embedded from raw pixels. Used for local queries.
-2. **Private** (`privacy_protocol = "clipseg-blackout-v1"`) — image is first anonymized via CLIPSeg which blacks out faces, person bodies, text, logos, and signs before embedding.
+### Step-by-Step Breakdown
 
-Both use the same `model_name`. The `privacy_protocol` column is the self-describing tag that identifies exactly how the embedding was produced. Cross-agency comparison only happens between embeddings with the **same** `privacy_protocol` value.
+**Ingestion (runs once per image):**
 
-Private embeddings are designed for safe cross-agency sharing — they never encode raw sensitive visual content. The anonymization uses CLIPSeg text-prompted segmentation via ONNX Runtime.
+1. **Load image** — read `photo.jpg` from disk
+2. **Plain path** — embed raw pixels → store embedding + PDQ hash with `privacy_protocol = ""`
+3. **Anonymize** — black out faces, people, text, signs, and logos
+4. **Private path** — embed anonymized image → store embedding + PDQ hash with `privacy_protocol = "clipseg-blackout-v1"`
+
+Result: one image → two database rows (same `image_path`, different `privacy_protocol`).
+
+**Query (runs each search):**
+
+1. **Load query image**
+2. **Check anonymization toggle:**
+   - OFF → use plain embedding/PDQ for query, compare against plain directory embeddings
+   - ON → anonymize query image, use private embedding/PDQ, compare against private directory embeddings
+3. **Score matches** using selected mode (`combined`, `semantic`, or `pdq`)
+4. **Return top-k** results above threshold
+
+### Example: Rally Photo
+
+Imagine ingesting `Bernie_Sanders_2016_063.jpg` showing Bernie at a podium with crowd and campaign signs.
+
+| Step | Plain | Private |
+|------|-------|---------|
+| Input | Raw photo | Same photo with faces, "Bernie 2016" signs blacked out |
+| Embedding | Encodes: Bernie's face, crowd, signs, colors | Encodes: podium shape, stage layout, blacked regions |
+| PDQ Hash | Hash of raw visual patterns | Hash of anonymized visual patterns |
+| Stored as | `privacy_protocol = ""` | `privacy_protocol = "clipseg-blackout-v1"` |
+
+**Querying with `Bernie_Sanders_2016_001.jpg`:**
+
+- **Anonymization OFF:** Query's raw embedding compared against all `privacy_protocol = ""` embeddings → finds other Bernie rally photos by matching his face, crowd patterns, signs
+- **Anonymization ON:** Query is anonymized first, then compared against all `privacy_protocol = "clipseg-blackout-v1"` embeddings → finds rally photos by matching stage layout, podium shape, crowd density (without encoding any faces)
+
+### Why Two Embeddings?
+
+- **Plain** — maximum accuracy for local use where privacy isn't a concern
+- **Private** — safe for cross-agency sharing; never encodes raw faces, text, or identifying content
+
+Cross-agency comparison only happens between embeddings with the **same** `privacy_protocol` value. The anonymization uses CLIPSeg text-prompted segmentation via ONNX Runtime.
 
 ## Benchmarks
 
@@ -95,6 +131,22 @@ Private embeddings are designed for safe cross-agency sharing — they never enc
 
 **Correct:** Query `Bernie_Sanders_2016_063_*` → results are other `Bernie_Sanders_2016_*` images.
 **Incorrect:** Results are `Kamala_Harris_2024_*` — different person, different event.
+
+### How to Test
+
+```bash
+# 1. Setup
+cd src/image-similarity && poetry install
+# Download ONNX models (see Installation section)
+
+# 2. Run similarity search (plain embeddings)
+rescuebox image_series_similarity /search_series \
+  "src-tauri/demo/image-similarity/inputs/|||src-tauri/demo/image-similarity/inputs/Bernie_Sanders_2016_063.jpg" \
+  ",5,0.5,combined"
+
+# 3. Run with anonymization ON
+# Blacks out faces, people, text, signs, and logos before comparing
+```
 
 ## Unit Tests
 

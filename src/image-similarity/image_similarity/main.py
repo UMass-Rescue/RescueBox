@@ -640,8 +640,8 @@ def _build_scorer(
         return PdqScorer(session, query_pdq, use_private_table=use_private_table)
 
     return CombinedScorer([
-        ("clip", ClipScorer(session, query_vec, model_name, use_private_table=use_private_table), 0.5),
-        ("pdq", PdqScorer(session, query_pdq, use_private_table=use_private_table), 0.5),
+        ("clip", ClipScorer(session, query_vec, model_name, use_private_table=use_private_table), 0.6),
+        ("pdq", PdqScorer(session, query_pdq, use_private_table=use_private_table), 0.4),
     ])
 
 

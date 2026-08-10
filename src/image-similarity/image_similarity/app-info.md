@@ -45,7 +45,7 @@ If you're looking for a concept like "people eating" rather than a specific scen
 
 - **Match threshold:** Similarity in 0–1; results at or above this count as a match in metadata. Image-to-image similarity scores are typically higher than text-to-image (~0.5–0.9 for related content).
 
-- **Scoring mode:** Combined (CLIP + PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ). CLIP compares **scene content** (what's in the image); PDQ compares **pixel structure** (exact or near-duplicate detection). Combined uses both.
+- **Scoring mode:** Combined (60% CLIP + 40% PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ). CLIP compares **scene content** (what's in the image); PDQ compares **pixel structure** (exact or near-duplicate detection). Combined uses both.
 
 ### About PDQ (Perceptual Hashing)
 
@@ -73,10 +73,10 @@ Perceptual hashing identifies images that look the same or similar despite minor
 ## How It Works (brief)
 
 1. Scan the input directory; for each image, check if its embedding already exists in `image_similarity_embeddings` (by path or content SHA-256). Only compute and store new vectors for files not already in the database.
-2. **Dual ingestion:** For each image, create both a **plain** embedding and PDQ hash (`privacy_protocol = ""`) and a **private** embedding and PDQ hash (`privacy_protocol = "clipseg-blackout-v1"`). Private values use the same CLIPSeg mask: faces, text, logos, and other selected labels are blacked out before both encoding and PDQ hashing.
+2. **Dual ingestion:** For each image, create both a **plain** embedding/PDQ hash and a **private** embedding/PDQ hash. Private embeddings are created after blacking out faces, people, text, signs, and logos.
 3. Backfill missing PDQ hashes for existing embeddings.
 4. Look up or compute the **query image's** embedding and PDQ hash.
-5. Rank **only** the directory images using the selected scoring mode against plain embeddings, or private embeddings and masked-image PDQ hashes when anonymization is selected, then return **top-k** results.
+5. Rank directory images using plain embeddings (default) or private embeddings (when anonymization is ON), then return **top-k** results.
 
 ## Notes
 
