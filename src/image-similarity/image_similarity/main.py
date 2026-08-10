@@ -31,8 +31,15 @@ from rb.api.models import (
     FileResponse,
     FileType,
 )
-from rb.api.database import ImageSimilarityEmbedding, ImageSimilarityPrivateEmbedding, engine
-from rb.api.embedding_storage import ImageSimilarityEmbeddingStorage, ImageSimilarityPrivateEmbeddingStorage
+from rb.api.database import (
+    ImageSimilarityEmbedding,
+    ImageSimilarityPrivateEmbedding,
+    engine,
+)
+from rb.api.embedding_storage import (
+    ImageSimilarityEmbeddingStorage,
+    ImageSimilarityPrivateEmbeddingStorage,
+)
 from image_similarity.scorers import ClipScorer, CombinedScorer, ImageScorer, PdqScorer
 from image_similarity.anonymizer import anonymize_image, DEFAULT_TARGET_LABELS
 from image_similarity import sql_filters
@@ -187,9 +194,9 @@ def _embed_pil_image(
     image: Image.Image,
 ) -> np.ndarray:
     """Compute a normalised embedding from an in-memory PIL Image via ONNX Runtime."""
-    pixel_values = processor(images=image, return_tensors="np")[
-        "pixel_values"
-    ].astype(np.float32)
+    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(
+        np.float32
+    )
     outputs = ort_session.run(["pooler_output"], {"pixel_values": pixel_values})
     embeds = outputs[0]
     embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
@@ -202,7 +209,11 @@ _PDQ_HEX_LEN = 64  # 256 bits = 64 hex chars
 def _compute_pdq_hash(source: Image.Image | str) -> str:
     """Compute a 64-char hex PDQ hash from a PIL Image or file path."""
     try:
-        img = Image.open(source).convert("RGB") if isinstance(source, str) else source.convert("RGB")
+        img = (
+            Image.open(source).convert("RGB")
+            if isinstance(source, str)
+            else source.convert("RGB")
+        )
         hash_vector, _quality = pdqhash.compute(np.array(img, dtype=np.uint8))
         bits = 0
         for bit in hash_vector:
@@ -213,7 +224,11 @@ def _compute_pdq_hash(source: Image.Image | str) -> str:
             return ""
         return hex_hash
     except Exception as exc:
-        logger.warning("PDQ hash failed for %s: %s", source if isinstance(source, str) else "image", exc)
+        logger.warning(
+            "PDQ hash failed for %s: %s",
+            source if isinstance(source, str) else "image",
+            exc,
+        )
         return ""
 
 
@@ -616,12 +631,13 @@ def _build_scorer(
     """Build a scorer that ranks candidates against the query image."""
     has_vec = query_row is not None and query_row.embedding is not None
     has_pdq = query_row is not None and bool(query_row.pdq_hash)
-    needs_image = (
-        (scoring_mode in ("semantic", "combined") and not has_vec) or
-        (scoring_mode in ("pdq", "combined") and not has_pdq)
+    needs_image = (scoring_mode in ("semantic", "combined") and not has_vec) or (
+        scoring_mode in ("pdq", "combined") and not has_pdq
     )
 
-    query_img = _load_query_image(query_image_path, use_private_table) if needs_image else None
+    query_img = (
+        _load_query_image(query_image_path, use_private_table) if needs_image else None
+    )
 
     query_vec: np.ndarray | None = None
     if scoring_mode in ("semantic", "combined"):
@@ -635,14 +651,28 @@ def _build_scorer(
         query_pdq = query_row.pdq_hash if has_pdq else _compute_pdq_hash(query_img)
 
     if scoring_mode == "semantic":
-        return ClipScorer(session, query_vec, model_name, use_private_table=use_private_table)
+        return ClipScorer(
+            session, query_vec, model_name, use_private_table=use_private_table
+        )
     if scoring_mode == "pdq":
         return PdqScorer(session, query_pdq, use_private_table=use_private_table)
 
-    return CombinedScorer([
-        ("clip", ClipScorer(session, query_vec, model_name, use_private_table=use_private_table), 0.6),
-        ("pdq", PdqScorer(session, query_pdq, use_private_table=use_private_table), 0.4),
-    ])
+    return CombinedScorer(
+        [
+            (
+                "clip",
+                ClipScorer(
+                    session, query_vec, model_name, use_private_table=use_private_table
+                ),
+                0.6,
+            ),
+            (
+                "pdq",
+                PdqScorer(session, query_pdq, use_private_table=use_private_table),
+                0.4,
+            ),
+        ]
+    )
 
 
 def _build_metadata(
@@ -667,7 +697,6 @@ def _build_metadata(
     return meta
 
 
-
 def _privacy_protocol_tag(labels: list[str]) -> str:
     """Encode anonymization config into a single cache-key string."""
     return "clipseg-blackout-v1:" + ",".join(sorted(labels))
@@ -684,17 +713,21 @@ def _uncached_private_paths(
     hashes = [path_to_hash[p] for p in file_paths if p in path_to_hash]
     if not hashes:
         return []
-    cached = set(session.exec(
-        select(ImageSimilarityPrivateEmbedding.content_sha256).where(
-            sql_filters.priv_content_sha256_in(hashes),
-            sql_filters.priv_model_name_eq(model_name),
-            ImageSimilarityPrivateEmbedding.privacy_protocol == protocol,
-        )
-    ).all())
+    cached = set(
+        session.exec(
+            select(ImageSimilarityPrivateEmbedding.content_sha256).where(
+                sql_filters.priv_content_sha256_in(hashes),
+                sql_filters.priv_model_name_eq(model_name),
+                ImageSimilarityPrivateEmbedding.privacy_protocol == protocol,
+            )
+        ).all()
+    )
     return [p for p in file_paths if path_to_hash.get(p) not in cached]
 
 
-def _group_by_hash(paths: list[str], path_to_hash: dict[str, str]) -> dict[str, list[str]]:
+def _group_by_hash(
+    paths: list[str], path_to_hash: dict[str, str]
+) -> dict[str, list[str]]:
     """Group paths by content hash for deduplication."""
     groups: dict[str, list[str]] = {}
     for p in paths:
@@ -716,14 +749,20 @@ def _create_private_embeddings(
     """Anonymize images via CLIPSeg and store private embeddings + PDQ hashes."""
     protocol = _privacy_protocol_tag(list(DEFAULT_TARGET_LABELS))
     new_paths = _uncached_private_paths(
-        session, file_paths, path_to_hash, model_name, protocol,
+        session,
+        file_paths,
+        path_to_hash,
+        model_name,
+        protocol,
     )
     if not new_paths:
         logger.info("Private embeddings: all %d paths already cached", len(file_paths))
         return protocol
 
     storage = ImageSimilarityPrivateEmbeddingStorage(
-        session, model_name=model_name, user_email=user_email,
+        session,
+        model_name=model_name,
+        user_email=user_email,
         privacy_protocol=protocol,
     )
     groups = _group_by_hash(new_paths, path_to_hash)
@@ -749,7 +788,11 @@ def _create_private_embeddings(
         storage.commit()
     logger.info(
         "Private embeddings (%s): %d unique + %d cloned (skipped %d cached, %d failed)",
-        protocol, embedded, cloned, len(file_paths) - len(new_paths), len(failures),
+        protocol,
+        embedded,
+        cloned,
+        len(file_paths) - len(new_paths),
+        len(failures),
     )
     if embedded == 0 and failures:
         raise RuntimeError(
@@ -821,7 +864,9 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
     with Session(engine) as session:
         storage = ImageSimilarityEmbeddingStorage(
-            session, model_name=model_name, user_email=user_email,
+            session,
+            model_name=model_name,
+            user_email=user_email,
         )
         paths_for_search = _embed_and_store_images(
             session,

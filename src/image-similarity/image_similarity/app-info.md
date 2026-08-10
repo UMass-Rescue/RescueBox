@@ -72,11 +72,11 @@ Perceptual hashing identifies images that look the same or similar despite minor
 
 ## How It Works (brief)
 
-1. Scan the input directory; for each image, check if its embedding already exists in `image_similarity_embeddings` (by path or content SHA-256). Only compute and store new vectors for files not already in the database.
-2. **Dual ingestion:** For each image, create both a **plain** embedding/PDQ hash and a **private** (anonymized) embedding/PDQ hash. Private embeddings are created by first using CLIPSeg to black out faces, people, text, signs, and logos, then embedding the result.
-3. Backfill missing PDQ hashes for existing embeddings.
+1. Scan the input directory; for each image, check if its embedding already exists (by path or content SHA-256). Only compute and store new vectors for files not already in the database.
+2. **Plain embeddings** are always created and stored in the plain table.
+3. **When anonymization is ON:** CLIPSeg blacks out faces, people, text, signs, and logos, then the anonymized image is embedded and stored in a separate private table.
 4. Look up or compute the **query image's** embedding and PDQ hash.
-5. Compare query against directory images and return **top-k** results. With anonymization ON, both query and directory use their private (anonymized) embeddings.
+5. Compare query image against directory images and return **top-k** results. With anonymization ON, both query image and directory use their private embeddings.
 
 ## Notes
 

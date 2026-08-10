@@ -58,65 +58,31 @@ Perceptual hashing identifies images that look the same or similar despite minor
 
 **Note:** When using `pdq` scoring mode, the input folder should contain images from only one series (e.g., only Bernie Sanders rally photos or only Kamala Harris event photos). Mixing multiple series will produce confusing results since PDQ matches visual structure, not semantic content.
 
-## Privacy-Preserving Dual Ingestion
+## Privacy-Preserving Mode
 
-Every image gets **two** sets of data stored during ingestion — one **plain** and one **private** (anonymized).
+### Anonymization OFF (default)
 
-### Step-by-Step Breakdown
+1. Select a folder of images and a query image
+2. Run the search
+3. Get similar images based on everything visible in the photos
 
-**Ingestion (runs once per image):**
+### Anonymization ON
 
-1. **Load image** — read `photo.jpg` from disk
-2. **Plain path** — embed raw pixels → store embedding + PDQ hash
-3. **Anonymize** — use CLIPSeg to black out faces, people, text, signs, and logos
-   - Labels are fixed — all five are always applied, users cannot select individual labels
-   - CLIPSeg finds where each label appears and blacks out those regions; layout and background remain
-4. **Private path** — embed the anonymized image → store embedding + PDQ hash
+1. Select a folder of images and a query image
+2. Toggle **Anonymization ON**
+3. Run the search
+4. Faces, people, text, signs, and logos are blacked out in all images before comparing (these labels are fixed and cannot be changed)
+5. Get similar images based on background, layout, and remaining objects — without matching on faces or identifying content
 
-Result: one image → two database rows (plain + private).
+Use this mode when you want to find similar scenes without relying on who is in the photo or what text/logos appear.
 
-**Query (runs each search):**
+### Example
 
-1. **Load query image**
-2. **Check anonymization toggle:**
-   - OFF → use plain embedding/PDQ for query image, compare against plain directory embeddings
-   - ON → anonymize query image, use private embedding/PDQ, compare against private directory embeddings
-3. **Score matches** using selected mode (`combined`, `semantic`, or `pdq`)
-4. **Return top-k** results above threshold
+**Image:** A photo with a person wearing a company logo shirt, standing in front of a building.
 
-### Example: Rally Photo
+**Anonymization ON:** The person and the logo are both blacked out. The search finds similar images based on the building, background, and layout — not based on who the person is or what logo appears.
 
-Imagine ingesting `Bernie_Sanders_2016_063.jpg` showing Bernie at a podium with crowd and campaign signs.
-
-| Step | Plain | Private |
-|------|-------|---------|
-| Input | Raw photo | Same photo with faces, "Bernie 2016" signs blacked out |
-| Embedding | Encodes: Bernie's face, crowd, signs, colors | Encodes: podium shape, stage layout, blacked regions |
-| PDQ Hash | Hash of raw visual patterns | Hash of anonymized visual patterns |
-| Stored as | `privacy_protocol = ""` | `privacy_protocol = "clipseg-blackout-v1"` |
-
-**Querying with `Bernie_Sanders_2016_001.jpg`:**
-
-- **Anonymization OFF:** Query image's raw embedding compared against plain embeddings → finds Bernie rally photos by matching his face, crowd, signs
-- **Anonymization ON:** Query image is anonymized first, then compared against private embeddings → finds rally photos by matching stage layout, podium shape, crowd density (no faces encoded)
-
-### Simple Example: Anonymization ON
-
-Query image has a **person** and a **logo**.
-
-1. CLIPSeg detects person and logo in query image → blacks them out
-2. Blacked-out query image is embedded
-3. Compare against directory's private embeddings (already blacked out during ingestion)
-4. Return top-k matches based on remaining visual content (background, objects, layout)
-
-Both query image and directory images are processed the same way — private embeddings always compare blacked-out to blacked-out.
-
-### Why Two Embeddings?
-
-- **Plain** — maximum accuracy for local use where privacy isn't a concern
-- **Private** — safe for cross-agency sharing; never encodes raw faces, text, or identifying content
-
-Cross-agency comparison only works between embeddings of the same type (both plain or both private).
+**Result:** Other photos of the same building or similar scenes are returned, regardless of who is in them.
 
 ## Benchmarks
 

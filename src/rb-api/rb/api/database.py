@@ -126,10 +126,14 @@ def create_db_and_tables():
             ).fetchone()
             if has_col:
                 conn.execute(
-                    text("DELETE FROM image_similarity_embeddings WHERE privacy_protocol != ''")
+                    text(
+                        "DELETE FROM image_similarity_embeddings WHERE privacy_protocol != ''"
+                    )
                 )
                 conn.execute(
-                    text("ALTER TABLE image_similarity_embeddings DROP COLUMN privacy_protocol")
+                    text(
+                        "ALTER TABLE image_similarity_embeddings DROP COLUMN privacy_protocol"
+                    )
                 )
     except Exception:
         pass

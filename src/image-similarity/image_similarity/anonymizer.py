@@ -62,15 +62,23 @@ def _load_clipseg() -> tuple[ort.InferenceSession, CLIPSegProcessor]:
     available = ort.get_available_providers()
     providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
     providers = [p for p in providers if p in available]
-    logger.info("Loading CLIPSeg ONNX model from %s (providers=%s)", _CLIPSEG_ONNX_PATH.name, providers)
+    logger.info(
+        "Loading CLIPSeg ONNX model from %s (providers=%s)",
+        _CLIPSEG_ONNX_PATH.name,
+        providers,
+    )
 
     _cached_session = ort.InferenceSession(str(_CLIPSEG_ONNX_PATH), providers=providers)
     tokenizer = CLIPTokenizerFast(
         vocab_file=None,
         tokenizer_file=str(_CLIPSEG_TOKENIZER_PATH),
     )
-    image_processor = ViTImageProcessor.from_json_file(str(_CLIPSEG_PREPROCESSOR_CONFIG_PATH))
-    _cached_processor = CLIPSegProcessor(image_processor=image_processor, tokenizer=tokenizer)
+    image_processor = ViTImageProcessor.from_json_file(
+        str(_CLIPSEG_PREPROCESSOR_CONFIG_PATH)
+    )
+    _cached_processor = CLIPSegProcessor(
+        image_processor=image_processor, tokenizer=tokenizer
+    )
 
     return _cached_session, _cached_processor
 
@@ -99,7 +107,9 @@ def _create_mask(
         return_tensors="np",
     )
 
-    ort_inputs = {k: v for k, v in inputs.items() if k in [i.name for i in session.get_inputs()]}
+    ort_inputs = {
+        k: v for k, v in inputs.items() if k in [i.name for i in session.get_inputs()]
+    }
     outputs = session.run(None, ort_inputs)
 
     logits = outputs[0]  # (num_labels, H, W)
@@ -113,7 +123,9 @@ def _create_mask(
         binary = (mask_resized > int(threshold * 255)).astype(np.uint8) * 255
         combined = np.maximum(combined, binary)
         detected = np.any(binary > 0)
-        logger.info("CLIPSeg '%s': %s", label, "detected" if detected else "not detected")
+        logger.info(
+            "CLIPSeg '%s': %s", label, "detected" if detected else "not detected"
+        )
 
     mask = Image.fromarray(combined, mode="L")
 

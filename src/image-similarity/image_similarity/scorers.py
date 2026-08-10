@@ -62,7 +62,11 @@ def cosine_similarity_search(
     """
     if not search_paths:
         return []
-    table = "image_similarity_private_embeddings" if use_private_table else "image_similarity_embeddings"
+    table = (
+        "image_similarity_private_embeddings"
+        if use_private_table
+        else "image_similarity_embeddings"
+    )
     qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
     stmt = text(
         f"""
@@ -105,14 +109,19 @@ def pdq_similarity_search(
 
     if use_private_table:
         rows = session.exec(
-            select(ImageSimilarityPrivateEmbedding.path, ImageSimilarityPrivateEmbedding.pdq_hash).where(
+            select(
+                ImageSimilarityPrivateEmbedding.path,
+                ImageSimilarityPrivateEmbedding.pdq_hash,
+            ).where(
                 sql_filters.priv_path_in(candidate_paths),
                 ImageSimilarityPrivateEmbedding.pdq_hash != "",
             )
         ).all()
     else:
         rows = session.exec(
-            select(ImageSimilarityEmbedding.path, ImageSimilarityEmbedding.pdq_hash).where(
+            select(
+                ImageSimilarityEmbedding.path, ImageSimilarityEmbedding.pdq_hash
+            ).where(
                 sql_filters.path_in(candidate_paths),
                 sql_filters.pdq_hash_nonempty(),
             )
@@ -155,8 +164,12 @@ class ClipScorer:
         self, query_path: str, candidate_paths: list[str], top_k: int
     ) -> list[dict]:
         return cosine_similarity_search(
-            self._session, self._query_vec, candidate_paths, top_k,
-            self._model_name, self._use_private_table,
+            self._session,
+            self._query_vec,
+            candidate_paths,
+            top_k,
+            self._model_name,
+            self._use_private_table,
         )
 
 
@@ -166,7 +179,9 @@ class PdqScorer:
     Similarity = 1 - (hamming_distance / 256).
     """
 
-    def __init__(self, session: Session, query_pdq: str, use_private_table: bool = False) -> None:
+    def __init__(
+        self, session: Session, query_pdq: str, use_private_table: bool = False
+    ) -> None:
         self._session = session
         self._query_pdq = query_pdq
         self._use_private_table = use_private_table
@@ -175,7 +190,11 @@ class PdqScorer:
         self, query_path: str, candidate_paths: list[str], top_k: int
     ) -> list[dict]:
         return pdq_similarity_search(
-            self._session, self._query_pdq, candidate_paths, top_k, self._use_private_table,
+            self._session,
+            self._query_pdq,
+            candidate_paths,
+            top_k,
+            self._use_private_table,
         )
 
 

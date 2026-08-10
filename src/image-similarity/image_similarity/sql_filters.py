@@ -32,6 +32,7 @@ def pdq_hash_nonempty():
 
 # Private table filters
 
+
 def priv_path_in(paths: list[str]):
     return cast(Any, _priv_cols["path"]).in_(paths)
 

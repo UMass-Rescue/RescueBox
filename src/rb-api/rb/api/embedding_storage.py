@@ -174,7 +174,9 @@ class ImageSimilarityEmbeddingStorage(DatabaseEmbeddingStorage):
 
     def _create_record(self, path: str, embedding: list[float]):
         return ImageSimilarityEmbedding(
-            path=path, embedding=embedding, model_name=self.model_name,
+            path=path,
+            embedding=embedding,
+            model_name=self.model_name,
             user_email=self.user_email,
         )
 
@@ -216,8 +218,11 @@ class ImageSimilarityPrivateEmbeddingStorage(DatabaseEmbeddingStorage):
 
     def _create_record(self, path: str, embedding: list[float]):
         return ImageSimilarityPrivateEmbedding(
-            path=path, embedding=embedding, model_name=self.model_name,
-            user_email=self.user_email, privacy_protocol=self.privacy_protocol,
+            path=path,
+            embedding=embedding,
+            model_name=self.model_name,
+            user_email=self.user_email,
+            privacy_protocol=self.privacy_protocol,
         )
 
 
