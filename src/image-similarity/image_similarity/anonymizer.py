@@ -2,8 +2,8 @@
 Privacy-preserving image anonymization using CLIPSeg text-prompted segmentation.
 
 Detects specified visual concepts (faces, text, logos, etc.) in an image using
-CLIPSeg, then blacks out those regions so that downstream embeddings never
-encode sensitive content.
+CLIPSeg via ONNX Runtime, then blacks out those regions so that downstream
+embeddings never encode sensitive content.
 
 Anonymization approach inspired by:
     Bissias, Bagdasarian & Levine, "Contrastive Privacy: A Semantic Approach
@@ -13,13 +13,13 @@ Anonymization approach inspired by:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import Any, Optional, Sequence
+from pathlib import Path
+from typing import Optional, Sequence
 
 import numpy as np
-import torch
+import onnxruntime as ort
 from PIL import Image, ImageFilter
-from transformers import CLIPSegProcessor, CLIPSegForImageSegmentation
+from transformers import CLIPSegProcessor, CLIPTokenizerFast, ViTImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -27,40 +27,52 @@ DEFAULT_TARGET_LABELS: list[str] = ["face", "person", "text", "sign", "logo"]
 DEFAULT_THRESHOLD = 0.3
 DEFAULT_DILATE = 15
 DEFAULT_BLUR = 5
-_CLIPSEG_MODEL_NAME = "CIDAS/clipseg-rd64-refined"
+
+_MODELS_DIR = Path(__file__).resolve().parent / "onnx_models"
+_CLIPSEG_ONNX_PATH = _MODELS_DIR / "clipseg-rd64-refined.onnx"
+_CLIPSEG_TOKENIZER_PATH = _MODELS_DIR / "clipseg_tokenizer.json"
+_CLIPSEG_TOKENIZER_CONFIG_PATH = _MODELS_DIR / "clipseg_tokenizer_config.json"
+_CLIPSEG_PREPROCESSOR_CONFIG_PATH = _MODELS_DIR / "clipseg_preprocessor_config.json"
+
+_cached_session: Optional[ort.InferenceSession] = None
+_cached_processor: Optional[CLIPSegProcessor] = None
 
 
-@dataclass
-class _CLIPSeg:
-    model: Any
-    processor: Any
-    device: str
+def _sigmoid(x: np.ndarray) -> np.ndarray:
+    """NumPy sigmoid function."""
+    return 1.0 / (1.0 + np.exp(-x))
 
 
-_cached_clipseg: Optional[_CLIPSeg] = None
+def _load_clipseg() -> tuple[ort.InferenceSession, CLIPSegProcessor]:
+    """Load CLIPSeg ONNX session and processor, caching for reuse."""
+    global _cached_session, _cached_processor
+    if _cached_session is not None and _cached_processor is not None:
+        return _cached_session, _cached_processor
 
+    required_files = [
+        (_CLIPSEG_ONNX_PATH, "ONNX model"),
+        (_CLIPSEG_TOKENIZER_PATH, "tokenizer"),
+        (_CLIPSEG_TOKENIZER_CONFIG_PATH, "tokenizer config"),
+        (_CLIPSEG_PREPROCESSOR_CONFIG_PATH, "preprocessor config"),
+    ]
+    for path, desc in required_files:
+        if not path.exists():
+            raise FileNotFoundError(f"CLIPSeg {desc} not found at {path}")
 
-def _get_device() -> str:
-    if torch.cuda.is_available():
-        return "cuda"
-    return "cpu"
+    available = ort.get_available_providers()
+    providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    providers = [p for p in providers if p in available]
+    logger.info("Loading CLIPSeg ONNX model from %s (providers=%s)", _CLIPSEG_ONNX_PATH.name, providers)
 
+    _cached_session = ort.InferenceSession(str(_CLIPSEG_ONNX_PATH), providers=providers)
+    tokenizer = CLIPTokenizerFast(
+        vocab_file=None,
+        tokenizer_file=str(_CLIPSEG_TOKENIZER_PATH),
+    )
+    image_processor = ViTImageProcessor.from_json_file(str(_CLIPSEG_PREPROCESSOR_CONFIG_PATH))
+    _cached_processor = CLIPSegProcessor(image_processor=image_processor, tokenizer=tokenizer)
 
-def _load_clipseg(device: Optional[str] = None) -> _CLIPSeg:
-    """Load CLIPSeg model and processor, caching for reuse across images."""
-    global _cached_clipseg
-    if _cached_clipseg is not None:
-        return _cached_clipseg
-
-    device = device or _get_device()
-    logger.info("Loading CLIPSeg model: %s (device=%s)", _CLIPSEG_MODEL_NAME, device)
-
-    processor = CLIPSegProcessor.from_pretrained(_CLIPSEG_MODEL_NAME)
-    model = CLIPSegForImageSegmentation.from_pretrained(_CLIPSEG_MODEL_NAME)
-    model = model.to(device)
-
-    _cached_clipseg = _CLIPSeg(model=model, processor=processor, device=device)
-    return _cached_clipseg
+    return _cached_session, _cached_processor
 
 
 def _create_mask(
@@ -69,34 +81,31 @@ def _create_mask(
     threshold: float = DEFAULT_THRESHOLD,
     dilate: int = DEFAULT_DILATE,
     blur: int = DEFAULT_BLUR,
-    device: Optional[str] = None,
 ) -> Image.Image:
-    """Segment *labels* in *image* via CLIPSeg and return a grayscale mask.
+    """Segment *labels* in *image* via CLIPSeg ONNX and return a grayscale mask.
 
     All labels are processed in a single forward pass. White pixels in the
     returned mask mark detected regions.
     """
-    clipseg = _load_clipseg(device)
-    clipseg.model.eval()
+    session, processor = _load_clipseg()
 
     h, w = image.size[1], image.size[0]
     combined = np.zeros((h, w), dtype=np.uint8)
 
-    inputs = clipseg.processor(
+    inputs = processor(
         text=list(labels),
         images=[image] * len(labels),
         padding=True,
-        return_tensors="pt",
+        return_tensors="np",
     )
-    inputs = {k: v.to(clipseg.device) for k, v in inputs.items()}
 
-    with torch.inference_mode():
-        outputs = clipseg.model(**inputs)
+    ort_inputs = {k: v for k, v in inputs.items() if k in [i.name for i in session.get_inputs()]}
+    outputs = session.run(None, ort_inputs)
 
-    logits = outputs.logits  # (num_labels, H, W)
+    logits = outputs[0]  # (num_labels, H, W)
     for i, label in enumerate(labels):
         mask_logits = logits[i]
-        mask_prob = torch.sigmoid(mask_logits).cpu().numpy()
+        mask_prob = _sigmoid(mask_logits)
         mask_uint8 = (mask_prob * 255).astype(np.uint8)
         mask_resized = np.array(
             Image.fromarray(mask_uint8).resize((w, h), Image.Resampling.BILINEAR)
@@ -133,12 +142,11 @@ def anonymize_image(
     threshold: float = DEFAULT_THRESHOLD,
     dilate: int = DEFAULT_DILATE,
     blur: int = DEFAULT_BLUR,
-    device: Optional[str] = None,
 ) -> Image.Image:
     """Anonymize an image by blacking out regions matching *target_labels*.
 
     Returns a new PIL Image with sensitive regions replaced by black pixels.
     The original image is never modified.
     """
-    mask = _create_mask(image, target_labels, threshold, dilate, blur, device)
+    mask = _create_mask(image, target_labels, threshold, dilate, blur)
     return _apply_blackout(image, mask)

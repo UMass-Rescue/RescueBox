@@ -34,6 +34,7 @@ from rb.api.models import (
 from rb.api.database import ImageSimilarityEmbedding, ImageSimilarityPrivateEmbedding, engine
 from rb.api.embedding_storage import ImageSimilarityEmbeddingStorage, ImageSimilarityPrivateEmbeddingStorage
 from image_similarity.scorers import ClipScorer, CombinedScorer, ImageScorer, PdqScorer
+from image_similarity.anonymizer import anonymize_image, DEFAULT_TARGET_LABELS
 from image_similarity import sql_filters
 from sqlmodel import Session, select
 
@@ -156,10 +157,8 @@ def _embed_images_batch(
         pixel_values = processor(images=images, return_tensors="np")[
             "pixel_values"
         ].astype(np.float32)
-        outputs = ort_session.run(None, {"pixel_values": pixel_values})
+        outputs = ort_session.run(["pooler_output"], {"pixel_values": pixel_values})
         embeds = outputs[0]
-        if embeds.ndim == 3:
-            embeds = embeds.mean(axis=1)
         embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
         for path, vec in zip(valid_paths, embeds):
             results[path] = vec
@@ -191,10 +190,8 @@ def _embed_pil_image(
     pixel_values = processor(images=image, return_tensors="np")[
         "pixel_values"
     ].astype(np.float32)
-    outputs = ort_session.run(None, {"pixel_values": pixel_values})
+    outputs = ort_session.run(["pooler_output"], {"pixel_values": pixel_values})
     embeds = outputs[0]
-    if embeds.ndim == 3:
-        embeds = embeds.mean(axis=1)
     embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
     return embeds.squeeze()
 
@@ -602,7 +599,6 @@ def _load_query_image(query_image_path: str, anonymize: bool) -> Image.Image:
     """Open query image, applying CLIPSeg anonymization when requested."""
     img = Image.open(query_image_path).convert("RGB")
     if anonymize:
-        from image_similarity.anonymizer import anonymize_image
         return anonymize_image(img)
     return img
 
@@ -718,8 +714,6 @@ def _create_private_embeddings(
     model_name: str = _DEFAULT_MODEL,
 ) -> str:
     """Anonymize images via CLIPSeg and store private embeddings + PDQ hashes."""
-    from image_similarity.anonymizer import anonymize_image, DEFAULT_TARGET_LABELS
-
     protocol = _privacy_protocol_tag(list(DEFAULT_TARGET_LABELS))
     new_paths = _uncached_private_paths(
         session, file_paths, path_to_hash, model_name, protocol,
@@ -769,8 +763,6 @@ def _backfill_private_pdq_hashes(
     session: Session, file_paths: list[str], model_name: str, protocol: str
 ) -> None:
     """Fill in empty pdq_hash on existing private rows using the anonymized image."""
-    from image_similarity.anonymizer import anonymize_image
-
     rows = session.exec(
         select(ImageSimilarityPrivateEmbedding).where(
             sql_filters.priv_path_in(file_paths),
@@ -788,7 +780,7 @@ def _backfill_private_pdq_hashes(
             h = row.content_sha256
             if h not in computed:
                 img = Image.open(row.path).convert("RGB")
-                computed[h] = _compute_pdq_hash(anonymize_image(img))
+                computed[h] = _compute_pdq_hash_image(anonymize_image(img))
             row.pdq_hash = computed[h]
         except Exception as exc:
             logger.warning("Private PDQ backfill failed for %s: %s", row.path, exc)

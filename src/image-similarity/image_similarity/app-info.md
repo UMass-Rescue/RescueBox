@@ -77,4 +77,4 @@ If you're looking for a concept like "people eating" rather than a specific scen
 
 ## Dependencies
 
-- `transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, `torch`, PostgreSQL with **pgvector**, `sqlmodel` / `sqlalchemy`.
+- `transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, PostgreSQL with **pgvector**, `sqlmodel` / `sqlalchemy`.

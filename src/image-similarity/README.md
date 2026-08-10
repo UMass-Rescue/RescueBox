@@ -29,7 +29,7 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
   https://huggingface.co/onnx-community/siglip2-so400m-patch14-384-ONNX/resolve/main/onnx/vision_model.onnx
 ```
 
-**CLIPSeg** (~300 MB) — text-prompted segmentation for privacy-preserving anonymization. Auto-downloaded from HuggingFace on first use (cached in `~/.cache/huggingface/`).
+**CLIPSeg** (~545 MB) — text-prompted segmentation for privacy-preserving anonymization. Download `onnx/model.onnx` from [Xenova/clipseg-rd64-refined](https://huggingface.co/Xenova/clipseg-rd64-refined) and save as `clipseg-rd64-refined.onnx`.
 
 ## Usage
 
@@ -56,7 +56,7 @@ During ingestion, every image gets **two** embeddings stored in the same table:
 
 Both use the same `model_name`. The `privacy_protocol` column is the self-describing tag that identifies exactly how the embedding was produced. Cross-agency comparison only happens between embeddings with the **same** `privacy_protocol` value.
 
-Private embeddings are designed for safe cross-agency sharing — they never encode raw sensitive visual content. The anonymization uses CLIPSeg text-prompted segmentation (via `transformers` + PyTorch). The model is auto-downloaded from HuggingFace on first use.
+Private embeddings are designed for safe cross-agency sharing — they never encode raw sensitive visual content. The anonymization uses CLIPSeg text-prompted segmentation via ONNX Runtime.
 
 ## Benchmarks
 
@@ -95,4 +95,4 @@ No ONNX file needed for unit tests. End-to-end requires the model.
 
 ## Dependencies
 
-`transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, `torch`, `sqlmodel`, `sqlalchemy`, `pgvector`
+`transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, `sqlmodel`, `sqlalchemy`, `pgvector`
