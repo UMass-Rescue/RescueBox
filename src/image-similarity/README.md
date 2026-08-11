@@ -49,7 +49,7 @@ rescuebox image_series_similarity /search_series "/path/to/photos|||/path/to/que
 
 | Mode | What it compares | When to use |
 |------|------------------|-------------|
-| `combined` | 60% scene content + 40% visual structure | **Default — use for most searches** |
+| `combined` | Weighted score: 60% CLIP + 40% PDQ | **Default — use for most searches** |
 | `semantic` | Scene content only (CLIP) | When images look different but show the same subject (e.g., different angles) |
 | `pdq` | Visual structure only (perceptual hash) | Only for near-duplicates — resized, compressed, or lightly edited copies |
 
