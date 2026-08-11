@@ -38,6 +38,10 @@ async def api_client():
         httpx.AsyncClient: HTTP client configured for backend API
     """
     async with httpx.AsyncClient(base_url=API_BASE_URL, timeout=30.0) as client:
+        try:
+            await client.get("/api/models", timeout=3.0)
+        except (httpx.ConnectError, httpx.TimeoutException) as e:
+            pytest.skip(f"Backend API not available at {API_BASE_URL}: {e}")
         yield client
 
 
