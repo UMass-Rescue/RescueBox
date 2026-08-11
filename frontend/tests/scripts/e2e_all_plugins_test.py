@@ -17,8 +17,9 @@ from pathlib import Path
 
 import httpx
 
-BASE_URL = os.environ.get("RESCUEBOX_API_BASE", "http://127.0.0.1:8080/api").rstrip("/")
-DEMO_ROOT = Path("/home/tester/Documents/demo1")
+BASE_URL = os.environ.get("RESCUEBOX_API_BASE", "http://127.0.0.1:8000").rstrip("/")
+DEFAULT_DEMO_DIR = Path(__file__).resolve().parents[3] / "src-tauri" / "demo"
+DEMO_ROOT = Path(os.environ.get("DEMO_ROOT", str(DEFAULT_DEMO_DIR)))
 
 # Define the test sequence for all 9 plugins
 TEST_CASES = [
@@ -69,6 +70,7 @@ TEST_CASES = [
     },
     {
         "name": "6. Text Embeddings Search",
+        "skip": True,
         "endpoint": "/text_embeddings/search",
         "inputs": {
             "input_dir": {"path": str(DEMO_ROOT / "summarize-text" / "outputs")},
@@ -124,26 +126,75 @@ TEST_CASES = [
         },
         "parameters": {},
     },
+    {
+        "name": "11. Image Series Similarity Search",
+        "endpoint": "/image_series_similarity/search_series",
+        "inputs": {
+            "input_dir": {"path": str(DEMO_ROOT / "image-similarity" / "inputs")},
+            "query_image": {
+                "path": str(DEMO_ROOT / "image-similarity" / "inputs" / "query.jpg")
+            },
+        },
+        "parameters": {
+            "user_email": "e2e-tester@example.com",
+            "enable_anonymized": "no",
+            "model_name": "google/siglip2-so400m-patch14-384",
+            "top_k": 5,
+            "min_similarity": 0.5,
+            "scoring_mode": "combined",
+        },
+    },
 ]
 
 
+def _create_sample_jpeg_bytes() -> bytes:
+    from io import BytesIO
+    from PIL import Image
+
+    buf = BytesIO()
+    img = Image.new("RGB", (64, 64), color=(200, 100, 100))
+    img.save(buf, format="JPEG")
+    return buf.getvalue()
+
+
 def run_tests():
+    sample_jpeg = _create_sample_jpeg_bytes()
     print(f"Setting up Demo directories in {DEMO_ROOT}...")
     for tc in TEST_CASES:
         for key, val in tc["inputs"].items():
             if "path" in val:
                 p = Path(val["path"])
-                if "ufdr" in tc["name"].lower():
+                if p.suffix:
                     p.parent.mkdir(parents=True, exist_ok=True)
-                    if not p.exists():
-                        p.touch()  # Touch a fake UFDR so it passes path validation
+                    if not p.exists() or p.stat().st_size < 100:
+                        if p.suffix.lower() in [".jpg", ".jpeg", ".png", ".bmp"]:
+                            p.write_bytes(sample_jpeg)
+                        else:
+                            p.touch()
                 else:
                     p.mkdir(parents=True, exist_ok=True)
+                    (p / "sample_img.jpg").write_bytes(sample_jpeg)
 
     headers = {"X-RescueBox-User-Id": "e2e-all-plugins-tester"}
 
     with httpx.Client(timeout=600.0) as client:
         for tc in TEST_CASES:
+            if tc.get("skip"):
+                print(f"\n⏭ Skipping {tc['name']}")
+                continue
+
+            if "query_image" in tc["inputs"] and "path" in tc["inputs"]["query_image"]:
+                q_path = Path(tc["inputs"]["query_image"]["path"])
+                if not q_path.exists() and "input_dir" in tc["inputs"]:
+                    dir_path = Path(tc["inputs"]["input_dir"]["path"])
+                    imgs = (
+                        list(dir_path.glob("*.jpg"))
+                        + list(dir_path.glob("*.png"))
+                        + list(dir_path.glob("*.jpeg"))
+                    )
+                    if imgs:
+                        tc["inputs"]["query_image"]["path"] = str(imgs[0])
+
             print(f"\n▶ Testing {tc['name']}")
             endpoint = f"{BASE_URL}{tc['endpoint']}"
             payload = {"inputs": tc["inputs"], "parameters": tc["parameters"]}
@@ -155,8 +206,9 @@ def run_tests():
             print(f"  Status: {resp.status_code} ({elapsed:.2f}s)")
             print(f"  Response: {resp.text[:300].strip()}...")
 
-    print("\nCleaning up FUSE mount...")
-    subprocess.run(["umount", "/tmp/e2etest123"], capture_output=True)
+    if os.name != "nt":
+        print("\nCleaning up FUSE mount...")
+        subprocess.run(["umount", "/tmp/e2etest123"], capture_output=True)
 
 
 if __name__ == "__main__":
