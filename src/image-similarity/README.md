@@ -41,11 +41,17 @@ rescuebox image_series_similarity /search_series "/path/to/photos|||/path/to/que
 |-----------|---------|-------------|
 | `user_email` | *(empty)* | Contact email — identifies who ingested the embeddings for cross-agency sharing |
 | `model_name` | `google/siglip2-so400m-patch14-384` | Vision encoder |
-| `top_k` | 5 | Results to return (1–20) |
-| `min_similarity` | 0.5 | Match threshold (0–1) |
-| `scoring_mode` | `combined` | `combined`, `semantic`, or `pdq` |
+| `top_k` | 5 | How many results to show (1–20). Default is 5. |
+| `min_similarity` | 0.5 | Minimum score (0–1) for a result to count as a "match" in metadata. Lower = more results, higher = stricter. |
+| `scoring_mode` | `combined` | How to compare images — see Scoring Modes below |
 
-**Scoring modes:** `combined` = 60% CLIP + 40% PDQ (default). `semantic` = CLIP cosine similarity only. `pdq` = PDQ perceptual hash only (near-duplicate detection).
+## Scoring Modes
+
+| Mode | What it compares | When to use |
+|------|------------------|-------------|
+| `combined` | Weighted score: 60% CLIP + 40% PDQ | **Default — use for most searches** |
+| `semantic` | Scene content only (CLIP) | When images look different but show the same subject (e.g., different angles) |
+| `pdq` | Visual structure only (perceptual hash) | Only for near-duplicates — resized, compressed, or lightly edited copies |
 
 ### About PDQ (Perceptual Hashing)
 
@@ -75,6 +81,14 @@ Perceptual hashing identifies images that look the same or similar despite minor
 5. Get similar images based on background, layout, and remaining objects — without matching on faces or identifying content
 
 Use this mode when you want to find similar scenes without relying on who is in the photo or what text/logos appear.
+
+### Test Anonymization
+
+- Folder: `src-tauri/demo/image-similarity/inputs/`
+- Query image: `Bernie_Sanders_2016_068_Bernie Sanders by DW Nance 14.jpg`
+- Create anonymized embeddings: **Yes**
+- Scoring mode: **combined** or **semantic** (anonymization works best with these modes, not PDQ-only)
+- Expected: Other `Bernie_Sanders_2016_*` images returned as matches
 
 ### Example
 

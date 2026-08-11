@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_TARGET_LABELS: list[str] = ["face", "person", "text", "sign", "logo"]
 DEFAULT_THRESHOLD = 0.3
-DEFAULT_DILATE = 15
+DEFAULT_DILATE = 5
 DEFAULT_BLUR = 5
 
 _MODELS_DIR = Path(__file__).resolve().parent / "onnx_models"
