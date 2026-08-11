@@ -84,6 +84,13 @@ Use this mode when you want to find similar scenes without relying on who is in 
 
 **Result:** Other photos of the same building or similar scenes are returned, regardless of who is in them.
 
+**Test anonymization:**
+- Folder: `src-tauri/demo/image-similarity/inputs/`
+- Query image: `Bernie_Sanders_2016_068_Bernie Sanders by DW Nance 14.jpg`
+- Create anonymized embeddings: **Yes**
+- Scoring mode: **combined** or **semantic** (anonymization works best with these modes, not PDQ-only)
+- Expected: Other `Bernie_Sanders_2016_*` images returned as matches
+
 ## Benchmarks
 
 503 images, [image-series-dataset](https://github.com/UMass-Rescue/image-series-dataset), NVIDIA RTX 5090.
