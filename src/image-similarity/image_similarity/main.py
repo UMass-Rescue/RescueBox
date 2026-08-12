@@ -186,7 +186,7 @@ def _embed_images_batch(
             )
         else:
             last_reported = report_phased_file_progress(
-                None, 1, 2, processed, total, last_reported
+                None, 1, 2, total, total, last_reported
             )
     return results, last_reported
 
