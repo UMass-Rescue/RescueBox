@@ -10,7 +10,7 @@ import pdqhash
 import typer
 from PIL import Image
 from transformers import AutoImageProcessor
-from rb.lib.job_progress import report_file_progress
+from rb.lib.job_progress import report_phased_file_progress
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     InputSchema,
@@ -129,7 +129,8 @@ def _embed_images_batch(
     processor: AutoImageProcessor,
     image_paths: list[str],
     batch_size: int = _EMBED_BATCH_SIZE,
-) -> dict[str, np.ndarray]:
+    enable_anonymized: bool = False,
+) -> tuple[dict[str, np.ndarray], int]:
     """Compute normalised embeddings for multiple images, batched when possible.
 
     If the ONNX model was exported with a dynamic batch axis, images are
@@ -170,22 +171,24 @@ def _embed_images_batch(
         for path, vec in zip(valid_paths, embeds):
             results[path] = vec
         processed += len(valid_paths)
-        last_reported = report_file_progress(None, processed, total, last_reported)
+        if enable_anonymized:
+            last_reported = report_phased_file_progress(
+                None, 1, 3, processed, total, last_reported
+            )
+        else:
+            last_reported = report_phased_file_progress(
+                None, 1, 2, processed, total, last_reported
+            )
     if total > 0:
-        report_file_progress(None, total, total, last_reported)
-    return results
-
-
-def _embed_image(
-    ort_session: ort.InferenceSession,
-    processor: AutoImageProcessor,
-    image_path: str,
-) -> np.ndarray:
-    """Compute a normalised embedding for a single image.  Returns a 1-D float32 array."""
-    results = _embed_images_batch(ort_session, processor, [image_path])
-    if image_path not in results:
-        raise RuntimeError(f"Failed to embed {image_path}")
-    return results[image_path]
+        if enable_anonymized:
+            last_reported = report_phased_file_progress(
+                None, 1, 3, total, total, last_reported
+            )
+        else:
+            last_reported = report_phased_file_progress(
+                None, 1, 2, processed, total, last_reported
+            )
+    return results, last_reported
 
 
 def _embed_pil_image(
@@ -367,34 +370,6 @@ def _sha256_file(path: str) -> str:
     return digest
 
 
-def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
-    """Compute and store PDQ hashes for already-indexed images that lack one.
-
-    Uses a single batch query instead of N individual lookups.
-    """
-    if not paths:
-        logger.info("Backfill: no paths to check")
-        return 0
-    logger.info("Backfill: checking %d paths for missing PDQ hashes", len(paths))
-    rows = session.exec(
-        select(ImageSimilarityEmbedding).where(
-            sql_filters.path_in(paths),
-            sql_filters.pdq_hash_empty(),
-        )
-    ).all()
-    logger.info("Backfill: found %d rows with empty pdq_hash", len(rows))
-    filled = 0
-    for row in rows:
-        pdq = _compute_pdq_hash(row.path)
-        if pdq:
-            row.pdq_hash = pdq
-            filled += 1
-    if filled:
-        session.flush()
-    logger.info("Backfill: filled %d / %d missing PDQ hashes", filled, len(rows))
-    return filled
-
-
 def _discover_new_paths(
     session: Session,
     file_paths: list[str],
@@ -426,7 +401,8 @@ def _batch_embed_and_hash(
     path_to_hash: dict[str, str],
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
-):
+    enable_anonymized: bool = False,
+) -> tuple[dict[str, np.ndarray], dict[str, str], int]:
     """Batch-embed (CLIP) and batch-hash (PDQ) all genuinely new content.
 
     Deduplicates by content hash so identical files are processed only once.
@@ -435,7 +411,7 @@ def _batch_embed_and_hash(
     batch_embeddings: dict[str, np.ndarray] = {}
     batch_pdq: dict[str, str] = {}
     if not need_embed:
-        return batch_embeddings, batch_pdq
+        return batch_embeddings, batch_pdq, 0
 
     hash_to_rep: dict[str, str] = {}
     for p in need_embed:
@@ -445,13 +421,26 @@ def _batch_embed_and_hash(
     unique_paths = list(hash_to_rep.values())
 
     logger.info("Batch-embedding %d new unique image(s) on GPU", len(unique_paths))
-    raw = _embed_images_batch(ort_session, processor, unique_paths)
+    raw, last_reported = _embed_images_batch(
+        ort_session, processor, unique_paths, enable_anonymized=enable_anonymized
+    )
+    processed = 0
+    total = len(hash_to_rep)
     for h, rep in hash_to_rep.items():
         if rep in raw:
             batch_embeddings[h] = raw[rep]
         batch_pdq[h] = _compute_pdq_hash(rep)
+        processed += 1
+        if enable_anonymized and total > 0:
+            last_reported = report_phased_file_progress(
+                None, 2, 3, processed, total, last_reported
+            )
+        else:
+            last_reported = report_phased_file_progress(
+                None, 2, 2, processed, total, last_reported
+            )
 
-    return batch_embeddings, batch_pdq
+    return batch_embeddings, batch_pdq, last_reported
 
 
 def _persist_new_path(
@@ -483,7 +472,7 @@ def _persist_new_path(
                         path,
                         batch_embeddings[h].tolist(),
                         content_sha256=h,
-                        pdq_hash=batch_pdq.get(h, ""),
+                        pdq_hash=batch_pdq[h],
                     )
                     paths_for_search.append(path)
                     counters["new"] += 1
@@ -506,20 +495,18 @@ def _persist_new_path(
 
     if row.path not in file_paths_set:
         row.path = path
-        if not row.pdq_hash:
-            pdq = batch_pdq.get(h) or _compute_pdq_hash(path)
-            if pdq:
-                row.pdq_hash = pdq
         counters["relocated"] += 1
         logger.info(
             "Reused embedding by content hash (path updated): %s -> %s", row.path, path
         )
     else:
         emb = list(row.embedding) if row.embedding is not None else []
-        pdq = row.pdq_hash or batch_pdq.get(h, "")
         session.add(
             ImageSimilarityEmbedding(
-                path=path, embedding=emb, content_sha256=h, pdq_hash=pdq
+                path=path,
+                embedding=emb,
+                content_sha256=h,
+                pdq_hash=row.pdq_hash,
             )
         )
         counters["cloned"] += 1
@@ -537,13 +524,13 @@ def _embed_and_store_images(
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
     model_name: str = _DEFAULT_MODEL,
-):
+    enable_anonymized: bool = False,
+) -> tuple[list[str], int]:
     """Ensure every path has an embedding + PDQ row.  Returns paths ready for search."""
     already = _paths_already_embedded(session, file_paths, model_name)
     file_paths_set = set(file_paths)
 
     paths_for_search = [p for p in file_paths if p in already]
-    _backfill_missing_pdq_hashes(session, paths_for_search)
 
     hash_row_cache, need_embed = _discover_new_paths(
         session,
@@ -552,11 +539,12 @@ def _embed_and_store_images(
         path_to_hash,
         model_name,
     )
-    batch_embeddings, batch_pdq = _batch_embed_and_hash(
+    batch_embeddings, batch_pdq, last_reported = _batch_embed_and_hash(
         need_embed,
         path_to_hash,
         ort_session,
         processor,
+        enable_anonymized=enable_anonymized,
     )
 
     counters = {"new": 0, "relocated": 0, "cloned": 0}
@@ -582,7 +570,7 @@ def _embed_and_store_images(
     if any(counters.values()):
         storage.commit()
 
-    return paths_for_search
+    return paths_for_search, last_reported
 
 
 def _collect_image_paths(input_dir: str) -> list[str]:
@@ -630,10 +618,10 @@ def _build_scorer(
 ) -> ImageScorer:
     """Build a scorer that ranks candidates against the query image."""
     has_vec = query_row is not None and query_row.embedding is not None
-    has_pdq = query_row is not None and bool(query_row.pdq_hash)
-    needs_image = (scoring_mode in ("semantic", "combined") and not has_vec) or (
-        scoring_mode in ("pdq", "combined") and not has_pdq
-    )
+    needs_pdq_from_image = scoring_mode in ("pdq", "combined") and query_row is None
+    needs_image = (
+        scoring_mode in ("semantic", "combined") and not has_vec
+    ) or needs_pdq_from_image
 
     query_img = (
         _load_query_image(query_image_path, use_private_table) if needs_image else None
@@ -648,7 +636,10 @@ def _build_scorer(
 
     query_pdq = ""
     if scoring_mode in ("pdq", "combined"):
-        query_pdq = query_row.pdq_hash if has_pdq else _compute_pdq_hash(query_img)
+        if query_row is not None:
+            query_pdq = query_row.pdq_hash
+        else:
+            query_pdq = _compute_pdq_hash(query_img)
 
     if scoring_mode == "semantic":
         return ClipScorer(
@@ -745,6 +736,7 @@ def _create_private_embeddings(
     processor: AutoImageProcessor,
     user_email: str,
     model_name: str = _DEFAULT_MODEL,
+    last_reported: int = 0,
 ) -> str:
     """Anonymize images via CLIPSeg and store private embeddings + PDQ hashes."""
     protocol = _privacy_protocol_tag(list(DEFAULT_TARGET_LABELS))
@@ -766,6 +758,7 @@ def _create_private_embeddings(
         privacy_protocol=protocol,
     )
     groups = _group_by_hash(new_paths, path_to_hash)
+    total = len(groups)
 
     embedded, cloned = 0, 0
     failures: list[tuple[str, str]] = []
@@ -780,6 +773,9 @@ def _create_private_embeddings(
             embedded += 1
             cloned += len(paths) - 1
             session.flush()
+            last_reported = report_phased_file_progress(
+                None, 3, 3, embedded, total, last_reported
+            )
         except Exception as exc:
             failures.append((paths[0], str(exc)))
             logger.warning("Private embedding failed for %s: %s", paths[0], exc)
@@ -800,35 +796,6 @@ def _create_private_embeddings(
             f"First error: {failures[0][1]}"
         )
     return protocol
-
-
-def _backfill_private_pdq_hashes(
-    session: Session, file_paths: list[str], model_name: str, protocol: str
-) -> None:
-    """Fill in empty pdq_hash on existing private rows using the anonymized image."""
-    rows = session.exec(
-        select(ImageSimilarityPrivateEmbedding).where(
-            sql_filters.priv_path_in(file_paths),
-            sql_filters.priv_model_name_eq(model_name),
-            ImageSimilarityPrivateEmbedding.privacy_protocol == protocol,
-            ImageSimilarityPrivateEmbedding.pdq_hash == "",
-        )
-    ).all()
-    if not rows:
-        return
-
-    computed: dict[str, str] = {}
-    for row in rows:
-        try:
-            h = row.content_sha256
-            if h not in computed:
-                img = Image.open(row.path).convert("RGB")
-                computed[h] = _compute_pdq_hash(anonymize_image(img))
-            row.pdq_hash = computed[h]
-        except Exception as exc:
-            logger.warning("Private PDQ backfill failed for %s: %s", row.path, exc)
-
-    session.commit()
 
 
 def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
@@ -868,7 +835,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             model_name=model_name,
             user_email=user_email,
         )
-        paths_for_search = _embed_and_store_images(
+        paths_for_search, last_reported = _embed_and_store_images(
             session,
             storage,
             all_paths,
@@ -876,10 +843,11 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             ort_session,
             processor,
             model_name,
+            enable_anonymized=enable_anonymized,
         )
 
         if enable_anonymized:
-            protocol = _create_private_embeddings(
+            _create_private_embeddings(
                 session,
                 all_paths,
                 path_to_hash,
@@ -887,12 +855,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                 processor,
                 user_email,
                 model_name,
-            )
-            _backfill_private_pdq_hashes(
-                session,
-                all_paths,
-                model_name,
-                protocol,
+                last_reported=last_reported,
             )
 
         if enable_anonymized:
