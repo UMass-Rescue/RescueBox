@@ -135,3 +135,36 @@ def report_file_progress(
         write_percent(job_id, pct)
         return pct
     return last_reported
+
+
+def report_phased_file_progress(
+    job_id: str | None,
+    phase: int,
+    phases: int,
+    processed: int,
+    total: int,
+    last_reported: int,
+) -> int:
+    """
+    Report progress for one phase of a multi-phase job.
+
+    ``phase`` and ``phases`` are 1-based (e.g. ``1, 2`` maps that phase to 0–50%
+    overall; ``2, 2`` maps to 50–100%). Within the phase, ``processed / total``
+    fills that slice.
+
+    Returns the new ``last_reported`` percent (unchanged if nothing written).
+    """
+    if not job_id:
+        job_id = get_current_job_id()
+    if not job_id or total <= 0 or phase < 1 or phase > phases:
+        return last_reported
+    start = ((phase - 1) * 100) // phases
+    end = (phase * 100) // phases
+    span = end - start
+    phase_pct = min(100, (processed * 100) // total)
+    pct = start + (phase_pct * span) // 100
+    if pct > last_reported:
+        pct = min(pct, 95)
+        write_percent(job_id, pct)
+        return pct
+    return last_reported
