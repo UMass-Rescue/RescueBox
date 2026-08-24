@@ -1,12 +1,16 @@
 # Image Similarity Search
 
-**Series:** A series is a collection of images that are related **temporally** and in terms of **subject or subject matter**. For example, photos taken at a birthday party would all be part of the same series. Photos of the same person taken at different times and places would **not** be part of the same series. See the [UMass-Rescue/image-series-dataset](https://github.com/UMass-Rescue/image-series-dataset) for examples.
+This plugin has **three tasks:**
 
-This plugin finds images from the **same series** as a query image. It embeds all images in a folder using a SigLIP2 vision encoder (ONNX Runtime) and ranks them using a configurable scoring mode combining semantic similarity and perceptual hashing.
+| Task | What it does |
+|------|--------------|
+| **Find series matches** | Search for similar images in a folder |
+| **Export private embeddings** | Save anonymized data to share with other agencies |
+| **Import private embeddings** | Load data received from another agency |
 
-Embeddings are stored in a dedicated PostgreSQL (pgvector) `image_similarity_embeddings` table. If images have already been embedded by a prior run, their vectors are **reused** — no double computation.
+**Series:** A series is a collection of images that are related **temporally** and in terms of **subject or subject matter**. For example, photos taken at a birthday party would all be part of the same series. Photos of the same person taken at different times and places would **not** be part of the same series.
 
-**Route:** `/search_series`
+Embeddings are stored in the database. If images have already been processed by a prior run, they are **reused** — no double computation.
 
 ## When to Use This Plugin
 
@@ -77,6 +81,40 @@ Perceptual hashing identifies images that look the same or similar despite minor
 3. **When anonymization is ON:** CLIPSeg blacks out faces, people, text, signs, and logos, then the anonymized image is embedded and stored in a separate private table.
 4. Look up or compute the **query image's** embedding and PDQ hash.
 5. Compare query image against directory images and return **top-k** results. With anonymization ON, both query image and directory use their private embeddings.
+
+## Sharing With Other Agencies (Export/Import)
+
+Share image data with other agencies **without sharing the actual images**. Only the anonymized embeddings are shared.
+
+| Shared | NOT Shared |
+|--------|------------|
+| Anonymized embedding (for matching) | Original images |
+| Owner's email (for follow-up) | File paths |
+
+### Export
+
+Select **"Export private embeddings"** from the task menu.
+
+- **Output directory:** Where to save the file
+- **Filter by email:** Leave empty to export all, or enter an email to export only that user's data
+
+Creates a `.json` file you can send to another agency.
+
+### Import
+
+Select **"Import private embeddings"** from the task menu.
+
+- **Embeddings file:** The `.json` file you received
+- **Your email:** Your contact email (for record-keeping)
+
+Duplicates are automatically skipped.
+
+### Workflow
+
+1. Run searches with "Create anonymized embeddings" ON
+2. Export to a `.json` file
+3. Send the file to partner agency
+4. Partner imports and searches — matches show your email for follow-up
 
 ## Notes
 

@@ -1,8 +1,16 @@
 # Image Similarity Plugin
 
+**Three tasks:**
+
+| Task | What it does |
+|------|--------------|
+| **Find series matches** | Search for similar images in a folder |
+| **Export private embeddings** | Save anonymized data to share with other agencies |
+| **Import private embeddings** | Load data received from another agency |
+
 Finds images from the **same series** as a query image.
 
-**Series:** A collection of images related **temporally** and by **subject matter**. Photos from a birthday party are a series. Photos of the same person at different times and places are **not**. See [UMass-Rescue/image-series-dataset](https://github.com/UMass-Rescue/image-series-dataset).
+**Series:** A collection of images related **temporally** and by **subject matter**. Photos from a birthday party are a series. Photos of the same person at different times and places are **not**.
 
 ## When It Works
 
@@ -97,6 +105,34 @@ Use this mode when you want to find similar scenes without relying on who is in 
 **Anonymization ON:** The person and the logo are blacked out in the query image. The same blackout is also applied to all images in the folder being searched. The search then finds similar images based on the building, background, and layout — not based on who the person is or what logo appears.
 
 **Result:** Other photos of the same building or similar scenes are returned, regardless of who is in them.
+
+## Sharing With Other Agencies
+
+Share anonymized embeddings with other agencies **without sharing the actual images**.
+
+| Shared | NOT Shared |
+|--------|------------|
+| Anonymized embedding | Original images |
+| Owner email | File paths |
+
+### Export
+
+```bash
+rescuebox image_series_similarity /export_embeddings "/path/to/output/" ""
+```
+
+### Import
+
+```bash
+rescuebox image_series_similarity /import_embeddings "/path/to/file.json" "your@email.com"
+```
+
+### Workflow
+
+1. Run search with anonymization ON
+2. Export to `.json` file
+3. Send to partner agency
+4. Partner imports and searches — matches show your email
 
 ## Benchmarks
 
