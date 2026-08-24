@@ -180,6 +180,8 @@ class ToolRegistry:
         "/summarize-text": "text_summarization/summarize",
         "/search-images": "image_embeddings/search_images",
         "/search-series": "image_series_similarity/search_series",
+        "/export-private-embeddings": "image_series_similarity/export_embeddings",
+        "/import-private-embeddings": "image_series_similarity/import_embeddings",
         "/ufdr-mount": "ufdr_mounter/mount",
         "/models": "pick_tool",
         "/assistant": "smart_analyze",
@@ -209,31 +211,41 @@ class ToolRegistry:
             "desc": "Find images from the same series as a query image",
         },
         "5": {
+            "name": "Export Private Embeddings",
+            "endpoint": "image_series_similarity/export_embeddings",
+            "desc": "Save anonymized image data to share",
+        },
+        "6": {
+            "name": "Import Private Embeddings",
+            "endpoint": "image_series_similarity/import_embeddings",
+            "desc": "Load anonymized image data from another agency",
+        },
+        "7": {
             "name": "Detect Deepfakes",
             "endpoint": "deepfake_detection/predict",
             "desc": "Find manipulated media",
         },
-        "6": {
+        "8": {
             "name": "Upload Face Match",
             "endpoint": "face-match/bulkupload",
             "desc": "Step 1 Build face collection",
         },
-        "7": {
+        "9": {
             "name": "Find Face Match",
             "endpoint": "face-match/findfacebulk",
             "desc": "Step 2 Search face collection",
         },
-        "8": {
+        "10": {
             "name": "Summarize Text",
             "endpoint": "text_summarization/summarize",
             "desc": "Document summaries",
         },
-        "9": {
+        "11": {
             "name": "Transcribe Audio",
             "endpoint": "audio/transcribe",
             "desc": "Convert speech to text",
         },
-        "10": {
+        "12": {
             "name": "UFDR Mount",
             "endpoint": "ufdr_mounter/mount",
             "desc": "Mount UFDR files",
