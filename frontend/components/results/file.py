@@ -119,6 +119,21 @@ def render_file(container, response):
                             color=None,
                             on_click=lambda: open_file(path),
                         ).classes(Design.BTN_PRIMARY_COMPACT)
+
+                        def _download_file(file_path=path):
+                            try:
+                                with open(file_path, "rb") as f:
+                                    ui.download(f.read(), os.path.basename(file_path))
+                            except UI_RENDER_ERRORS as e:
+                                ui.notify(
+                                    f"Error downloading file: {e}", type="negative"
+                                )
+
+                        ui.button(
+                            "Download",
+                            color=None,
+                            on_click=_download_file,
+                        ).classes(Design.BTN_SECONDARY_NEUTRAL)
                         ui.button(
                             "Open Folder",
                             color=None,
