@@ -95,19 +95,17 @@ Share image data with other agencies **without sharing the actual images**. Only
 
 Select **"Export private embeddings"** from the task menu.
 
-- **Output directory:** Where to save the file
 - **Filter by email:** Leave empty to export all, or enter an email to export only that user's data
 
-Creates a `.json` file you can send to another agency.
+Creates a `.json` file you can download and send to another agency.
 
 ### Import
 
 Select **"Import private embeddings"** from the task menu.
 
 - **Embeddings file:** The `.json` file you received
-- **Your email:** Your contact email (for record-keeping)
 
-Duplicates are automatically skipped.
+Duplicates are automatically skipped. Owner contact info comes from each record in the file.
 
 ### Workflow
 

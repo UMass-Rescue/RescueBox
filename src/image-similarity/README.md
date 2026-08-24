@@ -118,13 +118,13 @@ Share anonymized embeddings with other agencies **without sharing the actual ima
 ### Export
 
 ```bash
-rescuebox image_series_similarity /export_embeddings "/path/to/output/" ""
+rescuebox image_series_similarity /export_embeddings _ ""
 ```
 
 ### Import
 
 ```bash
-rescuebox image_series_similarity /import_embeddings "/path/to/file.json" "your@email.com"
+rescuebox image_series_similarity /import_embeddings "/path/to/file.json"
 ```
 
 ### Workflow
