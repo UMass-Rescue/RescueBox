@@ -372,7 +372,7 @@ def import_task_schema() -> TaskSchema:
         inputs=[
             InputSchema(
                 key="input_file",
-                label="Embeddings file (.jsonl)",
+                label="Embeddings file (.json)",
                 input_type=InputType.FILE,
             ),
         ],
@@ -873,7 +873,7 @@ def export_embeddings(
     filter_email = parameters.get("user_email", "").strip()
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    filename = f"private_embeddings_{timestamp}.jsonl"
+    filename = f"private_embeddings_{timestamp}.json"
     output_path = os.path.join(output_dir, filename)
 
     with Session(engine) as session:
