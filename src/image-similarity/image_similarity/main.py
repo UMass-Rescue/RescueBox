@@ -1,5 +1,7 @@
 from typing import TypedDict
+from datetime import datetime, timezone
 import hashlib
+import json
 import logging
 import os
 from pathlib import Path
@@ -83,6 +85,22 @@ class Parameters(TypedDict):
     top_k: int
     min_similarity: float
     scoring_mode: str
+
+
+class ExportInputs(TypedDict):
+    output_dir: DirectoryInput
+
+
+class ExportParameters(TypedDict):
+    user_email: str
+
+
+class ImportInputs(TypedDict):
+    input_file: FileInput
+
+
+class ImportParameters(TypedDict):
+    user_email: str
 
 
 # ---------------------------------------------------------------------------
@@ -322,6 +340,48 @@ def task_schema() -> TaskSchema:
                 label="Scoring mode",
                 subtitle="Combined averages CLIP semantic cosine similarity and PDQ perceptual hash distance",
                 value=scoring_mode_enum,
+            ),
+        ],
+    )
+
+
+def export_task_schema() -> TaskSchema:
+    email_desc = TextParameterDescriptor(default="")
+    return TaskSchema(
+        inputs=[
+            InputSchema(
+                key="output_dir",
+                label="Output directory",
+                input_type=InputType.DIRECTORY,
+            ),
+        ],
+        parameters=[
+            ParameterSchema(
+                key="user_email",
+                label="Filter by email (optional)",
+                subtitle="Leave empty to export all private embeddings, or enter an email to export only that user's embeddings",
+                value=email_desc,
+            ),
+        ],
+    )
+
+
+def import_task_schema() -> TaskSchema:
+    email_desc = TextParameterDescriptor(default="")
+    return TaskSchema(
+        inputs=[
+            InputSchema(
+                key="input_file",
+                label="Embeddings file (.jsonl)",
+                input_type=InputType.FILE,
+            ),
+        ],
+        parameters=[
+            ParameterSchema(
+                key="user_email",
+                label="Your email",
+                subtitle="Required — identifies who is importing these embeddings (for audit)",
+                value=email_desc,
             ),
         ],
     )
@@ -798,6 +858,179 @@ def _create_private_embeddings(
     return protocol
 
 
+# ---------------------------------------------------------------------------
+#  Export / Import routes
+# ---------------------------------------------------------------------------
+
+_EXPORT_FORMAT_VERSION = 1
+
+
+def export_embeddings(
+    inputs: ExportInputs, parameters: ExportParameters
+) -> ResponseBody:
+    """Export private embeddings to a JSONL file for cross-machine sharing."""
+    output_dir = os.path.realpath(str(inputs["output_dir"].path))
+    filter_email = parameters.get("user_email", "").strip()
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    filename = f"private_embeddings_{timestamp}.jsonl"
+    output_path = os.path.join(output_dir, filename)
+
+    with Session(engine) as session:
+        query = select(ImageSimilarityPrivateEmbedding)
+        if filter_email:
+            query = query.where(
+                ImageSimilarityPrivateEmbedding.user_email == filter_email
+            )
+        rows = session.exec(query).all()
+
+        if not rows:
+            raise ValueError(
+                "No private embeddings found"
+                + (f" for email {filter_email}" if filter_email else "")
+                + ". Run a search with 'Create anonymized embeddings' enabled first."
+            )
+
+        with open(output_path, "w") as f:
+            header = {
+                "format_version": _EXPORT_FORMAT_VERSION,
+                "export_date": datetime.now(timezone.utc).isoformat(),
+                "source_email": filter_email or "(all)",
+                "count": len(rows),
+            }
+            f.write(json.dumps(header) + "\n")
+
+            for row in rows:
+                record = {
+                    "content_sha256": row.content_sha256,
+                    "embedding": list(row.embedding) if row.embedding else [],
+                    "pdq_hash": row.pdq_hash,
+                    "user_email": row.user_email,
+                    "privacy_protocol": row.privacy_protocol,
+                    "model_name": row.model_name,
+                }
+                f.write(json.dumps(record) + "\n")
+
+    logger.info("Exported %d private embeddings to %s", len(rows), output_path)
+
+    return ResponseBody(
+        root=BatchFileResponse(
+            files=[
+                FileResponse(
+                    file_type=FileType.TEXT,
+                    path=output_path,
+                    title=f"Exported {len(rows)} private embeddings",
+                    metadata={
+                        "Format": "JSONL",
+                        "Count": str(len(rows)),
+                        "Filter": filter_email or "(all users)",
+                    },
+                )
+            ]
+        )
+    )
+
+
+def import_embeddings(
+    inputs: ImportInputs, parameters: ImportParameters
+) -> ResponseBody:
+    """Import private embeddings from a JSONL file."""
+    input_path = os.path.realpath(str(inputs["input_file"].path))
+    importer_email = parameters.get("user_email", "").strip()
+
+    if not importer_email:
+        raise ValueError("user_email is required to track who imported these embeddings.")
+
+    imported = 0
+    skipped = 0
+    errors: list[str] = []
+
+    with Session(engine) as session:
+        with open(input_path, "r") as f:
+            header_line = f.readline()
+            try:
+                header = json.loads(header_line)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSONL header: {e}") from e
+
+            version = header.get("format_version", 0)
+            if version != _EXPORT_FORMAT_VERSION:
+                raise ValueError(
+                    f"Unsupported format version {version}, expected {_EXPORT_FORMAT_VERSION}"
+                )
+
+            for line_num, line in enumerate(f, start=2):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError as e:
+                    errors.append(f"Line {line_num}: invalid JSON - {e}")
+                    continue
+
+                content_sha256 = record.get("content_sha256", "")
+                privacy_protocol = record.get("privacy_protocol", "")
+                model_name = record.get("model_name", _DEFAULT_MODEL)
+
+                if not content_sha256 or not privacy_protocol:
+                    errors.append(f"Line {line_num}: missing content_sha256 or privacy_protocol")
+                    continue
+
+                existing = session.exec(
+                    select(ImageSimilarityPrivateEmbedding).where(
+                        ImageSimilarityPrivateEmbedding.content_sha256 == content_sha256,
+                        ImageSimilarityPrivateEmbedding.privacy_protocol == privacy_protocol,
+                        ImageSimilarityPrivateEmbedding.model_name == model_name,
+                    )
+                ).first()
+
+                if existing:
+                    skipped += 1
+                    continue
+
+                embedding = record.get("embedding", [])
+                new_row = ImageSimilarityPrivateEmbedding(
+                    path="[imported]",
+                    content_sha256=content_sha256,
+                    model_name=model_name,
+                    embedding=embedding,
+                    pdq_hash=record.get("pdq_hash", ""),
+                    user_email=record.get("user_email", ""),
+                    privacy_protocol=privacy_protocol,
+                )
+                session.add(new_row)
+                imported += 1
+
+        session.commit()
+
+    logger.info(
+        "Import complete: %d imported, %d skipped (duplicates), %d errors",
+        imported,
+        skipped,
+        len(errors),
+    )
+
+    error_summary = f"; {len(errors)} errors" if errors else ""
+    return ResponseBody(
+        root=BatchFileResponse(
+            files=[
+                FileResponse(
+                    file_type=FileType.TEXT,
+                    path=input_path,
+                    title=f"Imported {imported} embeddings ({skipped} skipped){error_summary}",
+                    metadata={
+                        "Imported": str(imported),
+                        "Skipped (duplicates)": str(skipped),
+                        "Errors": str(len(errors)),
+                        "Importer": importer_email,
+                    },
+                )
+            ]
+        )
+    )
+
+
 def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """Find images from the same series as a query image inside ``input_dir``."""
 
@@ -954,6 +1187,56 @@ server.add_ml_service(
     short_title="Find series matches (image query)",
     order=0,
     task_schema_func=task_schema,
+)
+
+
+def export_inputs_cli_parse(value: str) -> ExportInputs:
+    return ExportInputs(output_dir=DirectoryInput(path=value.strip()))
+
+
+def export_parameters_cli_parse(value: str) -> ExportParameters:
+    return ExportParameters(user_email=value.strip())
+
+
+server.add_ml_service(
+    rule="/export_embeddings",
+    ml_function=export_embeddings,
+    inputs_cli_parser=typer.Argument(
+        parser=export_inputs_cli_parse,
+        help="Output directory for the JSONL export file",
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=export_parameters_cli_parse,
+        help="Optional email filter (leave empty for all)",
+    ),
+    short_title="Export private embeddings",
+    order=1,
+    task_schema_func=export_task_schema,
+)
+
+
+def import_inputs_cli_parse(value: str) -> ImportInputs:
+    return ImportInputs(input_file=FileInput(path=value.strip()))
+
+
+def import_parameters_cli_parse(value: str) -> ImportParameters:
+    return ImportParameters(user_email=value.strip())
+
+
+server.add_ml_service(
+    rule="/import_embeddings",
+    ml_function=import_embeddings,
+    inputs_cli_parser=typer.Argument(
+        parser=import_inputs_cli_parse,
+        help="Path to the JSONL file to import",
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=import_parameters_cli_parse,
+        help="Your email (required for audit)",
+    ),
+    short_title="Import private embeddings",
+    order=2,
+    task_schema_func=import_task_schema,
 )
 
 app = server.app
