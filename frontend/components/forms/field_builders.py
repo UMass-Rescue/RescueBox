@@ -29,8 +29,21 @@ from frontend.utils import (
 from frontend.utils import (
     select as safe_select,
 )
+from frontend.utils.validators import _coerce_input_type
 
 logger = logging.getLogger(__name__)
+
+
+def _field_input_type(input_schema: InputSchema | dict) -> InputType | None:
+    if isinstance(input_schema, dict):
+        raw = input_schema.get("inputType") or input_schema.get("input_type")
+        if isinstance(raw, InputType):
+            return raw
+        try:
+            return InputType(raw) if raw is not None else None
+        except (ValueError, TypeError):
+            return None
+    return _coerce_input_type(input_schema)
 
 
 async def create_input_field(
@@ -40,10 +53,15 @@ async def create_input_field(
     autofill_output_key: str | None = None,
     autofill_ufdr_mount_key: str | None = None,
 ) -> None:
-    field_id = input_schema.key
-    label = input_schema.label
-    input_type = input_schema.input_type
-    subtitle = input_schema.subtitle or ""
+    if isinstance(input_schema, dict):
+        field_id = input_schema.get("key", "")
+        label = input_schema.get("label", field_id)
+        subtitle = input_schema.get("subtitle") or ""
+    else:
+        field_id = input_schema.key
+        label = input_schema.label
+        subtitle = input_schema.subtitle or ""
+    input_type = _field_input_type(input_schema)
 
     with ui.column().classes("gap-2 w-full min-w-0"):
         ui.label(label).classes("font-semibold")
@@ -181,27 +199,26 @@ def create_directory_input(
     field_id, initial_value, form_widgets, autofill_output_key=None
 ):
     active_case = get_active_case()
-    default_path = active_case.evidencePath if active_case else ""
+    case_path = active_case.evidencePath if active_case else ""
 
     val = ""
     if isinstance(initial_value, dict):
-        val = initial_value.get("path", "")
+        val = str(initial_value.get("path", "") or "").strip()
     elif isinstance(initial_value, str):
-        val = initial_value
+        val = initial_value.strip()
 
-    if not val:
-        val = default_path
+    placeholder = case_path or "/path/to/directory"
 
     with ui.column().classes("w-full min-w-0 gap-1"):
         ui.label("Directory path").classes("text-sm font-medium text-zinc-700")
         with ui.row().classes("w-full min-w-0 items-center gap-2 flex-nowrap"):
             dir_input = (
                 ui.input(
-                    placeholder="/path/to/directory",
+                    placeholder=placeholder,
                     value=val,
                 )
                 .classes("flex-1 min-w-0")
-                .props("outlined dense")
+                .props("outlined dense clearable")
             )
             v_icon = ui.icon("").classes("text-zinc-400 shrink-0")
 
@@ -226,14 +243,25 @@ def create_directory_input(
                         "text-red-500", remove="text-green-500 text-zinc-400"
                     )
 
+            def clear_path():
+                dir_input.set_value("")
+                validate()
+
+            dir_input.on("change", validate)
+            if val:
+                validate()
+
+            ui.button("Clear", on_click=clear_path).classes(
+                f"{Design.BTN_MEDIUM_GRAY} shrink-0"
+            )
             ui.button(
                 "Browse",
                 on_click=lambda: browse_directory_simple(
                     dir_input,
-                    initial_path=default_path or None,
+                    initial_path=dir_input.value.strip() or case_path or None,
                     on_after_select=validate,
                 ),
-            ).classes(Design.BTN_MEDIUM_GRAY)
+            ).classes(f"{Design.BTN_MEDIUM_GRAY} shrink-0")
     form_widgets[field_id] = dir_input
 
 
