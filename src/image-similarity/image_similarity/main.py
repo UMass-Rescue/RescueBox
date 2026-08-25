@@ -93,7 +93,8 @@ class ExportInputs(TypedDict):
 
 
 class ExportParameters(TypedDict):
-    user_email: str
+    organization: str
+    contact_email: str
 
 
 class ImportInputs(TypedDict):
@@ -343,15 +344,24 @@ def task_schema() -> TaskSchema:
 
 
 def export_task_schema() -> TaskSchema:
-    email_desc = TextParameterDescriptor(default="")
+    text_desc = TextParameterDescriptor(default="")
+    owner_disclaimer = (
+        "Required — stored as embedding owner contact info for cross-agency follow-up"
+    )
     return TaskSchema(
         inputs=[],
         parameters=[
             ParameterSchema(
-                key="user_email",
-                label="Filter by email (optional)",
-                subtitle="Leave empty to export all private embeddings, or enter an email to export only that user's embeddings",
-                value=email_desc,
+                key="organization",
+                label="Organization",
+                subtitle=owner_disclaimer,
+                value=text_desc,
+            ),
+            ParameterSchema(
+                key="contact_email",
+                label="Contact email",
+                subtitle=owner_disclaimer,
+                value=text_desc,
             ),
         ],
     )
@@ -846,6 +856,31 @@ def _create_private_embeddings(
 # ---------------------------------------------------------------------------
 
 _EXPORT_FORMAT_VERSION = 1
+_IMPORT_RECORD_FIELDS = (
+    "content_sha256",
+    "embedding",
+    "pdq_hash",
+    "user_email",
+    "privacy_protocol",
+    "model_name",
+)
+
+
+def _import_record_error(record: dict, index: int) -> str | None:
+    missing = [field for field in _IMPORT_RECORD_FIELDS if field not in record]
+    if missing:
+        return f"Record {index}: missing {', '.join(missing)}"
+    empty = [
+        field
+        for field in _IMPORT_RECORD_FIELDS
+        if field != "embedding" and not record[field]
+    ]
+    if empty:
+        return f"Record {index}: empty {', '.join(empty)}"
+    embedding = record["embedding"]
+    if not isinstance(embedding, list) or not embedding:
+        return f"Record {index}: embedding must be a non-empty list"
+    return None
 
 
 def _embedding_to_json_list(embedding) -> list[float]:
@@ -860,18 +895,38 @@ def _export_record_from_row(row: ImageSimilarityPrivateEmbedding) -> dict:
         "embedding": _embedding_to_json_list(row.embedding),
         "pdq_hash": row.pdq_hash,
         "user_email": row.user_email,
+        "organization": row.organization,
         "privacy_protocol": row.privacy_protocol,
         "model_name": row.model_name,
     }
 
 
+def _parse_export_owner_contact(parameters: ExportParameters) -> tuple[str, str]:
+    organization = parameters.get("organization", "").strip()
+    contact_email = parameters.get("contact_email", "").strip()
+    if not organization:
+        raise ValueError("organization is required for embedding owner contact info.")
+    if not contact_email:
+        raise ValueError("contact_email is required for embedding owner contact info.")
+    return organization, contact_email
+
+
+def _stamp_private_embedding_owner(
+    rows: list[ImageSimilarityPrivateEmbedding],
+    organization: str,
+    contact_email: str,
+) -> None:
+    for row in rows:
+        row.organization = organization
+        row.user_email = contact_email
+
+
 def _write_private_embeddings_export(
-    output_path: str, rows: list[ImageSimilarityPrivateEmbedding], filter_email: str
+    output_path: str, rows: list[ImageSimilarityPrivateEmbedding]
 ) -> None:
     payload = {
         "format_version": _EXPORT_FORMAT_VERSION,
         "export_date": datetime.now(timezone.utc).isoformat(),
-        "source_email": filter_email or "(all)",
         "count": len(rows),
         "records": [_export_record_from_row(row) for row in rows],
     }
@@ -896,33 +951,26 @@ def _load_private_embedding_export(input_path: str) -> tuple[dict, list[dict]]:
     return header, records
 
 
-def export_embeddings(
-    inputs: ExportInputs, parameters: ExportParameters
-) -> ResponseBody:
+def export_embeddings(inputs: ExportInputs, parameters: ExportParameters) -> ResponseBody:
     """Export private embeddings to a JSON file for cross-machine sharing."""
-    filter_email = parameters.get("user_email", "").strip()
-
+    organization, contact_email = _parse_export_owner_contact(parameters)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     filename = f"private_embeddings_{timestamp}.json"
     output_dir = tempfile.mkdtemp(prefix="rb_private_embeddings_")
     output_path = os.path.join(output_dir, filename)
 
     with Session(engine) as session:
-        query = select(ImageSimilarityPrivateEmbedding)
-        if filter_email:
-            query = query.where(
-                ImageSimilarityPrivateEmbedding.user_email == filter_email
-            )
-        rows = session.exec(query).all()
+        rows = session.exec(select(ImageSimilarityPrivateEmbedding)).all()
 
         if not rows:
             raise ValueError(
-                "No private embeddings found"
-                + (f" for email {filter_email}" if filter_email else "")
-                + ". Run a search with 'Create anonymized embeddings' enabled first."
+                "No private embeddings found. "
+                "Run a search with 'Create anonymized embeddings' enabled first."
             )
 
-        _write_private_embeddings_export(output_path, rows, filter_email)
+        _stamp_private_embedding_owner(rows, organization, contact_email)
+        session.commit()
+        _write_private_embeddings_export(output_path, rows)
 
     logger.info("Exported %d private embeddings to %s", len(rows), output_path)
 
@@ -934,7 +982,6 @@ def export_embeddings(
             metadata={
                 "Format": "JSON",
                 "Count": str(len(rows)),
-                "Filter": filter_email or "(all users)",
             },
         )
     )
@@ -958,17 +1005,16 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
             )
 
         for index, record in enumerate(records, start=1):
-            content_sha256 = record.get("content_sha256", "")
-            privacy_protocol = record.get("privacy_protocol", "")
-            model_name = record.get("model_name", _DEFAULT_MODEL)
-
-            owner_email = record.get("user_email", "")
-
-            if not content_sha256 or not privacy_protocol:
-                errors.append(
-                    f"Record {index}: missing content_sha256 or privacy_protocol"
-                )
+            record_error = _import_record_error(record, index)
+            if record_error:
+                errors.append(record_error)
                 continue
+
+            content_sha256 = record["content_sha256"]
+            privacy_protocol = record["privacy_protocol"]
+            model_name = record["model_name"]
+            owner_email = record["user_email"]
+            organization = str(record.get("organization", "") or "")
 
             dedup_key = (content_sha256, privacy_protocol, model_name, owner_email)
             if dedup_key in seen_keys:
@@ -989,15 +1035,14 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
                 seen_keys.add(dedup_key)
                 continue
 
-            raw_embedding = record.get("embedding")
-            embedding = list(raw_embedding) if raw_embedding is not None else []
             new_row = ImageSimilarityPrivateEmbedding(
                 path="[imported]",
                 content_sha256=content_sha256,
                 model_name=model_name,
-                embedding=embedding,
-                pdq_hash=record.get("pdq_hash", ""),
+                embedding=[float(x) for x in record["embedding"]],
+                pdq_hash=record["pdq_hash"],
                 user_email=owner_email,
+                organization=organization,
                 privacy_protocol=privacy_protocol,
             )
             session.add(new_row)
@@ -1196,7 +1241,10 @@ def export_inputs_cli_parse(_value: str) -> ExportInputs:
 
 
 def export_parameters_cli_parse(value: str) -> ExportParameters:
-    return ExportParameters(user_email=value.strip())
+    parts = value.split(",", 1)
+    organization = parts[0].strip() if parts else ""
+    contact_email = parts[1].strip() if len(parts) > 1 else ""
+    return ExportParameters(organization=organization, contact_email=contact_email)
 
 
 server.add_ml_service(
@@ -1208,7 +1256,7 @@ server.add_ml_service(
     ),
     parameters_cli_parser=typer.Argument(
         parser=export_parameters_cli_parse,
-        help="Optional email filter (leave empty for all)",
+        help="organization,contact_email",
     ),
     short_title="Export private embeddings",
     order=1,

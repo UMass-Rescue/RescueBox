@@ -162,9 +162,13 @@ class ImageSeriesSearch(BaseModel):
 class ImageSeriesExportPrivateEmbeddings(BaseModel):
     """Export anonymized image embeddings to a JSON file for sharing."""
 
-    user_email: str = Field(
-        "",
-        description="Optional email filter; leave empty to export all private embeddings",
+    organization: str = Field(
+        ...,
+        description="Organization name — stored as embedding owner contact info",
+    )
+    contact_email: str = Field(
+        ...,
+        description="Contact email — stored as embedding owner contact info",
     )
 
 

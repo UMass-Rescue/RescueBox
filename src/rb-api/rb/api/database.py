@@ -112,6 +112,19 @@ def create_db_and_tables():
             )
     except Exception:
         pass
+    # Migration: add organization to private embeddings if missing
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                    "organization VARCHAR(256) DEFAULT '' NOT NULL"
+                )
+            )
+    except Exception:
+        pass
     # Migration: move private embeddings to dedicated table, drop privacy_protocol column.
     try:
         from sqlalchemy import text
@@ -268,6 +281,7 @@ class ImageSimilarityPrivateEmbedding(SQLModel, table=True):
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
     pdq_hash: str = Field(default="", sa_column=Column(String(64), index=True))
     user_email: str = Field(default="", sa_column=Column(String(256), index=True))
+    organization: str = Field(default="", sa_column=Column(String(256), index=True))
     privacy_protocol: str = Field(default="", sa_column=Column(String(128), index=True))
 
 

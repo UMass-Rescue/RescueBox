@@ -89,13 +89,13 @@ Share image data with other agencies **without sharing the actual images**. Only
 | Shared | NOT Shared |
 |--------|------------|
 | Anonymized embedding (for matching) | Original images |
-| Owner's email (for follow-up) | File paths |
+| Owner organization and contact email (for follow-up) | File paths |
 
 ### Export
 
 Select **"Export private embeddings"** from the task menu.
 
-- **Filter by email:** Leave empty to export all, or enter an email to export only that user's data
+Provide **Organization** and **Contact email** (both required). This is stored as embedding owner contact info on every exported record and in the database.
 
 Creates a `.json` file you can download and send to another agency.
 

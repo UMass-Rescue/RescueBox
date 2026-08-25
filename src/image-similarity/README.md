@@ -113,12 +113,14 @@ Share anonymized embeddings with other agencies **without sharing the actual ima
 | Shared | NOT Shared |
 |--------|------------|
 | Anonymized embedding | Original images |
-| Owner email | File paths |
+| Owner organization and contact email | File paths |
 
 ### Export
 
+Requires **organization** and **contact email** (stored as embedding owner contact info):
+
 ```bash
-rescuebox image_series_similarity /export_embeddings _ ""
+rescuebox image_series_similarity /export_embeddings _ "My Agency,owner@example.com"
 ```
 
 ### Import
