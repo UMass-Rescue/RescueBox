@@ -35,9 +35,15 @@ def test_task_schema_inputs():
 
 def test_task_schema_parameters():
     schema = task_schema()
-    assert len(schema.parameters) == 4
+    assert len(schema.parameters) == 5
     keys = [p.key for p in schema.parameters]
-    assert keys == ["model_name", "top_k", "min_similarity", "scoring_mode"]
+    assert keys == [
+        "enable_anonymized",
+        "model_name",
+        "top_k",
+        "min_similarity",
+        "scoring_mode",
+    ]
 
 
 # ---------------------------------------------------------------------------

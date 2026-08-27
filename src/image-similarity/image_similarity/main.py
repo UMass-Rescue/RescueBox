@@ -79,7 +79,7 @@ class Inputs(TypedDict):
     query_image: FileInput
 
 
-class Parameters(TypedDict):
+class Parameters(TypedDict, total=False):
     user_email: str
     enable_anonymized: str
     model_name: str
@@ -280,7 +280,6 @@ def task_schema() -> TaskSchema:
         default="combined",
     )
 
-    email_desc = TextParameterDescriptor(default="")
     anonymize_enum = EnumParameterDescriptor(
         enum_vals=[
             EnumVal(key="no", label="No"),
@@ -303,12 +302,6 @@ def task_schema() -> TaskSchema:
             ),
         ],
         parameters=[
-            ParameterSchema(
-                key="user_email",
-                label="Your email",
-                subtitle="Required — identifies embedding ownership for cross-agency sharing",
-                value=email_desc,
-            ),
             ParameterSchema(
                 key="enable_anonymized",
                 label="Create anonymized embeddings",
@@ -1124,8 +1117,6 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     scoring_mode = parameters.get("scoring_mode", "combined")
     user_email = parameters.get("user_email", "").strip()
     enable_anonymized = parameters.get("enable_anonymized", "no") == "yes"
-    if not user_email:
-        raise ValueError("user_email is required for embedding ownership attribution.")
 
     ort_session, processor = _get_onnx_vision_model()
     logger.info(
