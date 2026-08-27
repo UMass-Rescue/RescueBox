@@ -1,25 +1,139 @@
 # Image Similarity Plugin
 
-**Three tasks:**
-
-| Task | What it does |
-|------|--------------|
-| **Find series matches** | Search for similar images in a folder |
-| **Export private embeddings** | Save anonymized data to share with other agencies |
-| **Import private embeddings** | Load data received from another agency |
-
 Finds images from the **same series** as a query image.
 
-**Series:** A collection of images related **temporally** and by **subject matter**. Photos from a birthday party are a series. Photos of the same person at different times and places are **not**.
+**Series:** Images related **temporally** and by **subject matter** (e.g. one birthday party). Photos of the same person at different times and places are **not** one series.
 
-## When It Works
+## Chatbot plugin menu
 
-1. **Same series** — query with a full photo, get back other photos from the same event/scene.
-2. **Specific subject** — crop the query image to one subject (a person, an object), get back images of that subject.
+In the **Assistant** tool picker, these are **three separate plugin options** (same backend service, different menu entries):
 
-## Better with a Text Query?
+| # | Chatbot menu option | CLI route | What it does |
+|---|---------------------|-----------|--------------|
+| **1** | **Image Series Similarity** | `/search_series` | Search for similar images in a folder |
+| **2** | **Export Private Embeddings** | `/export_embeddings` | Save anonymized embeddings to a `.json` for another agency |
+| **3** | **Import Private Embeddings** | `/import_embeddings` | Load a `.json` received from another agency |
 
-If you're looking for a concept like "people eating" rather than a specific scene, use the **Image Search** plugin with a text description instead. This plugin works best when the query image clearly represents what you're looking for — a single event, a single subject, or a cropped subject of interest.
+Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-private-embeddings`.
+
+## Workflows
+
+### Local search (option 1)
+
+Pick **Image Series Similarity** in the chatbot plugin menu (or use CLI below).
+
+```bash
+rescuebox image_series_similarity /search_series \
+  "/path/to/photos|||/path/to/query.jpg" ",5,0.5,combined"
+```
+
+### Agency A — share embeddings (option 1 → option 2)
+
+1. **Image Series Similarity** with **Create anonymized embeddings: Yes** on your case folder
+2. **Export Private Embeddings** in the chatbot plugin menu — **Organization** + **Contact email**
+
+```bash
+rescuebox image_series_similarity /export_embeddings _ "My Agency,owner@example.com"
+```
+
+3. Send the `.json` to the partner agency
+
+### Agency B — import and search (option 3 → option 1)
+
+1. **Import Private Embeddings** in the chatbot plugin menu
+
+```bash
+rescuebox image_series_similarity /import_embeddings "/path/to/file.json"
+```
+
+2. **Image Series Similarity** on your case folder with **Create anonymized embeddings: Yes**
+3. Review results:
+   - **Local** rows — Path shows filename; click to preview
+   - **Imported** rows — Path blank; use **Owner**, **Organization**, and **Content ID** to follow up with the exporting agency
+
+### Agency A — resolve Content ID
+
+**Content ID** is the first 12 characters of the SHA-256 hash of the original file bytes (`content_sha256` in export JSON). Agency B emails this to Agency A — Agency B cannot resolve it to a filepath.
+
+Agency A looks up the path in the embedding database. Plain embeddings are always indexed locally; anonymized search also writes the private table. Search both. Replace `a1b2c3d4e5f6` with the prefix Agency B sent (omit `…`):
+
+```bash
+docker exec -i rb-postgres psql -U rbuser -d rescuebox -c "
+SELECT path, content_sha256
+FROM image_similarity_private_embeddings
+WHERE content_sha256 LIKE 'a1b2c3d4e5f6%'
+UNION ALL
+SELECT path, content_sha256
+FROM image_similarity_embeddings
+WHERE content_sha256 LIKE 'a1b2c3d4e5f6%';
+"
+```
+
+Database runs in Docker (`rb-postgres`). Start with `startup/pgvector_start.sh` if needed.
+
+Host `psql` (port 5433):
+
+```bash
+psql postgresql://rbuser:rescue@127.0.0.1:5433/rescuebox -c "
+SELECT path, content_sha256
+FROM image_similarity_private_embeddings
+WHERE content_sha256 LIKE 'a1b2c3d4e5f6%'
+UNION ALL
+SELECT path, content_sha256
+FROM image_similarity_embeddings
+WHERE content_sha256 LIKE 'a1b2c3d4e5f6%';
+"
+```
+
+## When it works
+
+1. **Same series** — full query photo → other photos from the same event/scene
+2. **Specific subject** — crop the query to one subject → images containing that subject
+
+For concept search ("people eating"), use the **Image Search** plugin with text instead.
+
+## Option 1: Image Series Similarity (`/search_series`)
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `enable_anonymized` | `no` | `yes` — blackout + search imported partner embeddings |
+| `model_name` | `google/siglip2-so400m-patch14-384` | Vision encoder |
+| `top_k` | 5 | Results to return (1–20) |
+| `min_similarity` | 0.5 | Minimum score for "match" in metadata |
+| `scoring_mode` | `combined` | `combined`, `semantic`, or `pdq` |
+
+Search does **not** require an email. Owner contact info is collected only on **option 2 — Export Private Embeddings**.
+
+### Scoring modes
+
+| Mode | Compares | When to use |
+|------|----------|-------------|
+| `combined` | 60% CLIP + 40% PDQ | Default |
+| `semantic` | Scene content (CLIP) | Different angles, same subject |
+| `pdq` | Pixel structure | Near-duplicates only; one series per folder |
+
+### Anonymization
+
+**OFF:** match on everything visible in the photos.
+
+**ON:** faces, people, text, signs, and logos are blacked out before embedding. Match on background, layout, and remaining objects. Required before option 2 export and to search imported embeddings after option 3.
+
+**Test:** `src-tauri/demo/image-similarity/inputs/`, query `Bernie_Sanders_2016_068_*`, anonymization **Yes**, scoring **combined** or **semantic**.
+
+## Option 2: Export Private Embeddings (`/export_embeddings`)
+
+Separate chatbot plugin option — organization and contact email required (stored as owner contact info on exported records).
+
+| Shared | NOT shared |
+|--------|------------|
+| Anonymized embedding | Original images |
+| Organization and contact email | File paths |
+
+Requires option 1 with **Create anonymized embeddings: Yes** first.
+
+## Option 3: Import Private Embeddings (`/import_embeddings`)
+
+Separate chatbot plugin option — select the partner `.json`. Duplicates skipped; owner info comes from the file.
 
 ## Installation
 
@@ -27,9 +141,9 @@ If you're looking for a concept like "people eating" rather than a specific scen
 poetry install
 ```
 
-Download the ONNX models into `onnx_models/`:
+Download ONNX models into `onnx_models/`:
 
-**SigLIP2** (~1.7 GB) — vision encoder for embeddings:
+**SigLIP2** (~1.7 GB):
 
 ```bash
 mkdir -p src/image-similarity/image_similarity/onnx_models
@@ -37,104 +151,7 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
   https://huggingface.co/onnx-community/siglip2-so400m-patch14-384-ONNX/resolve/main/onnx/vision_model.onnx
 ```
 
-**CLIPSeg** (~545 MB) — detects and blacks out faces, people, text, signs, and logos for privacy. Download `onnx/model.onnx` from [Xenova/clipseg-rd64-refined](https://huggingface.co/Xenova/clipseg-rd64-refined) and save as `clipseg-rd64-refined.onnx`.
-
-## Usage
-
-```bash
-rescuebox image_series_similarity /search_series "/path/to/photos|||/path/to/query.jpg" ",5,0.5,combined"
-```
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `user_email` | *(empty)* | Contact email — identifies who ingested the embeddings for cross-agency sharing |
-| `model_name` | `google/siglip2-so400m-patch14-384` | Vision encoder |
-| `top_k` | 5 | How many results to show (1–20). Default is 5. |
-| `min_similarity` | 0.5 | Minimum score (0–1) for a result to count as a "match" in metadata. Lower = more results, higher = stricter. |
-| `scoring_mode` | `combined` | How to compare images — see Scoring Modes below |
-
-## Scoring Modes
-
-| Mode | What it compares | When to use |
-|------|------------------|-------------|
-| `combined` | Weighted score: 60% CLIP + 40% PDQ | **Default — use for most searches** |
-| `semantic` | Scene content only (CLIP) | When images look different but show the same subject (e.g., different angles) |
-| `pdq` | Visual structure only (perceptual hash) | Only for near-duplicates — resized, compressed, or lightly edited copies |
-
-### About PDQ (Perceptual Hashing)
-
-Perceptual hashing identifies images that look the same or similar despite minor changes such as resizing, compression, cropping, or slight color and brightness adjustments. It compares how an image looks, including the arrangement of visual patterns, rather than what the image contains. As a result, images that look similar may match even if they contain different subjects, while images of the same subject may not match if they have different viewpoints, scales, or layouts.
-
-**Examples:**
-
-- **Potential match:** A photo of a red apple and a photo of a red tomato placed in the same position on the same white table and taken from the same angle may produce similar hashes because the overall appearance and arrangement of visual patterns are similar.
-- **Potential non-match:** Two photos of the same car, where one is a close-up of the headlight and the other shows the entire vehicle, may produce different hashes because the images have different framing and visual layouts.
-
-**Note:** When using `pdq` scoring mode, the input folder should contain images from only one series (e.g., only Bernie Sanders rally photos or only Kamala Harris event photos). Mixing multiple series will produce confusing results since PDQ matches visual structure, not semantic content.
-
-## Privacy-Preserving Mode
-
-### Anonymization OFF (default)
-
-1. Select a folder of images and a query image
-2. Run the search
-3. Get similar images based on everything visible in the photos
-
-### Anonymization ON
-
-1. Select a folder of images and a query image
-2. Toggle **Anonymization ON**
-3. Run the search
-4. Faces, people, text, signs, and logos are blacked out in all images before comparing (these labels are fixed and cannot be changed)
-5. Get similar images based on background, layout, and remaining objects — without matching on faces or identifying content
-
-Use this mode when you want to find similar scenes without relying on who is in the photo or what text/logos appear.
-
-### Test Anonymization
-
-- Folder: `src-tauri/demo/image-similarity/inputs/`
-- Query image: `Bernie_Sanders_2016_068_Bernie Sanders by DW Nance 14.jpg`
-- Create anonymized embeddings: **Yes**
-- Scoring mode: **combined** or **semantic** (anonymization works best with these modes, not PDQ-only)
-- Expected: Other `Bernie_Sanders_2016_*` images returned as matches
-
-### Example
-
-**Query image:** A photo with a person wearing a company logo shirt, standing in front of a building.
-
-**Anonymization ON:** The person and the logo are blacked out in the query image. The same blackout is also applied to all images in the folder being searched. The search then finds similar images based on the building, background, and layout — not based on who the person is or what logo appears.
-
-**Result:** Other photos of the same building or similar scenes are returned, regardless of who is in them.
-
-## Sharing With Other Agencies
-
-Share anonymized embeddings with other agencies **without sharing the actual images**.
-
-| Shared | NOT Shared |
-|--------|------------|
-| Anonymized embedding | Original images |
-| Owner organization and contact email | File paths |
-
-### Export
-
-Requires **organization** and **contact email** (stored as embedding owner contact info):
-
-```bash
-rescuebox image_series_similarity /export_embeddings _ "My Agency,owner@example.com"
-```
-
-### Import
-
-```bash
-rescuebox image_series_similarity /import_embeddings "/path/to/file.json"
-```
-
-### Workflow
-
-1. Run search with anonymization ON
-2. Export to `.json` file
-3. Send to partner agency
-4. Partner imports and searches — matches show your email
+**CLIPSeg** (~545 MB) — save as `clipseg-rd64-refined.onnx` from [Xenova/clipseg-rd64-refined](https://huggingface.co/Xenova/clipseg-rd64-refined).
 
 ## Benchmarks
 
@@ -148,44 +165,24 @@ rescuebox image_series_similarity /import_embeddings "/path/to/file.json"
 | Throughput | 14.1 img/s |
 | Peak VRAM | 11.78 GB |
 
-## Demo & Testing
+## Demo & testing
 
-`src-tauri/demo/image-similarity/inputs/` — 85 images, 5 series:
-
-| Series | Event | Count |
-|--------|-------|-------|
-| `Bernie_Sanders_2016_*` | 2016 campaign rally | 26 |
-| `Fumio_Kishida_2024_*` | 2024 Noto earthquake visit | 15 |
-| `Kamala_Harris_2024_*` | 2024 campaign event | 10 |
-| `Marine_Le_Pen_2017_*` | 2017 Lille rally | 5 |
-| `Naftali_Bennett_2021_*` | 2021 U.S. Embassy Jerusalem | 29 |
-
-**Correct:** Query image `Bernie_Sanders_2016_063_*` → results are other `Bernie_Sanders_2016_*` images.
-**Incorrect:** Results are `Kamala_Harris_2024_*` — different person, different event.
-
-### How to Test
+`src-tauri/demo/image-similarity/inputs/` — 85 images, 5 series (Bernie Sanders, Kishida, Harris, Le Pen, Bennett).
 
 ```bash
-# 1. Setup
 cd src/image-similarity && poetry install
-# Download ONNX models (see Installation section)
-
-# 2. Run similarity search (plain embeddings)
 rescuebox image_series_similarity /search_series \
   "src-tauri/demo/image-similarity/inputs/|||src-tauri/demo/image-similarity/inputs/Bernie_Sanders_2016_063.jpg" \
   ",5,0.5,combined"
-
-# 3. Run with anonymization ON
-# Blacks out faces, people, text, signs, and logos before comparing
 ```
 
-## Unit Tests
+## Unit tests
 
 ```bash
 poetry run pytest src/image-similarity/tests
 ```
 
-No ONNX file needed for unit tests. End-to-end requires the model.
+No ONNX file needed for unit tests.
 
 ## Dependencies
 
