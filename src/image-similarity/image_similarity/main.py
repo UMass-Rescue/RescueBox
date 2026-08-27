@@ -731,6 +731,17 @@ def _build_scorer(
     )
 
 
+_CONTENT_ID_DISPLAY_LEN = 12
+
+
+def _truncate_content_id(content_sha256: str) -> str:
+    if not content_sha256:
+        return ""
+    if len(content_sha256) <= _CONTENT_ID_DISPLAY_LEN:
+        return content_sha256
+    return f"{content_sha256[:_CONTENT_ID_DISPLAY_LEN]}…"
+
+
 def _build_metadata(
     hit: dict,
     scoring_mode: str,
@@ -752,8 +763,9 @@ def _build_metadata(
     meta["Query"] = f"Series match for {query_name}"
     if hit.get("remote"):
         meta["Source"] = "Imported"
-        meta["Content ID"] = hit.get("content_sha256", "")
+        meta["Content ID"] = _truncate_content_id(hit.get("content_sha256", ""))
         meta["Owner"] = hit.get("user_email", "")
+        meta["Organization"] = hit.get("organization", "")
     else:
         meta["Source"] = "Local"
     return meta
@@ -761,10 +773,7 @@ def _build_metadata(
 
 def _hit_display_path(hit: dict) -> str:
     if hit.get("remote"):
-        content_id = hit.get("content_sha256", "")
-        if content_id:
-            return content_id if len(content_id) <= 16 else f"{content_id[:16]}…"
-        return "[imported]"
+        return ""
     return str(hit["path"])
 
 

@@ -36,6 +36,7 @@ def _search_hit(
     row_id: int | None = None,
     content_sha256: str = "",
     user_email: str = "",
+    organization: str = "",
 ) -> dict:
     remote = path == IMPORTED_EMBEDDING_PATH
     hit: dict = {
@@ -47,6 +48,7 @@ def _search_hit(
     if remote:
         hit["content_sha256"] = content_sha256
         hit["user_email"] = user_email
+        hit["organization"] = organization
     return hit
 
 
@@ -106,7 +108,7 @@ def cosine_similarity_search(
         )
         stmt = text(
             f"""
-            SELECT id, path, content_sha256, user_email,
+            SELECT id, path, content_sha256, user_email, organization,
                    1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
             WHERE model_name = :model_name
@@ -152,6 +154,7 @@ def cosine_similarity_search(
                 row_id=r.id,
                 content_sha256=r.content_sha256 or "",
                 user_email=r.user_email or "",
+                organization=r.organization or "",
             )
             for r in rows
         ]
@@ -194,6 +197,7 @@ def pdq_similarity_search(
                 ImageSimilarityPrivateEmbedding.pdq_hash,
                 ImageSimilarityPrivateEmbedding.content_sha256,
                 ImageSimilarityPrivateEmbedding.user_email,
+                ImageSimilarityPrivateEmbedding.organization,
             ).where(*filters)
         ).all()
     else:
@@ -213,7 +217,7 @@ def pdq_similarity_search(
     scored = []
     for row in rows:
         if use_private_table:
-            row_id, path, pdq_hash, content_sha256, user_email = row
+            row_id, path, pdq_hash, content_sha256, user_email, organization = row
             dist = hamming_distance(query_pdq, pdq_hash)
             scored.append(
                 _search_hit(
@@ -222,6 +226,7 @@ def pdq_similarity_search(
                     row_id=row_id,
                     content_sha256=content_sha256 or "",
                     user_email=user_email or "",
+                    organization=organization or "",
                 )
             )
         else:

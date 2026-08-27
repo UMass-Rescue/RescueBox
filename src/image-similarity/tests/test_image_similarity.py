@@ -7,6 +7,8 @@ from image_similarity.main import (
     Inputs,
     Parameters,
     _compute_pdq_hash,
+    _hit_display_path,
+    _truncate_content_id,
     inputs_cli_parse,
     parameters_cli_parse,
     search_series,
@@ -293,11 +295,6 @@ def test_combined_scorer_zero_weights_raises():
         CombinedScorer([("clip", clip, 0.0)])
 
 
-def test_result_hit_key_imported_rows():
-    assert _result_hit_key("[imported]", 42) == "[imported]#42"
-    assert _result_hit_key("/local/a.jpg", 42) == "/local/a.jpg"
-
-
 def test_combined_scorer_distinct_imported_hit_keys():
     clip = _FakeScorer(
         [
@@ -324,6 +321,23 @@ def test_combined_scorer_distinct_imported_hit_keys():
     results = scorer.score("q.jpg", ["/a.jpg"], top_k=5)
     assert len(results) == 2
     assert {r["hit_key"] for r in results} == {"[imported]#1", "[imported]#2"}
+
+
+def test_result_hit_key_imported_rows():
+    assert _result_hit_key("[imported]", 42) == "[imported]#42"
+    assert _result_hit_key("/local/a.jpg", 42) == "/local/a.jpg"
+
+
+def test_truncate_content_id():
+    full = "a" * 64
+    assert _truncate_content_id(full) == "a" * 12 + "…"
+    assert _truncate_content_id("abc") == "abc"
+    assert _truncate_content_id("") == ""
+
+
+def test_hit_display_path_imported_empty():
+    assert _hit_display_path({"remote": True, "content_sha256": "abc123"}) == ""
+    assert _hit_display_path({"remote": False, "path": "/photos/a.jpg"}) == "/photos/a.jpg"
 
 
 if __name__ == "__main__":
