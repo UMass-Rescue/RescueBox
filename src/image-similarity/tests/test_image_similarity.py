@@ -337,7 +337,9 @@ def test_truncate_content_id():
 
 def test_hit_display_path_imported_empty():
     assert _hit_display_path({"remote": True, "content_sha256": "abc123"}) == ""
-    assert _hit_display_path({"remote": False, "path": "/photos/a.jpg"}) == "/photos/a.jpg"
+    assert (
+        _hit_display_path({"remote": False, "path": "/photos/a.jpg"}) == "/photos/a.jpg"
+    )
 
 
 if __name__ == "__main__":

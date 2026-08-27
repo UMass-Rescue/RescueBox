@@ -189,7 +189,9 @@ def pdq_similarity_search(
         elif candidate_paths:
             filters.append(sql_filters.priv_path_in(candidate_paths))
         else:
-            filters.append(ImageSimilarityPrivateEmbedding.path == IMPORTED_EMBEDDING_PATH)
+            filters.append(
+                ImageSimilarityPrivateEmbedding.path == IMPORTED_EMBEDDING_PATH
+            )
         rows = session.exec(
             select(
                 ImageSimilarityPrivateEmbedding.id,

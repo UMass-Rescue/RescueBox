@@ -988,7 +988,9 @@ def _load_private_embedding_export(input_path: str) -> tuple[dict, list[dict]]:
     return header, records
 
 
-def export_embeddings(inputs: ExportInputs, parameters: ExportParameters) -> ResponseBody:
+def export_embeddings(
+    inputs: ExportInputs, parameters: ExportParameters
+) -> ResponseBody:
     """Export private embeddings to a JSON file for cross-machine sharing."""
     organization, contact_email = _parse_export_owner_contact(parameters)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -1061,7 +1063,8 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
             existing = session.exec(
                 select(ImageSimilarityPrivateEmbedding).where(
                     ImageSimilarityPrivateEmbedding.content_sha256 == content_sha256,
-                    ImageSimilarityPrivateEmbedding.privacy_protocol == privacy_protocol,
+                    ImageSimilarityPrivateEmbedding.privacy_protocol
+                    == privacy_protocol,
                     ImageSimilarityPrivateEmbedding.model_name == model_name,
                     ImageSimilarityPrivateEmbedding.user_email == owner_email,
                 )
