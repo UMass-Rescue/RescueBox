@@ -14,6 +14,7 @@ from image_similarity.main import (
 )
 from image_similarity.scorers import (
     CombinedScorer,
+    _result_hit_key,
     hamming_distance,
 )
 from PIL import Image
@@ -283,6 +284,39 @@ def test_combined_scorer_zero_weights_raises():
     clip = _FakeScorer([])
     with pytest.raises(ValueError, match="weights"):
         CombinedScorer([("clip", clip, 0.0)])
+
+
+def test_result_hit_key_imported_rows():
+    assert _result_hit_key("[imported]", 42) == "[imported]#42"
+    assert _result_hit_key("/local/a.jpg", 42) == "/local/a.jpg"
+
+
+def test_combined_scorer_distinct_imported_hit_keys():
+    clip = _FakeScorer(
+        [
+            {
+                "path": "[imported]",
+                "hit_key": "[imported]#1",
+                "score": 0.9,
+                "remote": True,
+                "content_sha256": "aaa",
+                "user_email": "a@x.com",
+            },
+            {
+                "path": "[imported]",
+                "hit_key": "[imported]#2",
+                "score": 0.7,
+                "remote": True,
+                "content_sha256": "bbb",
+                "user_email": "b@x.com",
+            },
+        ]
+    )
+    pdq = _FakeScorer([])
+    scorer = CombinedScorer([("clip", clip, 1.0), ("pdq", pdq, 0.0)])
+    results = scorer.score("q.jpg", ["/a.jpg"], top_k=5)
+    assert len(results) == 2
+    assert {r["hit_key"] for r in results} == {"[imported]#1", "[imported]#2"}
 
 
 if __name__ == "__main__":

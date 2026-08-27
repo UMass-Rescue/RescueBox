@@ -668,8 +668,10 @@ def _build_scorer(
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
     use_private_table: bool = False,
+    include_imported_private: bool = False,
 ) -> ImageScorer:
     """Build a scorer that ranks candidates against the query image."""
+    include_imported = use_private_table and include_imported_private
     has_vec = query_row is not None and query_row.embedding is not None
     needs_pdq_from_image = scoring_mode in ("pdq", "combined") and query_row is None
     needs_image = (
@@ -696,23 +698,41 @@ def _build_scorer(
 
     if scoring_mode == "semantic":
         return ClipScorer(
-            session, query_vec, model_name, use_private_table=use_private_table
+            session,
+            query_vec,
+            model_name,
+            use_private_table=use_private_table,
+            include_imported_private=include_imported,
         )
     if scoring_mode == "pdq":
-        return PdqScorer(session, query_pdq, use_private_table=use_private_table)
+        return PdqScorer(
+            session,
+            query_pdq,
+            use_private_table=use_private_table,
+            include_imported_private=include_imported,
+        )
 
     return CombinedScorer(
         [
             (
                 "clip",
                 ClipScorer(
-                    session, query_vec, model_name, use_private_table=use_private_table
+                    session,
+                    query_vec,
+                    model_name,
+                    use_private_table=use_private_table,
+                    include_imported_private=include_imported,
                 ),
                 0.6,
             ),
             (
                 "pdq",
-                PdqScorer(session, query_pdq, use_private_table=use_private_table),
+                PdqScorer(
+                    session,
+                    query_pdq,
+                    use_private_table=use_private_table,
+                    include_imported_private=include_imported,
+                ),
                 0.4,
             ),
         ]
@@ -738,7 +758,26 @@ def _build_metadata(
     if scoring_mode in ("semantic", "combined"):
         meta["CLIP Model"] = model_name
     meta["Query"] = f"Series match for {query_name}"
+    if hit.get("remote"):
+        meta["Source"] = "Imported"
+        meta["Content ID"] = hit.get("content_sha256", "")
+        meta["Owner"] = hit.get("user_email", "")
+    else:
+        meta["Source"] = "Local"
     return meta
+
+
+def _hit_display_path(hit: dict) -> str:
+    if hit.get("remote"):
+        content_id = hit.get("content_sha256", "")
+        if content_id:
+            return content_id if len(content_id) <= 16 else f"{content_id[:16]}…"
+        return "[imported]"
+    return str(hit["path"])
+
+
+def _hit_file_type(hit: dict) -> FileType:
+    return FileType.TEXT if hit.get("remote") else FileType.IMG
 
 
 def _privacy_protocol_tag(labels: list[str]) -> str:
@@ -749,24 +788,22 @@ def _privacy_protocol_tag(labels: list[str]) -> str:
 def _uncached_private_paths(
     session: Session,
     file_paths: list[str],
-    path_to_hash: dict[str, str],
     model_name: str,
     protocol: str,
 ) -> list[str]:
-    """Return paths whose content hash has no private embedding yet."""
-    hashes = [path_to_hash[p] for p in file_paths if p in path_to_hash]
-    if not hashes:
+    """Return local paths that do not yet have a private embedding row."""
+    if not file_paths:
         return []
-    cached = set(
+    existing_paths = set(
         session.exec(
-            select(ImageSimilarityPrivateEmbedding.content_sha256).where(
-                sql_filters.priv_content_sha256_in(hashes),
+            select(ImageSimilarityPrivateEmbedding.path).where(
+                sql_filters.priv_path_in(file_paths),
                 sql_filters.priv_model_name_eq(model_name),
                 ImageSimilarityPrivateEmbedding.privacy_protocol == protocol,
             )
         ).all()
     )
-    return [p for p in file_paths if path_to_hash.get(p) not in cached]
+    return [p for p in file_paths if p not in existing_paths]
 
 
 def _group_by_hash(
@@ -796,7 +833,6 @@ def _create_private_embeddings(
     new_paths = _uncached_private_paths(
         session,
         file_paths,
-        path_to_hash,
         model_name,
         protocol,
     )
@@ -1161,6 +1197,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             ort_session,
             processor,
             use_private_table=enable_anonymized,
+            include_imported_private=enable_anonymized,
         )
         search_paths = [p for p in paths_for_search if p != query_image_path]
         raw_results = scorer.score(query_image_path, search_paths, top_k)
@@ -1173,12 +1210,12 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     query_name = os.path.basename(query_image_path)
     file_responses = [
         FileResponse(
-            file_type=FileType.IMG,
-            path=str(hit["path"]),
+            file_type=_hit_file_type(hit),
+            path=_hit_display_path(hit),
             title=f"#{hit['rank']} · similarity {hit['score']}",
             metadata=_build_metadata(hit, scoring_mode, model_name, query_name),
         )
-        for rank, hit in enumerate(search_results, start=1)
+        for hit in search_results
     ]
 
     return ResponseBody(root=BatchFileResponse(files=file_responses))
