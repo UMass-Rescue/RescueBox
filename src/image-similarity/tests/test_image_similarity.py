@@ -82,6 +82,7 @@ def test_parameters_structure():
         top_k=10,
         min_similarity=0.5,
         scoring_mode="combined",
+        enable_anonymized="no",
     )
     assert params["top_k"] == 10
     assert params["min_similarity"] == 0.5

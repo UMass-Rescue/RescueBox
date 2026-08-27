@@ -79,8 +79,7 @@ class Inputs(TypedDict):
     query_image: FileInput
 
 
-class Parameters(TypedDict, total=False):
-    user_email: str
+class Parameters(TypedDict):
     enable_anonymized: str
     model_name: str
     top_k: int
@@ -1235,14 +1234,17 @@ def parameters_cli_parse(value: str) -> Parameters:
             f"scoring_mode must be one of semantic/pdq/combined, got: {raw_mode!r}"
         )
     scoring_mode = raw_mode
-    user_email = parts[4] if len(parts) > 4 and parts[4] else ""
-    enable_anonymized = parts[5] if len(parts) > 5 and parts[5] else "no"
+    if len(parts) > 5 and parts[5]:
+        enable_anonymized = parts[5]
+    elif len(parts) > 4 and parts[4] in ("yes", "no"):
+        enable_anonymized = parts[4]
+    else:
+        enable_anonymized = "no"
     return Parameters(
         model_name=model_name,
         top_k=top_k,
         min_similarity=min_similarity,
         scoring_mode=scoring_mode,
-        user_email=user_email,
         enable_anonymized=enable_anonymized,
     )
 
