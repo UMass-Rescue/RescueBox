@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import logging
-import os
 import tempfile
 from pathlib import Path
 
@@ -373,10 +372,8 @@ def import_task_schema() -> TaskSchema:
 
 
 server = MLService(APP_NAME)
-script_dir = os.path.dirname(os.path.abspath(__file__))
-info_file_path = os.path.join(script_dir, "app-info.md")
-with open(info_file_path, "r") as f:
-    info = f.read()
+info_file_path = Path(__file__).resolve().parent / "app-info.md"
+info = info_file_path.read_text(encoding="utf-8")
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
@@ -621,12 +618,11 @@ def _embed_and_store_images(
 def _collect_image_paths(input_dir: str) -> list[str]:
     """Return sorted list of valid image file paths from a directory."""
     paths: list[str] = []
-    for name in sorted(os.listdir(input_dir)):
-        if os.path.splitext(name)[1].lower() not in ALLOWED_IMAGE_EXTS:
+    for path in sorted(Path(input_dir).iterdir(), key=lambda item: item.name):
+        if path.suffix.lower() not in ALLOWED_IMAGE_EXTS:
             continue
-        full = os.path.join(input_dir, name)
-        if os.path.isfile(full):
-            paths.append(full)
+        if path.is_file():
+            paths.append(str(path))
     return paths
 
 
@@ -959,7 +955,7 @@ def _stamp_private_embedding_owner(
 
 
 def _write_private_embeddings_export(
-    output_path: str, rows: list[ImageSimilarityPrivateEmbedding]
+    output_path: Path, rows: list[ImageSimilarityPrivateEmbedding]
 ) -> None:
     payload = {
         "format_version": _EXPORT_FORMAT_VERSION,
@@ -967,12 +963,12 @@ def _write_private_embeddings_export(
         "count": len(rows),
         "records": [_export_record_from_row(row) for row in rows],
     }
-    with open(output_path, "w") as f:
+    with output_path.open("w", encoding="utf-8") as f:
         json.dump(payload, f)
 
 
-def _load_private_embedding_export(input_path: str) -> tuple[dict, list[dict]]:
-    raw = Path(input_path).read_text(encoding="utf-8").strip()
+def _load_private_embedding_export(input_path: Path) -> tuple[dict, list[dict]]:
+    raw = input_path.read_text(encoding="utf-8").strip()
     if not raw:
         raise ValueError("Import file is empty.")
     try:
@@ -996,7 +992,7 @@ def export_embeddings(
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     filename = f"private_embeddings_{timestamp}.json"
     output_dir = tempfile.mkdtemp(prefix="rb_private_embeddings_")
-    output_path = os.path.join(output_dir, filename)
+    output_path = Path(output_dir) / filename
 
     with Session(engine) as session:
         rows = session.exec(select(ImageSimilarityPrivateEmbedding)).all()
@@ -1016,7 +1012,7 @@ def export_embeddings(
     return ResponseBody(
         root=FileResponse(
             file_type=FileType.TEXT,
-            path=output_path,
+            path=str(output_path),
             title=f"Private embeddings export ({len(rows)} records)",
             metadata={
                 "Format": "JSON",
@@ -1028,7 +1024,7 @@ def export_embeddings(
 
 def import_embeddings(inputs: ImportInputs) -> ResponseBody:
     """Import private embeddings from a JSON file."""
-    input_path = os.path.realpath(str(inputs["input_file"].path))
+    input_path = Path(inputs["input_file"].path).resolve()
     imported = 0
     skipped = 0
     errors: list[str] = []
@@ -1104,7 +1100,7 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
             files=[
                 FileResponse(
                     file_type=FileType.TEXT,
-                    path=input_path,
+                    path=str(input_path),
                     title=f"Imported {imported} embeddings ({skipped} skipped){error_summary}",
                     metadata={
                         "Imported": str(imported),
@@ -1120,8 +1116,8 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
 def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """Find images from the same series as a query image inside ``input_dir``."""
 
-    input_dir = os.path.realpath(str(inputs["input_dir"].path))
-    query_image_path = os.path.realpath(str(inputs["query_image"].path))
+    input_dir = str(Path(inputs["input_dir"].path).resolve())
+    query_image_path = str(Path(inputs["query_image"].path).resolve())
     model_name = parameters.get("model_name", _DEFAULT_MODEL)
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
@@ -1209,7 +1205,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             for rank, hit in enumerate(raw_results, start=1)
         ]
 
-    query_name = os.path.basename(query_image_path)
+    query_name = Path(query_image_path).name
     file_responses = [
         FileResponse(
             file_type=_hit_file_type(hit),

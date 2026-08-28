@@ -3,11 +3,13 @@
 import inspect
 
 import pytest
+from pathlib import Path
 from image_similarity.main import (
     Inputs,
     Parameters,
     _compute_pdq_hash,
     _hit_display_path,
+    _load_private_embedding_export,
     _truncate_content_id,
     inputs_cli_parse,
     parameters_cli_parse,
@@ -340,6 +342,38 @@ def test_hit_display_path_imported_empty():
     assert (
         _hit_display_path({"remote": False, "path": "/photos/a.jpg"}) == "/photos/a.jpg"
     )
+
+
+def test_load_private_embedding_export_rejects_invalid_json(tmp_path: Path):
+    bad_file = tmp_path / "bad.json"
+    bad_file.write_text("not json", encoding="utf-8")
+    with pytest.raises(ValueError, match="Invalid export JSON"):
+        _load_private_embedding_export(bad_file)
+
+
+def test_load_private_embedding_export_rejects_empty_file(tmp_path: Path):
+    empty_file = tmp_path / "empty.json"
+    empty_file.write_text("", encoding="utf-8")
+    with pytest.raises(ValueError, match="Import file is empty"):
+        _load_private_embedding_export(empty_file)
+
+
+def test_load_private_embedding_export_rejects_missing_records(tmp_path: Path):
+    bad_file = tmp_path / "no-records.json"
+    bad_file.write_text('{"format_version": 1}', encoding="utf-8")
+    with pytest.raises(ValueError, match="Unsupported export format"):
+        _load_private_embedding_export(bad_file)
+
+
+def test_load_private_embedding_export_parses_valid_json(tmp_path: Path):
+    export_file = tmp_path / "export.json"
+    export_file.write_text(
+        '{"format_version": 1, "records": [{"content_sha256": "abc"}]}',
+        encoding="utf-8",
+    )
+    header, records = _load_private_embedding_export(export_file)
+    assert header == {"format_version": 1}
+    assert records == [{"content_sha256": "abc"}]
 
 
 if __name__ == "__main__":
