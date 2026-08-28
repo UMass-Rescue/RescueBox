@@ -979,6 +979,8 @@ def _load_private_embedding_export(input_path: Path) -> tuple[dict, list[dict]]:
         raise ValueError(
             "Unsupported export format. Re-export private embeddings and import that file."
         )
+    if not isinstance(doc["records"], list):
+        raise ValueError("Export JSON records must be a list.")
     records = list(doc["records"])
     header = {k: v for k, v in doc.items() if k != "records"}
     return header, records

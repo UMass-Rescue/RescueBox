@@ -1,9 +1,9 @@
 """Tests for image similarity plugin (image-to-image CLIP search)."""
 
 import inspect
+from pathlib import Path
 
 import pytest
-from pathlib import Path
 from image_similarity.main import (
     Inputs,
     Parameters,
@@ -362,6 +362,13 @@ def test_load_private_embedding_export_rejects_missing_records(tmp_path: Path):
     bad_file = tmp_path / "no-records.json"
     bad_file.write_text('{"format_version": 1}', encoding="utf-8")
     with pytest.raises(ValueError, match="Unsupported export format"):
+        _load_private_embedding_export(bad_file)
+
+
+def test_load_private_embedding_export_rejects_records_not_list(tmp_path: Path):
+    bad_file = tmp_path / "records-object.json"
+    bad_file.write_text('{"format_version": 1, "records": {}}', encoding="utf-8")
+    with pytest.raises(ValueError, match="records must be a list"):
         _load_private_embedding_export(bad_file)
 
 
