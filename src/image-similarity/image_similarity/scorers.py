@@ -363,7 +363,9 @@ class CombinedScorer:
         missing from one scorer isn't penalised for that scorer's weight.
         """
         weight_total = entry["weight_total"]
-        score = round(entry["weighted_sum"] / weight_total, 4) if weight_total > 0 else 0.0
+        score = (
+            round(entry["weighted_sum"] / weight_total, 4) if weight_total > 0 else 0.0
+        )
         result = {**entry["hit"], "score": score}
         for name, sub_score in entry["sub_scores"].items():
             result[f"score_{name}"] = sub_score
