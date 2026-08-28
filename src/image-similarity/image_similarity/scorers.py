@@ -333,31 +333,38 @@ class CombinedScorer:
         candidate_paths: list[str],
         top_k: int,
     ) -> list[dict]:
-        path_raw: dict[str, float] = {}
-        path_weight: dict[str, float] = {}
-        sub_scores: dict[str, dict[str, float]] = {}
+        # Query sub-scorers for at least top_k results even if there are fewer
+        # local candidate paths, so imported hits aren't truncated (they don't
+        # correspond 1:1 with candidate_paths).
+        sub_top_k = max(top_k, len(candidate_paths))
 
+        contributions: dict[str, dict] = {}
         for name, scorer, weight in self._scorers:
-            results = scorer.score(query_path, candidate_paths, len(candidate_paths))
-            for hit in results:
+            for hit in scorer.score(query_path, candidate_paths, sub_top_k):
                 key = hit.get("hit_key", hit["path"])
-                path_raw[key] = path_raw.get(key, 0.0) + weight * hit["score"]
-                path_weight[key] = path_weight.get(key, 0.0) + weight
-                sub_scores.setdefault(key, {})[name] = hit["score"]
-                sub_scores[key]["_hit"] = hit
+                entry = contributions.setdefault(
+                    key,
+                    {"weighted_sum": 0.0, "weight_total": 0.0, "sub_scores": {}},
+                )
+                entry["hit"] = hit
+                entry["weighted_sum"] += weight * hit["score"]
+                entry["weight_total"] += weight
+                entry["sub_scores"][name] = hit["score"]
 
-        combined = []
-        for key, raw in path_raw.items():
-            w = path_weight[key]
-            base = sub_scores[key].pop("_hit", {"path": key, "score": 0.0})
-            entry: dict = {
-                **{k: v for k, v in base.items() if k != "score"},
-                "path": base["path"],
-                "score": round(raw / w, 4) if w > 0 else 0.0,
-            }
-            for k, v in sub_scores.get(key, {}).items():
-                entry[f"score_{k}"] = v
-            combined.append(entry)
-
+        combined = [self._merge(entry) for entry in contributions.values()]
         combined.sort(key=lambda x: x["score"], reverse=True)
         return combined[:top_k]
+
+    @staticmethod
+    def _merge(entry: dict) -> dict:
+        """Combine one candidate's per-scorer contributions into a single result.
+
+        Re-normalises over weight_total (not the full weight sum) so a hit
+        missing from one scorer isn't penalised for that scorer's weight.
+        """
+        weight_total = entry["weight_total"]
+        score = round(entry["weighted_sum"] / weight_total, 4) if weight_total > 0 else 0.0
+        result = {**entry["hit"], "score": score}
+        for name, sub_score in entry["sub_scores"].items():
+            result[f"score_{name}"] = sub_score
+        return result
