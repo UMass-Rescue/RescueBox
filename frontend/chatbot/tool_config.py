@@ -159,6 +159,25 @@ class ImageSeriesSearch(BaseModel):
     )
 
 
+class ImageSeriesExportPrivateEmbeddings(BaseModel):
+    """Export anonymized image embeddings to a JSON file for sharing."""
+
+    organization: str = Field(
+        ...,
+        description="Organization name — stored as embedding owner contact info",
+    )
+    contact_email: str = Field(
+        ...,
+        description="Contact email — stored as embedding owner contact info",
+    )
+
+
+class ImageSeriesImportPrivateEmbeddings(BaseModel):
+    """Import anonymized image embeddings from a JSON file."""
+
+    input_file: str = Field(..., description="Path to the JSON file to import")
+
+
 # Legacy support for backward compatibility
 class RescueBoxToolCall(BaseModel):
     """Single Granite tool call (legacy strict schema)."""
@@ -170,6 +189,8 @@ class RescueBoxToolCall(BaseModel):
         "image_summary/summarize-images",
         "image_embeddings/search_images",
         "image_series_similarity/search_series",
+        "image_series_similarity/export_embeddings",
+        "image_series_similarity/import_embeddings",
         "ufdr_mounter/mount",
         "face-match/findfacebulk",
         "face-match/bulkupload",
@@ -198,6 +219,8 @@ SCHEMA_MAP = {
     # List image (CLIP) search before text search so tool JSON order matches typical "search images" intent.
     "image_embeddings/search_images": ImageSearch,
     "image_series_similarity/search_series": ImageSeriesSearch,
+    "image_series_similarity/export_embeddings": ImageSeriesExportPrivateEmbeddings,
+    "image_series_similarity/import_embeddings": ImageSeriesImportPrivateEmbeddings,
     "ufdr_mounter/mount": UfdrMount,
     "face-match/findfacebulk": FaceFindBulk,
     "face-match/bulkupload": FaceBulkUpload,

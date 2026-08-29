@@ -1,12 +1,16 @@
 """Tests for image similarity plugin (image-to-image CLIP search)."""
 
 import inspect
+from pathlib import Path
 
 import pytest
 from image_similarity.main import (
     Inputs,
     Parameters,
     _compute_pdq_hash,
+    _hit_display_path,
+    _load_private_embedding_export,
+    _truncate_content_id,
     inputs_cli_parse,
     parameters_cli_parse,
     search_series,
@@ -14,6 +18,7 @@ from image_similarity.main import (
 )
 from image_similarity.scorers import (
     CombinedScorer,
+    _result_hit_key,
     hamming_distance,
 )
 from PIL import Image
@@ -34,9 +39,15 @@ def test_task_schema_inputs():
 
 def test_task_schema_parameters():
     schema = task_schema()
-    assert len(schema.parameters) == 4
+    assert len(schema.parameters) == 5
     keys = [p.key for p in schema.parameters]
-    assert keys == ["model_name", "top_k", "min_similarity", "scoring_mode"]
+    assert keys == [
+        "enable_anonymized",
+        "model_name",
+        "top_k",
+        "min_similarity",
+        "scoring_mode",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -75,6 +86,7 @@ def test_parameters_structure():
         top_k=10,
         min_similarity=0.5,
         scoring_mode="combined",
+        enable_anonymized="no",
     )
     assert params["top_k"] == 10
     assert params["min_similarity"] == 0.5
@@ -283,6 +295,92 @@ def test_combined_scorer_zero_weights_raises():
     clip = _FakeScorer([])
     with pytest.raises(ValueError, match="weights"):
         CombinedScorer([("clip", clip, 0.0)])
+
+
+def test_combined_scorer_distinct_imported_hit_keys():
+    clip = _FakeScorer(
+        [
+            {
+                "path": "[imported]",
+                "hit_key": "[imported]#1",
+                "score": 0.9,
+                "remote": True,
+                "content_sha256": "aaa",
+                "user_email": "a@x.com",
+            },
+            {
+                "path": "[imported]",
+                "hit_key": "[imported]#2",
+                "score": 0.7,
+                "remote": True,
+                "content_sha256": "bbb",
+                "user_email": "b@x.com",
+            },
+        ]
+    )
+    pdq = _FakeScorer([])
+    scorer = CombinedScorer([("clip", clip, 1.0), ("pdq", pdq, 0.0)])
+    results = scorer.score("q.jpg", ["/a.jpg"], top_k=5)
+    assert len(results) == 2
+    assert {r["hit_key"] for r in results} == {"[imported]#1", "[imported]#2"}
+
+
+def test_result_hit_key_imported_rows():
+    assert _result_hit_key("[imported]", 42) == "[imported]#42"
+    assert _result_hit_key("/local/a.jpg", 42) == "/local/a.jpg"
+
+
+def test_truncate_content_id():
+    full = "a" * 64
+    assert _truncate_content_id(full) == "a" * 12 + "…"
+    assert _truncate_content_id("abc") == "abc"
+    assert _truncate_content_id("") == ""
+
+
+def test_hit_display_path_imported_empty():
+    assert _hit_display_path({"remote": True, "content_sha256": "abc123"}) == ""
+    assert (
+        _hit_display_path({"remote": False, "path": "/photos/a.jpg"}) == "/photos/a.jpg"
+    )
+
+
+def test_load_private_embedding_export_rejects_invalid_json(tmp_path: Path):
+    bad_file = tmp_path / "bad.json"
+    bad_file.write_text("not json", encoding="utf-8")
+    with pytest.raises(ValueError, match="Invalid export JSON"):
+        _load_private_embedding_export(bad_file)
+
+
+def test_load_private_embedding_export_rejects_empty_file(tmp_path: Path):
+    empty_file = tmp_path / "empty.json"
+    empty_file.write_text("", encoding="utf-8")
+    with pytest.raises(ValueError, match="Import file is empty"):
+        _load_private_embedding_export(empty_file)
+
+
+def test_load_private_embedding_export_rejects_missing_records(tmp_path: Path):
+    bad_file = tmp_path / "no-records.json"
+    bad_file.write_text('{"format_version": 1}', encoding="utf-8")
+    with pytest.raises(ValueError, match="Unsupported export format"):
+        _load_private_embedding_export(bad_file)
+
+
+def test_load_private_embedding_export_rejects_records_not_list(tmp_path: Path):
+    bad_file = tmp_path / "records-object.json"
+    bad_file.write_text('{"format_version": 1, "records": {}}', encoding="utf-8")
+    with pytest.raises(ValueError, match="records must be a list"):
+        _load_private_embedding_export(bad_file)
+
+
+def test_load_private_embedding_export_parses_valid_json(tmp_path: Path):
+    export_file = tmp_path / "export.json"
+    export_file.write_text(
+        '{"format_version": 1, "records": [{"content_sha256": "abc"}]}',
+        encoding="utf-8",
+    )
+    header, records = _load_private_embedding_export(export_file)
+    assert header == {"format_version": 1}
+    assert records == [{"content_sha256": "abc"}]
 
 
 if __name__ == "__main__":

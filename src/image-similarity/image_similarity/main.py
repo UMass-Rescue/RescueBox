@@ -1,7 +1,9 @@
 from typing import TypedDict
+from datetime import datetime, timezone
 import hashlib
+import json
 import logging
-import os
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -77,12 +79,24 @@ class Inputs(TypedDict):
 
 
 class Parameters(TypedDict):
-    user_email: str
     enable_anonymized: str
     model_name: str
     top_k: int
     min_similarity: float
     scoring_mode: str
+
+
+class ExportInputs(TypedDict):
+    pass
+
+
+class ExportParameters(TypedDict):
+    organization: str
+    contact_email: str
+
+
+class ImportInputs(TypedDict):
+    input_file: FileInput
 
 
 # ---------------------------------------------------------------------------
@@ -264,7 +278,6 @@ def task_schema() -> TaskSchema:
         default="combined",
     )
 
-    email_desc = TextParameterDescriptor(default="")
     anonymize_enum = EnumParameterDescriptor(
         enum_vals=[
             EnumVal(key="no", label="No"),
@@ -287,12 +300,6 @@ def task_schema() -> TaskSchema:
             ),
         ],
         parameters=[
-            ParameterSchema(
-                key="user_email",
-                label="Your email",
-                subtitle="Required — identifies embedding ownership for cross-agency sharing",
-                value=email_desc,
-            ),
             ParameterSchema(
                 key="enable_anonymized",
                 label="Create anonymized embeddings",
@@ -327,11 +334,46 @@ def task_schema() -> TaskSchema:
     )
 
 
+def export_task_schema() -> TaskSchema:
+    text_desc = TextParameterDescriptor(default="")
+    owner_disclaimer = (
+        "Required — stored as embedding owner contact info for cross-agency follow-up"
+    )
+    return TaskSchema(
+        inputs=[],
+        parameters=[
+            ParameterSchema(
+                key="organization",
+                label="Organization",
+                subtitle=owner_disclaimer,
+                value=text_desc,
+            ),
+            ParameterSchema(
+                key="contact_email",
+                label="Contact email",
+                subtitle=owner_disclaimer,
+                value=text_desc,
+            ),
+        ],
+    )
+
+
+def import_task_schema() -> TaskSchema:
+    return TaskSchema(
+        inputs=[
+            InputSchema(
+                key="input_file",
+                label="Embeddings file (.json)",
+                input_type=InputType.FILE,
+            ),
+        ],
+        parameters=[],
+    )
+
+
 server = MLService(APP_NAME)
-script_dir = os.path.dirname(os.path.abspath(__file__))
-info_file_path = os.path.join(script_dir, "app-info.md")
-with open(info_file_path, "r") as f:
-    info = f.read()
+info_file_path = Path(__file__).resolve().parent / "app-info.md"
+info = info_file_path.read_text(encoding="utf-8")
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
@@ -576,12 +618,11 @@ def _embed_and_store_images(
 def _collect_image_paths(input_dir: str) -> list[str]:
     """Return sorted list of valid image file paths from a directory."""
     paths: list[str] = []
-    for name in sorted(os.listdir(input_dir)):
-        if os.path.splitext(name)[1].lower() not in ALLOWED_IMAGE_EXTS:
+    for path in sorted(Path(input_dir).iterdir(), key=lambda item: item.name):
+        if path.suffix.lower() not in ALLOWED_IMAGE_EXTS:
             continue
-        full = os.path.join(input_dir, name)
-        if os.path.isfile(full):
-            paths.append(full)
+        if path.is_file():
+            paths.append(str(path))
     return paths
 
 
@@ -615,8 +656,10 @@ def _build_scorer(
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
     use_private_table: bool = False,
+    include_imported_private: bool = False,
 ) -> ImageScorer:
     """Build a scorer that ranks candidates against the query image."""
+    include_imported = use_private_table and include_imported_private
     has_vec = query_row is not None and query_row.embedding is not None
     needs_pdq_from_image = scoring_mode in ("pdq", "combined") and query_row is None
     needs_image = (
@@ -643,27 +686,56 @@ def _build_scorer(
 
     if scoring_mode == "semantic":
         return ClipScorer(
-            session, query_vec, model_name, use_private_table=use_private_table
+            session,
+            query_vec,
+            model_name,
+            use_private_table=use_private_table,
+            include_imported_private=include_imported,
         )
     if scoring_mode == "pdq":
-        return PdqScorer(session, query_pdq, use_private_table=use_private_table)
+        return PdqScorer(
+            session,
+            query_pdq,
+            use_private_table=use_private_table,
+            include_imported_private=include_imported,
+        )
 
     return CombinedScorer(
         [
             (
                 "clip",
                 ClipScorer(
-                    session, query_vec, model_name, use_private_table=use_private_table
+                    session,
+                    query_vec,
+                    model_name,
+                    use_private_table=use_private_table,
+                    include_imported_private=include_imported,
                 ),
                 0.6,
             ),
             (
                 "pdq",
-                PdqScorer(session, query_pdq, use_private_table=use_private_table),
+                PdqScorer(
+                    session,
+                    query_pdq,
+                    use_private_table=use_private_table,
+                    include_imported_private=include_imported,
+                ),
                 0.4,
             ),
         ]
     )
+
+
+_CONTENT_ID_DISPLAY_LEN = 12
+
+
+def _truncate_content_id(content_sha256: str) -> str:
+    if not content_sha256:
+        return ""
+    if len(content_sha256) <= _CONTENT_ID_DISPLAY_LEN:
+        return content_sha256
+    return f"{content_sha256[:_CONTENT_ID_DISPLAY_LEN]}…"
 
 
 def _build_metadata(
@@ -685,7 +757,24 @@ def _build_metadata(
     if scoring_mode in ("semantic", "combined"):
         meta["CLIP Model"] = model_name
     meta["Query"] = f"Series match for {query_name}"
+    if hit.get("remote"):
+        meta["Source"] = "Imported"
+        meta["Content ID"] = _truncate_content_id(hit.get("content_sha256", ""))
+        meta["Owner"] = hit.get("user_email", "")
+        meta["Organization"] = hit.get("organization", "")
+    else:
+        meta["Source"] = "Local"
     return meta
+
+
+def _hit_display_path(hit: dict) -> str:
+    if hit.get("remote"):
+        return ""
+    return str(hit["path"])
+
+
+def _hit_file_type(hit: dict) -> FileType:
+    return FileType.TEXT if hit.get("remote") else FileType.IMG
 
 
 def _privacy_protocol_tag(labels: list[str]) -> str:
@@ -696,24 +785,22 @@ def _privacy_protocol_tag(labels: list[str]) -> str:
 def _uncached_private_paths(
     session: Session,
     file_paths: list[str],
-    path_to_hash: dict[str, str],
     model_name: str,
     protocol: str,
 ) -> list[str]:
-    """Return paths whose content hash has no private embedding yet."""
-    hashes = [path_to_hash[p] for p in file_paths if p in path_to_hash]
-    if not hashes:
+    """Return local paths that do not yet have a private embedding row."""
+    if not file_paths:
         return []
-    cached = set(
+    existing_paths = set(
         session.exec(
-            select(ImageSimilarityPrivateEmbedding.content_sha256).where(
-                sql_filters.priv_content_sha256_in(hashes),
+            select(ImageSimilarityPrivateEmbedding.path).where(
+                sql_filters.priv_path_in(file_paths),
                 sql_filters.priv_model_name_eq(model_name),
                 ImageSimilarityPrivateEmbedding.privacy_protocol == protocol,
             )
         ).all()
     )
-    return [p for p in file_paths if path_to_hash.get(p) not in cached]
+    return [p for p in file_paths if p not in existing_paths]
 
 
 def _group_by_hash(
@@ -743,7 +830,6 @@ def _create_private_embeddings(
     new_paths = _uncached_private_paths(
         session,
         file_paths,
-        path_to_hash,
         model_name,
         protocol,
     )
@@ -798,19 +884,248 @@ def _create_private_embeddings(
     return protocol
 
 
+# ---------------------------------------------------------------------------
+#  Export / Import routes
+# ---------------------------------------------------------------------------
+
+_EXPORT_FORMAT_VERSION = 1
+_IMPORT_RECORD_FIELDS = (
+    "content_sha256",
+    "embedding",
+    "pdq_hash",
+    "user_email",
+    "privacy_protocol",
+    "model_name",
+)
+
+
+def _import_record_error(record: dict, index: int) -> str | None:
+    missing = [field for field in _IMPORT_RECORD_FIELDS if field not in record]
+    if missing:
+        return f"Record {index}: missing {', '.join(missing)}"
+    empty = [
+        field
+        for field in _IMPORT_RECORD_FIELDS
+        if field != "embedding" and not record[field]
+    ]
+    if empty:
+        return f"Record {index}: empty {', '.join(empty)}"
+    embedding = record["embedding"]
+    if not isinstance(embedding, list) or not embedding:
+        return f"Record {index}: embedding must be a non-empty list"
+    return None
+
+
+def _embedding_to_json_list(embedding) -> list[float]:
+    if embedding is None:
+        return []
+    return [float(x) for x in embedding]
+
+
+def _export_record_from_row(row: ImageSimilarityPrivateEmbedding) -> dict:
+    return {
+        "content_sha256": row.content_sha256,
+        "embedding": _embedding_to_json_list(row.embedding),
+        "pdq_hash": row.pdq_hash,
+        "user_email": row.user_email,
+        "organization": row.organization,
+        "privacy_protocol": row.privacy_protocol,
+        "model_name": row.model_name,
+    }
+
+
+def _parse_export_owner_contact(parameters: ExportParameters) -> tuple[str, str]:
+    organization = parameters.get("organization", "").strip()
+    contact_email = parameters.get("contact_email", "").strip()
+    if not organization:
+        raise ValueError("organization is required for embedding owner contact info.")
+    if not contact_email:
+        raise ValueError("contact_email is required for embedding owner contact info.")
+    return organization, contact_email
+
+
+def _stamp_private_embedding_owner(
+    rows: list[ImageSimilarityPrivateEmbedding],
+    organization: str,
+    contact_email: str,
+) -> None:
+    for row in rows:
+        row.organization = organization
+        row.user_email = contact_email
+
+
+def _write_private_embeddings_export(
+    output_path: Path, rows: list[ImageSimilarityPrivateEmbedding]
+) -> None:
+    payload = {
+        "format_version": _EXPORT_FORMAT_VERSION,
+        "export_date": datetime.now(timezone.utc).isoformat(),
+        "count": len(rows),
+        "records": [_export_record_from_row(row) for row in rows],
+    }
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f)
+
+
+def _load_private_embedding_export(input_path: Path) -> tuple[dict, list[dict]]:
+    raw = input_path.read_text(encoding="utf-8").strip()
+    if not raw:
+        raise ValueError("Import file is empty.")
+    try:
+        doc = json.loads(raw)
+    except json.JSONDecodeError as err:
+        raise ValueError(f"Invalid export JSON: {err}") from err
+    if not isinstance(doc, dict) or "records" not in doc:
+        raise ValueError(
+            "Unsupported export format. Re-export private embeddings and import that file."
+        )
+    if not isinstance(doc["records"], list):
+        raise ValueError("Export JSON records must be a list.")
+    records = list(doc["records"])
+    header = {k: v for k, v in doc.items() if k != "records"}
+    return header, records
+
+
+def export_embeddings(
+    inputs: ExportInputs, parameters: ExportParameters
+) -> ResponseBody:
+    """Export private embeddings to a JSON file for cross-machine sharing."""
+    organization, contact_email = _parse_export_owner_contact(parameters)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    filename = f"private_embeddings_{timestamp}.json"
+    output_dir = tempfile.mkdtemp(prefix="rb_private_embeddings_")
+    output_path = Path(output_dir) / filename
+
+    with Session(engine) as session:
+        rows = session.exec(select(ImageSimilarityPrivateEmbedding)).all()
+
+        if not rows:
+            raise ValueError(
+                "No private embeddings found. "
+                "Run a search with 'Create anonymized embeddings' enabled first."
+            )
+
+        _stamp_private_embedding_owner(rows, organization, contact_email)
+        session.commit()
+        _write_private_embeddings_export(output_path, rows)
+
+    logger.info("Exported %d private embeddings to %s", len(rows), output_path)
+
+    return ResponseBody(
+        root=FileResponse(
+            file_type=FileType.TEXT,
+            path=str(output_path),
+            title=f"Private embeddings export ({len(rows)} records)",
+            metadata={
+                "Format": "JSON",
+                "Count": str(len(rows)),
+            },
+        )
+    )
+
+
+def import_embeddings(inputs: ImportInputs) -> ResponseBody:
+    """Import private embeddings from a JSON file."""
+    input_path = Path(inputs["input_file"].path).resolve()
+    imported = 0
+    skipped = 0
+    errors: list[str] = []
+    seen_keys: set[tuple[str, str, str, str]] = set()
+
+    with Session(engine) as session:
+        header, records = _load_private_embedding_export(input_path)
+
+        version = header.get("format_version", 0)
+        if version != _EXPORT_FORMAT_VERSION:
+            raise ValueError(
+                f"Unsupported format version {version}, expected {_EXPORT_FORMAT_VERSION}"
+            )
+
+        for index, record in enumerate(records, start=1):
+            record_error = _import_record_error(record, index)
+            if record_error:
+                errors.append(record_error)
+                continue
+
+            content_sha256 = record["content_sha256"]
+            privacy_protocol = record["privacy_protocol"]
+            model_name = record["model_name"]
+            owner_email = record["user_email"]
+            organization = str(record.get("organization", "") or "")
+
+            dedup_key = (content_sha256, privacy_protocol, model_name, owner_email)
+            if dedup_key in seen_keys:
+                skipped += 1
+                continue
+
+            existing = session.exec(
+                select(ImageSimilarityPrivateEmbedding).where(
+                    ImageSimilarityPrivateEmbedding.content_sha256 == content_sha256,
+                    ImageSimilarityPrivateEmbedding.privacy_protocol
+                    == privacy_protocol,
+                    ImageSimilarityPrivateEmbedding.model_name == model_name,
+                    ImageSimilarityPrivateEmbedding.user_email == owner_email,
+                )
+            ).first()
+
+            if existing:
+                skipped += 1
+                seen_keys.add(dedup_key)
+                continue
+
+            new_row = ImageSimilarityPrivateEmbedding(
+                path="[imported]",
+                content_sha256=content_sha256,
+                model_name=model_name,
+                embedding=[float(x) for x in record["embedding"]],
+                pdq_hash=record["pdq_hash"],
+                user_email=owner_email,
+                organization=organization,
+                privacy_protocol=privacy_protocol,
+            )
+            session.add(new_row)
+            seen_keys.add(dedup_key)
+            imported += 1
+
+        session.commit()
+
+    logger.info(
+        "Import complete: %d imported, %d skipped (duplicates), %d errors",
+        imported,
+        skipped,
+        len(errors),
+    )
+
+    error_summary = f"; {len(errors)} errors" if errors else ""
+    return ResponseBody(
+        root=BatchFileResponse(
+            files=[
+                FileResponse(
+                    file_type=FileType.TEXT,
+                    path=str(input_path),
+                    title=f"Imported {imported} embeddings ({skipped} skipped){error_summary}",
+                    metadata={
+                        "Imported": str(imported),
+                        "Skipped (duplicates)": str(skipped),
+                        "Errors": str(len(errors)),
+                    },
+                )
+            ]
+        )
+    )
+
+
 def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """Find images from the same series as a query image inside ``input_dir``."""
 
-    input_dir = os.path.realpath(str(inputs["input_dir"].path))
-    query_image_path = os.path.realpath(str(inputs["query_image"].path))
+    input_dir = str(Path(inputs["input_dir"].path).resolve())
+    query_image_path = str(Path(inputs["query_image"].path).resolve())
     model_name = parameters.get("model_name", _DEFAULT_MODEL)
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
     scoring_mode = parameters.get("scoring_mode", "combined")
     user_email = parameters.get("user_email", "").strip()
     enable_anonymized = parameters.get("enable_anonymized", "no") == "yes"
-    if not user_email:
-        raise ValueError("user_email is required for embedding ownership attribution.")
 
     ort_session, processor = _get_onnx_vision_model()
     logger.info(
@@ -882,6 +1197,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             ort_session,
             processor,
             use_private_table=enable_anonymized,
+            include_imported_private=enable_anonymized,
         )
         search_paths = [p for p in paths_for_search if p != query_image_path]
         raw_results = scorer.score(query_image_path, search_paths, top_k)
@@ -891,15 +1207,15 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             for rank, hit in enumerate(raw_results, start=1)
         ]
 
-    query_name = os.path.basename(query_image_path)
+    query_name = Path(query_image_path).name
     file_responses = [
         FileResponse(
-            file_type=FileType.IMG,
-            path=str(hit["path"]),
+            file_type=_hit_file_type(hit),
+            path=_hit_display_path(hit),
             title=f"#{hit['rank']} · similarity {hit['score']}",
             metadata=_build_metadata(hit, scoring_mode, model_name, query_name),
         )
-        for rank, hit in enumerate(search_results, start=1)
+        for hit in search_results
     ]
 
     return ResponseBody(root=BatchFileResponse(files=file_responses))
@@ -928,14 +1244,17 @@ def parameters_cli_parse(value: str) -> Parameters:
             f"scoring_mode must be one of semantic/pdq/combined, got: {raw_mode!r}"
         )
     scoring_mode = raw_mode
-    user_email = parts[4] if len(parts) > 4 and parts[4] else ""
-    enable_anonymized = parts[5] if len(parts) > 5 and parts[5] else "no"
+    if len(parts) > 5 and parts[5]:
+        enable_anonymized = parts[5]
+    elif len(parts) > 4 and parts[4] in ("yes", "no"):
+        enable_anonymized = parts[4]
+    else:
+        enable_anonymized = "no"
     return Parameters(
         model_name=model_name,
         top_k=top_k,
         min_similarity=min_similarity,
         scoring_mode=scoring_mode,
-        user_email=user_email,
         enable_anonymized=enable_anonymized,
     )
 
@@ -954,6 +1273,51 @@ server.add_ml_service(
     short_title="Find series matches (image query)",
     order=0,
     task_schema_func=task_schema,
+)
+
+
+def export_inputs_cli_parse(_value: str) -> ExportInputs:
+    return {}
+
+
+def export_parameters_cli_parse(value: str) -> ExportParameters:
+    parts = value.split(",", 1)
+    organization = parts[0].strip() if parts else ""
+    contact_email = parts[1].strip() if len(parts) > 1 else ""
+    return ExportParameters(organization=organization, contact_email=contact_email)
+
+
+server.add_ml_service(
+    rule="/export_embeddings",
+    ml_function=export_embeddings,
+    inputs_cli_parser=typer.Argument(
+        parser=export_inputs_cli_parse,
+        help="Unused (export file is returned for download)",
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=export_parameters_cli_parse,
+        help="organization,contact_email",
+    ),
+    short_title="Export private embeddings",
+    order=1,
+    task_schema_func=export_task_schema,
+)
+
+
+def import_inputs_cli_parse(value: str) -> ImportInputs:
+    return ImportInputs(input_file=FileInput(path=value.strip()))
+
+
+server.add_ml_service(
+    rule="/import_embeddings",
+    ml_function=import_embeddings,
+    inputs_cli_parser=typer.Argument(
+        parser=import_inputs_cli_parse,
+        help="Path to the JSON file to import",
+    ),
+    short_title="Import private embeddings",
+    order=2,
+    task_schema_func=import_task_schema,
 )
 
 app = server.app
