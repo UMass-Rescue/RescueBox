@@ -632,7 +632,7 @@ fn backend_onnx_models_present(backend_root: &Path) -> bool {
     let internal = backend_internal_dir(backend_root);
     internal
         .join("image_embeddings")
-        .join("clip_onnx_models")
+        .join("onnx_models")
         .join("text.onnx")
         .is_file()
 }
@@ -694,7 +694,7 @@ fn ensure_models_for_backend(
     if !backend_onnx_models_present(backend_root) {
         let expected = backend_internal_dir(backend_root)
             .join("image_embeddings")
-            .join("clip_onnx_models")
+            .join("onnx_models")
             .join("text.onnx");
         return Err(format!(
             "{} was extracted but expected ONNX files were not found (e.g. {}). \

@@ -19,6 +19,7 @@ from typing import Optional, Sequence
 import numpy as np
 import onnxruntime as ort
 from PIL import Image, ImageFilter
+from rb.lib.ml_service import plugin_models_dir
 from transformers import CLIPSegProcessor, CLIPTokenizerFast, ViTImageProcessor
 
 logger = logging.getLogger(__name__)
@@ -27,12 +28,6 @@ DEFAULT_TARGET_LABELS: list[str] = ["face", "person", "text", "sign", "logo"]
 DEFAULT_THRESHOLD = 0.3
 DEFAULT_DILATE = 5
 DEFAULT_BLUR = 5
-
-_MODELS_DIR = Path(__file__).resolve().parent / "onnx_models"
-_CLIPSEG_ONNX_PATH = _MODELS_DIR / "clipseg-rd64-refined.onnx"
-_CLIPSEG_TOKENIZER_PATH = _MODELS_DIR / "clipseg_tokenizer.json"
-_CLIPSEG_TOKENIZER_CONFIG_PATH = _MODELS_DIR / "clipseg_tokenizer_config.json"
-_CLIPSEG_PREPROCESSOR_CONFIG_PATH = _MODELS_DIR / "clipseg_preprocessor_config.json"
 
 _cached_session: Optional[ort.InferenceSession] = None
 _cached_processor: Optional[CLIPSegProcessor] = None
@@ -43,17 +38,26 @@ def _sigmoid(x: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-x))
 
 
+def _models_dir() -> Path:
+    return plugin_models_dir("image_similarity")
+
+
 def _load_clipseg() -> tuple[ort.InferenceSession, CLIPSegProcessor]:
     """Load CLIPSeg ONNX session and processor, caching for reuse."""
     global _cached_session, _cached_processor
     if _cached_session is not None and _cached_processor is not None:
         return _cached_session, _cached_processor
 
+    clipseg_onnx = _models_dir() / "clipseg-rd64-refined.onnx"
+    clipseg_tokenizer = _models_dir() / "clipseg_tokenizer.json"
+    clipseg_tokenizer_config = _models_dir() / "clipseg_tokenizer_config.json"
+    clipseg_preprocessor_config = _models_dir() / "clipseg_preprocessor_config.json"
+
     required_files = [
-        (_CLIPSEG_ONNX_PATH, "ONNX model"),
-        (_CLIPSEG_TOKENIZER_PATH, "tokenizer"),
-        (_CLIPSEG_TOKENIZER_CONFIG_PATH, "tokenizer config"),
-        (_CLIPSEG_PREPROCESSOR_CONFIG_PATH, "preprocessor config"),
+        (clipseg_onnx, "ONNX model"),
+        (clipseg_tokenizer, "tokenizer"),
+        (clipseg_tokenizer_config, "tokenizer config"),
+        (clipseg_preprocessor_config, "preprocessor config"),
     ]
     for path, desc in required_files:
         if not path.exists():
@@ -64,18 +68,16 @@ def _load_clipseg() -> tuple[ort.InferenceSession, CLIPSegProcessor]:
     providers = [p for p in providers if p in available]
     logger.info(
         "Loading CLIPSeg ONNX model from %s (providers=%s)",
-        _CLIPSEG_ONNX_PATH.name,
+        clipseg_onnx.name,
         providers,
     )
 
-    _cached_session = ort.InferenceSession(str(_CLIPSEG_ONNX_PATH), providers=providers)
+    _cached_session = ort.InferenceSession(str(clipseg_onnx), providers=providers)
     tokenizer = CLIPTokenizerFast(
         vocab_file=None,
-        tokenizer_file=str(_CLIPSEG_TOKENIZER_PATH),
+        tokenizer_file=str(clipseg_tokenizer),
     )
-    image_processor = ViTImageProcessor.from_json_file(
-        str(_CLIPSEG_PREPROCESSOR_CONFIG_PATH)
-    )
+    image_processor = ViTImageProcessor.from_json_file(str(clipseg_preprocessor_config))
     _cached_processor = CLIPSegProcessor(
         image_processor=image_processor, tokenizer=tokenizer
     )

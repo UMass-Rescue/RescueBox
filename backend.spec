@@ -35,7 +35,7 @@ age_and_gender_detection_data = f'src/age_and_gender_detection/age_and_gender_de
 
 hiddenimports += [ 'onnxruntime-gpu', 'opencv-python']
 
-age_and_gender_detection_models_dir = f'src/age_and_gender_detection/models'
+age_and_gender_detection_models_dir = f'src/age_and_gender_detection/age_and_gender_detection/onnx_models'
 model_face_detector = f'{age_and_gender_detection_models_dir}/version-RFB-640.onnx'
 model_age_classifier =  f'{age_and_gender_detection_models_dir}/age_googlenet.onnx'
 model_gender_classifier =  f'{age_and_gender_detection_models_dir}/gender_googlenet.onnx'
@@ -53,7 +53,7 @@ src_models_deepfake = f'src/deepfake-detection/{deepfake_detection_models_path}'
 src_model_bnext_M_dffd = f'{src_models_deepfake}/bnext_M_dffd_model.onnx'
 src_model_facecrop = f'{src_models_deepfake}/face_detector.onnx'
 
-facematch_models= f'face_detection_recognition/models'
+facematch_models= f'face_detection_recognition/onnx_models'
 facematch_config= f'face_detection_recognition/config'
 src_models_facematch = f'src/face-detection-recognition/{facematch_models}'
 
@@ -67,7 +67,7 @@ facematch_md_data = f'src/face-detection-recognition/face_detection_recognition/
 ufdr_md_data = f'src/ufdr-mounter/ufdr_mounter/ufdr-app-info.md'
 
 
-image_embeddings_models_path = f'image_embeddings/clip_onnx_models'
+image_embeddings_models_path = f'image_embeddings/onnx_models'
 src_models_image_embeddings = f'src/image-embeddings/{image_embeddings_models_path}'
 src_models_image_embeddings_text_onnx = f'{src_models_image_embeddings}/text.onnx'
 src_models_image_embeddings_vision_onnx = f'{src_models_image_embeddings}/vision.onnx'

@@ -47,14 +47,16 @@ from image_similarity.anonymizer import anonymize_image, DEFAULT_TARGET_LABELS
 from image_similarity import sql_filters
 from sqlmodel import Session, select
 
-
 APP_NAME = "image_series_similarity"
+server = MLService(APP_NAME)
+_MODELS_DIR = server.models_dir
+
+
 logger = logging.getLogger(__name__)
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
 ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
 _DEFAULT_MODEL = "google/siglip2-so400m-patch14-384"
-_MODELS_DIR = Path(__file__).resolve().parent / "onnx_models"
 _DEFAULT_ONNX_PATH = _MODELS_DIR / "siglip2-so400m-patch14-384.onnx"
 # Number of images fed to the ONNX session per GPU kernel launch.
 # Larger values increase GPU utilisation; reduce if VRAM is limited.

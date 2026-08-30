@@ -1,8 +1,7 @@
-from pathlib import Path
-
 import numpy as np
 import onnxruntime as ort
 
+from rb.lib.ml_service import plugin_models_dir
 from deepfake_detection.process.facedetector import faceDetector
 
 
@@ -12,9 +11,7 @@ class TransformerModelONNX:
     ):
         print("Loading Transformer Model ONNX...")
         self.model_path = (
-            Path(__file__).resolve().parent.parent
-            / "onnx_models"
-            / "transformer_model_deepfake.onnx"
+            plugin_models_dir("deepfake_detection") / "transformer_model_deepfake.onnx"
         )
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime
