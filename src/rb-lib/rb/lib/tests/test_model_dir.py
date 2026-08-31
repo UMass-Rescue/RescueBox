@@ -12,35 +12,39 @@ def test_plugin_onnx_models_uses_env(tmp_path, monkeypatch):
     bundled = internal / "image_embeddings" / "onnx_models"
     bundled.mkdir(parents=True)
     monkeypatch.setenv(RESCUEBOX_MODEL_DIR_ENV, str(internal))
-    resolved = plugin_onnx_models("image_embeddings")
+    resolved = plugin_onnx_models("image_embeddings", tmp_path)
     assert resolved == bundled.resolve()
 
 
 def test_plugin_onnx_models_frozen_internal(tmp_path, monkeypatch):
     monkeypatch.delenv(RESCUEBOX_MODEL_DIR_ENV, raising=False)
     backend_root = tmp_path / "backend"
-    internal_models = (
-        backend_root / "_internal" / "age_and_gender_detection" / "onnx_models"
-    )
+    internal_root = backend_root / "_internal"
+    internal_models = internal_root / "age_and_gender_detection" / "onnx_models"
     internal_models.mkdir(parents=True)
-    fake_exe = backend_root / "rescuebox.exe"
+    fake_exe = backend_root / "rescuebox-x86_64-pc-windows-msvc.exe"
     fake_exe.touch()
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "executable", str(fake_exe))
-    resolved = plugin_onnx_models("age_and_gender_detection")
+    monkeypatch.setattr(sys, "_MEIPASS", str(internal_root), raising=False)
+    resolved = plugin_onnx_models(
+        "age_and_gender_detection", internal_models.parent.parent
+    )
     assert resolved == internal_models.resolve()
 
 
 def test_whisper_models_dir_frozen_internal(tmp_path, monkeypatch):
     monkeypatch.delenv(RESCUEBOX_MODEL_DIR_ENV, raising=False)
     backend_root = tmp_path / "backend"
-    whisper_dir = backend_root / "_internal" / "whisper-models"
+    internal_root = backend_root / "_internal"
+    whisper_dir = internal_root / "whisper-models"
     whisper_dir.mkdir(parents=True)
-    fake_exe = backend_root / "rescuebox.exe"
+    fake_exe = backend_root / "rescuebox-x86_64-pc-windows-msvc.exe"
     fake_exe.touch()
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "executable", str(fake_exe))
-    resolved = whisper_models_dir()
+    monkeypatch.setattr(sys, "_MEIPASS", str(internal_root), raising=False)
+    resolved = whisper_models_dir(internal_root)
     assert resolved == whisper_dir.resolve()
 
 
@@ -49,5 +53,5 @@ def test_whisper_models_dir_uses_env(tmp_path, monkeypatch):
     bundled = internal / "whisper-models"
     bundled.mkdir(parents=True)
     monkeypatch.setenv(RESCUEBOX_MODEL_DIR_ENV, str(internal))
-    resolved = whisper_models_dir()
+    resolved = whisper_models_dir(tmp_path)
     assert resolved == bundled.resolve()

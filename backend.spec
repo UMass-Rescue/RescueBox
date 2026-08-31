@@ -24,7 +24,7 @@ hiddenimports += ['uvicorn', 'modulefinder', 'timeit','jinja2','typer']
 hiddenimports += [ 'rb', 'rb-api', 'main', 'rb-api.rb.api.main', 'rb-lib', 'rb-doc-parser', 'rb-file-utils', 'rb-audio-transcription', 'age-and-gender-detection', 'text-summary']
 
 hiddenimports += ['image-summary' , 'test-embeddings' , 'image-embeddings', 'text-embeddings', 'ufdr-mounter', 'case-export']
-hiddenimports += ['sentence_transformers', 'torch']
+hiddenimports += ['sentence_transformers']
 # for audio
 # download and extract ffmpeg.exe to same folder as this file
 audio_md_data = f'src/audio-transcription/audio_transcription/app-info.md'
@@ -150,7 +150,7 @@ a = Analysis(
         ('src/rb-api/rb/api/static', 'static'), ('src/rb-api/rb/api/templates', 'templates'),
         ('src/doc-parser/doc_parser/chat_config.yml', '.'),
         ('static/favicon.ico', 'static'),
-        ] + transformers_metadata,
+        ] ,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

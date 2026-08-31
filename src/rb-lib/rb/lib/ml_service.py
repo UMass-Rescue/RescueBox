@@ -36,25 +36,35 @@ BACKEND_INTERNAL = Path("backend") / "_internal"
 _plugin_models_dirs: dict[str, Path] = {}
 
 
-def _model_dir(package_dir: Path | str, subpath: str = ONNX_MODELS_DIRNAME) -> Path:
-    env_root = os.environ.get(RESCUEBOX_MODEL_DIR_ENV, "").strip()
-    if env_root:
-        return (Path(env_root).expanduser().resolve() / subpath).resolve()
-
-    if getattr(sys, "frozen", False):
-        meipass = getattr(sys, "_MEIPASS", None)
-        internal = Path(meipass)
-        return (internal / Path(package_dir).name / subpath).resolve()
-
-    return (Path(package_dir).resolve() / subpath).resolve()
+def _frozen_internal_root() -> Path:
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass is not None:
+        return Path(meipass).resolve()
+    return (Path(sys.executable).resolve().parent / "_internal").resolve()
 
 
 def plugin_onnx_models(bundled_plugin: str, package_dir: Path | str) -> Path:
-    return _model_dir(package_dir, bundled_plugin)
+    env_root = os.environ.get(RESCUEBOX_MODEL_DIR_ENV, "").strip()
+    if env_root:
+        return (
+            Path(env_root).expanduser().resolve() / bundled_plugin / ONNX_MODELS_DIRNAME
+        ).resolve()
+    if getattr(sys, "frozen", False):
+        return (
+            _frozen_internal_root() / bundled_plugin / ONNX_MODELS_DIRNAME
+        ).resolve()
+    return (Path(package_dir).resolve() / ONNX_MODELS_DIRNAME).resolve()
 
 
 def whisper_models_dir(package_dir: Path | str) -> Path:
-    return _model_dir(package_dir, WHISPER_MODELS_BUNDLED)
+    env_root = os.environ.get(RESCUEBOX_MODEL_DIR_ENV, "").strip()
+    if env_root:
+        return (
+            Path(env_root).expanduser().resolve() / WHISPER_MODELS_BUNDLED
+        ).resolve()
+    if getattr(sys, "frozen", False):
+        return (_frozen_internal_root() / WHISPER_MODELS_BUNDLED).resolve()
+    return (Path(package_dir).resolve() / WHISPER_MODELS_BUNDLED).resolve()
 
 
 def register_plugin_onnx_models(bundled_plugin: str, package_dir: Path | str) -> Path:
