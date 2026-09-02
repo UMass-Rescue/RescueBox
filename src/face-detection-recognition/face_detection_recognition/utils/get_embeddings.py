@@ -6,6 +6,7 @@ import cv2
 # 3rd party dependencies
 import numpy as np
 import onnxruntime as ort
+from rb.lib.ml_service import plugin_models_dir
 from face_detection_recognition.utils import preprocessing
 
 # project dependencies
@@ -19,9 +20,7 @@ def get_embedding(
 ):
     """Extract embedding using ArcFace ONNX model with NHWC format"""
     onnx_model_path = ""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(script_dir)
-    models_dir = os.path.join(parent_dir, "models")
+    models_dir = str(plugin_models_dir("face_detection_recognition"))
     ort_session = None
     if model_name == "ArcFace":
         onnx_model_path = os.path.join(models_dir, "arcface_model_new.onnx")

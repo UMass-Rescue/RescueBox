@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import threading
 from pathlib import Path
 from typing import TypedDict
@@ -23,6 +22,7 @@ from rb.lib.ml_service import MLService
 from age_and_gender_detection.model import AgeGenderDetector, get_images_from_dir
 
 APP_NAME = "age-gender"
+server = MLService(APP_NAME)
 
 # Raster image types expected under ``image_directory`` (validated via ``FileFilterDirectory``).
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif", ".gif"}
@@ -62,8 +62,6 @@ class Parameters(TypedDict):
     pass
 
 
-server = MLService(APP_NAME)
-
 script_dir = os.path.dirname(os.path.abspath(__file__))
 info_file_path = os.path.join(script_dir, "app-info.md")
 with open(info_file_path, "r", encoding="utf-8") as f:
@@ -78,11 +76,7 @@ server.add_app_metadata(
     gpu=True,
     make_threadsafe=True,
 )
-models_dir = Path(__file__).resolve().parent.parent / "models"
-if getattr(sys, "frozen", False):
-    # We are running as a compiled PyInstaller .exe
-    # sys._MEIPASS points directly to the _internal folder
-    models_dir = Path(sys._MEIPASS) / "src" / "age_and_gender_detection" / "models"
+models_dir = server.models_dir
 
 model = AgeGenderDetector(
     face_detector_path=models_dir / "version-RFB-640.onnx",

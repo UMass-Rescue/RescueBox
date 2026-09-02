@@ -12,6 +12,7 @@ requests = "*"
 typer = "*"
 loguru = "*"
 anytree = "*"
+fastapi = "*"
 
 
 [build-system]

@@ -6,6 +6,7 @@ import numpy as np
 import onnxruntime as ort
 from PIL import Image
 
+from rb.lib.ml_service import plugin_models_dir
 from deepfake_detection.process.facedetector import faceDetector
 from deepfake_detection.process.utils import (
     CenterCrop,
@@ -30,9 +31,7 @@ class BNext_M_ModelONNX:
     ):
         logger.info("Loading BNext_M Model ONNX...")
         self.model_path = (
-            Path(__file__).resolve().parent.parent
-            / "onnx_models"
-            / "bnext_M_dffd_model.onnx"
+            plugin_models_dir("deepfake_detection") / "bnext_M_dffd_model.onnx"
         )
         available = ort.get_available_providers()
         # Provider order: first match wins; prefer accelerators when present.

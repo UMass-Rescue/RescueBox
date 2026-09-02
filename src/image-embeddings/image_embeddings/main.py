@@ -5,7 +5,6 @@ import logging
 import os
 import threading
 from functools import cache
-from pathlib import Path
 from typing import Any, TypedDict, cast
 
 import numpy as np
@@ -39,13 +38,15 @@ from sqlmodel import Session, select
 from transformers.models.clip.processing_clip import CLIPProcessor
 
 APP_NAME = "image_embeddings"
+server = MLService(APP_NAME)
+_CLIP_MODELS_DIR = server.models_dir
+
 logger = logging.getLogger(__name__)
 # Standard HF CLIP only: ``CLIPModel`` / ``CLIPProcessor`` from the same checkpoint.
 # LLM2CLIP and other custom checkpoints are not loadable as ``CLIPModel`` (weight layout differs).
 # Must match ``ImageEmbedding.embedding`` in ``rb.api.database`` (pgvector vector(512)).
 DEFAULT_CLIP_MODEL = "openai/clip-vit-base-patch32"
 _EXPECTED_IMAGE_EMBED_DIM = 512
-_CLIP_MODELS_DIR = Path(__file__).resolve().parent / "clip_onnx_models"
 # Hugging Face hub uses filelock at DEBUG; keep noise down when root logging is DEBUG.
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
@@ -129,7 +130,6 @@ def task_schema() -> TaskSchema:
     )
 
 
-server = MLService(APP_NAME)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 info_file_path = os.path.join(script_dir, "app-info.md")
 with open(info_file_path, "r") as f:

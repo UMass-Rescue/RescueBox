@@ -1,9 +1,8 @@
-from pathlib import Path
-
 import numpy as np
 import onnxruntime as ort
 from PIL import Image
 
+from rb.lib.ml_service import plugin_models_dir
 from deepfake_detection.process.facedetector import faceDetector
 from deepfake_detection.process.utils import (
     # InterpolationMode,
@@ -21,9 +20,7 @@ class Resnet50ModelONNX:
     def __init__(self, model_path="onnx_models/resnet50_fakes.onnx", resolution=224):
         print("Loading Resnet Model ONNX...")
         self.model_path = (
-            Path(__file__).resolve().parent.parent
-            / "onnx_models"
-            / "resnet50_fakes.onnx"
+            plugin_models_dir("deepfake_detection") / "resnet50_fakes.onnx"
         )
         self.session = ort.InferenceSession(
             str(self.model_path),  # Convert Path object to string for onnxruntime

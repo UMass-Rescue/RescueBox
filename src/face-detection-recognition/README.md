@@ -13,7 +13,7 @@ Built with a client-server architecture using Flask-ML, FaceMatch provides struc
 
 Link to folder containing ONNX models: https://drive.google.com/drive/folders/1V3H4mcsy44VJNqop9Q2UKm7j0RkT7yba 
 
-To get started, download `arcface_model_new.onnx`, and `yolov8-face-detection.onnx` from the google drive above and put them in a folder called `models` at `<PATH TO PROJECT>/src/face-detection-recognition/face_detection_recognition/models`
+To get started, download `arcface_model_new.onnx`, and `yolov8-face-detection.onnx` from the google drive above and put them in `onnx_models` at `<PATH TO PROJECT>/src/face-detection-recognition/face_detection_recognition/onnx_models`
 
 ---
 

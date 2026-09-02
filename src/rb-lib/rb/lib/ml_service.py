@@ -1,8 +1,12 @@
+import inspect
+import os
+import sys
 import threading
 from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass
 from logging import getLogger
+from pathlib import Path
 from typing import Annotated, Any, get_type_hints
 
 import typer
@@ -22,6 +26,61 @@ from rb.lib.utils import (
 )
 
 logger = getLogger(__name__)
+
+RESCUEBOX_MODEL_DIR_ENV = "RESCUEBOX_MODEL_DIR"
+ONNX_MODELS_DIRNAME = "onnx_models"
+WHISPER_MODELS_BUNDLED = "whisper-models"
+
+BACKEND_INTERNAL = Path("backend") / "_internal"
+
+_plugin_models_dirs: dict[str, Path] = {}
+
+
+def _frozen_internal_root() -> Path:
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass is not None:
+        return Path(meipass).resolve()
+    return (Path(sys.executable).resolve().parent / "_internal").resolve()
+
+
+def plugin_onnx_models(bundled_plugin: str, package_dir: Path | str) -> Path:
+    env_root = os.environ.get(RESCUEBOX_MODEL_DIR_ENV, "").strip()
+    if env_root:
+        return (
+            Path(env_root).expanduser().resolve() / bundled_plugin / ONNX_MODELS_DIRNAME
+        ).resolve()
+    if getattr(sys, "frozen", False):
+        return (
+            _frozen_internal_root() / bundled_plugin / ONNX_MODELS_DIRNAME
+        ).resolve()
+    return (Path(package_dir).resolve() / ONNX_MODELS_DIRNAME).resolve()
+
+
+def whisper_models_dir(package_dir: Path | str) -> Path:
+    env_root = os.environ.get(RESCUEBOX_MODEL_DIR_ENV, "").strip()
+    if env_root:
+        return (
+            Path(env_root).expanduser().resolve() / WHISPER_MODELS_BUNDLED
+        ).resolve()
+    if getattr(sys, "frozen", False):
+        return (_frozen_internal_root() / WHISPER_MODELS_BUNDLED).resolve()
+    return (Path(package_dir).resolve() / WHISPER_MODELS_BUNDLED).resolve()
+
+
+def register_plugin_onnx_models(bundled_plugin: str, package_dir: Path | str) -> Path:
+    path = plugin_onnx_models(bundled_plugin, package_dir)
+    _plugin_models_dirs[bundled_plugin] = path
+    return path
+
+
+def plugin_models_dir(bundled_plugin: str) -> Path:
+    try:
+        return _plugin_models_dirs[bundled_plugin]
+    except KeyError as exc:
+        raise KeyError(
+            f"No ONNX models dir for {bundled_plugin!r}. "
+            "Create MLService(...) in plugin main first."
+        ) from exc
 
 
 @dataclass
@@ -45,7 +104,10 @@ class MLService:
     into a rest api endpoint.
     """
 
-    def __init__(self, name):
+    def __init__(
+        self,
+        name: str,
+    ):
         """
         Instantiates the MLService object as a wrapper for the app.
         """
@@ -54,8 +116,15 @@ class MLService:
         self.endpoints: list[EndpointDetails] = []
         self._app_metadata: AppMetadata | None = None
         self.plugin_name = name
-        self._ml_function_locks: dict[str, threading.Lock | None] = {}  # New line
+        self._ml_function_locks: dict[str, threading.Lock | None] = {}
         self._make_threadsafe: bool = True
+
+        caller_file = inspect.stack()[1].filename
+        package_dir = Path(caller_file).resolve().parent
+        onnx_models_parent_dir = package_dir.name
+        self.models_dir: Path | None = register_plugin_onnx_models(
+            onnx_models_parent_dir, package_dir
+        )
 
         @self.app.command(f"/{self.name}/api/routes")
         def list_routes():
