@@ -79,7 +79,7 @@ class Inputs(TypedDict):
 
 
 class Parameters(TypedDict):
-    enable_anonymized: str
+    user_email: str
     model_name: str
     top_k: int
     min_similarity: float
@@ -143,7 +143,6 @@ def _embed_images_batch(
     processor: AutoImageProcessor,
     image_paths: list[str],
     batch_size: int = _EMBED_BATCH_SIZE,
-    enable_anonymized: bool = False,
 ) -> tuple[dict[str, np.ndarray], int]:
     """Compute normalised embeddings for multiple images, batched when possible.
 
@@ -185,23 +184,13 @@ def _embed_images_batch(
         for path, vec in zip(valid_paths, embeds):
             results[path] = vec
         processed += len(valid_paths)
-        if enable_anonymized:
-            last_reported = report_phased_file_progress(
-                None, 1, 3, processed, total, last_reported
-            )
-        else:
-            last_reported = report_phased_file_progress(
-                None, 1, 2, processed, total, last_reported
-            )
+        last_reported = report_phased_file_progress(
+            None, 1, 3, processed, total, last_reported
+        )
     if total > 0:
-        if enable_anonymized:
-            last_reported = report_phased_file_progress(
-                None, 1, 3, total, total, last_reported
-            )
-        else:
-            last_reported = report_phased_file_progress(
-                None, 1, 2, total, total, last_reported
-            )
+        last_reported = report_phased_file_progress(
+            None, 1, 3, total, total, last_reported
+        )
     return results, last_reported
 
 
@@ -278,13 +267,7 @@ def task_schema() -> TaskSchema:
         default="combined",
     )
 
-    anonymize_enum = EnumParameterDescriptor(
-        enum_vals=[
-            EnumVal(key="no", label="No"),
-            EnumVal(key="yes", label="Yes"),
-        ],
-        default="no",
-    )
+    user_email_desc = TextParameterDescriptor(default="")
 
     return TaskSchema(
         inputs=[
@@ -301,10 +284,10 @@ def task_schema() -> TaskSchema:
         ],
         parameters=[
             ParameterSchema(
-                key="enable_anonymized",
-                label="Create anonymized embeddings",
-                subtitle="Blacks out faces, text and logos before embedding so raw image content is never shared across agencies",
-                value=anonymize_enum,
+                key="user_email",
+                label="Your email",
+                subtitle="Required — stamped on new index rows for cross-agency follow-up",
+                value=user_email_desc,
             ),
             ParameterSchema(
                 key="model_name",
@@ -443,7 +426,6 @@ def _batch_embed_and_hash(
     path_to_hash: dict[str, str],
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
-    enable_anonymized: bool = False,
 ) -> tuple[dict[str, np.ndarray], dict[str, str], int]:
     """Batch-embed (CLIP) and batch-hash (PDQ) all genuinely new content.
 
@@ -463,9 +445,7 @@ def _batch_embed_and_hash(
     unique_paths = list(hash_to_rep.values())
 
     logger.info("Batch-embedding %d new unique image(s) on GPU", len(unique_paths))
-    raw, last_reported = _embed_images_batch(
-        ort_session, processor, unique_paths, enable_anonymized=enable_anonymized
-    )
+    raw, last_reported = _embed_images_batch(ort_session, processor, unique_paths)
     processed = 0
     total = len(hash_to_rep)
     for h, rep in hash_to_rep.items():
@@ -473,14 +453,9 @@ def _batch_embed_and_hash(
             batch_embeddings[h] = raw[rep]
         batch_pdq[h] = _compute_pdq_hash(rep)
         processed += 1
-        if enable_anonymized and total > 0:
-            last_reported = report_phased_file_progress(
-                None, 2, 3, processed, total, last_reported
-            )
-        else:
-            last_reported = report_phased_file_progress(
-                None, 2, 2, processed, total, last_reported
-            )
+        last_reported = report_phased_file_progress(
+            None, 2, 3, processed, total, last_reported
+        )
 
     return batch_embeddings, batch_pdq, last_reported
 
@@ -566,7 +541,6 @@ def _embed_and_store_images(
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
     model_name: str = _DEFAULT_MODEL,
-    enable_anonymized: bool = False,
 ) -> tuple[list[str], int]:
     """Ensure every path has an embedding + PDQ row.  Returns paths ready for search."""
     already = _paths_already_embedded(session, file_paths, model_name)
@@ -586,7 +560,6 @@ def _embed_and_store_images(
         path_to_hash,
         ort_session,
         processor,
-        enable_anonymized=enable_anonymized,
     )
 
     counters = {"new": 0, "relocated": 0, "cloned": 0}
@@ -728,6 +701,14 @@ def _build_scorer(
 
 
 _CONTENT_ID_DISPLAY_LEN = 12
+_EMBEDDING_TYPE_LABELS = {
+    "plain": "Plain (original image)",
+    "private": "Private (anonymized)",
+}
+
+
+def _embedding_type_label(bank: str) -> str:
+    return _EMBEDDING_TYPE_LABELS.get(bank, bank)
 
 
 def _truncate_content_id(content_sha256: str) -> str:
@@ -736,6 +717,32 @@ def _truncate_content_id(content_sha256: str) -> str:
     if len(content_sha256) <= _CONTENT_ID_DISPLAY_LEN:
         return content_sha256
     return f"{content_sha256[:_CONTENT_ID_DISPLAY_LEN]}…"
+
+
+def _merge_dedup_key(hit: dict) -> tuple:
+    content_sha256 = hit.get("content_sha256", "")
+    if hit.get("remote"):
+        filename = _truncate_content_id(content_sha256)
+    else:
+        filename = Path(hit["path"]).name
+    user_email = hit.get("user_email", "")
+    if user_email:
+        return (content_sha256, filename, user_email)
+    return (content_sha256, filename)
+
+
+def _merge_search_results(
+    private_hits: list[dict], plain_hits: list[dict], top_k: int
+) -> list[dict]:
+    """Merge private-bank and plain-bank top-k lists, deduping by content hash + filename + email."""
+    best: dict[tuple, dict] = {}
+    for hit in private_hits + plain_hits:
+        key = _merge_dedup_key(hit)
+        existing = best.get(key)
+        if existing is None or hit["score"] > existing["score"]:
+            best[key] = hit
+    merged = sorted(best.values(), key=lambda h: h["score"], reverse=True)
+    return merged[:top_k]
 
 
 def _build_metadata(
@@ -757,6 +764,9 @@ def _build_metadata(
     if scoring_mode in ("semantic", "combined"):
         meta["CLIP Model"] = model_name
     meta["Query"] = f"Series match for {query_name}"
+    bank = hit.get("bank", "")
+    if bank:
+        meta["Embedding type"] = _embedding_type_label(bank)
     if hit.get("remote"):
         meta["Source"] = "Imported"
         meta["Content ID"] = _truncate_content_id(hit.get("content_sha256", ""))
@@ -764,13 +774,14 @@ def _build_metadata(
         meta["Organization"] = hit.get("organization", "")
     else:
         meta["Source"] = "Local"
+        meta["Owner"] = hit.get("user_email", "")
     return meta
 
 
 def _hit_display_path(hit: dict) -> str:
     if hit.get("remote"):
-        return ""
-    return str(hit["path"])
+        return _truncate_content_id(hit.get("content_sha256", ""))
+    return Path(hit["path"]).name
 
 
 def _hit_file_type(hit: dict) -> FileType:
@@ -1002,7 +1013,7 @@ def export_embeddings(
         if not rows:
             raise ValueError(
                 "No private embeddings found. "
-                "Run a search with 'Create anonymized embeddings' enabled first."
+                "Run Image Series Similarity on a folder first to index private embeddings."
             )
 
         _stamp_private_embedding_owner(rows, organization, contact_email)
@@ -1125,7 +1136,8 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     min_similarity = float(parameters.get("min_similarity", 0.5))
     scoring_mode = parameters.get("scoring_mode", "combined")
     user_email = parameters.get("user_email", "").strip()
-    enable_anonymized = parameters.get("enable_anonymized", "no") == "yes"
+    if not user_email:
+        raise ValueError("user_email is required for search.")
 
     ort_session, processor = _get_onnx_vision_model()
     logger.info(
@@ -1133,7 +1145,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         ort_session.get_providers(),
         model_name,
         scoring_mode,
-        user_email or "(not provided)",
+        user_email,
     )
 
     file_paths = _collect_image_paths(input_dir)
@@ -1158,49 +1170,59 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             ort_session,
             processor,
             model_name,
-            enable_anonymized=enable_anonymized,
         )
 
-        if enable_anonymized:
-            _create_private_embeddings(
-                session,
-                all_paths,
-                path_to_hash,
-                ort_session,
-                processor,
-                user_email,
-                model_name,
-                last_reported=last_reported,
+        _create_private_embeddings(
+            session,
+            all_paths,
+            path_to_hash,
+            ort_session,
+            processor,
+            user_email,
+            model_name,
+            last_reported=last_reported,
+        )
+
+        plain_query_row = session.exec(
+            select(ImageSimilarityEmbedding).where(
+                sql_filters.path_eq(query_image_path),
+                sql_filters.model_name_eq(model_name),
             )
+        ).first()
+        private_query_row = session.exec(
+            select(ImageSimilarityPrivateEmbedding).where(
+                sql_filters.priv_path_in([query_image_path]),
+                sql_filters.priv_model_name_eq(model_name),
+            )
+        ).first()
 
-        if enable_anonymized:
-            query_row = session.exec(
-                select(ImageSimilarityPrivateEmbedding).where(
-                    sql_filters.priv_path_in([query_image_path]),
-                    sql_filters.priv_model_name_eq(model_name),
-                )
-            ).first()
-        else:
-            query_row = session.exec(
-                select(ImageSimilarityEmbedding).where(
-                    sql_filters.path_eq(query_image_path),
-                    sql_filters.model_name_eq(model_name),
-                )
-            ).first()
+        search_paths = [p for p in paths_for_search if p != query_image_path]
 
-        scorer = _build_scorer(
+        plain_scorer = _build_scorer(
             session,
             scoring_mode,
-            query_row,
+            plain_query_row,
             query_image_path,
             model_name,
             ort_session,
             processor,
-            use_private_table=enable_anonymized,
-            include_imported_private=enable_anonymized,
+            use_private_table=False,
+            include_imported_private=False,
         )
-        search_paths = [p for p in paths_for_search if p != query_image_path]
-        raw_results = scorer.score(query_image_path, search_paths, top_k)
+        private_scorer = _build_scorer(
+            session,
+            scoring_mode,
+            private_query_row,
+            query_image_path,
+            model_name,
+            ort_session,
+            processor,
+            use_private_table=True,
+            include_imported_private=True,
+        )
+        plain_hits = plain_scorer.score(query_image_path, search_paths, top_k)
+        private_hits = private_scorer.score(query_image_path, search_paths, top_k)
+        raw_results = _merge_search_results(private_hits, plain_hits, top_k)
 
         search_results = [
             {**hit, "rank": rank, "is_match": hit["score"] >= min_similarity}
@@ -1211,7 +1233,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     file_responses = [
         FileResponse(
             file_type=_hit_file_type(hit),
-            path=_hit_display_path(hit),
+            path=_hit_display_path(hit) if hit.get("remote") else str(hit["path"]),
             title=f"#{hit['rank']} · similarity {hit['score']}",
             metadata=_build_metadata(hit, scoring_mode, model_name, query_name),
         )
@@ -1244,18 +1266,13 @@ def parameters_cli_parse(value: str) -> Parameters:
             f"scoring_mode must be one of semantic/pdq/combined, got: {raw_mode!r}"
         )
     scoring_mode = raw_mode
-    if len(parts) > 5 and parts[5]:
-        enable_anonymized = parts[5]
-    elif len(parts) > 4 and parts[4] in ("yes", "no"):
-        enable_anonymized = parts[4]
-    else:
-        enable_anonymized = "no"
+    user_email = parts[4] if len(parts) > 4 and parts[4] else ""
     return Parameters(
         model_name=model_name,
         top_k=top_k,
         min_similarity=min_similarity,
         scoring_mode=scoring_mode,
-        enable_anonymized=enable_anonymized,
+        user_email=user_email,
     )
 
 
