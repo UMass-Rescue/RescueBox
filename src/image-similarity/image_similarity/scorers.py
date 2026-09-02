@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 _PDQ_BITS = 256
 IMPORTED_EMBEDDING_PATH = "[imported]"
+BANK_PLAIN = "plain"
+BANK_PRIVATE = "private"
 
 
 def _result_hit_key(path: str, row_id: int | None) -> str:
@@ -37,6 +39,7 @@ def _search_hit(
     content_sha256: str = "",
     user_email: str = "",
     organization: str = "",
+    bank: str = "",
 ) -> dict:
     remote = path == IMPORTED_EMBEDDING_PATH
     hit: dict = {
@@ -44,11 +47,11 @@ def _search_hit(
         "score": round(float(score), 4),
         "hit_key": _result_hit_key(path, row_id),
         "remote": remote,
+        "content_sha256": content_sha256,
+        "user_email": user_email,
+        "organization": organization,
+        "bank": bank,
     }
-    if remote:
-        hit["content_sha256"] = content_sha256
-        hit["user_email"] = user_email
-        hit["organization"] = organization
     return hit
 
 
@@ -130,7 +133,7 @@ def cosine_similarity_search(
     else:
         stmt = text(
             f"""
-            SELECT path,
+            SELECT path, content_sha256, user_email,
                    1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
             WHERE path IN :paths
@@ -146,6 +149,7 @@ def cosine_similarity_search(
             "model_name": model_name,
         }
     rows = session.execute(stmt, params).fetchall()
+    bank = BANK_PRIVATE if use_private_table else BANK_PLAIN
     if include_imported:
         return [
             _search_hit(
@@ -155,10 +159,20 @@ def cosine_similarity_search(
                 content_sha256=r.content_sha256 or "",
                 user_email=r.user_email or "",
                 organization=r.organization or "",
+                bank=bank,
             )
             for r in rows
         ]
-    return [_search_hit(r.path, r.score) for r in rows]
+    return [
+        _search_hit(
+            r.path,
+            r.score,
+            content_sha256=r.content_sha256 or "",
+            user_email=r.user_email or "",
+            bank=bank,
+        )
+        for r in rows
+    ]
 
 
 def hamming_distance(hex_a: str, hex_b: str) -> int:
@@ -205,7 +219,10 @@ def pdq_similarity_search(
     else:
         rows = session.exec(
             select(
-                ImageSimilarityEmbedding.path, ImageSimilarityEmbedding.pdq_hash
+                ImageSimilarityEmbedding.path,
+                ImageSimilarityEmbedding.pdq_hash,
+                ImageSimilarityEmbedding.content_sha256,
+                ImageSimilarityEmbedding.user_email,
             ).where(
                 sql_filters.path_in(candidate_paths),
                 sql_filters.pdq_hash_nonempty(),
@@ -216,6 +233,7 @@ def pdq_similarity_search(
         logger.warning("pdq_similarity_search: no PDQ hashes found for candidates")
         return []
 
+    bank = BANK_PRIVATE if use_private_table else BANK_PLAIN
     scored = []
     for row in rows:
         if use_private_table:
@@ -229,12 +247,21 @@ def pdq_similarity_search(
                     content_sha256=content_sha256 or "",
                     user_email=user_email or "",
                     organization=organization or "",
+                    bank=bank,
                 )
             )
         else:
-            path, pdq_hash = row
+            path, pdq_hash, content_sha256, user_email = row
             dist = hamming_distance(query_pdq, pdq_hash)
-            scored.append(_search_hit(path, 1.0 - dist / _PDQ_BITS))
+            scored.append(
+                _search_hit(
+                    path,
+                    1.0 - dist / _PDQ_BITS,
+                    content_sha256=content_sha256 or "",
+                    user_email=user_email or "",
+                    bank=bank,
+                )
+            )
 
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:top_k]
