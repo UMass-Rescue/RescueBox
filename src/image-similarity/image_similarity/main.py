@@ -79,7 +79,6 @@ class Inputs(TypedDict):
 
 
 class Parameters(TypedDict):
-    user_email: str
     model_name: str
     top_k: int
     min_similarity: float
@@ -267,8 +266,6 @@ def task_schema() -> TaskSchema:
         default="combined",
     )
 
-    user_email_desc = TextParameterDescriptor(default="")
-
     return TaskSchema(
         inputs=[
             InputSchema(
@@ -283,12 +280,6 @@ def task_schema() -> TaskSchema:
             ),
         ],
         parameters=[
-            ParameterSchema(
-                key="user_email",
-                label="Your email",
-                subtitle="Required — stamped on new index rows for cross-agency follow-up",
-                value=user_email_desc,
-            ),
             ParameterSchema(
                 key="model_name",
                 label="CLIP model",
@@ -774,7 +765,6 @@ def _build_metadata(
         meta["Organization"] = hit.get("organization", "")
     else:
         meta["Source"] = "Local"
-        meta["Owner"] = hit.get("user_email", "")
     return meta
 
 
@@ -1135,17 +1125,13 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
     scoring_mode = parameters.get("scoring_mode", "combined")
-    user_email = parameters.get("user_email", "").strip()
-    if not user_email:
-        raise ValueError("user_email is required for search.")
 
     ort_session, processor = _get_onnx_vision_model()
     logger.info(
-        "Scoring: providers=%s model=%s mode=%s email=%s",
+        "Scoring: providers=%s model=%s mode=%s",
         ort_session.get_providers(),
         model_name,
         scoring_mode,
-        user_email,
     )
 
     file_paths = _collect_image_paths(input_dir)
@@ -1160,7 +1146,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         storage = ImageSimilarityEmbeddingStorage(
             session,
             model_name=model_name,
-            user_email=user_email,
+            user_email="",
         )
         paths_for_search, last_reported = _embed_and_store_images(
             session,
@@ -1178,7 +1164,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             path_to_hash,
             ort_session,
             processor,
-            user_email,
+            "",
             model_name,
             last_reported=last_reported,
         )
@@ -1266,13 +1252,11 @@ def parameters_cli_parse(value: str) -> Parameters:
             f"scoring_mode must be one of semantic/pdq/combined, got: {raw_mode!r}"
         )
     scoring_mode = raw_mode
-    user_email = parts[4] if len(parts) > 4 and parts[4] else ""
     return Parameters(
         model_name=model_name,
         top_k=top_k,
         min_similarity=min_similarity,
         scoring_mode=scoring_mode,
-        user_email=user_email,
     )
 
 
