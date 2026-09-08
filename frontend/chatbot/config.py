@@ -213,12 +213,12 @@ class ToolRegistry:
         "5": {
             "name": "Image Series Similarity - Export Embeddings",
             "endpoint": "image_series_similarity/export_embeddings",
-            "desc": "Save anonymized image data to share",
+            "desc": "Save embeddings to share with another organization or user",
         },
         "6": {
             "name": "Image Series Similarity - Import Embeddings",
             "endpoint": "image_series_similarity/import_embeddings",
-            "desc": "Load anonymized image data from another agency",
+            "desc": "Load embeddings from another organization or user",
         },
         "7": {
             "name": "Detect Deepfakes",

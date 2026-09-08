@@ -311,7 +311,7 @@ def task_schema() -> TaskSchema:
 def export_task_schema() -> TaskSchema:
     text_desc = TextParameterDescriptor(default="")
     owner_disclaimer = (
-        "Required — stored as embedding owner contact info for cross-agency follow-up"
+        "Required — stored so another organization or user can follow up on exported embeddings"
     )
     return TaskSchema(
         inputs=[],
@@ -338,6 +338,7 @@ def import_task_schema() -> TaskSchema:
             InputSchema(
                 key="input_file",
                 label="Embeddings file (.json)",
+                subtitle="JSON file from another organization or user",
                 input_type=InputType.FILE,
             ),
         ],
