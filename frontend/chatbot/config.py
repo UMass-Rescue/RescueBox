@@ -211,12 +211,12 @@ class ToolRegistry:
             "desc": "Find images from the same series as a query image",
         },
         "5": {
-            "name": "Export Private Embeddings",
+            "name": "Image Series Similarity - Export Embeddings",
             "endpoint": "image_series_similarity/export_embeddings",
             "desc": "Save anonymized image data to share",
         },
         "6": {
-            "name": "Import Private Embeddings",
+            "name": "Image Series Similarity - Import Embeddings",
             "endpoint": "image_series_similarity/import_embeddings",
             "desc": "Load anonymized image data from another agency",
         },

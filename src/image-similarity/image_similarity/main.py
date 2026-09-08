@@ -1299,7 +1299,7 @@ server.add_ml_service(
         parser=export_parameters_cli_parse,
         help="organization,contact_email",
     ),
-    short_title="Export private embeddings",
+    short_title="Image Series Similarity - Export Embeddings",
     order=1,
     task_schema_func=export_task_schema,
 )
@@ -1316,7 +1316,7 @@ server.add_ml_service(
         parser=import_inputs_cli_parse,
         help="Path to the JSON file to import",
     ),
-    short_title="Import private embeddings",
+    short_title="Image Series Similarity - Import Embeddings",
     order=2,
     task_schema_func=import_task_schema,
 )

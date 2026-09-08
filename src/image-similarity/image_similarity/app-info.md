@@ -13,8 +13,8 @@ In the **Assistant**, the tool picker lists **three separate plugin options** (n
 | # | Chatbot menu option | Form / task | When to use |
 |---|---------------------|-------------|-------------|
 | **1** | **Image Series Similarity** | Find series matches | Search a local folder for images similar to a query photo |
-| **2** | **Export Private Embeddings** | Export private embeddings | After option 1 with anonymization — download a `.json` to share |
-| **3** | **Import Private Embeddings** | Import private embeddings | Load a `.json` received from another agency |
+| **2** | **Image Series Similarity - Export Embeddings** | Export embeddings | Download a `.json` to share after indexing a folder |
+| **3** | **Image Series Similarity - Import Embeddings** | Import embeddings | Load a `.json` received from another agency |
 
 Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-private-embeddings`.
 
@@ -31,12 +31,12 @@ Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-privat
 ### Agency A — share embeddings (option 1, then option 2)
 
 1. **Image Series Similarity** on your case folder with **Create anonymized embeddings: Yes** (indexes private rows required for export)
-2. **Assistant** → plugin menu → **Export Private Embeddings** → **Organization** and **Contact email** → **Submit** → download `.json`
+2. **Assistant** → plugin menu → **Image Series Similarity - Export Embeddings** → **Organization** and **Contact email** → **Submit** → download `.json`
 3. Send the `.json` to the partner agency
 
 ### Agency B — import and search (option 3, then option 1)
 
-1. **Assistant** → plugin menu → **Import Private Embeddings** → select partner `.json` → **Submit**
+1. **Assistant** → plugin menu → **Image Series Similarity - Import Embeddings** → select partner `.json` → **Submit**
 2. **Image Series Similarity** on your own case folder:
    - **Input directory** — your local images (required)
    - **Query image** — local reference photo
@@ -83,7 +83,7 @@ Chatbot menu: **Image Series Similarity**. Form title: **Find series matches**.
 - **Match threshold:** 0–1; metadata marks results at or above this as a match
 - **Scoring mode:** Combined (60% CLIP + 40% PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ)
 
-Search does **not** require an email. Owner contact info is collected only on **option 2 — Export Private Embeddings**.
+Search does **not** require an email. Owner contact info is collected only on **option 2 — Image Series Similarity - Export Embeddings**.
 
 ### Outputs
 
@@ -95,9 +95,9 @@ Search does **not** require an email. Owner contact info is collected only on **
 
 Perceptual hashing matches images that look similar despite resize, compression, or minor edits. PDQ-only mode works best when the folder contains **one series** only.
 
-## Option 2: Export Private Embeddings
+## Option 2: Image Series Similarity - Export Embeddings
 
-Chatbot menu: **Export Private Embeddings** — separate plugin option, not part of the search form.
+Chatbot menu: **Image Series Similarity - Export Embeddings** — separate plugin option, not part of the search form.
 
 - **Organization** (required) — stored as embedding owner contact info
 - **Contact email** (required) — stored on every exported record
@@ -109,9 +109,9 @@ Chatbot menu: **Export Private Embeddings** — separate plugin option, not part
 | Anonymized embedding | Original images |
 | Organization and contact email | File paths |
 
-## Option 3: Import Private Embeddings
+## Option 3: Image Series Similarity - Import Embeddings
 
-Chatbot menu: **Import Private Embeddings** — separate plugin option.
+Chatbot menu: **Image Series Similarity - Import Embeddings** — separate plugin option.
 
 - **Embeddings file (.json)** — file received from another agency
 
