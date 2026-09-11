@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 _PDQ_BITS = 256
 IMPORTED_EMBEDDING_PATH = "[imported]"
+SOURCE_LOCAL = "local"
+SOURCE_IMPORTED = "imported"
 BANK_PLAIN = "plain"
 BANK_PRIVATE = "private"
 
@@ -40,17 +42,21 @@ def _search_hit(
     user_email: str = "",
     organization: str = "",
     bank: str = "",
+    source: str = SOURCE_LOCAL,
+    filename: str = "",
 ) -> dict:
-    remote = path == IMPORTED_EMBEDDING_PATH
+    remote = source == SOURCE_IMPORTED
     hit: dict = {
         "path": path,
         "score": round(float(score), 4),
         "hit_key": _result_hit_key(path, row_id),
         "remote": remote,
+        "source": source,
         "content_sha256": content_sha256,
         "user_email": user_email,
         "organization": organization,
         "bank": bank,
+        "filename": filename,
     }
     return hit
 
@@ -105,13 +111,13 @@ def cosine_similarity_search(
     qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
     if include_imported:
         path_clause = (
-            "(path IN :paths OR path = :imported_path)"
+            "(path IN :paths OR source = :imported_source)"
             if search_paths
-            else "path = :imported_path"
+            else "source = :imported_source"
         )
         stmt = text(
             f"""
-            SELECT id, path, content_sha256, user_email, organization,
+            SELECT id, path, content_sha256, user_email, organization, source, filename,
                    1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
             WHERE model_name = :model_name
@@ -126,7 +132,7 @@ def cosine_similarity_search(
             "qvec": qvec_literal,
             "top_k": top_k,
             "model_name": model_name,
-            "imported_path": IMPORTED_EMBEDDING_PATH,
+            "imported_source": SOURCE_IMPORTED,
         }
         if search_paths:
             params["paths"] = search_paths
@@ -160,6 +166,8 @@ def cosine_similarity_search(
                 user_email=r.user_email or "",
                 organization=r.organization or "",
                 bank=bank,
+                source=r.source or SOURCE_LOCAL,
+                filename=r.filename or "",
             )
             for r in rows
         ]
@@ -198,13 +206,13 @@ def pdq_similarity_search(
         if candidate_paths and include_imported:
             filters.append(
                 (sql_filters.priv_path_in(candidate_paths))
-                | (ImageSimilarityPrivateEmbedding.path == IMPORTED_EMBEDDING_PATH)
+                | (ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED)
             )
         elif candidate_paths:
             filters.append(sql_filters.priv_path_in(candidate_paths))
         else:
             filters.append(
-                ImageSimilarityPrivateEmbedding.path == IMPORTED_EMBEDDING_PATH
+                ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED
             )
         rows = session.exec(
             select(
@@ -214,6 +222,8 @@ def pdq_similarity_search(
                 ImageSimilarityPrivateEmbedding.content_sha256,
                 ImageSimilarityPrivateEmbedding.user_email,
                 ImageSimilarityPrivateEmbedding.organization,
+                ImageSimilarityPrivateEmbedding.source,
+                ImageSimilarityPrivateEmbedding.filename,
             ).where(*filters)
         ).all()
     else:
@@ -237,7 +247,7 @@ def pdq_similarity_search(
     scored = []
     for row in rows:
         if use_private_table:
-            row_id, path, pdq_hash, content_sha256, user_email, organization = row
+            row_id, path, pdq_hash, content_sha256, user_email, organization, row_source, row_filename = row
             dist = hamming_distance(query_pdq, pdq_hash)
             scored.append(
                 _search_hit(
@@ -248,6 +258,8 @@ def pdq_similarity_search(
                     user_email=user_email or "",
                     organization=organization or "",
                     bank=bank,
+                    source=row_source or SOURCE_LOCAL,
+                    filename=row_filename or "",
                 )
             )
         else:

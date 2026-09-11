@@ -10,8 +10,10 @@ from image_similarity.main import (
     Parameters,
     _build_metadata,
     _compute_pdq_hash,
+    _export_record_from_row,
     _hit_display_path,
     _import_record_error,
+    _is_imported,
     _load_private_embedding_export,
     _merge_dedup_key,
     _merge_search_results,
@@ -27,6 +29,7 @@ from image_similarity.main import (
     search_series,
     task_schema,
 )
+from rb.api.database import ImageSimilarityPrivateEmbedding
 from image_similarity.scorers import (
     CombinedScorer,
     _result_hit_key,
@@ -51,6 +54,7 @@ def _local_hit(path: str, score: float, content_sha256: str = "abc") -> dict:
         "content_sha256": content_sha256,
         "user_email": "you@x.com",
         "remote": False,
+        "source": "local",
     }
 
 
@@ -62,11 +66,12 @@ def _imported_hit(score: float, content_sha256: str, user_email: str, hit_key: s
         "content_sha256": content_sha256,
         "user_email": user_email,
         "remote": True,
+        "source": "imported",
     }
 
 
-def _valid_import_record() -> dict:
-    return {
+def _valid_import_record(filename: str = "") -> dict:
+    record = {
         "content_sha256": "abc123",
         "embedding": [0.1, 0.2, 0.3],
         "pdq_hash": "a" * 64,
@@ -74,6 +79,9 @@ def _valid_import_record() -> dict:
         "privacy_protocol": "clipseg-blackout-v1:person",
         "model_name": DEFAULT_MODEL,
     }
+    if filename:
+        record["filename"] = filename
+    return record
 
 
 class _FakeScorer:
@@ -314,6 +322,7 @@ def test_merge_dedup_key_local():
         "content_sha256": "abc123",
         "user_email": "you@x.com",
         "remote": False,
+        "source": "local",
     }
     assert _merge_dedup_key(hit) == ("abc123", "ref_063.jpg", "you@x.com")
 
@@ -325,6 +334,7 @@ def test_merge_dedup_key_imported():
         "content_sha256": full_hash,
         "user_email": "owner@example.com",
         "remote": True,
+        "source": "imported",
     }
     assert _merge_dedup_key(hit) == ("a" * 64, "a" * 12 + "…", "owner@example.com")
 
@@ -334,13 +344,27 @@ def test_merge_dedup_key_imported():
 
 def test_hit_display_path():
     full_hash = "a" * 64
-    assert _hit_display_path({"remote": True, "content_sha256": full_hash}) == "a" * 12 + "…"
-    assert _hit_display_path({"remote": False, "path": "/photos/a.jpg"}) == "a.jpg"
+    # imported without filename → placeholder
+    assert _hit_display_path({"source": "imported", "content_sha256": full_hash}) == "No filepath provided"
+    # imported with filename → filename
+    assert _hit_display_path({"source": "imported", "content_sha256": full_hash, "filename": "photo.jpg"}) == "photo.jpg"
+    # imported with empty filename → placeholder
+    assert _hit_display_path({"source": "imported", "content_sha256": full_hash, "filename": ""}) == "No filepath provided"
+    # local → basename of path
+    assert _hit_display_path({"source": "local", "path": "/photos/a.jpg"}) == "a.jpg"
+
+
+def test_is_imported():
+    assert _is_imported({"source": "imported"}) is True
+    assert _is_imported({"source": "local"}) is False
+    assert _is_imported({"remote": True}) is True
+    assert _is_imported({"remote": False}) is False
+    assert _is_imported({}) is False
 
 
 def test_build_metadata_local_match():
     meta = _build_metadata(
-        {"score": 0.8, "is_match": True, "bank": "plain", "remote": False},
+        {"score": 0.8, "is_match": True, "bank": "plain", "source": "local"},
         scoring_mode="combined",
         model_name=DEFAULT_MODEL,
         query_name="query.jpg",
@@ -356,7 +380,7 @@ def test_build_metadata_imported():
             "score": 0.8,
             "is_match": True,
             "bank": "private",
-            "remote": True,
+            "source": "imported",
             "content_sha256": "b" * 64,
             "user_email": "owner@example.com",
             "organization": "RescueLab",
@@ -404,6 +428,40 @@ def test_export_requires_contact_email():
         _parse_export_owner_contact(
             ExportParameters(organization="RescueLab", contact_email="  ")
         )
+
+
+def test_export_record_includes_filename_from_path():
+    """Export extracts filename from local path."""
+    row = ImageSimilarityPrivateEmbedding(
+        path="/evidence/case1/photo.jpg",
+        content_sha256="abc123",
+        embedding=[0.1, 0.2],
+        pdq_hash="x" * 64,
+        user_email="a@x.com",
+        organization="Org",
+        privacy_protocol="clipseg-blackout-v1",
+        model_name="google/siglip2-so400m-patch14-384",
+        filename="",
+    )
+    record = _export_record_from_row(row)
+    assert record["filename"] == "photo.jpg"
+
+
+def test_export_record_extracts_basename_only():
+    """Export strips full path to basename — never leaks directories."""
+    row = ImageSimilarityPrivateEmbedding(
+        path="/secret/case/evidence/photo.jpg",
+        content_sha256="abc123",
+        embedding=[0.1, 0.2],
+        pdq_hash="x" * 64,
+        user_email="a@x.com",
+        organization="Org",
+        privacy_protocol="clipseg-blackout-v1",
+        model_name="google/siglip2-so400m-patch14-384",
+        filename="",
+    )
+    record = _export_record_from_row(row)
+    assert record["filename"] == "photo.jpg"
 
 
 # import_embeddings

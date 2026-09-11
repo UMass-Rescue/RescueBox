@@ -43,3 +43,7 @@ def priv_model_name_eq(name: str):
 
 def priv_content_sha256_in(hashes: list[str]):
     return cast(Any, _priv_cols["content_sha256"]).in_(hashes)
+
+
+def priv_source_eq(source: str):
+    return cast(Any, _priv_cols["source"]) == source

@@ -283,6 +283,8 @@ class ImageSimilarityPrivateEmbedding(SQLModel, table=True):
     user_email: str = Field(default="", sa_column=Column(String(256), index=True))
     organization: str = Field(default="", sa_column=Column(String(256), index=True))
     privacy_protocol: str = Field(default="", sa_column=Column(String(128), index=True))
+    filename: str = Field(default="", sa_column=Column(String(512)))
+    source: str = Field(default="local", sa_column=Column(String(32), index=True))
 
 
 class FaceEmbedding(SQLModel, table=True):

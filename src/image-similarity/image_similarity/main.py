@@ -711,9 +711,13 @@ def _truncate_content_id(content_sha256: str) -> str:
     return f"{content_sha256[:_CONTENT_ID_DISPLAY_LEN]}…"
 
 
+def _is_imported(hit: dict) -> bool:
+    return hit.get("source") == "imported" or hit.get("remote", False)
+
+
 def _merge_dedup_key(hit: dict) -> tuple:
     content_sha256 = hit.get("content_sha256", "")
-    if hit.get("remote"):
+    if _is_imported(hit):
         filename = _truncate_content_id(content_sha256)
     else:
         filename = Path(hit["path"]).name
@@ -759,7 +763,7 @@ def _build_metadata(
     bank = hit.get("bank", "")
     if bank:
         meta["Embedding type"] = _embedding_type_label(bank)
-    if hit.get("remote"):
+    if _is_imported(hit):
         meta["Source"] = "Imported"
         meta["Content ID"] = _truncate_content_id(hit.get("content_sha256", ""))
         meta["Owner"] = hit.get("user_email", "")
@@ -770,13 +774,13 @@ def _build_metadata(
 
 
 def _hit_display_path(hit: dict) -> str:
-    if hit.get("remote"):
-        return _truncate_content_id(hit.get("content_sha256", ""))
+    if _is_imported(hit):
+        return hit.get("filename") or "No filepath provided"
     return Path(hit["path"]).name
 
 
 def _hit_file_type(hit: dict) -> FileType:
-    return FileType.TEXT if hit.get("remote") else FileType.IMG
+    return FileType.TEXT if _is_imported(hit) else FileType.IMG
 
 
 def _privacy_protocol_tag(labels: list[str]) -> str:
@@ -925,7 +929,7 @@ def _embedding_to_json_list(embedding) -> list[float]:
 
 
 def _export_record_from_row(row: ImageSimilarityPrivateEmbedding) -> dict:
-    return {
+    record = {
         "content_sha256": row.content_sha256,
         "embedding": _embedding_to_json_list(row.embedding),
         "pdq_hash": row.pdq_hash,
@@ -934,6 +938,10 @@ def _export_record_from_row(row: ImageSimilarityPrivateEmbedding) -> dict:
         "privacy_protocol": row.privacy_protocol,
         "model_name": row.model_name,
     }
+    # Export basename only — never leak full directory paths
+    if row.path and row.path != "[imported]":
+        record["filename"] = Path(row.path).name
+    return record
 
 
 def _parse_export_owner_contact(parameters: ExportParameters) -> tuple[str, str]:
@@ -999,11 +1007,15 @@ def export_embeddings(
     output_path = Path(output_dir) / filename
 
     with Session(engine) as session:
-        rows = session.exec(select(ImageSimilarityPrivateEmbedding)).all()
+        rows = session.exec(
+            select(ImageSimilarityPrivateEmbedding).where(
+                ImageSimilarityPrivateEmbedding.source == "local"
+            )
+        ).all()
 
         if not rows:
             raise ValueError(
-                "No private embeddings found. "
+                "No local private embeddings found. "
                 "Run Image Series Similarity on a folder first to index private embeddings."
             )
 
@@ -1084,6 +1096,8 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
                 user_email=owner_email,
                 organization=organization,
                 privacy_protocol=privacy_protocol,
+                filename=Path(record["filename"]).name if record.get("filename") else "",
+                source="imported",
             )
             session.add(new_row)
             seen_keys.add(dedup_key)
@@ -1220,7 +1234,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     file_responses = [
         FileResponse(
             file_type=_hit_file_type(hit),
-            path=_hit_display_path(hit) if hit.get("remote") else str(hit["path"]),
+            path=_hit_display_path(hit) if _is_imported(hit) else str(hit["path"]),
             title=f"#{hit['rank']} · similarity {hit['score']}",
             metadata=_build_metadata(hit, scoring_mode, model_name, query_name),
         )
