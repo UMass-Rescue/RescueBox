@@ -954,24 +954,23 @@ def _parse_export_owner_contact(parameters: ExportParameters) -> tuple[str, str]
     return organization, contact_email
 
 
-def _stamp_private_embedding_owner(
-    rows: list[ImageSimilarityPrivateEmbedding],
-    organization: str,
-    contact_email: str,
+def _stamp_export_records(
+    records: list[dict], organization: str, contact_email: str
 ) -> None:
-    for row in rows:
-        row.organization = organization
-        row.user_email = contact_email
+    for rec in records:
+        rec["organization"] = organization
+        rec["user_email"] = contact_email
 
 
 def _write_private_embeddings_export(
-    output_path: Path, rows: list[ImageSimilarityPrivateEmbedding]
+    output_path: Path,
+    records: list[dict],
 ) -> None:
     payload = {
         "format_version": _EXPORT_FORMAT_VERSION,
         "export_date": datetime.now(timezone.utc).isoformat(),
-        "count": len(rows),
-        "records": [_export_record_from_row(row) for row in rows],
+        "count": len(records),
+        "records": records,
     }
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(payload, f)
@@ -1019,9 +1018,9 @@ def export_embeddings(
                 "Run Image Series Similarity on a folder first to index private embeddings."
             )
 
-        _stamp_private_embedding_owner(rows, organization, contact_email)
-        session.commit()
-        _write_private_embeddings_export(output_path, rows)
+        records = [_export_record_from_row(row) for row in rows]
+        _stamp_export_records(records, organization, contact_email)
+        _write_private_embeddings_export(output_path, records)
 
     logger.info("Exported %d private embeddings to %s", len(rows), output_path)
 

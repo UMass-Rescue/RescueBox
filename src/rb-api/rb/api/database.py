@@ -125,6 +125,31 @@ def create_db_and_tables():
             )
     except Exception:
         pass
+    # Migration: add filename and source to private embeddings if missing
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                    "filename VARCHAR(512) DEFAULT '' NOT NULL"
+                )
+            )
+            conn.execute(
+                text(
+                    "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                    "source VARCHAR(32) DEFAULT 'local' NOT NULL"
+                )
+            )
+            conn.execute(
+                text(
+                    "UPDATE image_similarity_private_embeddings "
+                    "SET source = 'imported' WHERE path = '[imported]'"
+                )
+            )
+    except Exception:
+        pass
     # Migration: move private embeddings to dedicated table, drop privacy_protocol column.
     try:
         from sqlalchemy import text
