@@ -1,6 +1,7 @@
 """Tests for image-similarity (/search_series, /export_embeddings, /import_embeddings)."""
 
 import inspect
+import json
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,7 @@ from image_similarity.main import (
     _merge_dedup_key,
     _merge_search_results,
     _parse_export_owner_contact,
-    _truncate_content_id,
+    _imported_data_payload,
     export_inputs_cli_parse,
     export_parameters_cli_parse,
     export_task_schema,
@@ -363,41 +364,46 @@ def test_is_imported():
 
 
 def test_build_metadata_local_match():
-    meta = _build_metadata(
-        {"score": 0.8, "is_match": True, "bank": "plain", "source": "local"},
-        scoring_mode="combined",
-        model_name=DEFAULT_MODEL,
-        query_name="query.jpg",
-    )
-    assert meta["Match"] == "Yes"
-    assert meta["Scoring Mode"] == "Combined (CLIP + PDQ)"
+    meta = _build_metadata({"score": 0.8, "bank": "plain", "source": "local"})
     assert meta["Source"] == "Local"
+    assert meta["Embedding type"] == "Plain (original image)"
+    assert "Query" not in meta
+    assert "Match" not in meta
+    assert "Scoring Mode" not in meta
+    assert "CLIP Model" not in meta
 
 
 def test_build_metadata_imported():
-    meta = _build_metadata(
-        {
-            "score": 0.8,
-            "is_match": True,
-            "bank": "private",
-            "source": "imported",
-            "content_sha256": "b" * 64,
-            "user_email": "owner@example.com",
-            "organization": "RescueLab",
-        },
-        scoring_mode="semantic",
-        model_name=DEFAULT_MODEL,
-        query_name="query.jpg",
+    hit = {
+        "score": 0.8,
+        "bank": "private",
+        "source": "imported",
+        "content_sha256": "b" * 64,
+        "user_email": "owner@example.com",
+        "organization": "RescueLab",
+        "filename": "photo.jpg",
+    }
+    meta = _build_metadata(hit)
+    assert "Query" not in meta
+    payload = json.loads(meta["Source"])
+    assert payload["content_sha256"] == "b" * 64
+    assert payload["user_email"] == "owner@example.com"
+    assert payload["organization"] == "RescueLab"
+    assert payload["filename"] == "photo.jpg"
+    assert "embedding_type" not in payload
+    assert "source" not in payload
+    assert meta["Embedding type"] == "Private (anonymized)"
+    assert "Content ID" not in meta
+    assert "Owner" not in meta
+
+
+def test_imported_data_payload_full_content_hash():
+    payload = _imported_data_payload(
+        {"content_sha256": "a" * 64, "source": "imported", "bank": "plain"}
     )
-    assert meta["Source"] == "Imported"
-    assert meta["Owner"] == "owner@example.com"
-    assert meta["Content ID"] == "b" * 12 + "…"
-
-
-def test_truncate_content_id():
-    assert _truncate_content_id("a" * 64) == "a" * 12 + "…"
-    assert _truncate_content_id("abc") == "abc"
-    assert _truncate_content_id("") == ""
+    assert payload["content_sha256"] == "a" * 64
+    assert "embedding_type" not in payload
+    assert "source" not in payload
 
 
 # export_embeddings

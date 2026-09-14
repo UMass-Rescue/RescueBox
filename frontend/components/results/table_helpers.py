@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import os
 
 from nicegui import ui
@@ -15,6 +16,85 @@ from .serve_paths import open_file, open_folder
 
 _IMAGE_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 _MAX_PREVIEW_SIDE = 1600
+JSON_VIEW_LABEL = "Imported"
+
+
+def metadata_field_key(label: str) -> str:
+    return label.lower().replace(" ", "_")
+
+
+def json_storage_key(field: str) -> str:
+    return f"_json_{field}"
+
+
+def looks_like_json_object(value: object) -> bool:
+    if not isinstance(value, str) or not value.strip().startswith("{"):
+        return False
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(parsed, dict)
+
+
+def open_json_view_modal(title: str, raw: str) -> None:
+    try:
+        text = json.dumps(json.loads(raw), indent=2)
+    except json.JSONDecodeError:
+        text = raw
+    with ui.dialog() as dialog, ui.card().classes(
+        "max-w-[92vw] w-[min(56rem,92vw)] max-h-[90vh] flex flex-col p-4 gap-3"
+    ):
+        ui.label(title or "JSON").classes(
+            "text-lg font-semibold shrink-0 text-zinc-900"
+        )
+        with ui.scroll_area().classes(
+            "w-full min-h-[50vh] max-h-[75vh] border border-zinc-200 rounded-lg bg-white"
+        ):
+            ui.textarea(value=text).props(
+                "readonly outlined dense input-class=font-mono"
+            ).classes("w-full min-h-[48vh]").style("white-space: pre-wrap")
+        with ui.row().classes("justify-end shrink-0"):
+            ui.button("Close", on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
+    dialog.open()
+
+
+def attach_json_metadata_slots(table, columns: list[dict], rows: list[dict]) -> None:
+    has_json = False
+    for col in columns:
+        field = col.get("field") or col.get("name")
+        storage_key = json_storage_key(field)
+        if not any(row.get(storage_key) for row in rows):
+            continue
+        has_json = True
+        label = str(col.get("label") or field).replace("'", "\\'")
+        table.add_slot(
+            f"body-cell-{field}",
+            f"""
+            <q-td :props="props">
+                <span v-if="props.row.{storage_key}"
+                      class="text-[#881c1c] underline cursor-pointer"
+                      @click.stop="$parent.$emit('viewJson', {{ title: '{label}', payload: props.row.{storage_key} }})">
+                    {JSON_VIEW_LABEL}
+                </span>
+                <span v-else>{{{{ props.value }}}}</span>
+            </q-td>
+            """,
+        )
+
+    if has_json:
+
+        def on_view_json(e) -> None:
+            args = e.args
+            if isinstance(args, dict):
+                open_json_view_modal(
+                    str(args.get("title", "JSON")),
+                    str(args.get("payload", "")),
+                )
+            elif isinstance(args, str):
+                open_json_view_modal("JSON", args)
+
+        table.on("viewJson", on_view_json)
 
 
 def create_metadata_table_columns(
@@ -209,6 +289,7 @@ def create_sortable_table(
                         )
         if on_row_click:
             table.on("rowClick", on_row_click)
+        attach_json_metadata_slots(table, columns, rows)
         if tip_message:
             ui.label(f"💡 {tip_message}").classes(tip_message_classes)
         return table

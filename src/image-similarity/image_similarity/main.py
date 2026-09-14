@@ -692,25 +692,6 @@ def _build_scorer(
     )
 
 
-_CONTENT_ID_DISPLAY_LEN = 12
-_EMBEDDING_TYPE_LABELS = {
-    "plain": "Plain (original image)",
-    "private": "Private (anonymized)",
-}
-
-
-def _embedding_type_label(bank: str) -> str:
-    return _EMBEDDING_TYPE_LABELS.get(bank, bank)
-
-
-def _truncate_content_id(content_sha256: str) -> str:
-    if not content_sha256:
-        return ""
-    if len(content_sha256) <= _CONTENT_ID_DISPLAY_LEN:
-        return content_sha256
-    return f"{content_sha256[:_CONTENT_ID_DISPLAY_LEN]}…"
-
-
 def _is_imported(hit: dict) -> bool:
     return hit.get("source") == "imported" or hit.get("remote", False)
 
@@ -718,7 +699,7 @@ def _is_imported(hit: dict) -> bool:
 def _merge_dedup_key(hit: dict) -> tuple:
     content_sha256 = hit.get("content_sha256", "")
     if _is_imported(hit):
-        filename = _truncate_content_id(content_sha256)
+        filename = hit.get("filename") or content_sha256
     else:
         filename = Path(hit["path"]).name
     user_email = hit.get("user_email", "")
@@ -741,35 +722,27 @@ def _merge_search_results(
     return merged[:top_k]
 
 
-def _build_metadata(
-    hit: dict,
-    scoring_mode: str,
-    model_name: str,
-    query_name: str,
-) -> dict[str, str]:
+def _imported_data_payload(hit: dict) -> dict[str, str]:
+    return {
+        "content_sha256": hit.get("content_sha256", ""),
+        "user_email": hit.get("user_email", ""),
+        "organization": hit.get("organization", ""),
+        "filename": hit.get("filename", ""),
+    }
+
+
+def _build_metadata(hit: dict) -> dict[str, str]:
     """Build per-result metadata dict with consistent columns across all modes."""
-    scoring_labels = {
-        "combined": "Combined (CLIP + PDQ)",
-        "semantic": "Semantic only (CLIP)",
-        "pdq": "Perceptual only (PDQ)",
-    }
-    meta: dict[str, str] = {
-        "Scoring Mode": scoring_labels.get(scoring_mode, scoring_mode),
-        "Match": "Yes" if hit["is_match"] else "No",
-    }
-    if scoring_mode in ("semantic", "combined"):
-        meta["CLIP Model"] = model_name
-    meta["Query"] = f"Series match for {query_name}"
-    bank = hit.get("bank", "")
-    if bank:
-        meta["Embedding type"] = _embedding_type_label(bank)
+    meta: dict[str, str] = {}
     if _is_imported(hit):
-        meta["Source"] = "Imported"
-        meta["Content ID"] = _truncate_content_id(hit.get("content_sha256", ""))
-        meta["Owner"] = hit.get("user_email", "")
-        meta["Organization"] = hit.get("organization", "")
+        meta["Source"] = json.dumps(_imported_data_payload(hit))
     else:
         meta["Source"] = "Local"
+    if bank := hit.get("bank", ""):
+        meta["Embedding type"] = {
+            "plain": "Plain (original image)",
+            "private": "Private (anonymized)",
+        }.get(bank, bank)
     return meta
 
 
@@ -1224,18 +1197,17 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         private_hits = private_scorer.score(query_image_path, search_paths, top_k)
         raw_results = _merge_search_results(private_hits, plain_hits, top_k)
 
+        matches = [hit for hit in raw_results if hit["score"] >= min_similarity]
         search_results = [
-            {**hit, "rank": rank, "is_match": hit["score"] >= min_similarity}
-            for rank, hit in enumerate(raw_results, start=1)
+            {**hit, "rank": rank} for rank, hit in enumerate(matches, start=1)
         ]
 
-    query_name = Path(query_image_path).name
     file_responses = [
         FileResponse(
             file_type=_hit_file_type(hit),
             path=_hit_display_path(hit) if _is_imported(hit) else str(hit["path"]),
             title=f"#{hit['rank']} · similarity {hit['score']}",
-            metadata=_build_metadata(hit, scoring_mode, model_name, query_name),
+            metadata=_build_metadata(hit),
         )
         for hit in search_results
     ]

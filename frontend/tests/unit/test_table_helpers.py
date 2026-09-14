@@ -12,6 +12,11 @@ from frontend.components.results import (
     create_metadata_table_columns,
     create_sortable_table,
 )
+from frontend.components.results.table_helpers import (
+    json_storage_key,
+    looks_like_json_object,
+    metadata_field_key,
+)
 
 
 class TestTableHelpers:
@@ -83,6 +88,15 @@ class TestTableHelpers:
 
         await user.open("/test")
         await user.should_see("Test tip message")
+
+    def test_metadata_field_key(self):
+        assert metadata_field_key("Imported") == "imported"
+        assert json_storage_key("imported") == "_json_imported"
+
+    def test_looks_like_json_object(self):
+        assert looks_like_json_object('{"content_sha256": "abc"}') is True
+        assert looks_like_json_object("not json") is False
+        assert looks_like_json_object("[1, 2]") is False
 
     def test_create_metadata_table_columns(self):
         """Test creating columns with metadata keys"""

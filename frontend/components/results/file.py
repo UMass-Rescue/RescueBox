@@ -16,8 +16,12 @@ from .serve_paths import (
     serve_path,
 )
 from .table_helpers import (
+    JSON_VIEW_LABEL,
     create_bbox_preview_row_click_handler,
     create_metadata_table_columns,
+    json_storage_key,
+    looks_like_json_object,
+    metadata_field_key,
     path_title_subtitle_columns,
     render_batch_path_table,
     resolve_table_row_index,
@@ -74,9 +78,13 @@ def render_batch_file(container, response):
                 "title": f.title or "",
             }
             for k in meta_keys:
-                r[k.lower().replace(" ", "_")] = (
-                    str(f.metadata.get(k, "")) if f.metadata else ""
-                )
+                field = metadata_field_key(k)
+                raw = f.metadata.get(k, "") if f.metadata else ""
+                if looks_like_json_object(raw):
+                    r[json_storage_key(field)] = raw
+                    r[field] = JSON_VIEW_LABEL
+                else:
+                    r[field] = str(raw) if raw is not None else ""
             rows.append(r)
         on_click = create_bbox_preview_row_click_handler(rows, open_file)
 
