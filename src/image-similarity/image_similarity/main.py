@@ -32,6 +32,7 @@ from rb.api.models import (
     BatchFileResponse,
     FileResponse,
     FileType,
+    TextResponse,
 )
 from rb.api.database import (
     ImageSimilarityEmbedding,
@@ -867,6 +868,10 @@ def _create_private_embeddings(
 # ---------------------------------------------------------------------------
 
 _EXPORT_FORMAT_VERSION = 1
+_EXPORT_EMPTY_MESSAGE = (
+    "No local private embeddings found. "
+    "Run Image Series Similarity on a folder first to index private embeddings."
+)
 _IMPORT_RECORD_FIELDS = (
     "content_sha256",
     "embedding",
@@ -985,9 +990,12 @@ def export_embeddings(
         ).all()
 
         if not rows:
-            raise ValueError(
-                "No local private embeddings found. "
-                "Run Image Series Similarity on a folder first to index private embeddings."
+            logger.warning("Export skipped: %s", _EXPORT_EMPTY_MESSAGE)
+            return ResponseBody(
+                root=TextResponse(
+                    value=_EXPORT_EMPTY_MESSAGE,
+                    title="Private embeddings export — nothing to export",
+                )
             )
 
         records = [_export_record_from_row(row) for row in rows]

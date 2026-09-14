@@ -20,6 +20,7 @@ from image_similarity.main import (
     _merge_search_results,
     _parse_export_owner_contact,
     _imported_data_payload,
+    export_embeddings,
     export_inputs_cli_parse,
     export_parameters_cli_parse,
     export_task_schema,
@@ -434,6 +435,31 @@ def test_export_requires_contact_email():
         _parse_export_owner_contact(
             ExportParameters(organization="RescueLab", contact_email="  ")
         )
+
+
+def test_export_embeddings_empty_returns_warning(monkeypatch):
+    class _FakeResult:
+        def all(self):
+            return []
+
+    class _FakeSession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def exec(self, _stmt):
+            return _FakeResult()
+
+    monkeypatch.setattr("image_similarity.main.Session", lambda _engine: _FakeSession())
+    result = export_embeddings(
+        {},
+        ExportParameters(organization="RescueLab", contact_email="team@rescue.example"),
+    )
+    assert result.root.output_type == "text"
+    assert "No local private embeddings found" in result.root.value
+    assert "Image Series Similarity" in result.root.value
 
 
 def test_export_record_includes_filename_from_path():
