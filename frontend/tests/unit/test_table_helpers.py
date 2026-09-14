@@ -13,6 +13,11 @@ from frontend.components.results import (
     create_sortable_table,
 )
 from frontend.components.results.table_helpers import (
+    PREVIEW_UNAVAILABLE_LABEL,
+    display_filename,
+    enrich_row_with_thumbnail,
+    is_image_result_row,
+    is_previewable_image,
     json_storage_key,
     looks_like_json_object,
     metadata_field_key,
@@ -97,6 +102,45 @@ class TestTableHelpers:
         assert looks_like_json_object('{"content_sha256": "abc"}') is True
         assert looks_like_json_object("not json") is False
         assert looks_like_json_object("[1, 2]") is False
+
+    def test_is_previewable_image(self, tmp_path):
+        img = tmp_path / "photo.jpg"
+        img.write_bytes(b"x")
+        assert is_previewable_image(str(img)) is True
+        assert is_previewable_image(str(tmp_path / "missing.jpg")) is False
+        assert is_previewable_image("photo.jpg") is False
+
+    def test_display_filename(self):
+        assert display_filename("/tmp/photo.jpg") == "photo.jpg"
+        assert display_filename("No filepath provided") == PREVIEW_UNAVAILABLE_LABEL
+        assert display_filename("") == PREVIEW_UNAVAILABLE_LABEL
+
+    def test_is_image_result_row_imported_metadata(self):
+        assert is_image_result_row(
+            "vacation.jpg",
+            metadata={"Source": '{"content_sha256": "abc"}'},
+        )
+        assert is_image_result_row(
+            "photo.jpg",
+            metadata={"Source": "Local", "Embedding type": "Plain (original image)"},
+        )
+        assert not is_image_result_row("report.txt", metadata={"Source": "Local"})
+
+    def test_enrich_row_with_thumbnail(self, tmp_path):
+        img = tmp_path / "photo.jpg"
+        img.write_bytes(b"x")
+        row = enrich_row_with_thumbnail({"path_full": str(img), "path": img.name})
+        assert row["thumbnail_url"].startswith("/_serve/")
+        imported = enrich_row_with_thumbnail(
+            {"path_full": "vacation.jpg", "path": "vacation.jpg"},
+            metadata={"Source": "Local"},
+        )
+        assert imported["preview_unavailable"] is True
+        plain = enrich_row_with_thumbnail(
+            {"path_full": "notes.txt", "path": "notes.txt"},
+        )
+        assert "thumbnail_url" not in plain
+        assert "preview_unavailable" not in plain
 
     def test_create_metadata_table_columns(self):
         """Test creating columns with metadata keys"""

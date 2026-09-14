@@ -265,7 +265,6 @@ def task_schema() -> TaskSchema:
         ],
         default="combined",
     )
-
     return TaskSchema(
         inputs=[
             InputSchema(
