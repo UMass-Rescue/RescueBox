@@ -8,32 +8,32 @@ Embeddings are stored in the database. Images processed in a prior run are **reu
 
 ## Chatbot plugin menu
 
-In the **Assistant**, the tool picker lists **three separate plugin options** (not one plugin with sub-tasks). Pick the option you need:
+In the **Assistant**, the tool picker lists **three separate plugin options** grouped as **4.1–4.3** (not one plugin with sub-tasks). Pick the option you need:
 
 | # | Chatbot menu option | Form / task | When to use |
 |---|---------------------|-------------|-------------|
-| **1** | **Image Series Similarity** | Find series matches | Search a local folder for images similar to a query photo |
-| **2** | **Image Series Similarity - Export Embeddings** | Export embeddings | Download a `.json` to share with another organization or user |
-| **3** | **Image Series Similarity - Import Embeddings** | Import embeddings | Load a `.json` from another organization or user |
+| **4.1** | **Image Series Similarity** | Find series matches | Search a local folder for images similar to a query photo |
+| **4.2** | **Image Series Similarity - Export Embeddings** | Export embeddings | Download a `.json` to share with another organization or user |
+| **4.3** | **Image Series Similarity - Import Embeddings** | Import embeddings | Load a `.json` from another organization or user |
 
 Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-private-embeddings`.
 
 ## Workflows
 
-### Local search only (option 1)
+### Local search only (4.1)
 
 1. **Assistant** → plugin menu → **Image Series Similarity**
 2. **Input directory** — folder of images to search
 3. **Query image** — reference photo from that case
 4. **Submit** → local matches in the results table (Path shows filename; click to preview)
 
-### Share embeddings (option 1, then option 2)
+### Share embeddings (4.1, then 4.2)
 
 1. **Image Series Similarity** on your case folder (indexes plain and private embeddings)
 2. **Assistant** → plugin menu → **Image Series Similarity - Export Embeddings** → **Organization** and **Contact email** → **Submit** → download `.json`
 3. Send the `.json` to another organization or user
 
-### Import and search (option 3, then option 1)
+### Import and search (4.3, then 4.1)
 
 Another organization can share anonymized embeddings from their case without sending image files. You import their `.json` and search your own case folder against their embeddings plus your local files.
 
@@ -63,11 +63,11 @@ The importing user cannot resolve a Content ID to a filepath. When they email yo
 
 **Use case — specific subject:** Crop the query so one subject fills the frame.
 
-**Use case — shared embeddings:** Import from another organization or user (option 3), then search your folder (option 1).
+**Use case — shared embeddings:** Import from another organization or user (4.3), then search your folder (4.1).
 
 If you want a concept like "people eating" rather than a specific scene, use **Image Search** with a text query instead.
 
-## Option 1: Image Series Similarity
+## 4.1 Image Series Similarity
 
 Chatbot menu: **Image Series Similarity**. Form title: **Find series matches**.
 
@@ -83,7 +83,7 @@ Chatbot menu: **Image Series Similarity**. Form title: **Find series matches**.
 - **Match threshold:** 0–1; metadata marks results at or above this as a match
 - **Scoring mode:** Combined (60% CLIP + 40% PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ)
 
-Search does **not** require an email. Owner contact info is collected only on **option 2 — Image Series Similarity - Export Embeddings**.
+Search does **not** require an email. Owner contact info is collected only on **4.2 — Image Series Similarity - Export Embeddings**.
 
 ### Results
 
@@ -102,7 +102,11 @@ Both local and imported hits are ranked together by score. If an imported hit is
 
 Perceptual hashing matches images that look similar despite resize, compression, or minor edits. PDQ-only mode works best when the folder contains **one series** only.
 
-## Option 2: Image Series Similarity - Export Embeddings
+### Anonymization
+
+Every search automatically creates **both** plain and private (anonymized) embeddings — there is no toggle. Private embeddings black out **face**, **tattoo**, and **text** regions (CLIPSeg) before embedding.
+
+## 4.2 Image Series Similarity - Export Embeddings
 
 Chatbot menu: **Image Series Similarity - Export Embeddings** — separate plugin option.
 
@@ -114,7 +118,7 @@ Exports all your **private (anonymized) embeddings** to a `.json` file. The file
 
 Each record contains: embedding, content hash, perceptual hash, contact info, model, anonymization protocol, and **filename** (only when Share filename is Yes). In search results, imported rows without a filename show the Content ID instead.
 
-## Option 3: Image Series Similarity - Import Embeddings
+## 4.3 Image Series Similarity - Import Embeddings
 
 Chatbot menu: **Image Series Similarity - Import Embeddings** — separate plugin option.
 
@@ -131,7 +135,7 @@ Duplicates are skipped (matched by content hash + protocol + model + owner email
 ## How it works (brief)
 
 1. Scan the input directory; reuse existing embeddings when the file is already indexed (by path or content SHA-256).
-2. **Plain** and **private** embeddings are stored for every local file.
+2. **Plain** and **private** embeddings are stored for every local file (private: face, tattoo, and text blacked out).
 3. Search runs both embedding types and merges the top results.
 4. Imported embeddings from other organizations or users are included in the private search.
 

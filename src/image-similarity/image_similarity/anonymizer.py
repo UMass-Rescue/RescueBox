@@ -1,7 +1,7 @@
 """
 Privacy-preserving image anonymization using CLIPSeg text-prompted segmentation.
 
-Detects specified visual concepts (faces, text, logos, etc.) in an image using
+Detects specified visual concepts (faces, tattoos, text) in an image using
 CLIPSeg via ONNX Runtime, then blacks out those regions so that downstream
 embeddings never encode sensitive content.
 
@@ -23,7 +23,7 @@ from transformers import CLIPSegProcessor, CLIPTokenizerFast, ViTImageProcessor
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_TARGET_LABELS: list[str] = ["face", "person", "text", "sign", "logo"]
+DEFAULT_TARGET_LABELS: list[str] = ["face", "tattoo", "text"]
 DEFAULT_THRESHOLD = 0.3
 DEFAULT_DILATE = 5
 DEFAULT_BLUR = 5

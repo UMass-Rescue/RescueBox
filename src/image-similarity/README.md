@@ -6,13 +6,13 @@ Finds images from the **same series** as a query image.
 
 ## Chatbot plugin menu
 
-In the **Assistant** tool picker, these are **three separate plugin options** (same backend service, different menu entries):
+In the **Assistant** tool picker, these are **three separate plugin options** grouped as **4.1–4.3** (after plugins 1–3: Describe Images, Search Images, Age & Gender):
 
 | # | Chatbot menu option | CLI route | What it does |
 |---|---------------------|-----------|--------------|
-| **1** | **Image Series Similarity** | `/search_series` | Search for similar images in a folder |
-| **2** | **Export Private Embeddings** | `/export_embeddings` | Save anonymized embeddings to a `.json` for another agency |
-| **3** | **Import Private Embeddings** | `/import_embeddings` | Load a `.json` received from another agency |
+| **4.1** | **Image Series Similarity** | `/search_series` | Search for similar images in a folder |
+| **4.2** | **Export Private Embeddings** | `/export_embeddings` | Save anonymized embeddings to a `.json` for another agency |
+| **4.3** | **Import Private Embeddings** | `/import_embeddings` | Load a `.json` received from another agency |
 
 Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-private-embeddings`.
 
@@ -101,7 +101,7 @@ WHERE content_sha256 LIKE 'a1b2c3d4e5f6%';
 
 For concept search ("people eating"), use the **Image Search** plugin with text instead.
 
-## Option 1: Image Series Similarity (`/search_series`)
+## 4.1 Image Series Similarity (`/search_series`)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -110,7 +110,7 @@ For concept search ("people eating"), use the **Image Search** plugin with text 
 | `min_similarity` | 0.5 | Minimum score for "match" in metadata |
 | `scoring_mode` | `combined` | `combined`, `semantic`, or `pdq` |
 
-Search does **not** require an email. Owner contact info is collected only on **option 2 — Export Private Embeddings**.
+Search does **not** require an email. Owner contact info is collected only on **4.2 — Export Private Embeddings**.
 
 ### Results
 
@@ -141,11 +141,11 @@ Search compares both **plain vs plain** (original images) and **private vs priva
 Every search automatically creates **both** plain and private (anonymized) embeddings — there is no toggle.
 
 - **Plain embeddings** — computed from the original image; used for local matching
-- **Private embeddings** — faces, people, text, signs, and logos are blacked out before embedding; used for export and for matching against imported data
+- **Private embeddings** — faces, tattoos, and text are blacked out before embedding; used for export and for matching against imported data
 
 **Test:** `src-tauri/demo/image-similarity/inputs/`, query `Bernie_Sanders_2016_068_*`, scoring **combined** or **semantic**.
 
-## Option 2: Export Private Embeddings (`/export_embeddings`)
+## 4.2 Export Private Embeddings (`/export_embeddings`)
 
 Exports all your **private (anonymized) embeddings** to a `.json` file you can share with another organization. The exported file does not contain original images or full file paths.
 
@@ -162,7 +162,7 @@ Each search creates private embeddings automatically. Export writes one record p
   "pdq_hash": "def456…",
   "user_email": "agent@agency.gov",
   "organization": "Agency A",
-  "privacy_protocol": "clipseg-blackout-v1:face,logo,person,sign,text",
+  "privacy_protocol": "clipseg-blackout-v1:face,tattoo,text",
   "model_name": "google/siglip2-so400m-patch14-384",
   "filename": "photo.jpg"
 }
@@ -175,11 +175,11 @@ Each search creates private embeddings automatically. Export writes one record p
 | `pdq_hash` | Yes | Perceptual hash |
 | `user_email` | Yes | Contact email from export form |
 | `organization` | Yes | Organization name from export form |
-| `privacy_protocol` | Yes | Anonymization method used |
+| `privacy_protocol` | Yes | Anonymization method used (default labels: face, tattoo, text) |
 | `model_name` | Yes | Vision encoder |
 | `filename` | Only if **Share filename = Yes** | Basename of the original file; omitted when the toggle is off or the row is a re-exported import |
 
-## Option 3: Import Private Embeddings (`/import_embeddings`)
+## 4.3 Import Private Embeddings (`/import_embeddings`)
 
 Loads an exported `.json` into your database. Each record stores the same fields described in the export table above, plus `path = "[imported]"` (no local file).
 
@@ -195,7 +195,7 @@ Import result:
 Imported 7 embeddings (0 skipped)
 ```
 
-## Installation
+## 5. Installation
 
 ```bash
 poetry install
@@ -213,7 +213,7 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
 
 **CLIPSeg** (~545 MB) — save as `clipseg-rd64-refined.onnx` from [Xenova/clipseg-rd64-refined](https://huggingface.co/Xenova/clipseg-rd64-refined).
 
-## Benchmarks
+## 6. Benchmarks
 
 503 images, [image-series-dataset](https://github.com/UMass-Rescue/image-series-dataset), NVIDIA RTX 5090.
 
@@ -225,7 +225,7 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
 | Throughput | 14.1 img/s |
 | Peak VRAM | 11.78 GB |
 
-## Demo & testing
+## 7. Demo & testing
 
 `src-tauri/demo/image-similarity/inputs/` — 85 images, 5 series (Bernie Sanders, Kishida, Harris, Le Pen, Bennett).
 
@@ -236,7 +236,7 @@ rescuebox image_series_similarity /search_series \
   ",5,0.5,combined"
 ```
 
-## Unit tests
+## 8. Unit tests
 
 ```bash
 poetry run pytest src/image-similarity/tests
@@ -244,6 +244,6 @@ poetry run pytest src/image-similarity/tests
 
 No ONNX file needed for unit tests.
 
-## Dependencies
+## 9. Dependencies
 
 `transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, `sqlmodel`, `sqlalchemy`, `pgvector`
