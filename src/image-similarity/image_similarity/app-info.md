@@ -48,7 +48,7 @@ Another organization can share anonymized embeddings from their case without sen
 
 ### Resolve Content ID (after follow-up from another user)
 
-The importing user cannot resolve a Content ID to a filepath. When they email you the Content ID from an imported match, look up the local path in the RescueBox database (see README for the `docker exec … psql` command).
+The importing user cannot resolve a Content ID to a filepath. When they email you the Content ID from an imported match, look up the local path in the RescueBox database (see README for the `docker exec … psql` command). Default credentials: username `rbuser`, password `rescue`, database `rescuebox`.
 
 ## When to use this plugin
 
@@ -87,14 +87,13 @@ Search does **not** require an email. Owner contact info is collected only on **
 
 ### Results
 
-Search runs plain and private scorers and merges results into one ranked table:
+Search compares both **plain vs plain** (original images) and **private vs private** (anonymized images) and merges results into one ranked table. This privacy-enhanced search ensures that imported embeddings — which are always anonymized — are compared only against other anonymized embeddings.
 
 | Column | Local rows | Imported rows |
 |--------|-----------|---------------|
 | **Preview** | Thumbnail (file on disk) | *Not available* |
 | **Filename** | Local basename | Basename if exporter included it, otherwise Content ID |
 | **Title** | Rank + similarity score | Rank + similarity score |
-| **Embedding type** | Private (anonymized) or Plain (original image) | Private (anonymized) |
 | **Source** | Local | Imported |
 
 Both local and imported hits are ranked together by score. If an imported hit is relevant, contact **Owner** / **Organization** with the **Content ID** to request more information.

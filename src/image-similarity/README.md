@@ -78,7 +78,7 @@ WHERE content_sha256 LIKE 'a1b2c3d4e5f6%';
 "
 ```
 
-Database runs in Docker (`rb-postgres`). Start with `startup/pgvector_start.sh` if needed.
+Database runs in Docker (`rb-postgres`). Start with `startup/pgvector_start.sh` if needed. Default credentials: username `rbuser`, password `rescue`, database `rescuebox`.
 
 Host `psql` (port 5433):
 
@@ -114,19 +114,18 @@ Search does **not** require an email. Owner contact info is collected only on **
 
 ### Results
 
-Search runs plain and private scorers and merges results into one ranked table. Example top-5 after importing another organization's embeddings:
+Search compares both **plain vs plain** (original images) and **private vs private** (anonymized images) and merges results into one ranked table. This privacy-enhanced search ensures that imported embeddings — which are always anonymized — are compared only against other anonymized embeddings. Example top-5 after importing another organization's embeddings:
 
-| Preview | Filename | Title | Embedding type | Source |
-|---------|----------|-------|----------------|--------|
-| thumbnail | `Bernie_Sanders_2016_070…16.jpg` | #1 · similarity 0.97 | Private (anonymized) | **Imported** |
-| thumbnail | `Bernie_Sanders_2016_067…13.jpg` | #2 · similarity 0.93 | Private (anonymized) | **Imported** |
-| thumbnail | `Bernie_Sanders_2016_065…11.jpg` | #3 · similarity 0.91 | Private (anonymized) | Local |
-| thumbnail | `Bernie_Sanders_2016_063…1.jpg` | #4 · similarity 0.89 | Private (anonymized) | Local |
-| thumbnail | `Bernie_Sanders_2016_074…2.jpg` | #5 · similarity 0.86 | Plain (original image) | Local |
+| Preview | Filename | Title | Source |
+|---------|----------|-------|--------|
+| thumbnail | `Bernie_Sanders_2016_070…16.jpg` | #1 · similarity 0.97 | **Imported** |
+| thumbnail | `Bernie_Sanders_2016_067…13.jpg` | #2 · similarity 0.93 | **Imported** |
+| thumbnail | `Bernie_Sanders_2016_065…11.jpg` | #3 · similarity 0.91 | Local |
+| thumbnail | `Bernie_Sanders_2016_063…1.jpg` | #4 · similarity 0.89 | Local |
+| thumbnail | `Bernie_Sanders_2016_074…2.jpg` | #5 · similarity 0.86 | Local |
 
 - **Local** rows have a preview thumbnail (file is on disk) and show the local filename
 - **Imported** rows show *Not available* for preview (you do not have the file); filename shown if the exporter included it, otherwise Content ID only
-- **Embedding type** — **Private (anonymized)** when matched via the anonymized bank; **Plain (original image)** when matched via the plain bank
 - Both local and imported hits are ranked together by score
 
 ### Scoring modes

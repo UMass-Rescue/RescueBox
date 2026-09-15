@@ -752,11 +752,6 @@ def _build_metadata(hit: dict) -> dict[str, str]:
         meta["Source"] = json.dumps(_imported_data_payload(hit))
     else:
         meta["Source"] = "Local"
-    if bank := hit.get("bank", ""):
-        meta["Embedding type"] = {
-            "plain": "Plain (original image)",
-            "private": "Private (anonymized)",
-        }.get(bank, bank)
     return meta
 
 
