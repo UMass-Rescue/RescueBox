@@ -35,13 +35,16 @@ Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-privat
 
 ### Import and search (option 3, then option 1)
 
+Another organization can share anonymized embeddings from their case without sending image files. You import their `.json` and search your own case folder against their embeddings plus your local files.
+
 1. **Assistant** → plugin menu → **Image Series Similarity - Import Embeddings** → select `.json` from another organization or user → **Submit**
 2. **Image Series Similarity** on your own case folder:
    - **Input directory** — your local images (required)
    - **Query image** — local reference photo
 3. **Submit** → **Local** rows (filename, preview) and **Imported** rows (Owner, Organization, Content ID)
 
-Use **Owner** and **Organization** to contact whoever exported the embedding. **Content ID** is a truncated SHA-256 hash for referring to the same image in email — not a contact address.
+**Imported** rows are matches from the other organization's case data. You do not have their files — if a hit is relevant, contact **Owner** / **Organization** and send the **Content ID** (content hash) to request more information. Exporters may or may not include a filename — when absent, use Content ID only.
+
 
 ### Resolve Content ID (after follow-up from another user)
 
@@ -82,11 +85,19 @@ Chatbot menu: **Image Series Similarity**. Form title: **Find series matches**.
 
 Search does **not** require an email. Owner contact info is collected only on **option 2 — Image Series Similarity - Export Embeddings**.
 
-### Outputs
+### Results
 
-- Sortable results table — one row per hit
-- **Local hits:** Path shows filename; click to preview
-- **Imported hits:** Path shows content ID; metadata shows **Source: Imported**, **Owner**, **Organization**, **Content ID**, **Embedding type**
+Search runs plain and private scorers and merges results into one ranked table:
+
+| Column | Local rows | Imported rows |
+|--------|-----------|---------------|
+| **Preview** | Thumbnail (file on disk) | *Not available* |
+| **Filename** | Local basename | Basename if exporter included it, otherwise Content ID |
+| **Title** | Rank + similarity score | Rank + similarity score |
+| **Embedding type** | Private (anonymized) or Plain (original image) | Private (anonymized) |
+| **Source** | Local | Imported |
+
+Both local and imported hits are ranked together by score. If an imported hit is relevant, contact **Owner** / **Organization** with the **Content ID** to request more information.
 
 ### About PDQ
 
@@ -94,25 +105,29 @@ Perceptual hashing matches images that look similar despite resize, compression,
 
 ## Option 2: Image Series Similarity - Export Embeddings
 
-Chatbot menu: **Image Series Similarity - Export Embeddings** — separate plugin option, not part of the search form.
+Chatbot menu: **Image Series Similarity - Export Embeddings** — separate plugin option.
 
-- **Organization** (required) — your organization, for follow-up by importers
+Exports all your **private (anonymized) embeddings** to a `.json` file. The file does not contain original images or full file paths. Each search creates private embeddings automatically — run a search first so there are records to export.
+
+- **Organization** (required) — so importers know who to contact
 - **Contact email** (required) — stored on every exported record
+- **Share filename** (default Yes) — include the original filename (basename only) in each record; set to No to omit it
 
-**Submit** downloads a `.json` file. Run **Image Series Similarity** on a folder first so private embeddings exist.
-
-| Shared in export | NOT shared |
-|------------------|------------|
-| Anonymized embedding | Original images |
-| Organization and contact email | File paths |
+Each record contains: embedding, content hash, perceptual hash, contact info, model, anonymization protocol, and **filename** (only when Share filename is Yes). In search results, imported rows without a filename show the Content ID instead.
 
 ## Option 3: Image Series Similarity - Import Embeddings
 
 Chatbot menu: **Image Series Similarity - Import Embeddings** — separate plugin option.
 
-- **Embeddings file (.json)** — file from another organization or user
+Loads an exported `.json` into your database.
 
-Duplicates are skipped automatically. Owner contact info comes from each record in the file.
+- **Embeddings file (.json)** — select the file received from another organization
+
+Each imported record stores the same fields described in the export section above, plus `path = [imported]` (no local file).
+
+After import, every search ranks your local images **and** the imported embeddings together. Imported records that score high enough appear as **Imported** rows in results.
+
+Duplicates are skipped (matched by content hash + protocol + model + owner email).
 
 ## How it works (brief)
 

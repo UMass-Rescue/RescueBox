@@ -16,46 +16,55 @@ In the **Assistant** tool picker, these are **three separate plugin options** (s
 
 Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-private-embeddings`.
 
+## Which plugin to use
+
+| Goal | Plugin | Notes |
+|------|--------|-------|
+| Find similar photos in **your** folder | **Image Series Similarity** | Pick input directory + query image |
+| Share your indexed photos with another team **without sending files** | **Export Private Embeddings** | Run search first so private embeddings exist |
+| Search your case against another organization’s shared case data | **Import Private Embeddings**, then **Image Series Similarity** | Import their `.json`; search ranks your folder and their indexed embeddings |
+
+All three are separate entries in the Assistant plugin menu (not sub-steps on one form).
+
 ## Workflows
 
-### Local search (option 1)
+### Local search only
 
-Pick **Image Series Similarity** in the chatbot plugin menu (or use CLI below).
+**Image Series Similarity** → input directory + query image → Submit.
+
+- Search always creates both plain and private (anonymized) embeddings automatically
+- Results: **Local** rows with filename and preview
 
 ```bash
 rescuebox image_series_similarity /search_series \
   "/path/to/photos|||/path/to/query.jpg" ",5,0.5,combined"
 ```
 
-### Agency A — share embeddings (option 1 → option 2)
+### Export / import — case data from another organization
 
-1. **Image Series Similarity** with **Create anonymized embeddings: Yes** on your case folder
-2. **Export Private Embeddings** in the chatbot plugin menu — **Organization** + **Contact email**
+Another team can share anonymized embeddings from their case without sending image files. You import their `.json` and search your own case folder against those embeddings plus your local files.
+
+**Exporter**
+
+1. **Image Series Similarity** on their case folder
+2. **Export Private Embeddings** — Organization + Contact email → download `.json`
+
+**Importer**
+
+1. **Import Private Embeddings** → select the `.json`
+2. **Image Series Similarity** on your case folder — local query image
+3. **Local** rows — matches in your folder (preview available)
+4. **Imported** rows — matches to their case data (no preview; you do not have their files). If a hit matters, contact **Owner** / **Organization** from the row and send the **Content ID** (content hash prefix) to request more information. They may or may not have included a **filename** in the export — when missing, use Content ID only.
+
 
 ```bash
 rescuebox image_series_similarity /export_embeddings _ "My Agency,owner@example.com"
-```
-
-3. Send the `.json` to the partner agency
-
-### Agency B — import and search (option 3 → option 1)
-
-1. **Import Private Embeddings** in the chatbot plugin menu
-
-```bash
 rescuebox image_series_similarity /import_embeddings "/path/to/file.json"
 ```
 
-2. **Image Series Similarity** on your case folder with **Create anonymized embeddings: Yes**
-3. Review results:
-   - **Local** rows — Path shows filename; click to preview
-   - **Imported** rows — Path blank; use **Owner**, **Organization**, and **Content ID** to follow up with the exporting agency
+### Resolve Content ID (exporter side)
 
-### Agency A — resolve Content ID
-
-**Content ID** is the first 12 characters of the SHA-256 hash of the original file bytes (`content_sha256` in export JSON). Agency B emails this to Agency A — Agency B cannot resolve it to a filepath.
-
-Agency A looks up the path in the embedding database. Plain embeddings are always indexed locally; anonymized search also writes the private table. Search both. Replace `a1b2c3d4e5f6` with the prefix Agency B sent (omit `…`):
+**Content ID** is the first 12 characters of the SHA-256 hash of the original file bytes (`content_sha256` in export JSON). The importer cannot resolve it to a filepath — they email it to you. Look up the path in the embedding database. Replace `a1b2c3d4e5f6` with the prefix they sent (omit `…`):
 
 ```bash
 docker exec -i rb-postgres psql -U rbuser -d rescuebox -c "
@@ -96,13 +105,29 @@ For concept search ("people eating"), use the **Image Search** plugin with text 
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `enable_anonymized` | `no` | `yes` — blackout + search imported partner embeddings |
 | `model_name` | `google/siglip2-so400m-patch14-384` | Vision encoder |
 | `top_k` | 5 | Results to return (1–20) |
 | `min_similarity` | 0.5 | Minimum score for "match" in metadata |
 | `scoring_mode` | `combined` | `combined`, `semantic`, or `pdq` |
 
 Search does **not** require an email. Owner contact info is collected only on **option 2 — Export Private Embeddings**.
+
+### Results
+
+Search runs plain and private scorers and merges results into one ranked table. Example top-5 after importing another organization's embeddings:
+
+| Preview | Filename | Title | Embedding type | Source |
+|---------|----------|-------|----------------|--------|
+| thumbnail | `Bernie_Sanders_2016_070…16.jpg` | #1 · similarity 0.97 | Private (anonymized) | **Imported** |
+| thumbnail | `Bernie_Sanders_2016_067…13.jpg` | #2 · similarity 0.93 | Private (anonymized) | **Imported** |
+| thumbnail | `Bernie_Sanders_2016_065…11.jpg` | #3 · similarity 0.91 | Private (anonymized) | Local |
+| thumbnail | `Bernie_Sanders_2016_063…1.jpg` | #4 · similarity 0.89 | Private (anonymized) | Local |
+| thumbnail | `Bernie_Sanders_2016_074…2.jpg` | #5 · similarity 0.86 | Plain (original image) | Local |
+
+- **Local** rows have a preview thumbnail (file is on disk) and show the local filename
+- **Imported** rows show *Not available* for preview (you do not have the file); filename shown if the exporter included it, otherwise Content ID only
+- **Embedding type** — **Private (anonymized)** when matched via the anonymized bank; **Plain (original image)** when matched via the plain bank
+- Both local and imported hits are ranked together by score
 
 ### Scoring modes
 
@@ -114,26 +139,62 @@ Search does **not** require an email. Owner contact info is collected only on **
 
 ### Anonymization
 
-**OFF:** match on everything visible in the photos.
+Every search automatically creates **both** plain and private (anonymized) embeddings — there is no toggle.
 
-**ON:** faces, people, text, signs, and logos are blacked out before embedding. Match on background, layout, and remaining objects. Required before option 2 export and to search imported embeddings after option 3.
+- **Plain embeddings** — computed from the original image; used for local matching
+- **Private embeddings** — faces, people, text, signs, and logos are blacked out before embedding; used for export and for matching against imported data
 
-**Test:** `src-tauri/demo/image-similarity/inputs/`, query `Bernie_Sanders_2016_068_*`, anonymization **Yes**, scoring **combined** or **semantic**.
+**Test:** `src-tauri/demo/image-similarity/inputs/`, query `Bernie_Sanders_2016_068_*`, scoring **combined** or **semantic**.
 
 ## Option 2: Export Private Embeddings (`/export_embeddings`)
 
-Separate chatbot plugin option — organization and contact email required (stored as owner contact info on exported records).
+Exports all your **private (anonymized) embeddings** to a `.json` file you can share with another organization. The exported file does not contain original images or full file paths.
 
-| Shared | NOT shared |
-|--------|------------|
-| Anonymized embedding | Original images |
-| Organization and contact email | File paths |
+- **Organization** (required) — your organization, so importers know who to contact
+- **Contact email** (required) — stored on every exported record
+- **Share filename** (default Yes) — include the original filename (basename only) in each record; set to No to omit it
 
-Requires option 1 with **Create anonymized embeddings: Yes** first.
+Each search creates private embeddings automatically. Export writes one record per indexed image:
+
+```json
+{
+  "content_sha256": "abc123…",
+  "embedding": [0.1, 0.2, …],
+  "pdq_hash": "def456…",
+  "user_email": "agent@agency.gov",
+  "organization": "Agency A",
+  "privacy_protocol": "clipseg-blackout-v1:face,logo,person,sign,text",
+  "model_name": "google/siglip2-so400m-patch14-384",
+  "filename": "photo.jpg"
+}
+```
+
+| Field | Always present | Description |
+|-------|---------------|-------------|
+| `content_sha256` | Yes | SHA-256 hash of file bytes — used as Content ID |
+| `embedding` | Yes | Anonymized embedding vector |
+| `pdq_hash` | Yes | Perceptual hash |
+| `user_email` | Yes | Contact email from export form |
+| `organization` | Yes | Organization name from export form |
+| `privacy_protocol` | Yes | Anonymization method used |
+| `model_name` | Yes | Vision encoder |
+| `filename` | Only if **Share filename = Yes** | Basename of the original file; omitted when the toggle is off or the row is a re-exported import |
 
 ## Option 3: Import Private Embeddings (`/import_embeddings`)
 
-Separate chatbot plugin option — select the partner `.json`. Duplicates skipped; owner info comes from the file.
+Loads an exported `.json` into your database. Each record stores the same fields described in the export table above, plus `path = "[imported]"` (no local file).
+
+- **Embeddings file (.json)** — select the file received from another organization
+
+After import, every search ranks your local images **and** the imported embeddings together. Imported records that score high enough appear as **Imported** rows in results.
+
+Duplicates are skipped automatically (matched by content hash + protocol + model + owner email).
+
+Import result:
+
+```
+Imported 7 embeddings (0 skipped)
+```
 
 ## Installation
 

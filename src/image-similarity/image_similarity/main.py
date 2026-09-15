@@ -93,6 +93,7 @@ class ExportInputs(TypedDict):
 class ExportParameters(TypedDict):
     organization: str
     contact_email: str
+    share_filename: str
 
 
 class ImportInputs(TypedDict):
@@ -313,6 +314,13 @@ def export_task_schema() -> TaskSchema:
     owner_disclaimer = (
         "Required — stored so another organization or user can follow up on exported embeddings"
     )
+    share_filename_enum = EnumParameterDescriptor(
+        enum_vals=[
+            EnumVal(key="yes", label="Yes — include original filename"),
+            EnumVal(key="no", label="No — omit filename"),
+        ],
+        default="yes",
+    )
     return TaskSchema(
         inputs=[],
         parameters=[
@@ -327,6 +335,12 @@ def export_task_schema() -> TaskSchema:
                 label="Contact email",
                 subtitle=owner_disclaimer,
                 value=text_desc,
+            ),
+            ParameterSchema(
+                key="share_filename",
+                label="Share filename",
+                subtitle="Include original filename (basename only) in exported records",
+                value=share_filename_enum,
             ),
         ],
     )
@@ -905,7 +919,9 @@ def _embedding_to_json_list(embedding) -> list[float]:
     return [float(x) for x in embedding]
 
 
-def _export_record_from_row(row: ImageSimilarityPrivateEmbedding) -> dict:
+def _export_record_from_row(
+    row: ImageSimilarityPrivateEmbedding, share_filename: bool = True
+) -> dict:
     record = {
         "content_sha256": row.content_sha256,
         "embedding": _embedding_to_json_list(row.embedding),
@@ -915,8 +931,7 @@ def _export_record_from_row(row: ImageSimilarityPrivateEmbedding) -> dict:
         "privacy_protocol": row.privacy_protocol,
         "model_name": row.model_name,
     }
-    # Export basename only — never leak full directory paths
-    if row.path and row.path != "[imported]":
+    if share_filename and row.path and row.path != "[imported]":
         record["filename"] = Path(row.path).name
     return record
 
@@ -977,6 +992,7 @@ def export_embeddings(
 ) -> ResponseBody:
     """Export private embeddings to a JSON file for cross-machine sharing."""
     organization, contact_email = _parse_export_owner_contact(parameters)
+    share_filename = parameters.get("share_filename", "yes") == "yes"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     filename = f"private_embeddings_{timestamp}.json"
     output_dir = tempfile.mkdtemp(prefix="rb_private_embeddings_")
@@ -998,7 +1014,7 @@ def export_embeddings(
                 )
             )
 
-        records = [_export_record_from_row(row) for row in rows]
+        records = [_export_record_from_row(row, share_filename) for row in rows]
         _stamp_export_records(records, organization, contact_email)
         _write_private_embeddings_export(output_path, records)
 
@@ -1275,10 +1291,15 @@ def export_inputs_cli_parse(_value: str) -> ExportInputs:
 
 
 def export_parameters_cli_parse(value: str) -> ExportParameters:
-    parts = value.split(",", 1)
+    parts = value.split(",", 2)
     organization = parts[0].strip() if parts else ""
     contact_email = parts[1].strip() if len(parts) > 1 else ""
-    return ExportParameters(organization=organization, contact_email=contact_email)
+    share_filename = parts[2].strip() if len(parts) > 2 else "yes"
+    return ExportParameters(
+        organization=organization,
+        contact_email=contact_email,
+        share_filename=share_filename,
+    )
 
 
 server.add_ml_service(
@@ -1290,7 +1311,7 @@ server.add_ml_service(
     ),
     parameters_cli_parser=typer.Argument(
         parser=export_parameters_cli_parse,
-        help="organization,contact_email",
+        help="organization,contact_email,share_filename (yes|no)",
     ),
     short_title="Image Series Similarity - Export Embeddings",
     order=1,
