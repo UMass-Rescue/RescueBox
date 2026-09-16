@@ -1,12 +1,17 @@
 import logging
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
 from deepfake_detection.main import (
-    app as cli_app,
     APP_NAME,
-    create_transform_case_task_schema as task_schema,
     app_info,
+)
+from deepfake_detection.main import (
+    app as cli_app,
+)
+from deepfake_detection.main import (
+    create_transform_case_task_schema as task_schema,
 )
 from rb.api.models import AppMetadata, BatchFileResponse, ResponseBody
 from rb.lib.common_tests import RBAppTest
@@ -61,7 +66,7 @@ class TestDeepFakeServer(RBAppTest):
         output_dir.mkdir()
 
         predict_api = f"/{APP_NAME}/predict"
-        inputs_str = f"{str(input_dir)},{str(output_dir)}"
+        inputs_str = f"{input_dir!s},{output_dir!s}"
         parameters_str = "all"
         result = self.runner.invoke(cli_app, [predict_api, inputs_str, parameters_str])
         assert result.exit_code == 0, f"CLI failed: {result.output}"
@@ -76,7 +81,7 @@ class TestDeepFakeServer(RBAppTest):
     def test_invalid_path(self):
         predict_api = f"/{APP_NAME}/predict"
         bad_dir = Path("nonexistent_dir")
-        inputs_str = f"{str(bad_dir)},{str(bad_dir)}"
+        inputs_str = f"{bad_dir!s},{bad_dir!s}"
         parameters_str = "all"
         result = self.runner.invoke(cli_app, [predict_api, inputs_str, parameters_str])
         assert result.exit_code != 0

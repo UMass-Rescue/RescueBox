@@ -4,10 +4,12 @@ Note: Some tests in this file test expected behavior for future user_id support.
 These tests may need to be updated once user_id is added to the database schema.
 """
 
-import pytest
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
+
+import pytest
+
 from frontend.database.chat_history_db import ChatHistoryDB
 
 

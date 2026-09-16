@@ -1,12 +1,15 @@
 """Model list and model card UI components for the plugins page."""
 
 import logging
-from typing import List, Dict, Callable, Optional, Any
+from collections.abc import Callable
 from datetime import datetime
+from typing import Any
+
 from nicegui import ui
+
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.constants import UI_BUTTONS
 from frontend.design_tokens import Design
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -14,8 +17,8 @@ logger.setLevel(logging.INFO)
 
 def render_models_list(
     container: ui.element,
-    models: List[Dict[str, Any]],
-    server_statuses: Dict[str, str],
+    models: list[dict[str, Any]],
+    server_statuses: dict[str, str],
     on_inspect: Callable[[str], None],
     on_connect: Callable[[str], None],
 ) -> None:
@@ -61,10 +64,10 @@ def render_models_list(
 
 def render_model_card(
     container,
-    model: Dict,
+    model: dict,
     is_online: bool,
-    on_inspect: Optional[Callable] = None,
-    on_connect: Optional[Callable] = None,
+    on_inspect: Callable | None = None,
+    on_connect: Callable | None = None,
 ):
     """
     Render a model card in card-styled row format.
@@ -155,7 +158,7 @@ def render_model_card(
 def render_model_info_card(
     container: ui.element,
     model_info: Any,
-    model_info_dict: Dict[str, Any],
+    model_info_dict: dict[str, Any],
     server_status: str,
 ) -> None:
     """
@@ -163,72 +166,67 @@ def render_model_info_card(
     (metadata and status only; no run action).
     """
     try:
-        with container:
-            with ui.card().classes(
-                "bg-zinc-50 border border-zinc-200 p-6 sticky top-24"
-            ):
-                ui.label("Plugin").classes("text-xl font-bold mb-4")
+        with container, ui.card().classes(
+            "bg-zinc-50 border border-zinc-200 p-6 sticky top-24"
+        ):
+            ui.label("Plugin").classes("text-xl font-bold mb-4")
 
-                # Version
-                with ui.column().classes("gap-2 mb-4"):
-                    ui.label("Version").classes("font-semibold")
-                    ui.label(
-                        model_info.get("version", "")
-                        if isinstance(model_info, dict)
-                        else getattr(model_info, "version", "")
-                    ).classes("text-sm")
+            # Version
+            with ui.column().classes("gap-2 mb-4"):
+                ui.label("Version").classes("font-semibold")
+                ui.label(
+                    model_info.get("version", "")
+                    if isinstance(model_info, dict)
+                    else getattr(model_info, "version", "")
+                ).classes("text-sm")
 
-                # Author
-                with ui.column().classes("gap-2 mb-4"):
-                    ui.label("Developed By").classes("font-semibold")
-                    ui.label(
-                        model_info.get("author", "")
-                        if isinstance(model_info, dict)
-                        else getattr(model_info, "author", "")
-                    ).classes("text-sm")
+            # Author
+            with ui.column().classes("gap-2 mb-4"):
+                ui.label("Developed By").classes("font-semibold")
+                ui.label(
+                    model_info.get("author", "")
+                    if isinstance(model_info, dict)
+                    else getattr(model_info, "author", "")
+                ).classes("text-sm")
 
-                # Last Updated
-                updated_at = model_info_dict.get("updatedAt")
-                cached_at = model_info_dict.get("cached_at")
-                updated_str = "N/A"
-                if updated_at:
-                    try:
-                        dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
-                        updated_str = dt.strftime("%Y-%m-%d %H:%M:%S EDT")
-                    except UI_RENDER_ERRORS:
-                        updated_str = str(updated_at)
-                elif cached_at:
-                    try:
-                        dt = datetime.fromisoformat(cached_at)
-                        updated_str = dt.strftime("%Y-%m-%d %H:%M:%S EDT")
-                    except UI_RENDER_ERRORS:
-                        updated_str = "N/A"
+            # Last Updated
+            updated_at = model_info_dict.get("updatedAt")
+            cached_at = model_info_dict.get("cached_at")
+            updated_str = "N/A"
+            if updated_at:
+                try:
+                    dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+                    updated_str = dt.strftime("%Y-%m-%d %H:%M:%S EDT")
+                except UI_RENDER_ERRORS:
+                    updated_str = str(updated_at)
+            elif cached_at:
+                try:
+                    dt = datetime.fromisoformat(cached_at)
+                    updated_str = dt.strftime("%Y-%m-%d %H:%M:%S EDT")
+                except UI_RENDER_ERRORS:
+                    updated_str = "N/A"
 
-                with ui.column().classes("gap-2 mb-4"):
-                    ui.label("Last Updated").classes("font-semibold")
-                    ui.label(updated_str).classes("text-sm")
+            with ui.column().classes("gap-2 mb-4"):
+                ui.label("Last Updated").classes("font-semibold")
+                ui.label(updated_str).classes("text-sm")
 
-                # Server Status
-                with ui.column().classes("gap-2 mb-4"):
-                    ui.label("Status").classes("font-semibold")
-                    status_color = (
-                        "text-green-600"
-                        if server_status == "Online"
-                        else "text-red-600"
-                    )
-                    ui.label(server_status).classes(
-                        f"text-sm font-semibold {status_color}"
-                    )
-
-                # GPU info
-                gpu_required = (
-                    model_info.gpu
-                    if model_info and hasattr(model_info, "gpu")
-                    else model_info_dict.get("gpu", False)
+            # Server Status
+            with ui.column().classes("gap-2 mb-4"):
+                ui.label("Status").classes("font-semibold")
+                status_color = (
+                    "text-green-600" if server_status == "Online" else "text-red-600"
                 )
-                if gpu_required:
-                    with ui.column().classes("gap-2 mb-4"):
-                        ui.badge("GPU Required", color="red").classes("text-xs")
+                ui.label(server_status).classes(f"text-sm font-semibold {status_color}")
+
+            # GPU info
+            gpu_required = (
+                model_info.gpu
+                if model_info and hasattr(model_info, "gpu")
+                else model_info_dict.get("gpu", False)
+            )
+            if gpu_required:
+                with ui.column().classes("gap-2 mb-4"):
+                    ui.badge("GPU Required", color="red").classes("text-xs")
     except UI_RENDER_ERRORS as e:
         logger.exception("Error rendering model info card: %s", e)
         with container:

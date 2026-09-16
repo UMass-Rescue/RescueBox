@@ -9,7 +9,7 @@ import logging
 import sqlite3
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any
 
 from frontend.config import DATA_DIR
 
@@ -24,9 +24,7 @@ class BaseDatabase(ABC):
     schema creation, and basic CRUD operations.
     """
 
-    def __init__(
-        self, db_path: Optional[Path] = None, db_filename: str = "database.db"
-    ):
+    def __init__(self, db_path: Path | None = None, db_filename: str = "database.db"):
         """
         Initialize database with path configuration.
 
@@ -41,7 +39,7 @@ class BaseDatabase(ABC):
             db_path = data_dir / db_filename
 
         self.db_path = db_path
-        self.conn: Optional[sqlite3.Connection] = None
+        self.conn: sqlite3.Connection | None = None
         self._initialized = False
 
         logger.info(
@@ -156,7 +154,7 @@ class BaseDatabase(ABC):
         if self.conn:
             self.conn.rollback()
 
-    def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
+    def _row_to_dict(self, row: sqlite3.Row) -> dict[str, Any]:
         """
         Convert SQLite Row to dictionary.
 
@@ -197,7 +195,7 @@ class BaseDatabase(ABC):
         )
         return cursor.fetchone() is not None
 
-    def get_table_schema(self, table_name: str) -> Optional[Dict[str, Any]]:
+    def get_table_schema(self, table_name: str) -> dict[str, Any] | None:
         """
         Get schema information for a table.
 

@@ -1,4 +1,5 @@
-Install rescuebox 3.1 on windows 11
+Install rescuebox 3.1 on windows 11 using docker, this is an alternate approach
+this is used only for developer needs.
 
 1 download rescuebox zip and extract zip to a folder
 

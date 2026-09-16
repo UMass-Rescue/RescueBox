@@ -3,7 +3,7 @@
 import json
 import logging
 import re
-from typing import Any, Optional, List, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -12,7 +12,7 @@ _TOOL_OPEN = "<tool_code>"
 _TOOL_CLOSE = "</tool_code>"
 
 
-def _append_parsed_payload(tool_calls: List[Dict[str, Any]], parsed: Any) -> None:
+def _append_parsed_payload(tool_calls: list[dict[str, Any]], parsed: Any) -> None:
     """Normalize list / {\"calls\": [...]} / single call dict into tool_calls."""
     if isinstance(parsed, list):
         for item in parsed:
@@ -37,9 +37,9 @@ def _append_parsed_payload(tool_calls: List[Dict[str, Any]], parsed: Any) -> Non
             )
 
 
-def _iter_tool_code_json_strings(model_text: str) -> List[str]:
+def _iter_tool_code_json_strings(model_text: str) -> list[str]:
     """Extract raw JSON payloads between <tool_code> and </tool_code> (any valid JSON)."""
-    chunks: List[str] = []
+    chunks: list[str] = []
     i = 0
     while True:
         start = model_text.find(_TOOL_OPEN, i)
@@ -55,14 +55,14 @@ def _iter_tool_code_json_strings(model_text: str) -> List[str]:
     return chunks
 
 
-def _scan_json_objects_with_nested_braces(text: str) -> List[str]:
+def _scan_json_objects_with_nested_braces(text: str) -> list[str]:
     """
     Find top-level {...} spans by brace depth (handles nested objects in arguments).
     Used as a last-resort fallback when tags are missing.
     """
-    spans: List[str] = []
+    spans: list[str] = []
     depth = 0
-    start: Optional[int] = None
+    start: int | None = None
     for idx, ch in enumerate(text):
         if ch == "{":
             if not depth:
@@ -77,12 +77,12 @@ def _scan_json_objects_with_nested_braces(text: str) -> List[str]:
     return spans
 
 
-def parse_fine_tune_tool_response(model_text: str) -> Optional[List[Dict[str, Any]]]:
+def parse_fine_tune_tool_response(model_text: str) -> list[dict[str, Any]] | None:
     """Extract tool call dicts from Granite ``<tool_code>`` JSON in model text."""
     if not model_text or not model_text.strip():
         return None
 
-    tool_calls: List[Dict[str, Any]] = []
+    tool_calls: list[dict[str, Any]] = []
 
     for inner in _iter_tool_code_json_strings(model_text):
         if not inner:

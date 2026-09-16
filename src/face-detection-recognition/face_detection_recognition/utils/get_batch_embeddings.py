@@ -1,14 +1,16 @@
 # built-in dependencies
 import os
 
+import cv2
+
 # 3rd party dependencies
 import numpy as np
-import cv2
 import onnxruntime as ort
+from rb.lib.ml_service import plugin_models_dir
+from face_detection_recognition.utils import preprocessing
 
 # project dependencies
 from face_detection_recognition.utils.logger import log_info
-from face_detection_recognition.utils import preprocessing
 
 
 def get_embedding(
@@ -19,9 +21,7 @@ def get_embedding(
     """Extract embedding using ArcFace ONNX model with NHWC format"""
     # face_imgs must be a single instance or a list
     onnx_model_path = ""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(script_dir)
-    models_dir = os.path.join(parent_dir, "models")
+    models_dir = str(plugin_models_dir("face_detection_recognition"))
     ort_session = None
     if model_name == "ArcFace":
         onnx_model_path = os.path.join(models_dir, "arcface_model.onnx")
@@ -42,9 +42,7 @@ def get_embedding(
             )
             log_info("SFace model loaded successfully!")
         except Exception as err:
-            log_info(
-                f"Exception while calling opencv.FaceRecognizerSF module: {str(err)}"
-            )
+            log_info(f"Exception while calling opencv.FaceRecognizerSF module: {err!s}")
             raise ValueError(
                 "Exception while calling opencv.FaceRecognizerSF module."
                 + "This is an optional dependency."
@@ -110,14 +108,14 @@ def get_embedding(
             # embedding = embeddings[0].reshape(-1)
             # log_info(f"Embedding type: {type(embedding)}")
         except Exception as e:
-            log_info(f"Failed to run inference: {str(e)}")
+            log_info(f"Failed to run inference: {e!s}")
     else:  # Facenet512, ArcFace, GhostFaceNet
         input_name = ort_session.get_inputs()[0].name
         log_info(f"Input name: {input_name}")
         try:
             results = ort_session.run(None, {input_name: batch_images})
         except Exception as e:
-            log_info(f"Failed to run inference: {str(e)}")
+            log_info(f"Failed to run inference: {e!s}")
         # log_info(f"Result: {results[0]}")
         # embedding = result[0].flatten()
         # log_info(f"Embedding shape: {results.shape}")

@@ -8,10 +8,12 @@ Usage:
     data = await api.json(resp)
 """
 
-from typing import Optional, Any
-import httpx
 import asyncio
 import logging
+from typing import Any
+
+import httpx
+
 from frontend.config import API_BASE_URL, API_TIMEOUT
 from frontend.utils import exceptions as _fe_exceptions
 
@@ -55,7 +57,7 @@ class ApiClient:
     async def post(
         self,
         path: str,
-        json: Optional[Any] = None,
+        json: Any | None = None,
         *,
         use_api_prefix: bool = True,
         **kwargs,

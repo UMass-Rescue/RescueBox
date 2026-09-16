@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -13,5 +13,5 @@ class JobSubmitParams:
     task_schema: Any
     container: Any
     core: Any
-    remaining_calls: Optional[list] = None
-    conversation_id: Optional[str] = None
+    remaining_calls: list | None = None
+    conversation_id: str | None = None

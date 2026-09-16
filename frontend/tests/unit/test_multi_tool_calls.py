@@ -18,7 +18,6 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from rb.api.models import (
     DirectoryResponse,
     FloatParameterDescriptor,
@@ -64,8 +63,8 @@ class TestExtractOutputPath:
         chaining to subsequent tools that need directory inputs.
         """
         from rb.api.models import (
-            DirectoryResponse,
             BatchDirectoryResponse,
+            DirectoryResponse,
             ResponseBody,
         )
 
@@ -101,7 +100,7 @@ class TestExtractOutputPath:
         extracts the common parent directory path, allowing subsequent
         tools to process the entire directory of generated files.
         """
-        from rb.api.models import FileResponse, BatchFileResponse, ResponseBody
+        from rb.api.models import BatchFileResponse, FileResponse, ResponseBody
 
         file_response = FileResponse(
             output_type="file",
@@ -130,7 +129,7 @@ class TestExtractOutputPath:
 
     def test_extract_from_ufdr_mount_message(self):
         """ufdr_mounter returns TextResponse 'Mounted at /tmp/case1'; chain uses .../files/."""
-        from rb.api.models import TextResponse, ResponseBody
+        from rb.api.models import ResponseBody, TextResponse
 
         response_body = ResponseBody(
             root=TextResponse(value="Mounted at /tmp/case1", title="Mount Result")
@@ -162,7 +161,7 @@ class TestExtractOutputPath:
         (like text responses) return None, preventing invalid path chaining
         and maintaining system stability for non-file-based outputs.
         """
-        from rb.api.models import TextResponse, ResponseBody
+        from rb.api.models import ResponseBody, TextResponse
 
         text_response = TextResponse(
             output_type="text", value=TEST_TEXT_VALUE, title="Text"
@@ -217,6 +216,7 @@ class TestChainOutputToInput:
     ):
         """Public GET task_schema omits file_filter; chaining must still set explicit paths."""
         import json
+
         from rb.api.models import TextResponse
 
         out_txt = "/demo/outputs/a.png.txt"
@@ -533,9 +533,9 @@ class TestMessageHandlerMultipleCalls:
     @pytest.fixture
     def handler(self):
         """Create MessageHandler instance"""
-        from frontend.chatbot.message_handler import MessageHandler
         from frontend.chatbot.config import ChatbotConfig
         from frontend.chatbot.core import ChatbotCore
+        from frontend.chatbot.message_handler import MessageHandler
 
         config = ChatbotConfig()
         core = ChatbotCore(config)

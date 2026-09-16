@@ -1,7 +1,7 @@
 from pathlib import Path
+
 import pytest
 
-from frontend.database.job_db import init_database
 from frontend.database.file_filter_store import (
     create_filter,
     load_filter,
@@ -11,6 +11,7 @@ from frontend.database.file_filter_utils import (
     process_prompt_for_filters,
     set_job_filter,
 )
+from frontend.database.job_db import init_database
 
 
 @pytest.mark.asyncio

@@ -15,6 +15,7 @@ from frontend.components.chat import (
     render_welcome_message,
     show_history_dialog,
 )
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.constants import UI_TITLES
 from frontend.database import get_job_db
 from frontend.design_tokens import Design
@@ -22,7 +23,6 @@ from frontend.pages.chatbot.pickers import ToolPicker
 from frontend.pages.chatbot.storage_reads import read_pipeline_job_id
 from frontend.pages.chatbot.ui_flow import load_and_show_form
 from frontend.utils import app
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 

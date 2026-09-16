@@ -8,17 +8,21 @@ Usage::
 """
 
 from __future__ import annotations
-import sys
-import os
-from pathlib import Path
-import frontend.pages  # noqa: F401 # (static import for PyInstaller)
+
 import asyncio
 import contextlib
 import logging
+import os
+import sys
 import traceback
+from pathlib import Path
+
+from nicegui import Client, app, ui
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
-from nicegui import app, Client, ui
+
+import frontend.pages  # noqa: F401 # (static import for PyInstaller)
+from frontend import utils as _backend_integration
 from frontend.config import (
     API_BASE_URL,
     API_TIMEOUT,
@@ -30,7 +34,6 @@ from frontend.config import (
     LOG_LEVEL,
     RECONNECT_TIMEOUT,
 )
-from frontend import utils as _backend_integration
 from frontend.database import init_db
 from frontend.utils import (
     configure_logging_with_context,

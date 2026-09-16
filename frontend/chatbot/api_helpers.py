@@ -5,18 +5,19 @@ JSON resolution, and error normalization for tests/mocks.
 
 import inspect
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
+
 import httpx
 
 from frontend.api_client import ApiClient as _ApiClient
-from frontend.utils import get_user_id, get_user_id_for_jobs
 from frontend.chatbot.exceptions import CHATBOT_ERRORS
+from frontend.utils import get_user_id, get_user_id_for_jobs
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def rescuebox_user_headers() -> Dict[str, str]:
+def rescuebox_user_headers() -> dict[str, str]:
     """Headers so backend plugins (e.g. face-match) scope data to the logged-in RescueBox user."""
     try:
         uid = get_user_id_for_jobs() or get_user_id()
@@ -27,7 +28,15 @@ def rescuebox_user_headers() -> Dict[str, str]:
     return {}
 
 
-async def resolve_json_response(api_wrapper, response) -> Dict[str, Any]:
+def job_submission_headers(job_id: str | None) -> dict[str, str]:
+    """User id + optional job id for per-job progress SQLite files."""
+    headers = rescuebox_user_headers()
+    if job_id:
+        headers["X-RescueBox-Job-Id"] = job_id
+    return headers
+
+
+async def resolve_json_response(api_wrapper, response) -> dict[str, Any]:
     """
     Robustly resolve a response's JSON payload handling awaitables, callables,
     and common mock wrappers.
@@ -53,14 +62,14 @@ async def resolve_json_response(api_wrapper, response) -> Dict[str, Any]:
             value = await value
             # unwrap AsyncMock-like return_value if present
             if hasattr(value, "return_value"):
-                value = getattr(value, "return_value")
+                value = value.return_value
             attempts += 1
             continue
         if callable(value) and not isinstance(value, dict):
             try:
                 value = value()
                 if hasattr(value, "return_value"):
-                    value = getattr(value, "return_value")
+                    value = value.return_value
                 attempts += 1
                 continue
             except CHATBOT_ERRORS:
@@ -89,7 +98,7 @@ def make_api_path(path: str) -> str:
     return path if path.startswith("/") else f"/{path}"
 
 
-def _http_status_code(response) -> Optional[int]:
+def _http_status_code(response) -> int | None:
     status = getattr(response, "status_code", None)
     if status is None:
         return None
@@ -104,8 +113,8 @@ async def _post_via_clients(
     http_client,
     config,
     path: str,
-    request_dict: Dict[str, Any],
-    headers: Optional[Dict[str, str]],
+    request_dict: dict[str, Any],
+    headers: dict[str, str] | None,
 ):
     response = None
     if api_client is not None:
@@ -133,7 +142,7 @@ async def _get_via_clients(
     config,
     api_relative_path: str,
     prefixed_path: str,
-    headers: Optional[Dict[str, str]],
+    headers: dict[str, str] | None,
 ):
     """GET task schema path via ApiClient, async httpx, or sync httpx fallback."""
     response = None
@@ -215,7 +224,12 @@ async def fetch_task_schema(api_client, http_client, config, endpoint: str):
 
 
 async def post_job(
-    api_client, http_client, config, api_endpoint: str, request_dict: Dict[str, Any]
+    api_client,
+    http_client,
+    config,
+    api_endpoint: str,
+    request_dict: dict[str, Any],
+    job_id: str | None = None,
 ):
     """
     Submit a job payload and return the resolved response dict.
@@ -226,7 +240,7 @@ async def post_job(
     """
 
     path = make_api_path(api_endpoint)
-    headers = rescuebox_user_headers()
+    headers = job_submission_headers(job_id)
     last_exc = None
     response = None
 

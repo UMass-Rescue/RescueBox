@@ -1,6 +1,8 @@
 import logging
-from typing import Optional, Any, List
+from typing import Any
+
 from nicegui import ui
+
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
@@ -11,9 +13,9 @@ def render_error_boundary(
     container: ui.element,
     title: str,
     message: str,
-    technical_details: Optional[str] = None,
+    technical_details: str | None = None,
     icon: str = "error",
-    extra_actions: Optional[List[Any]] = None,
+    extra_actions: list[Any] | None = None,
 ) -> None:
     """
     Render a standardized error boundary inside `container`.
@@ -49,7 +51,7 @@ def render_error_boundary(
 def render_error_message(
     container: ui.element,
     message: str,
-    details: Optional[str] = None,
+    details: str | None = None,
     debug_data: Any = None,
 ) -> None:
     """

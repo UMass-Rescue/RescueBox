@@ -7,10 +7,10 @@ in the RescueBox Desktop application.
 
 import logging
 import sqlite3
+import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
-import uuid
+
 from pydantic import BaseModel, Field
 
 from frontend.database.base_db import BaseDatabase
@@ -29,7 +29,7 @@ class CaseRecord(BaseModel):
 
     caseId: str = Field(..., description="Unique case identifier")
     caseNumber: str = Field(..., description="Case number or ID")
-    investigators: Optional[str] = Field(None, description="Names of investigators")
+    investigators: str | None = Field(None, description="Names of investigators")
     evidencePath: str = Field(..., description="Path to evidence folder or UFDR file")
     createdAt: str = Field(..., description="ISO timestamp of creation")
     updatedAt: str = Field(..., description="ISO timestamp of last update")
@@ -41,7 +41,7 @@ class CaseDB(BaseDatabase):
     Manages case records in the SQLite database (jobs.db).
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         super().__init__(db_path, "jobs.db")
 
     def _create_schema(self) -> None:
@@ -60,7 +60,7 @@ class CaseDB(BaseDatabase):
     async def create_case(
         self,
         case_number: str,
-        investigators: Optional[str],
+        investigators: str | None,
         evidence_path: str,
     ) -> CaseRecord:
         """
@@ -104,7 +104,7 @@ class CaseDB(BaseDatabase):
             logger.error("Failed to create case: %s", e)
             raise
 
-    async def get_case_by_id(self, case_id: str) -> Optional[CaseRecord]:
+    async def get_case_by_id(self, case_id: str) -> CaseRecord | None:
         """Get a case by its ID."""
         conn = self.connect()
         cursor = conn.execute("SELECT * FROM cases WHERE caseId = ?", (case_id,))
@@ -113,7 +113,7 @@ class CaseDB(BaseDatabase):
             return CaseRecord(**dict(row))
         return None
 
-    def get_case_by_id_sync(self, case_id: str) -> Optional[CaseRecord]:
+    def get_case_by_id_sync(self, case_id: str) -> CaseRecord | None:
         """Get a case by its ID synchronously."""
         conn = self.connect()
         cursor = conn.execute("SELECT * FROM cases WHERE caseId = ?", (case_id,))
@@ -122,7 +122,7 @@ class CaseDB(BaseDatabase):
             return CaseRecord(**dict(row))
         return None
 
-    async def get_case_by_number(self, case_number: str) -> Optional[CaseRecord]:
+    async def get_case_by_number(self, case_number: str) -> CaseRecord | None:
         """Get a case by its case number."""
         conn = self.connect()
         cursor = conn.execute(
@@ -133,13 +133,13 @@ class CaseDB(BaseDatabase):
             return CaseRecord(**dict(row))
         return None
 
-    async def get_all_cases(self) -> List[CaseRecord]:
+    async def get_all_cases(self) -> list[CaseRecord]:
         """Get all cases, sorted by creation time (newest first)."""
         conn = self.connect()
         cursor = conn.execute("SELECT * FROM cases ORDER BY createdAt DESC")
         return [CaseRecord(**dict(row)) for row in cursor.fetchall()]
 
-    def get_all_cases_sync(self) -> List[CaseRecord]:
+    def get_all_cases_sync(self) -> list[CaseRecord]:
         """Get all cases synchronously, sorted by creation time (newest first)."""
         conn = self.connect()
         cursor = conn.execute("SELECT * FROM cases ORDER BY createdAt DESC")
@@ -164,10 +164,10 @@ class CaseDB(BaseDatabase):
         return cursor.rowcount > 0
 
 
-_CASE_DB_SINGLETON: Dict[str, Optional[CaseDB]] = {"instance": None}
+_CASE_DB_SINGLETON: dict[str, CaseDB | None] = {"instance": None}
 
 
-async def init_case_database(db_path: Optional[Path] = None) -> CaseDB:
+async def init_case_database(db_path: Path | None = None) -> CaseDB:
     """Initialize case database and return CaseDB instance."""
     if _CASE_DB_SINGLETON["instance"] is None:
         _CASE_DB_SINGLETON["instance"] = CaseDB(db_path)

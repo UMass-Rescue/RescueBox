@@ -1,14 +1,56 @@
 # Image Similarity Search
 
-**Series:** A series is a collection of images that are related **temporally** and in terms of **subject or subject matter**. For example, photos taken at a birthday party would all be part of the same series. Photos of the same person taken at different times and places would **not** be part of the same series. See the [UMass-Rescue/image-series-dataset](https://github.com/UMass-Rescue/image-series-dataset) for examples.
+Finds images from the **same series** as a query image.
 
-This plugin finds images from the **same series** as a query image. It embeds all images in a folder using a SigLIP2 vision encoder (ONNX Runtime) and ranks them using a configurable scoring mode combining semantic similarity and perceptual hashing.
+**Series:** Images related **temporally** and by **subject matter** (e.g. one birthday party). Photos of the same person at different times and places are **not** one series.
 
-Embeddings are stored in a dedicated PostgreSQL (pgvector) `image_similarity_embeddings` table. If images have already been embedded by a prior run, their vectors are **reused** — no double computation.
+Embeddings are stored in the database. Images processed in a prior run are **reused** — no double computation.
 
-**Route:** `/search_series`
+## Chatbot plugin menu
 
-## When to Use This Plugin
+In the **Assistant**, the tool picker lists **three separate plugin options** grouped as **4.1–4.3** (not one plugin with sub-tasks). Pick the option you need:
+
+| # | Chatbot menu option | Form / task | When to use |
+|---|---------------------|-------------|-------------|
+| **4.1** | **Image Series Similarity** | Find series matches | Search a local folder for images similar to a query photo |
+| **4.2** | **Image Series Similarity - Export Embeddings** | Export embeddings | Download a `.json` to share with another organization or user |
+| **4.3** | **Image Series Similarity - Import Embeddings** | Import embeddings | Load a `.json` from another organization or user |
+
+Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-private-embeddings`.
+
+## Workflows
+
+### Local search only (4.1)
+
+1. **Assistant** → plugin menu → **Image Series Similarity**
+2. **Input directory** — folder of images to search
+3. **Query image** — select an image to find similar images against the input folder
+4. **Submit** → local matches in the results table (Path shows filename; click to preview)
+
+### Share embeddings (4.1, then 4.2)
+
+1. **Image Series Similarity** on your case folder (indexes plain and private embeddings)
+2. **Assistant** → plugin menu → **Image Series Similarity - Export Embeddings** → **Organization** and **Contact email** → **Submit** → download `.json`
+3. Send the `.json` to another organization or user
+
+### Import and search (4.3, then 4.1)
+
+Another organization can share anonymized embeddings from their case without sending image files. You import their `.json` and search your own case folder against their embeddings plus your local files.
+
+1. **Assistant** → plugin menu → **Image Series Similarity - Import Embeddings** → select `.json` from another organization or user → **Submit**
+2. **Image Series Similarity** on your own case folder:
+   - **Input directory** — your local images (required)
+   - **Query image** — local reference photo
+3. **Submit** → **Local** rows (filename, optional preview) and **Imported** rows (Source shows clickable **Imported** JSON with contact email, organization, and full content hash)
+
+**Imported** rows are matches from the other organization's case data. You do not have their files — if a hit is relevant, click **Imported** in the Source column for contact info, then send the **Content ID** (first 12 characters of `content_sha256`) to request more information. Exporters may or may not include a filename — when absent, the Filename column shows *Not available*.
+
+
+### Resolve Content ID (after follow-up from another user)
+
+The importing user cannot resolve a Content ID to a filepath. When they email you the Content ID from an imported match, look up the local path in the RescueBox database (see README for the `docker exec … psql` command). Default credentials: username `rbuser`, password `rescue`, database `rescuebox`.
+
+## When to use this plugin
 
 | I have... | I want... | Use |
 |---|---|---|
@@ -17,61 +59,96 @@ Embeddings are stored in a dedicated PostgreSQL (pgvector) `image_similarity_emb
 | A **photo** | A **text description** of what's in it | Image Summary |
 | A **photo** with people | **Age and gender** of each person | Age-Gender Classifier |
 
-### Use case 1: Find other images from the same series
+**Use case — same series:** Use a full uncropped query photo. The model embeds the whole scene (people, background, lighting).
 
-The model embeds the **entire image** holistically — people, objects, background, lighting all contribute. Images from the same event naturally match well because they share many visual elements (same venue, same people, same lighting). Use a full uncropped photo as the query.
+**Use case — specific subject:** Crop the query so one subject fills the frame.
 
-### Use case 2: Find images of a specific subject
+**Use case — shared embeddings:** Import from another organization or user (4.3), then search your folder (4.1).
 
-To find images containing a specific object or person, **crop the query image** so that subject fills most of the frame. The model will then match based on that subject's visual features.
+If you want a concept like "people eating" rather than a specific scene, use **Image Search** with a text query instead.
 
-### Better with a text query?
+## 4.1 Image Series Similarity
 
-If you're looking for a concept like "people eating" rather than a specific scene, use the **Image Search** plugin with a text description instead. This plugin works best when the query image clearly represents what you're looking for — a single event, a single subject, or a cropped subject of interest.
+Chatbot menu: **Image Series Similarity**. Form title: **Find series matches**.
 
-## Inputs
+### Inputs
 
-- **Input directory:** Folder containing image files to search within.
+- **Input directory** — folder containing image files to search
+- **Query image** — select an image to find similar images against the input folder
 
-- **Query image:** A reference image file. The plugin returns images from the same series in the directory, excluding the query image itself from results.
+### Parameters
 
-## Parameters
+- **CLIP model:** `google/siglip2-so400m-patch14-384` (SigLIP2-SO400M, 1152-dim)
+- **Top K:** 1–20 results (default 5)
+- **Match threshold:** 0–1; only results with similarity ≥ this value are returned
+- **Scoring mode:** Combined (60% CLIP + 40% PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ)
 
-- **CLIP model:** `google/siglip2-so400m-patch14-384` (SigLIP2-SO400M, 1152-dim, Apache 2.0).
+Search does **not** require an email. Owner contact info is collected only on **4.2 — Image Series Similarity - Export Embeddings**.
 
-- **Top K:** How many highest-similarity images to return (1–20, default 5).
+### Results
 
-- **Match threshold:** Similarity in 0–1; results at or above this count as a match in metadata. Image-to-image similarity scores are typically higher than text-to-image (~0.5–0.9 for related content).
+Search compares both **plain vs plain** (original images) and **private vs private** (anonymized images) and merges results into one ranked table. This privacy-enhanced search ensures that imported embeddings — which are always anonymized — are compared only against other anonymized embeddings.
 
-- **Scoring mode:** Combined (CLIP + PDQ, default), Semantic only (CLIP), or Perceptual only (PDQ). CLIP compares **scene content** (what's in the image); PDQ compares **pixel structure** (exact or near-duplicate detection). Combined uses both.
+| Column | Local rows | Imported rows |
+|--------|-----------|---------------|
+| **Preview** | Thumbnail when previews are enabled (file on disk) | *Not available* |
+| **Filename** | Local basename | Basename if exporter included it, otherwise *Not available* |
+| **Title** | Rank + similarity score | Rank + similarity score |
+| **Source** | `Local` | Clickable **Imported** — JSON with contact email, organization, full `content_sha256`, optional filename and export file |
 
-## Supported Image Types
+Both local and imported hits are ranked together by score. If an imported hit is relevant, click **Imported** in Source for contact info, then send the **Content ID** (first 12 characters of `content_sha256`) to request more information.
 
-- `.jpg`, `.jpeg`, `.png`, `.bmp`, `.gif`, `.tiff`, `.webp`
+### About PDQ
 
-## Outputs
+Perceptual hashing matches images that look similar despite resize, compression, or minor edits. PDQ-only mode works best when the folder contains **one series** only.
 
-- **Batch file response:** One row per ranked hit (`output_type`: `batchfile`). Each row includes the image **path**, rank/similarity in the title, and metadata (query label, similarity, match yes/no, model, id).
+### Anonymization
 
-- In the RescueBox UI this appears as a **sortable table**; **click a row** to open or preview the image.
+Every search automatically creates **both** plain and private (anonymized) embeddings — there is no toggle. Private embeddings black out **face**, **tattoo**, and **text** regions (CLIPSeg) before embedding.
 
-- If nothing scores in the top-k list, `files` may be empty.
+## 4.2 Image Series Similarity - Export Embeddings
 
-## How It Works (brief)
+Chatbot menu: **Image Series Similarity - Export Embeddings** — separate plugin option.
 
-1. Scan the input directory; for each image, check if its embedding already exists in `image_similarity_embeddings` (by path or content SHA-256). Only compute and store new vectors for files not already in the database.
-2. Compute PDQ perceptual hashes for all images (backfilling any that are missing).
-3. Look up or compute the **query image's** embedding and PDQ hash.
-4. Rank **only** the directory images using the selected scoring mode, return **top-k** results.
+Exports all your **private (anonymized) embeddings** to a `.json` file. The file does not contain original images or full file paths. Each search creates private embeddings automatically — run a search first so there are records to export.
+
+- **Organization** (required) — so importers know who to contact
+- **Contact email** (required) — stored on every exported record
+- **Share filename** (default Yes) — include the original filename (basename only) in each record; set to No to omit it
+
+The export file is a JSON object with `format_version`, `export_date`, `export_filename`, `count`, and a `records` array. Each record contains: embedding, content hash, perceptual hash, contact info, model, anonymization protocol, and **filename** (only when Share filename is Yes). In search results, imported rows without a filename show *Not available* in the Filename column — the full content hash is in the Source JSON.
+
+## 4.3 Image Series Similarity - Import Embeddings
+
+Chatbot menu: **Image Series Similarity - Import Embeddings** — separate plugin option.
+
+Loads an exported `.json` into your database.
+
+- **Embeddings file (.json)** — select the file received from another organization
+
+Each imported record stores the same fields described in the export section above, plus `path = [imported]` (no local file).
+
+After import, every search ranks your local images **and** the imported embeddings together. Imported records that score high enough appear as **Imported** rows in results.
+
+Within a single import file, duplicate records (same `content_sha256` + `model_name`) are skipped. Re-importing the same hash and model updates the existing imported row.
+
+## How it works (brief)
+
+1. Scan the input directory; reuse existing embeddings when the file is already indexed (by path or content SHA-256).
+2. **Plain** and **private** embeddings are stored for every local file (private: face, tattoo, and text blacked out).
+3. Search runs both embedding types and merges the top results.
+4. Imported embeddings from other organizations or users are included in the private search.
 
 ## Notes
 
-- Search is **within the given folder's embedded set** for that job, not a global search across unrelated past embeddings.
-
+- Search covers your input folder plus all imported private embeddings.
 - **GPU** speeds up inference; CPU works but is slower on large folders.
+- **Pipeline:** Compatible with plugins that consume or produce `BatchFileResponse` / file lists.
 
-- **Pipeline:** Compatible with other plugins that consume or produce `BatchFileResponse` / file lists.
+## Supported image types
+
+`.jpg`, `.jpeg`, `.png`, `.bmp`, `.gif`, `.tiff`, `.webp`
 
 ## Dependencies
 
-- `transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, PostgreSQL with **pgvector**, `sqlmodel` / `sqlalchemy`.
+`transformers`, `onnxruntime`, `pdqhash`, `pillow`, `numpy`, PostgreSQL with **pgvector**, `sqlmodel` / `sqlalchemy`.

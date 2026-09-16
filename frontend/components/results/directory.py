@@ -6,10 +6,10 @@ import os
 
 from nicegui import ui
 
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
-from frontend.design_tokens import Design
 from frontend.components.results import serve_paths as result_serve
 from frontend.components.results import table_helpers as result_tables
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.design_tokens import Design
 
 
 def render_batch_directory(container, response):

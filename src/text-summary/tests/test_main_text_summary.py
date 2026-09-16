@@ -1,8 +1,10 @@
-from text_summary.main import app as cli_app, APP_NAME, task_schema, server
-from rb.lib.common_tests import RBAppTest
+import json
 from pathlib import Path
 from unittest.mock import patch
-import json
+
+from rb.lib.common_tests import RBAppTest
+from text_summary.main import APP_NAME, server, task_schema
+from text_summary.main import app as cli_app
 
 
 class TestTextSummary(RBAppTest):
@@ -24,7 +26,7 @@ class TestTextSummary(RBAppTest):
         summarize_api = f"/{APP_NAME}/summarize"
         full_path = Path.cwd() / "src" / "text-summary" / "test_input"
         output_path = Path.cwd() / "src" / "text-summary" / "test_output"
-        input_str = f"{str(full_path)},{str(output_path)}"
+        input_str = f"{full_path!s},{output_path!s}"
         parameter_str = "gemma3:1b"
         result = self.runner.invoke(
             self.cli_app, [summarize_api, input_str, parameter_str]
@@ -42,7 +44,7 @@ class TestTextSummary(RBAppTest):
     def test_invalid_path(self, summarize_mock, ensure_model_exists_mock):
         summarize_api = f"/{APP_NAME}/summarize"
         bad_path = Path.cwd() / "src" / "text-summary" / "bad_tests"
-        input_str = f"{str(bad_path)},{str(bad_path)}"
+        input_str = f"{bad_path!s},{bad_path!s}"
         parameter_str = "gemma3:1b"
         result = self.runner.invoke(
             self.cli_app, [summarize_api, input_str, parameter_str]

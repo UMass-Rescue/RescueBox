@@ -1,10 +1,12 @@
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from nicegui import ui
 from rb.api.models import TaskSchema
-from frontend.design_tokens import Design
+
 from frontend.chatbot.config import ToolRegistry
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.design_tokens import Design
 from frontend.utils.paths import apply_ufdr_mount_autofill_after_inputs_built
 from frontend.utils.ui import handle_validation_error, show_error_to_user
 from frontend.utils.validators import (
@@ -15,7 +17,6 @@ from frontend.utils.validators import (
 )
 
 from .field_builders import create_input_field, create_parameter_field
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -26,42 +27,41 @@ def render_form_actions(
     on_submit: Callable,
     compact: bool = False,
 ):
-    with container:
-        with ui.row().classes(f"{'mt-3' if compact else 'mt-6'} gap-2"):
-            ui.space()
+    with container, ui.row().classes(f"{'mt-3' if compact else 'mt-6'} gap-2"):
+        ui.space()
 
-            def _cancel_wrapper():
-                outer = getattr(container, "_outer_form_container", None)
-                if outer:
-                    try:
-                        outer.delete()
-                    except UI_RENDER_ERRORS:
-                        pass
-                    return
-                on_cancel()
-
-            ui.button("Cancel", color=None, on_click=_cancel_wrapper).classes(
-                Design.BTN_MEDIUM_GRAY
-            )
-
-            btn_ref = [None]
-
-            async def _submit_wrapper():
-                btn = btn_ref[0]
-                if not btn:
-                    return
-                btn.props["loading"] = True
+        def _cancel_wrapper():
+            outer = getattr(container, "_outer_form_container", None)
+            if outer:
                 try:
-                    if await on_submit() is True:
-                        btn.disable()
-                finally:
-                    btn.props["loading"] = False
+                    outer.delete()
+                except UI_RENDER_ERRORS:
+                    pass
+                return
+            on_cancel()
 
-            submit_btn = ui.button(
-                "Submit Job", color=None, on_click=_submit_wrapper
-            ).classes("rb-brand-primary text-white rounded-xl")
-            btn_ref[0] = submit_btn
-            return submit_btn
+        ui.button("Cancel", color=None, on_click=_cancel_wrapper).classes(
+            Design.BTN_MEDIUM_GRAY
+        )
+
+        btn_ref = [None]
+
+        async def _submit_wrapper():
+            btn = btn_ref[0]
+            if not btn:
+                return
+            btn.props["loading"] = True
+            try:
+                if await on_submit() is True:
+                    btn.disable()
+            finally:
+                btn.props["loading"] = False
+
+        submit_btn = ui.button(
+            "Submit Job", color=None, on_click=_submit_wrapper
+        ).classes("rb-brand-primary text-white rounded-xl")
+        btn_ref[0] = submit_btn
+        return submit_btn
 
 
 class FormGenerator:
@@ -172,7 +172,7 @@ class FormGenerator:
                     )
 
                 action_col = ui.column()
-                setattr(action_col, "_outer_form_container", container)
+                action_col._outer_form_container = container
                 render_form_actions(action_col, _on_cancel, _on_submit, compact=compact)
 
 

@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from frontend.database.db_exceptions import DB_ERRORS
+from frontend.database.job_db_rows import row_to_job_dict
 from frontend.database.job_field_utils import extract_job_fields
 from frontend.database.job_models import JobRecord
-from frontend.database.job_db_rows import row_to_job_dict
 from frontend.utils.storage import get_user_id_for_jobs
 
 logger = logging.getLogger(__name__)
 
 
-def current_user_id_for_jobs() -> Optional[str]:
+def current_user_id_for_jobs() -> str | None:
     try:
         return get_user_id_for_jobs()
     except DB_ERRORS:
@@ -23,7 +23,7 @@ def current_user_id_for_jobs() -> Optional[str]:
 
 
 def job_dict_allowed_for_user(
-    job_dict: Dict[str, Any], current_user_id: Optional[str]
+    job_dict: dict[str, Any], current_user_id: str | None
 ) -> bool:
     if not current_user_id:
         return True
@@ -38,7 +38,7 @@ def load_job_record_from_row(
     *,
     uid: str,
     enforce_user_scope: bool = True,
-) -> Optional[JobRecord]:
+) -> JobRecord | None:
     job_dict = row_to_job_dict(row)
     if enforce_user_scope:
         current_user_id = current_user_id_for_jobs()
@@ -54,7 +54,7 @@ def load_job_record_from_row(
 
 def fetch_job_by_uid(
     conn: sqlite3.Connection, uid: str, *, enforce_user_scope: bool = True
-) -> Optional[JobRecord]:
+) -> JobRecord | None:
     cursor = conn.execute("SELECT * FROM jobs WHERE uid = ?", (uid,))
     row = cursor.fetchone()
     if not row:
@@ -63,7 +63,7 @@ def fetch_job_by_uid(
     return load_job_record_from_row(row, uid=uid, enforce_user_scope=enforce_user_scope)
 
 
-def fetch_all_jobs_for_current_user(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+def fetch_all_jobs_for_current_user(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     current_user = current_user_id_for_jobs()
     if current_user:
         cursor = conn.execute(
@@ -77,7 +77,7 @@ def fetch_all_jobs_for_current_user(conn: sqlite3.Connection) -> List[Dict[str, 
     else:
         cursor = conn.execute("SELECT * FROM jobs WHERE 1=0")
 
-    jobs: List[Dict[str, Any]] = []
+    jobs: list[dict[str, Any]] = []
     for row in cursor.fetchall():
         job_dict = row_to_job_dict(row)
         try:

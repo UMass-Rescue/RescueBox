@@ -8,6 +8,8 @@ if TYPE_CHECKING:
         CaseDB,
         CaseRecord,
         get_case_db,
+    )
+    from .case_db import (
         init_database as init_case_database,
     )
     from .chat_history_db import (
@@ -15,7 +17,8 @@ if TYPE_CHECKING:
         ConversationRecord,
         get_chat_history_db,
     )
-    from .job_db import get_job_db, init_database as init_job_database
+    from .job_db import get_job_db
+    from .job_db import init_database as init_job_database
     from .job_models import JobRecord, JobStatus
     from .model_cache import (
         cache_models,
@@ -25,21 +28,21 @@ if TYPE_CHECKING:
     )
 
 __all__ = [
-    "init_db",
-    "cache_models",
-    "get_cached_models",
-    "get_cached_model_by_uid",
+    "CaseDB",
+    "CaseRecord",
+    "ChatMessageRecord",
+    "ConversationRecord",
     "JobRecord",
     "JobStatus",
-    "get_job_db",
-    "init_job_database",
-    "ConversationRecord",
-    "ChatMessageRecord",
-    "get_chat_history_db",
-    "CaseRecord",
-    "CaseDB",
+    "cache_models",
+    "get_cached_model_by_uid",
+    "get_cached_models",
     "get_case_db",
+    "get_chat_history_db",
+    "get_job_db",
     "init_case_database",
+    "init_db",
+    "init_job_database",
 ]
 
 # name -> (submodule, attribute on submodule; default same as name)

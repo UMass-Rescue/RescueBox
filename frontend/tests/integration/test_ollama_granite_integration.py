@@ -17,11 +17,12 @@ To run these tests:
 Note: call_granite_model_direct returns a list of tool calls, not a single dict.
 """
 
-import pytest
 import asyncio
-import httpx
-import logging
 import json
+import logging
+
+import httpx
+import pytest
 
 from frontend.chatbot.config import ChatbotConfig
 
@@ -135,8 +136,8 @@ class TestOllamaGraniteIntegration:
         logger.info(
             "Testing Granite model tool call format (same /api/chat path as ChatbotCore)"
         )
-        from frontend.chatbot.tool_config import create_advanced_granite_prompt
         from frontend.chatbot.granite import parse_fine_tune_tool_response
+        from frontend.chatbot.tool_config import create_advanced_granite_prompt
 
         messages = create_advanced_granite_prompt("transcribe audio files in /tmp")
         response = await ollama_client.post(
@@ -256,8 +257,8 @@ class TestOllamaGraniteIntegration:
         """
         logger.info("Testing ChatbotCore.call_granite_model_direct() integration")
 
-        from frontend.chatbot.core import ChatbotCore
         from frontend.chatbot.config import ChatbotConfig
+        from frontend.chatbot.core import ChatbotCore
 
         config = ChatbotConfig(OLLAMA_HOST=OLLAMA_HOST, GRANITE_MODEL=GRANITE_MODEL)
 
@@ -339,8 +340,8 @@ class TestOllamaGraniteIntegration:
         """
         logger.info("Testing timeout handling")
 
-        from frontend.chatbot.core import ChatbotCore
         from frontend.chatbot.config import ChatbotConfig
+        from frontend.chatbot.core import ChatbotCore
 
         # Use very short timeout to trigger timeout error
         config = ChatbotConfig(OLLAMA_HOST=OLLAMA_HOST, GRANITE_MODEL=granite_model_tag)
@@ -378,8 +379,8 @@ class TestOllamaGraniteIntegration:
         """
         logger.info("Testing 10 concurrent Granite model tool calls")
 
-        from frontend.chatbot.core import ChatbotCore
         from frontend.chatbot.config import ChatbotConfig
+        from frontend.chatbot.core import ChatbotCore
 
         config = ChatbotConfig(
             OLLAMA_HOST=OLLAMA_HOST,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from rb.api.models import InputType, ResponseBody, TaskSchema, TextResponse
 
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 def _find_directory_keys_for_chaining(
-    current_schema: TaskSchema, current_arguments: Dict[str, Any]
-) -> tuple[Optional[str], Optional[str]]:
+    current_schema: TaskSchema, current_arguments: dict[str, Any]
+) -> tuple[str | None, str | None]:
     input_dir_key = None
     output_dir_key = None
     for input_schema in current_schema.inputs:
@@ -28,7 +28,7 @@ def _find_directory_keys_for_chaining(
         if "output" in key_lower and "dir" in key_lower:
             output_dir_key = input_schema.key
     if not input_dir_key:
-        for key in current_arguments.keys():
+        for key in current_arguments:
             key_lower = key.lower()
             if "input" in key_lower and ("dir" in key_lower or "dataset" in key_lower):
                 input_dir_key = key
@@ -37,7 +37,7 @@ def _find_directory_keys_for_chaining(
 
 
 def _apply_default_summarize_output_dir(
-    current_arguments: Dict[str, Any],
+    current_arguments: dict[str, Any],
     current_schema: TaskSchema,
     input_dir_key: str,
     output_path: str,
@@ -61,7 +61,7 @@ def _apply_default_summarize_output_dir(
 
 
 def _inject_file_filter_from_prior_text(
-    current_arguments: Dict[str, Any], previous_output: ResponseBody
+    current_arguments: dict[str, Any], previous_output: ResponseBody
 ) -> None:
     root = previous_output.root
     if not isinstance(root, TextResponse) or not root.value:
@@ -88,9 +88,9 @@ def _inject_file_filter_from_prior_text(
 
 def chain_output_to_input(
     previous_output: ResponseBody,
-    current_arguments: Dict[str, Any],
+    current_arguments: dict[str, Any],
     current_schema: TaskSchema,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Chain prior output path into next-step directory arguments where possible."""
     logger.debug("Attempting to chain output from previous call to current call")
     output_path = extract_output_path(previous_output)

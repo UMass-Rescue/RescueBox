@@ -31,7 +31,7 @@ def test_is_valid_explicit_user_id(value, expected):
 @pytest.fixture
 def patched_nicegui_app(monkeypatch):
     """Isolate app.storage.general for explicit-ID registry tests."""
-    import frontend.utils as utils
+    from frontend import utils
     from frontend.utils.storage import reset_test_storage
 
     mock_app = MagicMock()

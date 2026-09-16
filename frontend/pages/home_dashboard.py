@@ -6,9 +6,9 @@ import logging
 
 from nicegui import ui
 
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database import get_case_db
 from frontend.design_tokens import Design
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.utils import (
     browse_directory_simple,
     set_active_case_id,

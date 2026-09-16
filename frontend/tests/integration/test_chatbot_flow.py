@@ -7,10 +7,12 @@ For tests with real dependencies, see test_chatbot_flow_integration.py
 This file is kept for fast unit-style testing of chatbot flow logic.
 """
 
-import pytest
 import json
-from unittest.mock import AsyncMock, MagicMock, Mock
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, Mock
+
+import pytest
+
 from frontend.chatbot.config import ChatbotConfig
 from frontend.chatbot.core import ChatbotCore
 from frontend.chatbot.message_handler import MessageHandler
@@ -149,7 +151,7 @@ class TestChatbotFlow:
     @pytest.mark.asyncio
     async def test_job_submission_flow(self, mock_core, config, sample_task_schema):
         """Test job submission flow"""
-        from rb.api.models import RequestBody, DirectoryInput, TextInput, ResponseBody
+        from rb.api.models import DirectoryInput, RequestBody, ResponseBody, TextInput
 
         # Mock schema fetch
         mock_schema_response = AsyncMock()

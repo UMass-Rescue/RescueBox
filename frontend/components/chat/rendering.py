@@ -1,8 +1,10 @@
 import logging
 from typing import Any
-from .ui_bridge import ui, label, row, column, card, button, markdown
-from frontend.design_tokens import Design
+
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.design_tokens import Design
+
+from .ui_bridge import button, card, column, label, markdown, row, ui
 
 logger = logging.getLogger(__name__)
 
@@ -20,15 +22,14 @@ _OPEN_TOOLS_MENU_JS = (
 
 
 def render_welcome_message(container: ui.element) -> None:
-    with container:
-        with card().classes(_WELCOME_CARD_CLS):
-            with column().classes("p-3 gap-1"):
-                label("Assistant").classes(
-                    "font-medium !text-sm text-slate-500 uppercase tracking-wider"
-                )
-                label("New conversation. How can I help you?").classes(
-                    "!text-base !leading-relaxed text-slate-800"
-                )
+    with container, card().classes(_WELCOME_CARD_CLS):
+        with column().classes("p-3 gap-1"):
+            label("Assistant").classes(
+                "font-medium !text-sm text-slate-500 uppercase tracking-wider"
+            )
+            label("New conversation. How can I help you?").classes(
+                "!text-base !leading-relaxed text-slate-800"
+            )
 
 
 def render_message_card(

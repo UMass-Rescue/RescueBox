@@ -6,12 +6,12 @@ Coordinates API interactions, dynamic forms, job submission, and Granite (Ollama
 """
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 from nicegui import ui
-
 from rb.api.models import RequestBody, ResponseBody, TaskSchema
+
 from frontend.api_client import ApiClient
 from frontend.chatbot.api_helpers import fetch_task_schema
 from frontend.chatbot.exceptions import CHATBOT_ERRORS
@@ -44,9 +44,7 @@ class ChatbotCore:
 
         self.ollama_client = httpx.AsyncClient(base_url=self.ollama_url, timeout=600.0)
 
-    async def get_task_schema_from_endpoint(
-        self, endpoint: str
-    ) -> Optional[TaskSchema]:
+    async def get_task_schema_from_endpoint(self, endpoint: str) -> TaskSchema | None:
         """Fetch and parse the TaskSchema for a plugin endpoint."""
         schema_dict = await fetch_task_schema(
             self.api,
@@ -57,8 +55,8 @@ class ChatbotCore:
         return TaskSchema(**schema_dict)
 
     def convert_arguments_to_initial_values(
-        self, arguments: Dict[str, Any], task_schema: TaskSchema, endpoint: str = ""
-    ) -> Dict[str, Any]:
+        self, arguments: dict[str, Any], task_schema: TaskSchema, endpoint: str = ""
+    ) -> dict[str, Any]:
         """Map tool arguments to form initial values."""
         return _convert(arguments, task_schema, endpoint)
 
@@ -66,10 +64,10 @@ class ChatbotCore:
         self,
         task_schema: TaskSchema,
         endpoint: str,
-        initial_values: Optional[Dict] = None,
+        initial_values: dict | None = None,
         on_submit: callable = None,
         on_cancel: callable = None,
-        container: Optional[ui.element] = None,
+        container: ui.element | None = None,
     ):
         """Render a NiceGUI form for the given task schema."""
         return await _create(
@@ -82,7 +80,7 @@ class ChatbotCore:
         )
 
     async def submit_job(
-        self, request_body: RequestBody, endpoint: str
+        self, request_body: RequestBody, endpoint: str, job_id: str | None = None
     ) -> ResponseBody:
         """POST the job to RescueBox and return the normalized response body."""
         api_endpoint = f"{'' if endpoint.startswith('/') else '/'}{endpoint}"
@@ -99,6 +97,7 @@ class ChatbotCore:
             self.config,
             request_dict,
             api_endpoint,
+            job_id,
         )
 
     async def call_granite_model(
@@ -119,7 +118,7 @@ class ChatbotCore:
 
     async def _call_ollama(
         self, prompt: str, use_advanced: bool, update_status_callback=None
-    ) -> Optional[list]:
+    ) -> list | None:
         """Call Ollama API for Granite model tool selection."""
         if update_status_callback:
             update_status_callback("RescueBox working with AI model...")

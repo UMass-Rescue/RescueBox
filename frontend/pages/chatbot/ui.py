@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from frontend.components.chat import ui_bridge
 from frontend.pages.chatbot.chat_page import ChatbotPage
-from frontend.utils import handle_api_error, show_error_to_user
+from frontend.pages.chatbot.history_ui import render_message
 from frontend.pages.chatbot.routes import (
     chatbot_page,
     create_chat_ui,
     handle_rerun_parameter,
 )
-from frontend.pages.chatbot.history_ui import render_message
 from frontend.pages.chatbot.ui_builder import ChatUIBuilder, FormConfig
+from frontend.utils import handle_api_error, show_error_to_user
 
 _PATCHABLE_UI_NAMES = (
     "badge",

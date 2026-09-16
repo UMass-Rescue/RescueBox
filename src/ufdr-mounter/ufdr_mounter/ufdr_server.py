@@ -5,13 +5,12 @@ import re
 import threading
 import time
 from pathlib import Path
-from typing import Optional, Tuple, TypedDict
+from typing import TypedDict
 
 import typer
 from fastapi import HTTPException, status
 from fuse import FUSE
 from pydantic import model_validator
-from rb.lib.ml_service import MLService
 from rb.api.models import (
     FileInput,
     InputSchema,
@@ -21,6 +20,7 @@ from rb.api.models import (
     TextInput,
     TextResponse,
 )
+from rb.lib.ml_service import MLService
 
 from ufdr_mounter.utils import UFDRMount
 
@@ -72,7 +72,7 @@ _MOUNT_LOCK = threading.Lock()
 _TMP_SINGLE_SEGMENT = re.compile(r"^/tmp/[^/]+$")
 
 
-def validate_mount_name_tmp(mount_name: str) -> Tuple[bool, str]:
+def validate_mount_name_tmp(mount_name: str) -> tuple[bool, str]:
     """
     Require user input to be an absolute path ``/tmp/<folder>`` with a single directory name.
 
@@ -96,7 +96,7 @@ def get_mount_path(mount_name: str) -> str:
     return os.path.abspath(os.path.join("tmp", mount_name))
 
 
-def _deepest_existing_ancestor(path: str) -> Optional[str]:
+def _deepest_existing_ancestor(path: str) -> str | None:
     """Walk up from ``path`` until an existing filesystem entry is found."""
     p = os.path.abspath(path)
     while p:
@@ -116,7 +116,7 @@ def _is_windows_drive_letter(mount_path: str) -> bool:
     return len(m) == 2 and m[1] == ":"
 
 
-def validate_mount_folder(mount_path: str) -> Tuple[bool, str]:
+def validate_mount_folder(mount_path: str) -> tuple[bool, str]:
     """
     Check that *mount_path* is safe to use as a FUSE mount point.
 

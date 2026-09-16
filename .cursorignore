@@ -1,7 +1,30 @@
 frontend/data/*
+**/*.jpg
+**/*.db
+**/*.png
+**/ico*.*
 web/*
 .venv/*
 docs/*
 .nicegui/*
+.git/
+src-tauri/target/
+src-tauri-frontend/
+src-tauri-backend/
+License%Copyright/
+help/
+experiments/
+build/
+.ruff_cache/
+.pyest_cache/
+.github/
+.devcontainer/
+src-tauri/demo/
+src-tauri/frontend/
+src-tauri/backend/
+src-tauri/nsis/
+**/LICENSES
+**/__pycache__/
+
 
 # Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)

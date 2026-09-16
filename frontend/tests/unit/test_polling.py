@@ -1,7 +1,9 @@
 from unittest.mock import MagicMock
-from frontend.pages.chatbot import ChatbotPage
-from frontend.chatbot.config import ChatbotConfig
+
 import pytest
+
+from frontend.chatbot.config import ChatbotConfig
+from frontend.pages.chatbot import ChatbotPage
 
 
 @pytest.mark.asyncio

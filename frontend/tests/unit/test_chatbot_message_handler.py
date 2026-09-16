@@ -6,8 +6,10 @@ how user input is interpreted and handled, including slash commands,
 smart analysis requests, and message formatting for different output types.
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from frontend.chatbot.message_handler import MessageHandler
 
 

@@ -1,5 +1,6 @@
-import os
 import ctypes
+import os
+
 from face_detection_recognition.utils.logger import log_warning
 
 

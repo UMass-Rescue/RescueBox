@@ -1,11 +1,11 @@
-import pytest
 import threading
 import time
-from unittest.mock import MagicMock
 from typing import TypedDict
+from unittest.mock import MagicMock
 
+import pytest
+from rb.api.models import ResponseBody, TaskSchema, TextResponse
 from rb.lib.ml_service import MLService
-from rb.api.models import ResponseBody, TextResponse, TaskSchema
 
 
 # Mock TaskSchema for the test

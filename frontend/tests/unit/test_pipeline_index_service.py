@@ -14,10 +14,10 @@ from frontend.database.pipeline_index_service import (
     record_pipeline_job_completion,
 )
 from frontend.database.pipeline_job_index_db import (
-    lookup_input_for_output,
-    lookup_source_image,
     list_pipeline_job_steps,
     list_pipeline_response_rows,
+    lookup_input_for_output,
+    lookup_source_image,
 )
 
 
@@ -223,17 +223,16 @@ class TestRecordImageSummaryForPipeline(unittest.TestCase):
             with patch(
                 "frontend.database.pipeline_job_index_db.index_db_path",
                 return_value=db_file,
+            ), patch(
+                "frontend.database.pipeline_index_service.insert_chunks",
+                side_effect=capture,
             ):
-                with patch(
-                    "frontend.database.pipeline_index_service.insert_chunks",
-                    side_effect=capture,
-                ):
-                    record_image_summary_for_pipeline(
-                        "u",
-                        "j",
-                        "image_summary/summarize-images",
-                        _text_response_dict(payload),
-                    )
+                record_image_summary_for_pipeline(
+                    "u",
+                    "j",
+                    "image_summary/summarize-images",
+                    _text_response_dict(payload),
+                )
             self.assertEqual(len(captured), 1)
             prov = captured[0]["provenance"]
             self.assertEqual(prov.get("from_payload"), "file_pairs")

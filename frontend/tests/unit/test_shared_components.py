@@ -5,10 +5,9 @@ This module tests the shared components like navbar and breadcrumbs.
 Notification behavior is covered in ``test_notifications.py``.
 """
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from frontend.components.shared import create_navbar
-from frontend.components.shared import create_breadcrumbs
+from frontend.components.shared import create_breadcrumbs, create_navbar
 
 
 class TestNavbar:
@@ -50,9 +49,9 @@ class TestSharedComponentsIntegration:
     def test_shared_components_coordination(self):
         """Test that shared components work together."""
         from frontend.components.shared import (
+            breadcrumbs,
             navbar,
             notifications,
-            breadcrumbs,
             stepper,
         )
 
@@ -64,7 +63,7 @@ class TestSharedComponentsIntegration:
 
     def test_shared_component_exports(self):
         """Test that shared components export expected functions."""
-        from frontend.components.shared import create_navbar, create_breadcrumbs
+        from frontend.components.shared import create_breadcrumbs, create_navbar
 
         # Verify key functions are exported
         assert callable(create_navbar)

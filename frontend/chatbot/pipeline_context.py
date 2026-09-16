@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from rb.api.models import InputType, ResponseBody
 
 from frontend.chatbot.multi_tool_handler import extract_output_path
-from frontend.database import get_job_db
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.database import get_job_db
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def find_input_directory_key(task_schema) -> str | None:
     return None
 
 
-def get_pipeline_output_path(pipeline_job_id: Optional[str]) -> Optional[str]:
+def get_pipeline_output_path(pipeline_job_id: str | None) -> str | None:
     """Resolve output path from a previously completed pipeline job id."""
     if not pipeline_job_id:
         return None
@@ -45,7 +45,7 @@ def get_pipeline_output_path(pipeline_job_id: Optional[str]) -> Optional[str]:
 
 
 def inject_pipeline_path(
-    arguments: Any, task_schema, pipeline_job_id: Optional[str]
+    arguments: Any, task_schema, pipeline_job_id: str | None
 ) -> dict:
     """Inject resolved pipeline output path into the task input directory argument."""
     merged = arguments.copy() if arguments else {}

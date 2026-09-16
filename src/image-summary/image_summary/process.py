@@ -1,11 +1,12 @@
-from pathlib import Path
-from typing import Iterable, List
 import logging
 import threading
+from collections.abc import Iterable
+from pathlib import Path
 
+from rb.lib.job_progress import report_file_progress
 from rb.lib.plugin_io import ImageSummaryFilePair
 
-from image_summary.model import ensure_model_exists, describe_image
+from image_summary.model import describe_image, ensure_model_exists
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff"}
 _image_summary_lock = threading.Lock()
 
 
-def iter_image_files(directory: Path, file_filter: List[Path]) -> Iterable[Path]:
+def iter_image_files(directory: Path, file_filter: list[Path]) -> Iterable[Path]:
     """
     Yield image paths to process. When ``file_filter`` is non-empty (e.g. pipeline / CLIP order),
     preserve that order. When empty, scan the directory in stable name order.
@@ -46,8 +47,8 @@ def iter_image_files(directory: Path, file_filter: List[Path]) -> Iterable[Path]
 
 
 def process_images(
-    model: str, input_dir: str, output_dir: str, file_filter: List[Path]
-) -> List[ImageSummaryFilePair]:
+    model: str, input_dir: str, output_dir: str, file_filter: list[Path]
+) -> list[ImageSummaryFilePair]:
     """
     Process images sequentially, writing one ``.txt`` per image.
 
@@ -59,8 +60,8 @@ def process_images(
 
 
 def _process_images_unlocked(
-    model: str, input_dir: str, output_dir: str, file_filter: List[Path]
-) -> List[ImageSummaryFilePair]:
+    model: str, input_dir: str, output_dir: str, file_filter: list[Path]
+) -> list[ImageSummaryFilePair]:
     logger.info(
         "ImageSummary: start | model=%s | input_dir=%s | output_dir=%s",
         model,
@@ -77,25 +78,37 @@ def _process_images_unlocked(
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    pairs: List[ImageSummaryFilePair] = []
+    pairs: list[ImageSummaryFilePair] = []
     images = list(iter_image_files(input_path, file_filter))
     logger.info("ImageSummary: discovered %d image(s) to process", len(images))
+    total = len(images)
+    processed = 0
+    last_reported = 0
 
     for image_path in images:
-        logger.info("ImageSummary: processing -> %s", image_path.name)
         try:
-            summary_text = describe_image(model, str(image_path))
-            out_file = output_path / (image_path.name + ".txt")
-            out_file.write_text(summary_text, encoding="utf-8")
-            pairs.append(
-                {
-                    "input_path": str(image_path.resolve()),
-                    "output_path": str(out_file.resolve()),
-                }
-            )
-            logger.info("ImageSummary: done -> %s", image_path.name)
-        except Exception as e:
-            logger.error("ImageSummary: error processing %s: %s", image_path.name, e)
+            logger.info("ImageSummary: processing -> %s", image_path.name)
+            try:
+                summary_text = describe_image(model, str(image_path))
+                out_file = output_path / (image_path.name + ".txt")
+                out_file.write_text(summary_text, encoding="utf-8")
+                pairs.append(
+                    {
+                        "input_path": str(image_path.resolve()),
+                        "output_path": str(out_file.resolve()),
+                    }
+                )
+                logger.info("ImageSummary: done -> %s", image_path.name)
+            except Exception as e:
+                logger.error(
+                    "ImageSummary: error processing %s: %s", image_path.name, e
+                )
+        finally:
+            processed += 1
+            last_reported = report_file_progress(None, processed, total, last_reported)
+
+    if total > 0:
+        report_file_progress(None, total, total, last_reported)
 
     if not pairs:
         logger.warning("ImageSummary: no files were processed")

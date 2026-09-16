@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Literal, Optional, TypedDict, Union
+from typing import Annotated, Any, Literal, TypedDict, Union
 
 from pydantic import (
     BaseModel,
@@ -69,7 +69,7 @@ class FileFilterDirectory(DirectoryInput):
         populate_by_name=True,
     )
     path: str
-    file_extensions: List[str]
+    file_extensions: list[str]
 
     @field_validator("path")
     @classmethod
@@ -83,7 +83,7 @@ class FileFilterDirectory(DirectoryInput):
         return v
 
     @model_validator(mode="after")
-    def file_filter(self) -> "FileFilterDirectory":
+    def file_filter(self) -> FileFilterDirectory:
         path_obj = Path(self.path)
         files = list(path_obj.glob("*"))
         if not files:
@@ -109,7 +109,7 @@ class BatchFileInput(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    files: List[FileInput]
+    files: list[FileInput]
 
 
 class PipelineFileFilterInputMixin(TypedDict, total=False):
@@ -122,14 +122,14 @@ class BatchTextInput(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    texts: List[TextInput]
+    texts: list[TextInput]
 
 
 class BatchDirectoryInput(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    directories: List[DirectoryInput]
+    directories: list[DirectoryInput]
 
 
 class InputType(Enum):
@@ -147,13 +147,13 @@ class NewFileInputType(BaseModel):
         populate_by_name=True,
     )
     default_name: Annotated[
-        Optional[str], Field(alias="defaultName", examples=["my_file"])
+        str | None, Field(alias="defaultName", examples=["my_file"])
     ] = None
     default_extension: Annotated[str, Field(alias="defaultExtension", examples=[".db"])]
     allowed_extensions: Annotated[
-        Union[Literal["*"], List[str]], Field(alias="allowedExtensions")
+        Literal["*"] | list[str], Field(alias="allowedExtensions")
     ]
-    input_type: Annotated[Optional[Literal["newfile"]], Field(alias="inputType")] = (
+    input_type: Annotated[Literal["newfile"] | None, Field(alias="inputType")] = (
         "newfile"
     )
 
@@ -171,7 +171,7 @@ class FloatParameterDescriptor(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    parameter_type: Annotated[Optional[ParameterType], Field(alias="parameterType")] = (
+    parameter_type: Annotated[ParameterType | None, Field(alias="parameterType")] = (
         ParameterType.FLOAT
     )
     default: float
@@ -181,19 +181,19 @@ class EnumVal(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    label: Optional[str] = None
-    key: Optional[str] = None
+    label: str | None = None
+    key: str | None = None
 
 
 class EnumParameterDescriptor(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    parameter_type: Annotated[Optional[ParameterType], Field(alias="parameterType")] = (
+    parameter_type: Annotated[ParameterType | None, Field(alias="parameterType")] = (
         ParameterType.ENUM
     )
-    enum_vals: Annotated[List[EnumVal], Field(alias="enumVals")]
-    message_when_empty: Annotated[Optional[str], Field(alias="messageWhenEmpty")] = None
+    enum_vals: Annotated[list[EnumVal], Field(alias="enumVals")]
+    message_when_empty: Annotated[str | None, Field(alias="messageWhenEmpty")] = None
     default: str
 
 
@@ -201,7 +201,7 @@ class TextParameterDescriptor(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    parameter_type: Annotated[Optional[ParameterType], Field(alias="parameterType")] = (
+    parameter_type: Annotated[ParameterType | None, Field(alias="parameterType")] = (
         ParameterType.TEXT
     )
     default: str
@@ -211,7 +211,7 @@ class IntParameterDescriptor(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    parameter_type: Annotated[Optional[ParameterType], Field(alias="parameterType")] = (
+    parameter_type: Annotated[ParameterType | None, Field(alias="parameterType")] = (
         ParameterType.INT
     )
     default: int
@@ -249,75 +249,75 @@ class FileResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    output_type: Optional[Literal["file"]] = "file"
+    output_type: Literal["file"] | None = "file"
     file_type: FileType
     path: str
-    title: Optional[str] = None
-    subtitle: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None  # additional columns like prediction
+    title: str | None = None
+    subtitle: str | None = None
+    metadata: dict[str, Any] | None = None  # additional columns like prediction
 
 
 class DirectoryResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    output_type: Optional[Literal["directory"]] = "directory"
+    output_type: Literal["directory"] | None = "directory"
     path: str
     title: str
-    subtitle: Optional[str] = None
+    subtitle: str | None = None
 
 
 class MarkdownResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    output_type: Optional[Literal["markdown"]] = "markdown"
+    output_type: Literal["markdown"] | None = "markdown"
     value: str
-    title: Optional[str] = None
-    subtitle: Optional[str] = None
+    title: str | None = None
+    subtitle: str | None = None
 
 
 class TextResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    output_type: Optional[Literal["text"]] = "text"
+    output_type: Literal["text"] | None = "text"
     value: str
-    title: Optional[str] = None
-    subtitle: Optional[str] = None
+    title: str | None = None
+    subtitle: str | None = None
 
 
 class BatchFileResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    output_type: Optional[Literal["batchfile"]] = "batchfile"
-    files: List[FileResponse]
+    output_type: Literal["batchfile"] | None = "batchfile"
+    files: list[FileResponse]
 
 
 class BatchTextResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    output_type: Optional[Literal["batchtext"]] = "batchtext"
-    texts: List[TextResponse]
+    output_type: Literal["batchtext"] | None = "batchtext"
+    texts: list[TextResponse]
     #: When transcripts are written to disk (e.g. audio/transcribe), downstream tools use this path.
-    transcripts_dir: Optional[str] = None
+    transcripts_dir: str | None = None
 
 
 class BatchDirectoryResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    output_type: Optional[Literal["batchdirectory"]] = "batchdirectory"
-    directories: List[DirectoryResponse]
+    output_type: Literal["batchdirectory"] | None = "batchdirectory"
+    directories: list[DirectoryResponse]
 
 
-class APIRoutes(RootModel[List[SchemaAPIRoute]]):
+class APIRoutes(RootModel[list[SchemaAPIRoute]]):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: List[SchemaAPIRoute]
+    root: list[SchemaAPIRoute]
 
 
 class Input(
@@ -335,14 +335,14 @@ class Input(
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: Union[
-        FileInput,
-        DirectoryInput,
-        TextInput,
-        BatchFileInput,
-        BatchTextInput,
-        BatchDirectoryInput,
-    ]
+    root: (
+        FileInput
+        | DirectoryInput
+        | TextInput
+        | BatchFileInput
+        | BatchTextInput
+        | BatchDirectoryInput
+    )
 
 
 class InputSchema(BaseModel):
@@ -351,8 +351,8 @@ class InputSchema(BaseModel):
     )
     key: str
     label: str
-    subtitle: Optional[str] = ""
-    input_type: Annotated[Union[InputType, NewFileInputType], Field(alias="inputType")]
+    subtitle: str | None = ""
+    input_type: Annotated[InputType | NewFileInputType, Field(alias="inputType")]
     # When True, omitted from GET .../task_schema via TaskSchema.for_public_api().
     # Not serialized in schema JSON (exclude=True); POST may still accept the key per plugin TypedDict.
     exclude_from_client_schema: bool = Field(default=False, exclude=True)
@@ -375,7 +375,7 @@ class RangedFloatParameterDescriptor(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    parameter_type: Annotated[Optional[ParameterType], Field(alias="parameterType")] = (
+    parameter_type: Annotated[ParameterType | None, Field(alias="parameterType")] = (
         ParameterType.RANGED_FLOAT
     )
     range: FloatRangeDescriptor
@@ -386,7 +386,7 @@ class RangedIntParameterDescriptor(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    parameter_type: Annotated[Optional[ParameterType], Field(alias="parameterType")] = (
+    parameter_type: Annotated[ParameterType | None, Field(alias="parameterType")] = (
         ParameterType.RANGED_INT
     )
     range: IntRangeDescriptor
@@ -397,8 +397,8 @@ class RequestBody(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    inputs: Dict[str, Input]
-    parameters: Dict[str, Any]
+    inputs: dict[str, Input]
+    parameters: dict[str, Any]
 
 
 class ResponseBody(
@@ -417,15 +417,15 @@ class ResponseBody(
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: Union[
-        FileResponse,
-        DirectoryResponse,
-        MarkdownResponse,
-        TextResponse,
-        BatchFileResponse,
-        BatchTextResponse,
-        BatchDirectoryResponse,
-    ]
+    root: (
+        FileResponse
+        | DirectoryResponse
+        | MarkdownResponse
+        | TextResponse
+        | BatchFileResponse
+        | BatchTextResponse
+        | BatchDirectoryResponse
+    )
 
 
 class ParameterSchema(BaseModel):
@@ -434,23 +434,23 @@ class ParameterSchema(BaseModel):
     )
     key: str
     label: str
-    subtitle: Optional[str] = ""
-    value: Union[
-        RangedFloatParameterDescriptor,
-        FloatParameterDescriptor,
-        EnumParameterDescriptor,
-        TextParameterDescriptor,
-        RangedIntParameterDescriptor,
-        IntParameterDescriptor,
-    ]
+    subtitle: str | None = ""
+    value: (
+        RangedFloatParameterDescriptor
+        | FloatParameterDescriptor
+        | EnumParameterDescriptor
+        | TextParameterDescriptor
+        | RangedIntParameterDescriptor
+        | IntParameterDescriptor
+    )
 
 
 class TaskSchema(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    inputs: List[InputSchema]
-    parameters: List[ParameterSchema]
+    inputs: list[InputSchema]
+    parameters: list[ParameterSchema]
 
     def with_default_pipeline_inputs(self) -> TaskSchema:
         """Append standard pipeline-only inputs (e.g. file_filter) when not declared by the plugin."""

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from nicegui import ui
 
 from frontend.components.component_utils import create_success_card_element
-from frontend.utils.ui import _safe_ui_call
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.utils.ui import _safe_ui_call
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +39,7 @@ def render_success_card(container, message: str):
         return create_success_card_element(message)
 
 
-def render_page_header(title: str, actions_callable: Optional[callable] = None):
+def render_page_header(title: str, actions_callable: callable | None = None):
     """Render a standardized page header with title and optional action buttons area."""
     with ui.row().classes("items-center justify-between w-full mb-6"):
         ui.label(title).classes("text-4xl font-bold")

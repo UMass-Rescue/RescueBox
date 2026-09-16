@@ -3,12 +3,18 @@
 - Infrastructure: python.
 
 # Style & Best Practices
-- provide simple code , don't provide code for many edge cases.
+- Write the absolute minimum code required to satisfy the prompt.
+- Implement strictly the happy path. 
+- provide simple code.
 - Prefer functional components and hooks.
 - Use strict typing; avoid the 'any' type.
 - Keep components simple small and single-purpose.
+- Do NOT add defensive programming checks.
+- for python code put all imports at the top of the file
+- Write self-documenting code; avoid unnecessary comments
+- Maximum function length: 30 lines. Extract helpers aggressively.
 
 # Workflow Rules
 - provide simple code , don't provide code for many edge cases.
 - Before refactoring core logic, suggest a plan first.
-- Security: Never commit API keys or environment variables.
+- Security: Never commit API keys.

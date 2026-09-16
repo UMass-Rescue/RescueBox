@@ -1,12 +1,11 @@
-import numpy as np
-import cv2
 import logging
 import os
+
+import cv2
+import numpy as np
 import onnxruntime as ort
-
-from face_detection_recognition.utils.get_batch_embeddings import get_embedding
 from face_detection_recognition.hash import sha256_image
-
+from face_detection_recognition.utils.get_batch_embeddings import get_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -591,7 +590,7 @@ def process_retinaface_detections(
             regions.append(region)
 
         except Exception as e:
-            logger.error(f"Error processing face {i}: {str(e)}")
+            logger.error(f"Error processing face {i}: {e!s}")
             continue
 
     # Generate embedding
@@ -600,7 +599,7 @@ def process_retinaface_detections(
         embeddings = get_embedding(detections, model_name, "base")
 
     except Exception as e:
-        logger.error(f"Error getting embedding for face {i}: {str(e)}")
+        logger.error(f"Error getting embedding for face {i}: {e!s}")
 
     for i in range(len(embeddings)):
         if embeddings[i] is not None:
@@ -758,7 +757,7 @@ def process_retinaface_detections_for_facenet512(
                 regions.append(region)
 
             except Exception as e:
-                logger.error(f"Error processing face {i}: {str(e)}")
+                logger.error(f"Error processing face {i}: {e!s}")
                 continue
 
     # Generate embedding
@@ -767,7 +766,7 @@ def process_retinaface_detections_for_facenet512(
         embeddings = get_embedding(detections, model_name, "base")
 
     except Exception as e:
-        logger.error(f"Error getting embedding for face {i}: {str(e)}")
+        logger.error(f"Error getting embedding for face {i}: {e!s}")
 
     i = 0
     for num_detections in detections_per_image:
@@ -836,7 +835,7 @@ def simple_align_face(face, region):
         return aligned_face
 
     except Exception as e:
-        logger.error(f"Error in simple_align_face: {str(e)}")
+        logger.error(f"Error in simple_align_face: {e!s}")
         return face
 
 
@@ -879,7 +878,7 @@ def optimize_arcface_alignment(face, img, region):
 
         return aligned_face
     except Exception as e:
-        logger.error(f"Error in optimize_arcface_alignment: {str(e)}")
+        logger.error(f"Error in optimize_arcface_alignment: {e!s}")
         return face
 
 
@@ -1029,7 +1028,7 @@ def process_retinaface_detections_for_arcface(
                 regions.append(region)
 
             except Exception as e:
-                logger.error(f"Error processing face {i}: {str(e)}")
+                logger.error(f"Error processing face {i}: {e!s}")
                 continue
 
     # Generate embedding
@@ -1038,7 +1037,7 @@ def process_retinaface_detections_for_arcface(
         embeddings = get_embedding(detections, model_name, "base")
 
     except Exception as e:
-        logger.error(f"Error getting embedding for face {i}: {str(e)}")
+        logger.error(f"Error getting embedding for face {i}: {e!s}")
 
     i = 0
     for num_detections in detections_per_image:

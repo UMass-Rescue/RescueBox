@@ -5,12 +5,12 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def row_to_job_dict(row: sqlite3.Row) -> Dict[str, Any]:
+def row_to_job_dict(row: sqlite3.Row) -> dict[str, Any]:
     """Parse JSON columns on a ``jobs`` row into a dict for ``JobRecord(**...)``."""
     job = dict(row)
 

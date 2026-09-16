@@ -1,7 +1,9 @@
 from typing import TypedDict
+from datetime import datetime, timezone
 import hashlib
+import json
 import logging
-import os
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -10,6 +12,7 @@ import pdqhash
 import typer
 from PIL import Image
 from transformers import AutoImageProcessor
+from rb.lib.job_progress import report_phased_file_progress
 from rb.lib.ml_service import MLService
 from rb.api.models import (
     InputSchema,
@@ -21,6 +24,7 @@ from rb.api.models import (
     RangedFloatParameterDescriptor,
     IntRangeDescriptor,
     FloatRangeDescriptor,
+    TextParameterDescriptor,
     ResponseBody,
     TaskSchema,
     DirectoryInput,
@@ -28,21 +32,39 @@ from rb.api.models import (
     BatchFileResponse,
     FileResponse,
     FileType,
+    TextResponse,
 )
-from rb.api.database import ImageSimilarityEmbedding, engine
-from rb.api.embedding_storage import ImageSimilarityEmbeddingStorage
-from image_similarity.scorers import ClipScorer, CombinedScorer, ImageScorer, PdqScorer
+from rb.api.database import (
+    ImageSimilarityEmbedding,
+    ImageSimilarityPrivateEmbedding,
+    engine,
+)
+from rb.api.embedding_storage import (
+    ImageSimilarityEmbeddingStorage,
+    ImageSimilarityPrivateEmbeddingStorage,
+)
+from image_similarity.scorers import (
+    ClipScorer,
+    CombinedScorer,
+    ImageScorer,
+    PdqScorer,
+    SOURCE_IMPORTED,
+    SOURCE_LOCAL,
+)
+from image_similarity.anonymizer import anonymize_image, DEFAULT_TARGET_LABELS
+from image_similarity import sql_filters
 from sqlmodel import Session, select
-from sqlalchemy import update
-
 
 APP_NAME = "image_series_similarity"
+server = MLService(APP_NAME)
+_MODELS_DIR = server.models_dir
+
+
 logger = logging.getLogger(__name__)
 logging.getLogger("filelock").setLevel(logging.WARNING)
 
 ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
 _DEFAULT_MODEL = "google/siglip2-so400m-patch14-384"
-_MODELS_DIR = Path(__file__).resolve().parent / "onnx_models"
 _DEFAULT_ONNX_PATH = _MODELS_DIR / "siglip2-so400m-patch14-384.onnx"
 # Number of images fed to the ONNX session per GPU kernel launch.
 # Larger values increase GPU utilisation; reduce if VRAM is limited.
@@ -71,6 +93,20 @@ class Parameters(TypedDict):
     top_k: int
     min_similarity: float
     scoring_mode: str
+
+
+class ExportInputs(TypedDict):
+    pass
+
+
+class ExportParameters(TypedDict):
+    organization: str
+    contact_email: str
+    share_filename: str
+
+
+class ImportInputs(TypedDict):
+    input_file: FileInput
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +153,7 @@ def _embed_images_batch(
     processor: AutoImageProcessor,
     image_paths: list[str],
     batch_size: int = _EMBED_BATCH_SIZE,
-) -> dict[str, np.ndarray]:
+) -> tuple[dict[str, np.ndarray], int]:
     """Compute normalised embeddings for multiple images, batched when possible.
 
     If the ONNX model was exported with a dynamic batch axis, images are
@@ -132,6 +168,9 @@ def _embed_images_batch(
     """
     dynamic = _supports_dynamic_batch(ort_session)
     effective_batch = batch_size if dynamic else 1
+    total = len(image_paths)
+    processed = 0
+    last_reported = 0
 
     results: dict[str, np.ndarray] = {}
     for i in range(0, len(image_paths), effective_batch):
@@ -149,56 +188,63 @@ def _embed_images_batch(
         pixel_values = processor(images=images, return_tensors="np")[
             "pixel_values"
         ].astype(np.float32)
-        outputs = ort_session.run(None, {"pixel_values": pixel_values})
+        outputs = ort_session.run(["pooler_output"], {"pixel_values": pixel_values})
         embeds = outputs[0]
-        if embeds.ndim == 3:
-            embeds = embeds.mean(axis=1)
         embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
         for path, vec in zip(valid_paths, embeds):
             results[path] = vec
-    return results
+        processed += len(valid_paths)
+        last_reported = report_phased_file_progress(
+            None, 1, 3, processed, total, last_reported
+        )
+    if total > 0:
+        last_reported = report_phased_file_progress(
+            None, 1, 3, total, total, last_reported
+        )
+    return results, last_reported
 
 
-def _embed_image(
+def _embed_pil_image(
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
-    image_path: str,
+    image: Image.Image,
 ) -> np.ndarray:
-    """Compute a normalised embedding for a single image.  Returns a 1-D float32 array."""
-    results = _embed_images_batch(ort_session, processor, [image_path])
-    if image_path not in results:
-        raise RuntimeError(f"Failed to embed {image_path}")
-    return results[image_path]
+    """Compute a normalised embedding from an in-memory PIL Image via ONNX Runtime."""
+    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(
+        np.float32
+    )
+    outputs = ort_session.run(["pooler_output"], {"pixel_values": pixel_values})
+    embeds = outputs[0]
+    embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
+    return embeds.squeeze()
 
 
 _PDQ_HEX_LEN = 64  # 256 bits = 64 hex chars
 
 
-def _compute_pdq_hash(image_path: str) -> str:
-    """Return the 64-char hex-encoded 256-bit PDQ perceptual hash for an image.
-
-    PDQ (Facebook/Meta) is a robust perceptual hash that is invariant to minor
-    crops, rotations, and compression artefacts.  Returns an empty string on
-    failure so callers can treat missing hashes gracefully.
-    """
+def _compute_pdq_hash(source: Image.Image | str) -> str:
+    """Compute a 64-char hex PDQ hash from a PIL Image or file path."""
     try:
-        img = Image.open(image_path).convert("RGB")
-        img_array = np.array(img, dtype=np.uint8)
-        hash_vector, _quality = pdqhash.compute(img_array)
+        img = (
+            Image.open(source).convert("RGB")
+            if isinstance(source, str)
+            else source.convert("RGB")
+        )
+        hash_vector, _quality = pdqhash.compute(np.array(img, dtype=np.uint8))
         bits = 0
         for bit in hash_vector:
             bits = (bits << 1) | int(bit)
         hex_hash = format(bits, "064x")
         if len(hex_hash) != _PDQ_HEX_LEN:
-            logger.warning(
-                "PDQ hash length mismatch for %s: got %d chars",
-                image_path,
-                len(hex_hash),
-            )
+            logger.warning("PDQ hash length mismatch: got %d chars", len(hex_hash))
             return ""
         return hex_hash
     except Exception as exc:
-        logger.warning("PDQ hash failed for %s: %s", image_path, exc)
+        logger.warning(
+            "PDQ hash failed for %s: %s",
+            source if isinstance(source, str) else "image",
+            exc,
+        )
         return ""
 
 
@@ -230,7 +276,6 @@ def task_schema() -> TaskSchema:
         ],
         default="combined",
     )
-
     return TaskSchema(
         inputs=[
             InputSchema(
@@ -273,11 +318,58 @@ def task_schema() -> TaskSchema:
     )
 
 
+def export_task_schema() -> TaskSchema:
+    text_desc = TextParameterDescriptor(default="")
+    owner_disclaimer = "Required — stored so another organization or user can follow up on exported embeddings"
+    share_filename_enum = EnumParameterDescriptor(
+        enum_vals=[
+            EnumVal(key="yes", label="Yes — include original filename"),
+            EnumVal(key="no", label="No — omit filename"),
+        ],
+        default="yes",
+    )
+    return TaskSchema(
+        inputs=[],
+        parameters=[
+            ParameterSchema(
+                key="organization",
+                label="Organization",
+                subtitle=owner_disclaimer,
+                value=text_desc,
+            ),
+            ParameterSchema(
+                key="contact_email",
+                label="Contact email",
+                subtitle=owner_disclaimer,
+                value=text_desc,
+            ),
+            ParameterSchema(
+                key="share_filename",
+                label="Share filename",
+                subtitle="Include original filename (basename only) in exported records",
+                value=share_filename_enum,
+            ),
+        ],
+    )
+
+
+def import_task_schema() -> TaskSchema:
+    return TaskSchema(
+        inputs=[
+            InputSchema(
+                key="input_file",
+                label="Embeddings file (.json)",
+                subtitle="JSON file from another organization or user",
+                input_type=InputType.FILE,
+            ),
+        ],
+        parameters=[],
+    )
+
+
 server = MLService(APP_NAME)
-script_dir = os.path.dirname(os.path.abspath(__file__))
-info_file_path = os.path.join(script_dir, "app-info.md")
-with open(info_file_path, "r") as f:
-    info = f.read()
+info_file_path = Path(__file__).resolve().parent / "app-info.md"
+info = info_file_path.read_text(encoding="utf-8")
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
@@ -296,8 +388,8 @@ def _paths_already_embedded(
         return set()
     rows = session.exec(
         select(ImageSimilarityEmbedding.path).where(
-            ImageSimilarityEmbedding.path.in_(paths),
-            ImageSimilarityEmbedding.model_name == model_name,
+            sql_filters.path_in(paths),
+            sql_filters.model_name_eq(model_name),
         )
     ).all()
     return set(rows)
@@ -314,38 +406,6 @@ def _sha256_file(path: str) -> str:
     digest = h.hexdigest()
     assert len(digest) == _SHA256_HEX_LEN
     return digest
-
-
-def _backfill_missing_pdq_hashes(session: Session, paths: list[str]) -> int:
-    """Compute and store PDQ hashes for already-indexed images that lack one.
-
-    Uses a single batch query instead of N individual lookups.
-    """
-    if not paths:
-        logger.info("Backfill: no paths to check")
-        return 0
-    logger.info("Backfill: checking %d paths for missing PDQ hashes", len(paths))
-    rows = session.exec(
-        select(ImageSimilarityEmbedding).where(
-            ImageSimilarityEmbedding.path.in_(paths),
-            ImageSimilarityEmbedding.pdq_hash == "",
-        )
-    ).all()
-    logger.info("Backfill: found %d rows with empty pdq_hash", len(rows))
-    filled = 0
-    for row in rows:
-        pdq = _compute_pdq_hash(row.path)
-        if pdq:
-            session.execute(
-                update(ImageSimilarityEmbedding)
-                .where(ImageSimilarityEmbedding.id == row.id)
-                .values(pdq_hash=pdq)
-            )
-            filled += 1
-    if filled:
-        session.flush()
-    logger.info("Backfill: filled %d / %d missing PDQ hashes", filled, len(rows))
-    return filled
 
 
 def _discover_new_paths(
@@ -379,7 +439,7 @@ def _batch_embed_and_hash(
     path_to_hash: dict[str, str],
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
-):
+) -> tuple[dict[str, np.ndarray], dict[str, str], int]:
     """Batch-embed (CLIP) and batch-hash (PDQ) all genuinely new content.
 
     Deduplicates by content hash so identical files are processed only once.
@@ -388,7 +448,7 @@ def _batch_embed_and_hash(
     batch_embeddings: dict[str, np.ndarray] = {}
     batch_pdq: dict[str, str] = {}
     if not need_embed:
-        return batch_embeddings, batch_pdq
+        return batch_embeddings, batch_pdq, 0
 
     hash_to_rep: dict[str, str] = {}
     for p in need_embed:
@@ -398,13 +458,19 @@ def _batch_embed_and_hash(
     unique_paths = list(hash_to_rep.values())
 
     logger.info("Batch-embedding %d new unique image(s) on GPU", len(unique_paths))
-    raw = _embed_images_batch(ort_session, processor, unique_paths)
+    raw, last_reported = _embed_images_batch(ort_session, processor, unique_paths)
+    processed = 0
+    total = len(hash_to_rep)
     for h, rep in hash_to_rep.items():
         if rep in raw:
             batch_embeddings[h] = raw[rep]
         batch_pdq[h] = _compute_pdq_hash(rep)
+        processed += 1
+        last_reported = report_phased_file_progress(
+            None, 2, 3, processed, total, last_reported
+        )
 
-    return batch_embeddings, batch_pdq
+    return batch_embeddings, batch_pdq, last_reported
 
 
 def _persist_new_path(
@@ -413,7 +479,6 @@ def _persist_new_path(
     row: ImageSimilarityEmbedding | None,
     batch_embeddings: dict[str, np.ndarray],
     batch_pdq: dict[str, str],
-    file_paths_set: set[str],
     session: Session,
     storage: ImageSimilarityEmbeddingStorage,
     paths_for_search: list[str],
@@ -421,7 +486,7 @@ def _persist_new_path(
     counters: dict[str, int],
     model_name: str = _DEFAULT_MODEL,
 ):
-    """Persist a single new path — insert, relocate, or clone."""
+    """Persist a path — insert new content or update the row for an existing hash."""
     if row is None:
         row = session.exec(
             select(ImageSimilarityEmbedding).where(
@@ -429,62 +494,32 @@ def _persist_new_path(
                 ImageSimilarityEmbedding.model_name == model_name,
             )
         ).first()
-        if row is None:
-            if h in batch_embeddings:
-                try:
-                    storage.save_embedding(
-                        path,
-                        batch_embeddings[h].tolist(),
-                        content_sha256=h,
-                        pdq_hash=batch_pdq.get(h, ""),
-                    )
-                    paths_for_search.append(path)
-                    counters["new"] += 1
-                    already.add(path)
-                    session.flush()
-                except Exception as e:
-                    session.rollback()
-                    logger.warning("Could not store embedding for %s: %s", path, e)
-            else:
-                logger.warning("Embedding not computed for %s — skipped", path)
-            return
-
     if row is None:
-        return
-
-    if row.path == path:
-        paths_for_search.append(path)
-        already.add(path)
-        return
-
-    if row.path not in file_paths_set:
-        update_vals: dict = {"path": path}
-        if not row.pdq_hash:
-            pdq = batch_pdq.get(h) or _compute_pdq_hash(path)
-            if pdq:
-                update_vals["pdq_hash"] = pdq
-        session.execute(
-            update(ImageSimilarityEmbedding)
-            .where(ImageSimilarityEmbedding.id == row.id)
-            .values(**update_vals)
-        )
-        counters["relocated"] += 1
-        logger.info(
-            "Reused embedding by content hash (path updated): %s -> %s", row.path, path
-        )
-    else:
-        emb = list(row.embedding) if row.embedding is not None else []
-        pdq = row.pdq_hash or batch_pdq.get(h, "")
-        session.add(
-            ImageSimilarityEmbedding(
-                path=path, embedding=emb, content_sha256=h, pdq_hash=pdq
+        if h not in batch_embeddings:
+            logger.warning("Embedding not computed for %s — skipped", path)
+            return
+        try:
+            storage.save_embedding(
+                path,
+                batch_embeddings[h].tolist(),
+                content_sha256=h,
+                pdq_hash=batch_pdq[h],
             )
-        )
-        counters["cloned"] += 1
+            counters["new"] += 1
+            session.flush()
+        except Exception as e:
+            session.rollback()
+            logger.warning("Could not store embedding for %s: %s", path, e)
+            return
+    elif row.path != path:
+        old_path = row.path
+        row.path = path
+        counters["updated"] += 1
+        logger.info("Updated plain embedding by content hash: %s -> %s", old_path, path)
+        session.flush()
 
     paths_for_search.append(path)
     already.add(path)
-    session.flush()
 
 
 def _embed_and_store_images(
@@ -495,13 +530,11 @@ def _embed_and_store_images(
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
     model_name: str = _DEFAULT_MODEL,
-):
+) -> tuple[list[str], int]:
     """Ensure every path has an embedding + PDQ row.  Returns paths ready for search."""
     already = _paths_already_embedded(session, file_paths, model_name)
-    file_paths_set = set(file_paths)
 
     paths_for_search = [p for p in file_paths if p in already]
-    _backfill_missing_pdq_hashes(session, paths_for_search)
 
     hash_row_cache, need_embed = _discover_new_paths(
         session,
@@ -510,14 +543,14 @@ def _embed_and_store_images(
         path_to_hash,
         model_name,
     )
-    batch_embeddings, batch_pdq = _batch_embed_and_hash(
+    batch_embeddings, batch_pdq, last_reported = _batch_embed_and_hash(
         need_embed,
         path_to_hash,
         ort_session,
         processor,
     )
 
-    counters = {"new": 0, "relocated": 0, "cloned": 0}
+    counters = {"new": 0, "updated": 0}
     for path in file_paths:
         if path in already:
             continue
@@ -528,7 +561,6 @@ def _embed_and_store_images(
             hash_row_cache.get(h),
             batch_embeddings,
             batch_pdq,
-            file_paths_set,
             session,
             storage,
             paths_for_search,
@@ -540,18 +572,17 @@ def _embed_and_store_images(
     if any(counters.values()):
         storage.commit()
 
-    return paths_for_search
+    return paths_for_search, last_reported
 
 
 def _collect_image_paths(input_dir: str) -> list[str]:
     """Return sorted list of valid image file paths from a directory."""
     paths: list[str] = []
-    for name in sorted(os.listdir(input_dir)):
-        if os.path.splitext(name)[1].lower() not in ALLOWED_IMAGE_EXTS:
+    for path in sorted(Path(input_dir).iterdir(), key=lambda item: item.name):
+        if path.suffix.lower() not in ALLOWED_IMAGE_EXTS:
             continue
-        full = os.path.join(input_dir, name)
-        if os.path.isfile(full):
-            paths.append(full)
+        if path.is_file():
+            paths.append(str(path))
     return paths
 
 
@@ -568,72 +599,564 @@ def _hash_paths(paths: list[str]) -> tuple[list[str], dict[str, str]]:
     return valid, path_to_hash
 
 
+def _load_query_image(query_image_path: str, anonymize: bool) -> Image.Image:
+    """Open query image, applying CLIPSeg anonymization when requested."""
+    img = Image.open(query_image_path).convert("RGB")
+    if anonymize:
+        return anonymize_image(img)
+    return img
+
+
 def _build_scorer(
     session: Session,
     scoring_mode: str,
-    query_row: ImageSimilarityEmbedding | None,
+    query_row: ImageSimilarityEmbedding | ImageSimilarityPrivateEmbedding | None,
     query_image_path: str,
     model_name: str,
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
+    use_private_table: bool = False,
+    include_imported_private: bool = False,
 ) -> ImageScorer:
-    """Construct the appropriate scorer based on scoring_mode."""
+    """Build a scorer that ranks candidates against the query image."""
+    include_imported = use_private_table and include_imported_private
+    has_vec = query_row is not None and query_row.embedding is not None
+    needs_pdq_from_image = scoring_mode in ("pdq", "combined") and query_row is None
+    needs_image = (
+        scoring_mode in ("semantic", "combined") and not has_vec
+    ) or needs_pdq_from_image
+
+    query_img = (
+        _load_query_image(query_image_path, use_private_table) if needs_image else None
+    )
+
     query_vec: np.ndarray | None = None
     if scoring_mode in ("semantic", "combined"):
-        if query_row is not None and query_row.embedding is not None:
+        if has_vec:
             query_vec = np.array(list(query_row.embedding), dtype=np.float32)
         else:
-            query_vec = _embed_image(ort_session, processor, query_image_path)
+            query_vec = _embed_pil_image(ort_session, processor, query_img)
 
     query_pdq = ""
     if scoring_mode in ("pdq", "combined"):
-        if query_row is not None and query_row.pdq_hash:
+        if query_row is not None:
             query_pdq = query_row.pdq_hash
         else:
-            query_pdq = _compute_pdq_hash(query_image_path)
+            query_pdq = _compute_pdq_hash(query_img)
 
     if scoring_mode == "semantic":
-        assert query_vec is not None
-        return ClipScorer(session, query_vec, model_name)
+        return ClipScorer(
+            session,
+            query_vec,
+            model_name,
+            use_private_table=use_private_table,
+            include_imported_private=include_imported,
+        )
     if scoring_mode == "pdq":
-        return PdqScorer(session, query_pdq)
+        return PdqScorer(
+            session,
+            query_pdq,
+            use_private_table=use_private_table,
+            include_imported_private=include_imported,
+        )
 
-    assert query_vec is not None
     return CombinedScorer(
         [
-            ("clip", ClipScorer(session, query_vec, model_name), 0.5),
-            ("pdq", PdqScorer(session, query_pdq), 0.5),
+            (
+                "clip",
+                ClipScorer(
+                    session,
+                    query_vec,
+                    model_name,
+                    use_private_table=use_private_table,
+                    include_imported_private=include_imported,
+                ),
+                0.6,
+            ),
+            (
+                "pdq",
+                PdqScorer(
+                    session,
+                    query_pdq,
+                    use_private_table=use_private_table,
+                    include_imported_private=include_imported,
+                ),
+                0.4,
+            ),
         ]
     )
 
 
-def _build_metadata(
-    hit: dict,
-    scoring_mode: str,
-    model_name: str,
-    query_name: str,
-) -> dict[str, str]:
+def _is_imported(hit: dict) -> bool:
+    return hit.get("source") == "imported" or hit.get("remote", False)
+
+
+def _merge_dedup_key(hit: dict) -> tuple:
+    content_sha256 = hit.get("content_sha256", "")
+    if _is_imported(hit):
+        return (content_sha256, SOURCE_IMPORTED)
+    return (content_sha256, SOURCE_LOCAL)
+
+
+def _merge_search_results(
+    private_hits: list[dict], plain_hits: list[dict], top_k: int
+) -> list[dict]:
+    """Merge plain/private hits — one local row and one imported row per content hash."""
+    best: dict[tuple, dict] = {}
+    for hit in private_hits + plain_hits:
+        key = _merge_dedup_key(hit)
+        existing = best.get(key)
+        if existing is None or hit["score"] > existing["score"]:
+            best[key] = hit
+    merged = sorted(best.values(), key=lambda h: h["score"], reverse=True)
+    return merged[:top_k]
+
+
+def _imported_data_payload(hit: dict) -> dict[str, str]:
+    payload = {
+        "content_sha256": hit.get("content_sha256", ""),
+        "user_email": hit.get("user_email", ""),
+        "organization": hit.get("organization", ""),
+    }
+    if hit.get("filename"):
+        payload["imported_from"] = hit["filename"]
+    if hit.get("export_file"):
+        payload["export_file"] = hit["export_file"]
+    return payload
+
+
+def _build_metadata(hit: dict) -> dict[str, str]:
     """Build per-result metadata dict with consistent columns across all modes."""
-    scoring_labels = {
-        "combined": "Combined (CLIP + PDQ)",
-        "semantic": "Semantic only (CLIP)",
-        "pdq": "Perceptual only (PDQ)",
-    }
-    meta: dict[str, str] = {
-        "Scoring Mode": scoring_labels.get(scoring_mode, scoring_mode),
-        "Match": "Yes" if hit["is_match"] else "No",
-    }
-    if scoring_mode in ("semantic", "combined"):
-        meta["CLIP Model"] = model_name
-    meta["Query"] = f"Series match for {query_name}"
+    meta: dict[str, str] = {}
+    if _is_imported(hit):
+        meta["Source"] = json.dumps(_imported_data_payload(hit))
+    else:
+        meta["Source"] = "Local"
     return meta
+
+
+def _hit_display_path(hit: dict) -> str:
+    if _is_imported(hit):
+        return hit.get("filename") or "No filepath provided"
+    return Path(hit["path"]).name
+
+
+def _hit_file_type(hit: dict) -> FileType:
+    return FileType.TEXT if _is_imported(hit) else FileType.IMG
+
+
+def _privacy_protocol_tag(labels: list[str]) -> str:
+    """Encode anonymization config into a single cache-key string."""
+    return "clipseg-blackout-v1:" + ",".join(sorted(labels))
+
+
+def _local_private_row(
+    session: Session,
+    content_sha256: str,
+    model_name: str,
+    protocol: str,
+) -> ImageSimilarityPrivateEmbedding | None:
+    return session.exec(
+        select(ImageSimilarityPrivateEmbedding).where(
+            ImageSimilarityPrivateEmbedding.content_sha256 == content_sha256,
+            sql_filters.priv_model_name_eq(model_name),
+            ImageSimilarityPrivateEmbedding.privacy_protocol == protocol,
+            ImageSimilarityPrivateEmbedding.source == SOURCE_LOCAL,
+        )
+    ).first()
+
+
+def _imported_private_row(
+    session: Session,
+    content_sha256: str,
+    model_name: str,
+) -> ImageSimilarityPrivateEmbedding | None:
+    return session.exec(
+        select(ImageSimilarityPrivateEmbedding).where(
+            ImageSimilarityPrivateEmbedding.content_sha256 == content_sha256,
+            sql_filters.priv_model_name_eq(model_name),
+            ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED,
+        )
+    ).first()
+
+
+def _private_hashes_needing_embed(
+    session: Session,
+    file_paths: list[str],
+    path_to_hash: dict[str, str],
+    model_name: str,
+    protocol: str,
+) -> dict[str, str]:
+    """Return content hashes that need embedding (not yet in the local private table)."""
+    to_embed: dict[str, str] = {}
+    for path in file_paths:
+        h = path_to_hash.get(path, "")
+        if not h or h in to_embed:
+            continue
+        row = _local_private_row(session, h, model_name, protocol)
+        if not row:
+            to_embed[h] = path
+    return to_embed
+
+
+def _sync_local_private_paths(
+    session: Session,
+    file_paths: list[str],
+    path_to_hash: dict[str, str],
+    model_name: str,
+    protocol: str,
+) -> int:
+    """Update path on existing local private rows to match the latest file in the folder."""
+    updated = 0
+    for path in file_paths:
+        h = path_to_hash.get(path, "")
+        if not h:
+            continue
+        row = _local_private_row(session, h, model_name, protocol)
+        if row and row.path != path:
+            row.path = path
+            updated += 1
+    return updated
+
+
+def _create_private_embeddings(
+    session: Session,
+    file_paths: list[str],
+    path_to_hash: dict[str, str],
+    ort_session: ort.InferenceSession,
+    processor: AutoImageProcessor,
+    user_email: str,
+    model_name: str = _DEFAULT_MODEL,
+    last_reported: int = 0,
+) -> str:
+    """Anonymize images via CLIPSeg and store private embeddings + PDQ hashes."""
+    protocol = _privacy_protocol_tag(list(DEFAULT_TARGET_LABELS))
+    to_embed = _private_hashes_needing_embed(
+        session,
+        file_paths,
+        path_to_hash,
+        model_name,
+        protocol,
+    )
+
+    embedded = 0
+    failures: list[tuple[str, str]] = []
+    if to_embed:
+        storage = ImageSimilarityPrivateEmbeddingStorage(
+            session,
+            model_name=model_name,
+            user_email=user_email,
+            privacy_protocol=protocol,
+        )
+        for h, path in to_embed.items():
+            try:
+                img = Image.open(path).convert("RGB")
+                anonymized = anonymize_image(img)
+                emb = _embed_pil_image(ort_session, processor, anonymized).tolist()
+                pdq_hash = _compute_pdq_hash(anonymized)
+                storage.save_embedding(path, emb, content_sha256=h, pdq_hash=pdq_hash)
+                embedded += 1
+                session.flush()
+                last_reported = report_phased_file_progress(
+                    None, 3, 3, embedded, len(to_embed), last_reported
+                )
+            except Exception as exc:
+                failures.append((path, str(exc)))
+                logger.warning("Private embedding failed for %s: %s", path, exc)
+
+    path_updates = _sync_local_private_paths(
+        session, file_paths, path_to_hash, model_name, protocol
+    )
+    if embedded or path_updates:
+        session.commit()
+    logger.info(
+        "Private embeddings (%s): %d new, %d path updates, %d failed",
+        protocol,
+        embedded,
+        path_updates,
+        len(failures),
+    )
+    if embedded == 0 and failures:
+        raise RuntimeError(
+            f"All {len(failures)} private embeddings failed. "
+            f"First error: {failures[0][1]}"
+        )
+    return protocol
+
+
+# ---------------------------------------------------------------------------
+#  Export / Import routes
+# ---------------------------------------------------------------------------
+
+_EXPORT_FORMAT_VERSION = 1
+_EXPORT_EMPTY_MESSAGE = (
+    "No local private embeddings found. "
+    "Run Image Series Similarity on a folder first to index private embeddings."
+)
+_IMPORT_RECORD_FIELDS = (
+    "content_sha256",
+    "embedding",
+    "pdq_hash",
+    "user_email",
+    "privacy_protocol",
+    "model_name",
+)
+
+
+def _import_record_error(record: dict, index: int) -> str | None:
+    missing = [field for field in _IMPORT_RECORD_FIELDS if field not in record]
+    if missing:
+        return f"Record {index}: missing {', '.join(missing)}"
+    empty = [
+        field
+        for field in _IMPORT_RECORD_FIELDS
+        if field != "embedding" and not record[field]
+    ]
+    if empty:
+        return f"Record {index}: empty {', '.join(empty)}"
+    embedding = record["embedding"]
+    if not isinstance(embedding, list) or not embedding:
+        return f"Record {index}: embedding must be a non-empty list"
+    return None
+
+
+def _embedding_to_json_list(embedding) -> list[float]:
+    if embedding is None:
+        return []
+    return [float(x) for x in embedding]
+
+
+def _export_record_from_row(
+    row: ImageSimilarityPrivateEmbedding, share_filename: bool = True
+) -> dict:
+    record = {
+        "content_sha256": row.content_sha256,
+        "embedding": _embedding_to_json_list(row.embedding),
+        "pdq_hash": row.pdq_hash,
+        "user_email": row.user_email,
+        "organization": row.organization,
+        "privacy_protocol": row.privacy_protocol,
+        "model_name": row.model_name,
+    }
+    if share_filename:
+        if row.filename:
+            record["filename"] = row.filename
+        elif row.path and row.path != "[imported]":
+            record["filename"] = Path(row.path).name
+    return record
+
+
+def _export_output_filename() -> str:
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    return f"export_{timestamp}.json"
+
+
+def _record_image_filename(record: dict) -> str:
+    return Path(record["filename"]).name if record.get("filename") else ""
+
+
+def _import_export_file(header: dict, input_path: Path) -> str:
+    return Path(str(header.get("export_filename") or input_path.name)).name
+
+
+def _parse_export_owner_contact(parameters: ExportParameters) -> tuple[str, str]:
+    organization = parameters.get("organization", "").strip()
+    contact_email = parameters.get("contact_email", "").strip()
+    if not organization:
+        raise ValueError("organization is required for embedding owner contact info.")
+    if not contact_email:
+        raise ValueError("contact_email is required for embedding owner contact info.")
+    return organization, contact_email
+
+
+def _stamp_export_records(
+    records: list[dict], organization: str, contact_email: str
+) -> None:
+    for rec in records:
+        rec["organization"] = organization
+        rec["user_email"] = contact_email
+
+
+def _write_private_embeddings_export(
+    output_path: Path,
+    records: list[dict],
+    export_filename: str,
+) -> None:
+    payload = {
+        "format_version": _EXPORT_FORMAT_VERSION,
+        "export_date": datetime.now(timezone.utc).isoformat(),
+        "export_filename": export_filename,
+        "count": len(records),
+        "records": records,
+    }
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f)
+
+
+def _load_private_embedding_export(input_path: Path) -> tuple[dict, list[dict]]:
+    raw = input_path.read_text(encoding="utf-8").strip()
+    if not raw:
+        raise ValueError("Import file is empty.")
+    try:
+        doc = json.loads(raw)
+    except json.JSONDecodeError as err:
+        raise ValueError(f"Invalid export JSON: {err}") from err
+    if not isinstance(doc, dict) or "records" not in doc:
+        raise ValueError(
+            "Unsupported export format. Re-export private embeddings and import that file."
+        )
+    if not isinstance(doc["records"], list):
+        raise ValueError("Export JSON records must be a list.")
+    records = list(doc["records"])
+    header = {k: v for k, v in doc.items() if k != "records"}
+    return header, records
+
+
+def export_embeddings(
+    inputs: ExportInputs, parameters: ExportParameters
+) -> ResponseBody:
+    """Export private embeddings to a JSON file for cross-machine sharing."""
+    organization, contact_email = _parse_export_owner_contact(parameters)
+    share_filename = parameters.get("share_filename", "yes") == "yes"
+    export_filename = _export_output_filename()
+    output_dir = tempfile.mkdtemp(prefix="rb_private_embeddings_")
+    output_path = Path(output_dir) / export_filename
+
+    with Session(engine) as session:
+        rows = session.exec(
+            select(ImageSimilarityPrivateEmbedding).where(
+                ImageSimilarityPrivateEmbedding.source == SOURCE_LOCAL
+            )
+        ).all()
+
+        if not rows:
+            logger.warning("Export skipped: %s", _EXPORT_EMPTY_MESSAGE)
+            return ResponseBody(
+                root=TextResponse(
+                    value=_EXPORT_EMPTY_MESSAGE,
+                    title="Private embeddings export — nothing to export",
+                )
+            )
+
+        records = [_export_record_from_row(row, share_filename) for row in rows]
+        _stamp_export_records(records, organization, contact_email)
+        _write_private_embeddings_export(output_path, records, export_filename)
+
+    logger.info("Exported %d private embeddings to %s", len(rows), output_path)
+
+    return ResponseBody(
+        root=FileResponse(
+            file_type=FileType.TEXT,
+            path=str(output_path),
+            title=f"Private embeddings export ({len(rows)} records)",
+            metadata={
+                "Format": "JSON",
+                "Count": str(len(rows)),
+            },
+        )
+    )
+
+
+def import_embeddings(inputs: ImportInputs) -> ResponseBody:
+    """Import private embeddings from a JSON file."""
+    input_path = Path(inputs["input_file"].path).resolve()
+    imported = 0
+    skipped = 0
+    errors: list[str] = []
+    seen_keys: set[tuple[str, str, str, str]] = set()
+
+    with Session(engine) as session:
+        header, records = _load_private_embedding_export(input_path)
+        export_file = _import_export_file(header, input_path)
+
+        version = header.get("format_version", 0)
+        if version != _EXPORT_FORMAT_VERSION:
+            raise ValueError(
+                f"Unsupported format version {version}, expected {_EXPORT_FORMAT_VERSION}"
+            )
+
+        for index, record in enumerate(records, start=1):
+            record_error = _import_record_error(record, index)
+            if record_error:
+                errors.append(record_error)
+                continue
+
+            content_sha256 = record["content_sha256"]
+            privacy_protocol = record["privacy_protocol"]
+            model_name = record["model_name"]
+            owner_email = record["user_email"]
+            organization = str(record.get("organization", "") or "")
+
+            dedup_key = (content_sha256, model_name)
+            if dedup_key in seen_keys:
+                skipped += 1
+                continue
+
+            existing = _imported_private_row(session, content_sha256, model_name)
+
+            if existing:
+                existing.embedding = [float(x) for x in record["embedding"]]
+                existing.pdq_hash = record["pdq_hash"]
+                existing.user_email = owner_email
+                existing.organization = organization
+                existing.privacy_protocol = privacy_protocol
+                existing.filename = _record_image_filename(record)
+                existing.export_file = export_file
+                seen_keys.add(dedup_key)
+                imported += 1
+                continue
+
+            new_row = ImageSimilarityPrivateEmbedding(
+                path="[imported]",
+                content_sha256=content_sha256,
+                model_name=model_name,
+                embedding=[float(x) for x in record["embedding"]],
+                pdq_hash=record["pdq_hash"],
+                user_email=owner_email,
+                organization=organization,
+                privacy_protocol=privacy_protocol,
+                filename=_record_image_filename(record),
+                export_file=export_file,
+                source=SOURCE_IMPORTED,
+            )
+            session.add(new_row)
+            seen_keys.add(dedup_key)
+            imported += 1
+
+        session.commit()
+
+    logger.info(
+        "Import complete: %d imported, %d skipped (duplicates), %d errors",
+        imported,
+        skipped,
+        len(errors),
+    )
+
+    error_summary = f"; {len(errors)} errors" if errors else ""
+    return ResponseBody(
+        root=BatchFileResponse(
+            files=[
+                FileResponse(
+                    file_type=FileType.TEXT,
+                    path=str(input_path),
+                    title=f"Imported {imported} embeddings ({skipped} skipped){error_summary}",
+                    metadata={
+                        "Export file": export_file,
+                        "Imported": str(imported),
+                        "Skipped (duplicates)": str(skipped),
+                        "Errors": str(len(errors)),
+                    },
+                )
+            ]
+        )
+    )
 
 
 def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     """Find images from the same series as a query image inside ``input_dir``."""
 
-    input_dir = os.path.realpath(str(inputs["input_dir"].path))
-    query_image_path = os.path.realpath(str(inputs["query_image"].path))
+    input_dir = str(Path(inputs["input_dir"].path).resolve())
+    query_image_path = str(Path(inputs["query_image"].path).resolve())
     model_name = parameters.get("model_name", _DEFAULT_MODEL)
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
@@ -656,8 +1179,12 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     all_paths, path_to_hash = _hash_paths(all_paths)
 
     with Session(engine) as session:
-        storage = ImageSimilarityEmbeddingStorage(session, model_name=model_name)
-        paths_for_search = _embed_and_store_images(
+        storage = ImageSimilarityEmbeddingStorage(
+            session,
+            model_name=model_name,
+            user_email="",
+        )
+        paths_for_search, last_reported = _embed_and_store_images(
             session,
             storage,
             all_paths,
@@ -667,39 +1194,71 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             model_name,
         )
 
-        query_row = session.exec(
+        _create_private_embeddings(
+            session,
+            all_paths,
+            path_to_hash,
+            ort_session,
+            processor,
+            "",
+            model_name,
+            last_reported=last_reported,
+        )
+
+        plain_query_row = session.exec(
             select(ImageSimilarityEmbedding).where(
-                ImageSimilarityEmbedding.path == query_image_path,
-                ImageSimilarityEmbedding.model_name == model_name,
+                sql_filters.path_eq(query_image_path),
+                sql_filters.model_name_eq(model_name),
+            )
+        ).first()
+        private_query_row = session.exec(
+            select(ImageSimilarityPrivateEmbedding).where(
+                sql_filters.priv_path_in([query_image_path]),
+                sql_filters.priv_model_name_eq(model_name),
             )
         ).first()
 
-        scorer = _build_scorer(
+        search_paths = [p for p in paths_for_search if p != query_image_path]
+
+        plain_scorer = _build_scorer(
             session,
             scoring_mode,
-            query_row,
+            plain_query_row,
             query_image_path,
             model_name,
             ort_session,
             processor,
+            use_private_table=False,
+            include_imported_private=False,
         )
-        search_paths = [p for p in paths_for_search if p != query_image_path]
-        raw_results = scorer.score(query_image_path, search_paths, top_k)
+        private_scorer = _build_scorer(
+            session,
+            scoring_mode,
+            private_query_row,
+            query_image_path,
+            model_name,
+            ort_session,
+            processor,
+            use_private_table=True,
+            include_imported_private=True,
+        )
+        plain_hits = plain_scorer.score(query_image_path, search_paths, top_k)
+        private_hits = private_scorer.score(query_image_path, search_paths, top_k)
+        raw_results = _merge_search_results(private_hits, plain_hits, top_k)
 
+        matches = [hit for hit in raw_results if hit["score"] >= min_similarity]
         search_results = [
-            {**hit, "rank": rank, "is_match": hit["score"] >= min_similarity}
-            for rank, hit in enumerate(raw_results, start=1)
+            {**hit, "rank": rank} for rank, hit in enumerate(matches, start=1)
         ]
 
-    query_name = os.path.basename(query_image_path)
     file_responses = [
         FileResponse(
-            file_type=FileType.IMG,
-            path=str(hit["path"]),
+            file_type=_hit_file_type(hit),
+            path=_hit_display_path(hit) if _is_imported(hit) else str(hit["path"]),
             title=f"#{hit['rank']} · similarity {hit['score']}",
-            metadata=_build_metadata(hit, scoring_mode, model_name, query_name),
+            metadata=_build_metadata(hit),
         )
-        for rank, hit in enumerate(search_results, start=1)
+        for hit in search_results
     ]
 
     return ResponseBody(root=BatchFileResponse(files=file_responses))
@@ -750,6 +1309,56 @@ server.add_ml_service(
     short_title="Find series matches (image query)",
     order=0,
     task_schema_func=task_schema,
+)
+
+
+def export_inputs_cli_parse(_value: str) -> ExportInputs:
+    return {}
+
+
+def export_parameters_cli_parse(value: str) -> ExportParameters:
+    parts = value.split(",", 2)
+    organization = parts[0].strip() if parts else ""
+    contact_email = parts[1].strip() if len(parts) > 1 else ""
+    share_filename = parts[2].strip() if len(parts) > 2 else "yes"
+    return ExportParameters(
+        organization=organization,
+        contact_email=contact_email,
+        share_filename=share_filename,
+    )
+
+
+server.add_ml_service(
+    rule="/export_embeddings",
+    ml_function=export_embeddings,
+    inputs_cli_parser=typer.Argument(
+        parser=export_inputs_cli_parse,
+        help="Unused (export file is returned for download)",
+    ),
+    parameters_cli_parser=typer.Argument(
+        parser=export_parameters_cli_parse,
+        help="organization,contact_email,share_filename (yes|no)",
+    ),
+    short_title="Image Series Similarity - Export Embeddings",
+    order=1,
+    task_schema_func=export_task_schema,
+)
+
+
+def import_inputs_cli_parse(value: str) -> ImportInputs:
+    return ImportInputs(input_file=FileInput(path=value.strip()))
+
+
+server.add_ml_service(
+    rule="/import_embeddings",
+    ml_function=import_embeddings,
+    inputs_cli_parser=typer.Argument(
+        parser=import_inputs_cli_parse,
+        help="Path to the JSON file to import",
+    ),
+    short_title="Image Series Similarity - Import Embeddings",
+    order=2,
+    task_schema_func=import_task_schema,
 )
 
 app = server.app

@@ -1,16 +1,18 @@
 import argparse
+import json
+from pathlib import Path
+
+import pandas as pd
+
 from deepfake_detection.main import _load_face_detector_session
-from deepfake_detection.sim_data import defaultDataset
-from deepfake_detection.process.transformer import TransformerModelONNX
 from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 from deepfake_detection.process.bnext_S import BNext_S_ModelONNX
+from deepfake_detection.process.resnet50 import Resnet50ModelONNX
+from deepfake_detection.process.transformer import TransformerModelONNX
 from deepfake_detection.process.transformerDima_onnx_process import (
     TransformerModelDimaONNX,
 )
-from deepfake_detection.process.resnet50 import Resnet50ModelONNX
-from pathlib import Path
-import json
-import pandas as pd
+from deepfake_detection.sim_data import defaultDataset
 
 
 def args_func():
@@ -96,7 +98,7 @@ if __name__ == "__main__":
             break
         elif model == "list":
             print("Available models:")
-            for model_name in available_models.keys():
+            for model_name in available_models:
                 print(model_name)
             exit()
         elif model in available_models:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
 
 from nicegui import ui
 
@@ -26,9 +25,9 @@ class WorkflowStepper:
 
     def __init__(
         self,
-        steps: List[str],
+        steps: list[str],
         current_step: int = 0,
-        container: Optional[ui.element] = None,
+        container: ui.element | None = None,
     ):
         """
         Initialize workflow stepper.
@@ -43,7 +42,7 @@ class WorkflowStepper:
         """
         self.steps = steps
         self.current_step = current_step
-        self.step_elements: List[ui.element] = []
+        self.step_elements: list[ui.element] = []
         self.container = container or ui.column()
 
         logger.info("Creating workflow stepper with %d steps", len(steps))
@@ -199,7 +198,7 @@ class WorkflowStepper:
 
 
 def create_workflow_stepper(
-    steps: List[str], current_step: int = 0, container: Optional[ui.element] = None
+    steps: list[str], current_step: int = 0, container: ui.element | None = None
 ) -> WorkflowStepper:
     """
     Create a workflow stepper component.

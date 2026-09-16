@@ -1,10 +1,9 @@
 import logging
-from typing import Union
 
 from nicegui import context, ui
 
-from frontend.constants import HOME_USER_ID, NAV_LINKS
 from frontend.config import APP_DARK_MODE
+from frontend.constants import HOME_USER_ID, NAV_LINKS
 from frontend.utils.exceptions import UI_RENDER_ERRORS
 from frontend.utils.storage import (
     ensure_explicit_user_id_for_tests,
@@ -133,7 +132,7 @@ def show_success_to_user(message: str):
 
 
 def handle_validation_error(
-    errors: Union[dict, list], context_str: str = "Form validation failed"
+    errors: dict | list, context_str: str = "Form validation failed"
 ):
     logger.warning("%s: %s", context_str, errors)
     notify_warning("Form validation failed. Please check your inputs.")

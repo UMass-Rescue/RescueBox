@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-import os
-import sys
-import zipfile
+import errno
 import logging
+import os
+import platform
 import signal
 import subprocess
-import errno
-import platform
+import sys
+import zipfile
 
-from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
+from fuse import FUSE, FuseOSError, LoggingMixIn, Operations
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -237,8 +237,6 @@ class UFDRMount(LoggingMixIn, Operations):
         return {
             "st_mode": 0o100444,  # Regular file, read-only
             "st_size": size,
-            "st_uid": os.getuid(),
-            "st_gid": os.getgid(),
             "st_nlink": 1,
             "st_atime": now,
             "st_mtime": now,
@@ -256,8 +254,6 @@ class UFDRMount(LoggingMixIn, Operations):
         return {
             "st_mode": 0o040555,  # directory, read/execute
             "st_size": 0,
-            "st_uid": os.getuid(),
-            "st_gid": os.getgid(),
             "st_nlink": 2,
             "st_atime": now,
             "st_mtime": now,

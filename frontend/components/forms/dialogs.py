@@ -1,12 +1,13 @@
 import logging
-from typing import Optional
+
 from nicegui import ui
+
 from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 
 
-async def show_case_notes_dialog() -> Optional[str]:
+async def show_case_notes_dialog() -> str | None:
     """Show case notes modal and await user input."""
     with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_MD):
         with ui.row().classes(Design.PANEL_SHELL_HEADER):

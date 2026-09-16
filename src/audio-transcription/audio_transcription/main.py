@@ -2,13 +2,13 @@
 
 import errno
 import hashlib
-import os
 import logging
+import os
 from pathlib import Path
-from typing import List, TypedDict
+from typing import TypedDict
 
-from pydantic import DirectoryPath
 import typer
+from pydantic import DirectoryPath
 from rb.api.models import (
     BatchTextResponse,
     DirectoryInput,
@@ -16,15 +16,16 @@ from rb.api.models import (
     InputSchema,
     InputType,
     ResponseBody,
-    TextResponse,
     TaskSchema,
+    TextResponse,
 )
+from rb.lib.ml_service import MLService
+
 from audio_transcription.model import (
     AudioTranscriptionModel,
     whisper_cache_dir,
     whisper_local_files_only,
 )
-from rb.lib.ml_service import MLService
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"}
 class AudioDirectory(FileFilterDirectory):
 
     path: DirectoryPath
-    file_extensions: List[str] = AUDIO_EXTENSIONS
+    file_extensions: list[str] = AUDIO_EXTENSIONS
 
 
 class AudioInput(TypedDict):

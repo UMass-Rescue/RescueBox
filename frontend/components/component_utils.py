@@ -6,7 +6,7 @@ This module provides shared utilities and helper functions for components.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from nicegui import ui
 
@@ -93,7 +93,7 @@ def create_card_container(title: str = None, classes: str = "") -> Any:
     return card
 
 
-def validate_component_config(config: Dict[str, Any], required_keys: list) -> bool:
+def validate_component_config(config: dict[str, Any], required_keys: list) -> bool:
     """
     Validate component configuration.
 
@@ -116,7 +116,7 @@ def validate_component_config(config: Dict[str, Any], required_keys: list) -> bo
     return True
 
 
-def get_component_theme_colors(component_type: str) -> Dict[str, str]:
+def get_component_theme_colors(component_type: str) -> dict[str, str]:
     """
     Get theme colors for a component type.
 
@@ -157,7 +157,7 @@ def get_component_theme_colors(component_type: str) -> Dict[str, str]:
 
 
 def log_component_event(
-    component_name: str, event: str, details: Optional[Dict[str, Any]] = None
+    component_name: str, event: str, details: dict[str, Any] | None = None
 ):
     """
     Log a component event with structured information.

@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from faster_whisper import WhisperModel, download_model
+from rb.lib.ml_service import RESCUEBOX_MODEL_DIR_ENV, whisper_models_dir
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,8 @@ def _bundled_whisper_cache_dir() -> Path | None:
 
 def whisper_cache_dir() -> Path:
     """Directory for faster-whisper / CTranslate2 weights (writable on desktop installs)."""
+    if os.environ.get(RESCUEBOX_MODEL_DIR_ENV, "").strip():
+        return whisper_models_dir(Path(__file__).resolve().parent)
     env = os.environ.get("RESCUEBOX_WHISPER_CACHE")
     if env:
         return Path(env).expanduser().resolve()
@@ -64,6 +67,8 @@ def whisper_cache_dir() -> Path:
 
 def whisper_local_files_only() -> bool:
     """Offline weights: explicit env or bundled ``models.zip`` extract under ``_internal``."""
+    if os.environ.get(RESCUEBOX_MODEL_DIR_ENV, "").strip():
+        return True
     if os.environ.get("RESCUEBOX_WHISPER_CACHE"):
         return True
     return _bundled_whisper_cache_dir() is not None

@@ -1,9 +1,9 @@
+import concurrent.futures
 import json
 import os
 from pathlib import Path
-from typing import List, TypedDict, Tuple, Union
-import concurrent.futures
 from threading import Lock
+from typing import TypedDict
 
 from flask_ml.flask_ml_server import MLServer, load_file_as_string
 from flask_ml.flask_ml_server.models import (
@@ -43,7 +43,7 @@ server.add_app_metadata(
 )
 
 # Initialize with "Create a new database" value used in frontend to take new file name entered by user
-available_databases: List[str] = ["Create a new database"]
+available_databases: list[str] = ["Create a new database"]
 
 # Load all available datasets under resources/data folder
 database_directory_path = get_resource_path("data")
@@ -119,7 +119,7 @@ class FindFaceParameters(TypedDict):
 # Function to process a single face match
 def process_face_match(
     image_path: str, similarity_threshold: float, database_path: str
-) -> Tuple[bool, Union[List[str], str]]:
+) -> tuple[bool, list[str] | str]:
     # Acquire lock when accessing the shared model (if necessary)
     with db_lock:
         return face_match_model.find_face(
@@ -187,7 +187,7 @@ def find_face_endpoint(
             except Exception as e:
                 log_info(f"Image {image_path} generated an exception: {e}")
                 return ResponseBody(
-                    root=TextResponse(value=f"Error processing {image_path}: {str(e)}")
+                    root=TextResponse(value=f"Error processing {image_path}: {e!s}")
                 )
 
     # Create response object of images

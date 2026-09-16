@@ -69,6 +69,10 @@ else:
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DATA_DIR / "jobs.db"
+PROGRESS_DIR = Path(os.getenv("RESCUEBOX_PROGRESS_DIR", str(DATA_DIR / "progress")))
+PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
+if "RESCUEBOX_PROGRESS_DIR" not in os.environ:
+    os.environ["RESCUEBOX_PROGRESS_DIR"] = str(PROGRESS_DIR)
 
 # Logging Configuration
 LOG_LEVEL = os.getenv("RESCUEBOX_LOG_LEVEL", "INFO")
@@ -83,15 +87,45 @@ if _api_log_env:
 else:
     BACKEND_LOG_FILE = LOG_FILE.parent / "backend.log"
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _path_has_demo_samples(path: Path) -> bool:
+    return (path / "search-images").is_dir() or (path / "transcribe-audio").is_dir()
+
+
+def _default_demo_files_browse_root() -> Path:
+    explicit = os.getenv("RESCUEBOX_DEMO_FILES_DIR")
+    if explicit:
+        return Path(explicit).expanduser()
+
+    rescuebox_home = os.getenv("RESCUEBOX_HOME")
+    if rescuebox_home:
+        home = Path(rescuebox_home).expanduser()
+        if home.is_dir() and _path_has_demo_samples(home):
+            return home
+        nested = home / "demo"
+        if nested.is_dir():
+            return nested
+
+    for candidate in (
+        _REPO_ROOT / "demo",
+        _REPO_ROOT / "src-tauri" / "demo",
+        Path.cwd() / "demo",
+    ):
+        if candidate.is_dir():
+            return candidate
+
+    return _REPO_ROOT / "src-tauri" / "demo"
+
+
 # Demo folders: each browser session gets one folder from this pool (Option 1 auto-assign)
 DEMO_BASE = "."
 DEMO_FOLDERS_BASE = Path(os.getenv("RESCUEBOX_HOME", DEMO_BASE))
 DEMO_FOLDER_NAMES = ["demo"]
 
 # Browsable tree on /demo (inputs/outputs samples). Override with RESCUEBOX_DEMO_FILES_DIR.
-DEMO_FILES_BROWSE_ROOT = Path(
-    os.getenv("RESCUEBOX_HOME", str(DEMO_FOLDERS_BASE / "demo"))
-).expanduser()
+DEMO_FILES_BROWSE_ROOT = _default_demo_files_browse_root()
 
 # Reconnect timeout (seconds) before client is deleted; 1 hour keeps demo folder for entire demo
 RECONNECT_TIMEOUT = float(os.getenv("RESCUEBOX_RECONNECT_TIMEOUT", "3600"))

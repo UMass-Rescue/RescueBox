@@ -18,10 +18,12 @@ enabling users to review their interaction history, and supporting the
 tool call execution workflow that powers RescueBox's AI capabilities.
 """
 
-import pytest
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
+
+import pytest
+
 from frontend.database.chat_history_db import ChatHistoryDB
 
 # Test constants

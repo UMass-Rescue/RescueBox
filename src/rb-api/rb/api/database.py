@@ -1,7 +1,8 @@
+import os
+
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import String, Text
-from sqlmodel import Field, SQLModel, create_engine, Column, Index
-import os
+from sqlmodel import Column, Field, Index, SQLModel, create_engine
 
 ## Create the data model and connect to the DB
 
@@ -57,6 +58,18 @@ def create_db_and_tables():
             )
     except Exception:
         pass
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_similarity_embeddings ADD COLUMN IF NOT EXISTS "
+                    "pdq_hash VARCHAR(64) DEFAULT '' NOT NULL"
+                )
+            )
+    except Exception:
+        pass
     # BGE-M3 and other modern text encoders use 1024-dim vectors; legacy was 384 (MiniLM / bge-small).
     try:
         from sqlalchemy import text
@@ -86,6 +99,68 @@ def create_db_and_tables():
     except Exception:
         pass
 
+    # Migration: add user_email to image_similarity_embeddings if missing
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE image_similarity_embeddings ADD COLUMN IF NOT EXISTS "
+                    "user_email VARCHAR(256) DEFAULT '' NOT NULL"
+                )
+            )
+    except Exception:
+        pass
+    # Migration: add missing columns to private embeddings
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            for stmt in (
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "organization VARCHAR(256) DEFAULT '' NOT NULL",
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "filename VARCHAR(512) DEFAULT '' NOT NULL",
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "source VARCHAR(32) DEFAULT 'local' NOT NULL",
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "export_file VARCHAR(512) DEFAULT '' NOT NULL",
+            ):
+                conn.execute(text(stmt))
+            conn.execute(
+                text(
+                    "UPDATE image_similarity_private_embeddings "
+                    "SET source = 'imported' WHERE path = '[imported]'"
+                )
+            )
+    except Exception:
+        pass
+    # Migration: move private embeddings to dedicated table, drop privacy_protocol column.
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            has_col = conn.execute(
+                text(
+                    "SELECT 1 FROM information_schema.columns "
+                    "WHERE table_name = 'image_similarity_embeddings' "
+                    "AND column_name = 'privacy_protocol'"
+                )
+            ).fetchone()
+            if has_col:
+                conn.execute(
+                    text(
+                        "DELETE FROM image_similarity_embeddings WHERE privacy_protocol != ''"
+                    )
+                )
+                conn.execute(
+                    text(
+                        "ALTER TABLE image_similarity_embeddings DROP COLUMN privacy_protocol"
+                    )
+                )
+    except Exception:
+        pass
     # Image embeddings: plugin default openai/clip-vit-large-patch14-336 → projection_dim 768.
     try:
         from sqlalchemy import text
@@ -186,7 +261,7 @@ class ImageEmbedding(SQLModel, table=True):
 
 
 class ImageSimilarityEmbedding(SQLModel, table=True):
-    """Image embeddings used by the image-to-image similarity search plugin."""
+    """Image embeddings used by the image-to-image similarity search plugin (public only)."""
 
     __tablename__ = "image_similarity_embeddings"
 
@@ -199,6 +274,29 @@ class ImageSimilarityEmbedding(SQLModel, table=True):
     )
     embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
     pdq_hash: str = Field(default="", sa_column=Column(String(64), index=True))
+    user_email: str = Field(default="", sa_column=Column(String(256), index=True))
+
+
+class ImageSimilarityPrivateEmbedding(SQLModel, table=True):
+    """Anonymized image embeddings — isolated from public embeddings by design."""
+
+    __tablename__ = "image_similarity_private_embeddings"
+
+    id: int | None = Field(default=None, primary_key=True)
+    path: str = Field(index=True)
+    content_sha256: str = Field(default="", sa_column=Column(String(64), index=True))
+    model_name: str = Field(
+        default="google/siglip2-so400m-patch14-384",
+        sa_column=Column(String(128), index=True),
+    )
+    embedding: list[float] = Field(default=[], sa_column=Column(Vector(1152)))
+    pdq_hash: str = Field(default="", sa_column=Column(String(64), index=True))
+    user_email: str = Field(default="", sa_column=Column(String(256), index=True))
+    organization: str = Field(default="", sa_column=Column(String(256), index=True))
+    privacy_protocol: str = Field(default="", sa_column=Column(String(128), index=True))
+    filename: str = Field(default="", sa_column=Column(String(512)))
+    export_file: str = Field(default="", sa_column=Column(String(512)))
+    source: str = Field(default="local", sa_column=Column(String(32), index=True))
 
 
 class FaceEmbedding(SQLModel, table=True):
@@ -258,4 +356,4 @@ try:
     )
     face_index.create(engine)
 except Exception:
-    print("Index probably already exists")
+    print("Index already exists")

@@ -1,7 +1,7 @@
 from __future__ import annotations
+
 import logging
 from pathlib import Path
-from typing import List, Optional, Tuple
 from urllib.parse import unquote
 
 from nicegui import ui
@@ -22,7 +22,7 @@ LICENSE_ROOT = _REPO_ROOT / "License&Copyright"
 DEFAULT_LICENSE_REL = "LICENSE"
 
 # Top-level RescueBox notices (label shown in UI → path under LICENSE_ROOT).
-_PRIMARY_DOC_ENTRIES: Tuple[Tuple[str, str], ...] = (
+_PRIMARY_DOC_ENTRIES: tuple[tuple[str, str], ...] = (
     ("LICENSE", "LICENSE"),
     ("COPYRIGHT", "COPYRIGHT.txt"),
     ("NOTICE", "NOTICE"),
@@ -32,7 +32,7 @@ _THIRD_PARTY_SENTINEL = "Third_Party Licenses"
 _MARKDOWN_SUFFIXES = frozenset({".md", ".markdown"})
 
 
-def _safe_relative_file(root: Path, rel: str) -> Optional[Path]:
+def _safe_relative_file(root: Path, rel: str) -> Path | None:
     if not rel or rel.strip() != rel:
         return None
     if ".." in rel or rel.startswith(("/", "\\")):
@@ -47,11 +47,11 @@ def _safe_relative_file(root: Path, rel: str) -> Optional[Path]:
     return candidate
 
 
-def list_text_docs(root: Path) -> List[str]:
+def list_text_docs(root: Path) -> list[str]:
     """Sorted relative POSIX paths for readable license-style files."""
     if not root.is_dir():
         return []
-    out: List[str] = []
+    out: list[str] = []
     try:
         for p in root.rglob("*"):
             if not p.is_file():
@@ -70,7 +70,7 @@ def list_text_docs(root: Path) -> List[str]:
 
 
 def _primary_and_third_party_paths(
-    files: List[str],
+    files: list[str],
 ) -> tuple[list[tuple[str, str]], list[str]]:
     """Split listing into top-level LICENSE/COPYRIGHT/NOTICE vs nested third-party files."""
     present = set(files)

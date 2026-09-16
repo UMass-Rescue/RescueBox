@@ -4,13 +4,15 @@ These tests verify the integration between chatbot and NiceGUI storage.
 All dependencies are real - no mocks used.
 """
 
+import uuid
+
 import pytest
 from nicegui.testing import User
-import uuid
+
 from frontend.utils import (
     get_current_conversation_id,
-    set_current_conversation_id,
     get_user_id,
+    set_current_conversation_id,
 )
 
 
@@ -101,8 +103,8 @@ class TestChatbotStorageIntegration:
     @pytest.mark.asyncio
     async def test_user_message_saved_to_history(self, user: User):
         """Test that user messages are saved to chat history with user ID"""
-        from frontend.pages.chatbot import ChatbotPage
         from frontend.database import get_chat_history_db
+        from frontend.pages.chatbot import ChatbotPage
 
         route = f"/test_chatbot_{uuid.uuid4().hex}"
 
@@ -131,8 +133,8 @@ class TestChatbotStorageIntegration:
     @pytest.mark.asyncio
     async def test_tool_call_saved_to_history(self, user: User):
         """Test that tool calls are saved to chat history"""
-        from frontend.pages.chatbot import ChatbotPage
         from frontend.database import get_chat_history_db
+        from frontend.pages.chatbot import ChatbotPage
 
         route = f"/test_chatbot_{uuid.uuid4().hex}"
 
@@ -166,9 +168,9 @@ class TestChatHistoryPersistence:
     @pytest.mark.asyncio
     async def test_conversation_persists_across_navigation(self, user: User):
         """Test that conversation persists when navigating away and back"""
+        from frontend.database import get_chat_history_db
         from frontend.pages.chatbot import ChatbotPage
         from frontend.utils import get_current_conversation_id
-        from frontend.database import get_chat_history_db
 
         test_conv_id = None
 
@@ -206,8 +208,8 @@ class TestChatHistoryPersistence:
     @pytest.mark.asyncio
     async def test_messages_persist_in_database(self, user: User):
         """Test that messages persist in database even after page reload"""
-        from frontend.pages.chatbot import ChatbotPage
         from frontend.database import get_chat_history_db
+        from frontend.pages.chatbot import ChatbotPage
         from frontend.utils import get_current_conversation_id
 
         route = f"/test_chatbot_{uuid.uuid4().hex}"

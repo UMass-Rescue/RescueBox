@@ -1,22 +1,24 @@
-import os
-import sys
-import platform
-import logging
-import threading
 import importlib
+import logging
+import os
+import platform
+import sys
+import threading
 from pathlib import Path
-from typing import Optional
-from nicegui import ui, app
+
+from nicegui import app, ui
+
+from frontend.config import DEMO_FOLDER_NAMES, DEMO_FOLDERS_BASE
 from frontend.design_tokens import Design
-from frontend.config import DEMO_FOLDERS_BASE, DEMO_FOLDER_NAMES
+from frontend.utils.exceptions import UI_RENDER_ERRORS
+
 from .paths import (
+    _absolute_path,
     _resolved_existing_directory,
     _resolved_file_browser_folder,
     path_for_ui,
-    _absolute_path,
 )
 from .storage import get_user_id
-from frontend.utils.exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -395,7 +397,7 @@ def _user_storage_get(key: str):
         return None
 
 
-def _assign_demo_folder(user_id: str) -> Optional[str]:
+def _assign_demo_folder(user_id: str) -> str | None:
     assignments = dict(app.storage.general.get("demo_folder_assignments", {}))
     assigned_paths = set(assignments.values())
     for name in DEMO_FOLDER_NAMES:
@@ -410,7 +412,7 @@ def _assign_demo_folder(user_id: str) -> Optional[str]:
     return None
 
 
-def get_assigned_demo_folder() -> Optional[str]:
+def get_assigned_demo_folder() -> str | None:
     """
     Get the demo folder assigned to this browser session (Option 1 auto-assign).
     Each session gets one folder from the pool.
@@ -430,7 +432,7 @@ def get_assigned_demo_folder() -> Optional[str]:
         return None
 
 
-def resolve_demo_folder_for_browser() -> Optional[str]:
+def resolve_demo_folder_for_browser() -> str | None:
     """
     Default directory when opening the file/directory browser from plugin forms.
     Uses the session-assigned demo folder when available.

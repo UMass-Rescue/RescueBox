@@ -8,19 +8,18 @@ import platform
 import subprocess
 import time
 import uuid
-from typing import Dict
 
 from nicegui import app, ui
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import FileResponse as StarletteFileResponse
 
-from frontend.design_tokens import Design
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 
-_SERVED_FILES: Dict[str, Dict] = {}
+_SERVED_FILES: dict[str, dict] = {}
 _SERVE_TTL = 300
 
 IMAGE_PREVIEW_EXTS = {

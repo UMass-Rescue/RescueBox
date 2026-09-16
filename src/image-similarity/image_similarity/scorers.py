@@ -12,14 +12,55 @@ import logging
 from typing import Protocol, runtime_checkable
 
 import numpy as np
+from rb.api.database import ImageSimilarityEmbedding, ImageSimilarityPrivateEmbedding
+from image_similarity import sql_filters
 from sqlalchemy import bindparam, text
 from sqlmodel import Session, select
-
-from rb.api.database import ImageSimilarityEmbedding
 
 logger = logging.getLogger(__name__)
 
 _PDQ_BITS = 256
+IMPORTED_EMBEDDING_PATH = "[imported]"
+SOURCE_LOCAL = "local"
+SOURCE_IMPORTED = "imported"
+BANK_PLAIN = "plain"
+BANK_PRIVATE = "private"
+
+
+def _result_hit_key(path: str, row_id: int | None) -> str:
+    if path == IMPORTED_EMBEDDING_PATH and row_id is not None:
+        return f"{IMPORTED_EMBEDDING_PATH}#{row_id}"
+    return path
+
+
+def _search_hit(
+    path: str,
+    score: float,
+    *,
+    row_id: int | None = None,
+    content_sha256: str = "",
+    user_email: str = "",
+    organization: str = "",
+    bank: str = "",
+    source: str = SOURCE_LOCAL,
+    filename: str = "",
+    export_file: str = "",
+) -> dict:
+    remote = source == SOURCE_IMPORTED
+    hit: dict = {
+        "path": path,
+        "score": round(float(score), 4),
+        "hit_key": _result_hit_key(path, row_id),
+        "remote": remote,
+        "source": source,
+        "content_sha256": content_sha256,
+        "user_email": user_email,
+        "organization": organization,
+        "bank": bank,
+        "filename": filename,
+        "export_file": export_file,
+    }
+    return hit
 
 
 # ---------------------------------------------------------------------------
@@ -52,6 +93,8 @@ def cosine_similarity_search(
     search_paths: list[str],
     top_k: int,
     model_name: str = "google/siglip2-so400m-patch14-384",
+    use_private_table: bool = False,
+    include_imported_private: bool = False,
 ) -> list[dict]:
     """Find the top-K most similar embeddings using pgvector's cosine distance.
 
@@ -59,29 +102,88 @@ def cosine_similarity_search(
     HNSW/IVFFlat indexes and handle arbitrarily large candidate sets without
     loading all vectors into process memory.
     """
-    if not search_paths:
+    include_imported = use_private_table and include_imported_private
+    if not search_paths and not include_imported:
         return []
+    table = (
+        "image_similarity_private_embeddings"
+        if use_private_table
+        else "image_similarity_embeddings"
+    )
     qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
-    stmt = text(
-        """
-            SELECT path,
-                   1 - (embedding <=> CAST(:qvec AS vector)) AS score
-            FROM image_similarity_embeddings
-            WHERE path IN :paths AND model_name = :model_name
+    if include_imported:
+        path_clause = (
+            "(path IN :paths OR source = :imported_source)"
+            if search_paths
+            else "source = :imported_source"
+        )
+        stmt = text(
+            f"""
+            SELECT id, path, content_sha256, user_email, organization, source, filename,
+                   export_file, 1 - (embedding <=> CAST(:qvec AS vector)) AS score
+            FROM {table}
+            WHERE model_name = :model_name
+              AND {path_clause}
             ORDER BY embedding <=> CAST(:qvec AS vector)
             LIMIT :top_k
             """
-    ).bindparams(bindparam("paths", expanding=True))
-    rows = session.execute(
-        stmt,
-        {
+        )
+        if search_paths:
+            stmt = stmt.bindparams(bindparam("paths", expanding=True))
+        params: dict = {
+            "qvec": qvec_literal,
+            "top_k": top_k,
+            "model_name": model_name,
+            "imported_source": SOURCE_IMPORTED,
+        }
+        if search_paths:
+            params["paths"] = search_paths
+    else:
+        stmt = text(
+            f"""
+            SELECT path, content_sha256, user_email,
+                   1 - (embedding <=> CAST(:qvec AS vector)) AS score
+            FROM {table}
+            WHERE path IN :paths
+              AND model_name = :model_name
+            ORDER BY embedding <=> CAST(:qvec AS vector)
+            LIMIT :top_k
+            """
+        ).bindparams(bindparam("paths", expanding=True))
+        params = {
             "qvec": qvec_literal,
             "paths": search_paths,
             "top_k": top_k,
             "model_name": model_name,
-        },
-    ).fetchall()
-    return [{"path": r.path, "score": round(float(r.score), 4)} for r in rows]
+        }
+    rows = session.execute(stmt, params).fetchall()
+    bank = BANK_PRIVATE if use_private_table else BANK_PLAIN
+    if include_imported:
+        return [
+            _search_hit(
+                r.path,
+                r.score,
+                row_id=r.id,
+                content_sha256=r.content_sha256 or "",
+                user_email=r.user_email or "",
+                organization=r.organization or "",
+                bank=bank,
+                source=r.source or SOURCE_LOCAL,
+                filename=r.filename or "",
+                export_file=r.export_file or "",
+            )
+            for r in rows
+        ]
+    return [
+        _search_hit(
+            r.path,
+            r.score,
+            content_sha256=r.content_sha256 or "",
+            user_email=r.user_email or "",
+            bank=bank,
+        )
+        for r in rows
+    ]
 
 
 def hamming_distance(hex_a: str, hex_b: str) -> int:
@@ -94,26 +196,97 @@ def pdq_similarity_search(
     query_pdq: str,
     candidate_paths: list[str],
     top_k: int,
+    use_private_table: bool = False,
+    include_imported_private: bool = False,
 ) -> list[dict]:
     """Rank candidates by PDQ Hamming similarity to the query hash."""
-    if not candidate_paths or not query_pdq:
+    include_imported = use_private_table and include_imported_private
+    if not query_pdq or (not candidate_paths and not include_imported):
         return []
 
-    rows = session.exec(
-        select(ImageSimilarityEmbedding.path, ImageSimilarityEmbedding.pdq_hash).where(
-            ImageSimilarityEmbedding.path.in_(candidate_paths),
-            ImageSimilarityEmbedding.pdq_hash != "",
-        )
-    ).all()
+    if use_private_table:
+        filters = [ImageSimilarityPrivateEmbedding.pdq_hash != ""]
+        if candidate_paths and include_imported:
+            filters.append(
+                (sql_filters.priv_path_in(candidate_paths))
+                | (ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED)
+            )
+        elif candidate_paths:
+            filters.append(sql_filters.priv_path_in(candidate_paths))
+        else:
+            filters.append(ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED)
+        rows = session.exec(
+            select(
+                ImageSimilarityPrivateEmbedding.id,
+                ImageSimilarityPrivateEmbedding.path,
+                ImageSimilarityPrivateEmbedding.pdq_hash,
+                ImageSimilarityPrivateEmbedding.content_sha256,
+                ImageSimilarityPrivateEmbedding.user_email,
+                ImageSimilarityPrivateEmbedding.organization,
+                ImageSimilarityPrivateEmbedding.source,
+                ImageSimilarityPrivateEmbedding.filename,
+                ImageSimilarityPrivateEmbedding.export_file,
+            ).where(*filters)
+        ).all()
+    else:
+        rows = session.exec(
+            select(
+                ImageSimilarityEmbedding.path,
+                ImageSimilarityEmbedding.pdq_hash,
+                ImageSimilarityEmbedding.content_sha256,
+                ImageSimilarityEmbedding.user_email,
+            ).where(
+                sql_filters.path_in(candidate_paths),
+                sql_filters.pdq_hash_nonempty(),
+            )
+        ).all()
 
     if not rows:
         logger.warning("pdq_similarity_search: no PDQ hashes found for candidates")
         return []
 
+    bank = BANK_PRIVATE if use_private_table else BANK_PLAIN
     scored = []
-    for path, pdq_hash in rows:
-        dist = hamming_distance(query_pdq, pdq_hash)
-        scored.append({"path": path, "score": round(1.0 - dist / _PDQ_BITS, 4)})
+    for row in rows:
+        if use_private_table:
+            (
+                row_id,
+                path,
+                pdq_hash,
+                content_sha256,
+                user_email,
+                organization,
+                row_source,
+                row_filename,
+                row_export_file,
+            ) = row
+            dist = hamming_distance(query_pdq, pdq_hash)
+            scored.append(
+                _search_hit(
+                    path,
+                    1.0 - dist / _PDQ_BITS,
+                    row_id=row_id,
+                    content_sha256=content_sha256 or "",
+                    user_email=user_email or "",
+                    organization=organization or "",
+                    bank=bank,
+                    source=row_source or SOURCE_LOCAL,
+                    filename=row_filename or "",
+                    export_file=row_export_file or "",
+                )
+            )
+        else:
+            path, pdq_hash, content_sha256, user_email = row
+            dist = hamming_distance(query_pdq, pdq_hash)
+            scored.append(
+                _search_hit(
+                    path,
+                    1.0 - dist / _PDQ_BITS,
+                    content_sha256=content_sha256 or "",
+                    user_email=user_email or "",
+                    bank=bank,
+                )
+            )
 
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:top_k]
@@ -132,16 +305,26 @@ class ClipScorer:
         session: Session,
         query_vec: np.ndarray,
         model_name: str = "google/siglip2-so400m-patch14-384",
+        use_private_table: bool = False,
+        include_imported_private: bool = False,
     ) -> None:
         self._session = session
         self._query_vec = query_vec
         self._model_name = model_name
+        self._use_private_table = use_private_table
+        self._include_imported_private = include_imported_private
 
     def score(
         self, query_path: str, candidate_paths: list[str], top_k: int
     ) -> list[dict]:
         return cosine_similarity_search(
-            self._session, self._query_vec, candidate_paths, top_k, self._model_name
+            self._session,
+            self._query_vec,
+            candidate_paths,
+            top_k,
+            self._model_name,
+            self._use_private_table,
+            self._include_imported_private,
         )
 
 
@@ -151,15 +334,28 @@ class PdqScorer:
     Similarity = 1 - (hamming_distance / 256).
     """
 
-    def __init__(self, session: Session, query_pdq: str) -> None:
+    def __init__(
+        self,
+        session: Session,
+        query_pdq: str,
+        use_private_table: bool = False,
+        include_imported_private: bool = False,
+    ) -> None:
         self._session = session
         self._query_pdq = query_pdq
+        self._use_private_table = use_private_table
+        self._include_imported_private = include_imported_private
 
     def score(
         self, query_path: str, candidate_paths: list[str], top_k: int
     ) -> list[dict]:
         return pdq_similarity_search(
-            self._session, self._query_pdq, candidate_paths, top_k
+            self._session,
+            self._query_pdq,
+            candidate_paths,
+            top_k,
+            self._use_private_table,
+            self._include_imported_private,
         )
 
 
@@ -189,28 +385,40 @@ class CombinedScorer:
         candidate_paths: list[str],
         top_k: int,
     ) -> list[dict]:
-        path_raw: dict[str, float] = {}
-        path_weight: dict[str, float] = {}
-        sub_scores: dict[str, dict[str, float]] = {}
+        # Query sub-scorers for at least top_k results even if there are fewer
+        # local candidate paths, so imported hits aren't truncated (they don't
+        # correspond 1:1 with candidate_paths).
+        sub_top_k = max(top_k, len(candidate_paths))
 
+        contributions: dict[str, dict] = {}
         for name, scorer, weight in self._scorers:
-            results = scorer.score(query_path, candidate_paths, len(candidate_paths))
-            for hit in results:
-                p = hit["path"]
-                path_raw[p] = path_raw.get(p, 0.0) + weight * hit["score"]
-                path_weight[p] = path_weight.get(p, 0.0) + weight
-                sub_scores.setdefault(p, {})[name] = hit["score"]
+            for hit in scorer.score(query_path, candidate_paths, sub_top_k):
+                key = hit.get("hit_key", hit["path"])
+                entry = contributions.setdefault(
+                    key,
+                    {"weighted_sum": 0.0, "weight_total": 0.0, "sub_scores": {}},
+                )
+                entry["hit"] = hit
+                entry["weighted_sum"] += weight * hit["score"]
+                entry["weight_total"] += weight
+                entry["sub_scores"][name] = hit["score"]
 
-        combined = []
-        for p, raw in path_raw.items():
-            w = path_weight[p]
-            entry: dict = {
-                "path": p,
-                "score": round(raw / w, 4) if w > 0 else 0.0,
-            }
-            for k, v in sub_scores.get(p, {}).items():
-                entry[f"score_{k}"] = v
-            combined.append(entry)
-
+        combined = [self._merge(entry) for entry in contributions.values()]
         combined.sort(key=lambda x: x["score"], reverse=True)
         return combined[:top_k]
+
+    @staticmethod
+    def _merge(entry: dict) -> dict:
+        """Combine one candidate's per-scorer contributions into a single result.
+
+        Re-normalises over weight_total (not the full weight sum) so a hit
+        missing from one scorer isn't penalised for that scorer's weight.
+        """
+        weight_total = entry["weight_total"]
+        score = (
+            round(entry["weighted_sum"] / weight_total, 4) if weight_total > 0 else 0.0
+        )
+        result = {**entry["hit"], "score": score}
+        for name, sub_score in entry["sub_scores"].items():
+            result[f"score_{name}"] = sub_score
+        return result

@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from rb.api.models import FileResponse, FileType, ResponseBody
 
 from frontend.chatbot.pipeline_context import get_pipeline_output_path

@@ -154,7 +154,7 @@ def create_image_attributes():
         "Lighting Conditions": random.choice(possible_lighting_conditions),
         "Depth of Field": random.choice(possible_depth_of_field),
         "Camera Type": random.choice(possible_camera_types),
-        "Image Size": "{}x{}".format(image_x, image_y),
+        "Image Size": f"{image_x}x{image_y}",
     }
     return image_attributes
 
@@ -174,11 +174,11 @@ for i in range(num_prompts):
     subject_attributes = {k: v for k, v in subject_attributes.items() if v is not None}
     prompt += "Subject Attributes: {"
     for key, value in subject_attributes.items():
-        prompt += "{}: {}, ".format(key, value)
+        prompt += f"{key}: {value}, "
     prompt = prompt[:-2] + "}, "
     prompt += "Image Attributes: {"
     for key, value in image_attributes.items():
-        prompt += "{}: {}, ".format(key, value)
+        prompt += f"{key}: {value}, "
     prompt = prompt[:-2] + "}"
     prompts.append(prompt)
 

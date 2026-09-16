@@ -1,35 +1,39 @@
 # imports
 import csv
+import logging
+import os
+import threading
 import warnings
-import typer
-from typing import Any, Dict, List, Optional, TypedDict
+from datetime import datetime
 from pathlib import Path
+from typing import Any, TypedDict
 
+import onnxruntime as ort
+import typer
 from pydantic import DirectoryPath
-from rb.lib.ml_service import MLService
 from rb.api.models import (
+    BatchFileResponse,
     DirectoryInput,
+    EnumParameterDescriptor,
+    EnumVal,
     FileFilterDirectory,
     FileResponse,
     InputSchema,
     InputType,
-    ResponseBody,
-    BatchFileResponse,
-    TaskSchema,
     ParameterSchema,
-    EnumParameterDescriptor,
-    EnumVal,
     ParameterType,
+    ResponseBody,
+    TaskSchema,
     TextResponse,
 )
-from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
+from rb.lib.ml_service import MLService
 
-import onnxruntime as ort
-import os
+from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 from deepfake_detection.sim_data import defaultDataset
-import logging
-from datetime import datetime
-import threading
+
+APP_NAME = "deepfake_detection"
+server = MLService(APP_NAME)
+_MODELS_DIR = server.models_dir
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,7 +43,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore")
-APP_NAME = "deepfake_detection"
 
 # Extensions scanned by ``defaultDataset`` in ``sim_data`` (top-level files only).
 DEEPFAKE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
@@ -49,7 +52,7 @@ class DeepfakeImageDirectory(FileFilterDirectory):
     """Directory must exist, be non-empty, and contain at least one allowed image extension."""
 
     path: DirectoryPath
-    file_extensions: List[str] = list(DEEPFAKE_IMAGE_EXTENSIONS)
+    file_extensions: list[str] = list(DEEPFAKE_IMAGE_EXTENSIONS)
 
 
 print("start")
@@ -64,7 +67,7 @@ def _load_face_detector_session():
     the ONNX file loads. The task parameter ``facecrop`` only selects whether result rows
     show the saved crop vs the full image; it does not turn this preprocessing off.
     """
-    model_dir = Path(__file__).resolve().parent / "onnx_models"
+    model_dir = _MODELS_DIR
     available = ort.get_available_providers()
     providers = ["CPUExecutionProvider"]
     if "CUDAExecutionProvider" in available:
@@ -242,14 +245,14 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         crop_preview_root = out.parent if out.suffix else out
         crop_preview_root.mkdir(parents=True, exist_ok=True)
         for m in active_models:
-            setattr(m, "crop_preview_dir", str(crop_preview_root.resolve()))
+            m.crop_preview_dir = str(crop_preview_root.resolve())
 
         now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         out = crop_preview_root / f"predictions_{now}.csv"
 
         # Face-aligned crops improve scores; always load when ONNX is available (``facecrop`` only affects result UI).
-        facecropper: Optional[ort.InferenceSession] = None
+        facecropper: ort.InferenceSession | None = None
         try:
             facecropper = _load_face_detector_session()
             logger.info(
@@ -289,11 +292,11 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             predictions = model_results[1:]
             model_data.append({"name": model_name, "predictions": predictions})
 
-        file_responses: List[FileResponse] = []
+        file_responses: list[FileResponse] = []
         if model_data and model_data[0]["predictions"]:
             num_images = len(model_data[0]["predictions"])
             for i in range(num_images):
-                row_metadata: Dict[str, Any] = {}
+                row_metadata: dict[str, Any] = {}
                 # Use the full image_path instead of just the basename
                 full_image_path = model_data[0]["predictions"][i]["image_path"]
                 os.path.basename(full_image_path)
@@ -339,9 +342,6 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 # ----------------------------
 # Server Setup Below
 # ----------------------------
-
-# Create a server instance
-server = MLService(APP_NAME)
 
 info_file_path = Path(__file__).resolve().parent / "img-app-info.md"
 with open(info_file_path, "r", encoding="utf-8") as f:

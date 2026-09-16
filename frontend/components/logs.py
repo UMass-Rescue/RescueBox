@@ -3,8 +3,8 @@ from pathlib import Path
 
 from nicegui import ui
 
-from frontend.design_tokens import Design
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -31,7 +31,7 @@ def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:
         return content
 
     except UI_RENDER_ERRORS as e:
-        error_msg = f"Error reading log file: {str(e)}"
+        error_msg = f"Error reading log file: {e!s}"
         logger.error(error_msg)
         return error_msg
 

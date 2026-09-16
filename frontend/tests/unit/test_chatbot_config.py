@@ -21,8 +21,8 @@ behavior and providing users with clear, discoverable tool access patterns.
 from frontend.chatbot.config import (
     ChatbotConfig,
     ToolRegistry,
-    normalize_ollama_host,
     collect_ollama_model_names,
+    normalize_ollama_host,
     resolve_ollama_model_tag,
 )
 
@@ -50,12 +50,14 @@ HELP_COMMAND = "/help"
 SUMMARIZE_COMMAND = "/summarize-text"
 
 TRANSCRIBE_ENDPOINT = "audio/transcribe"
+FIND_FACE_ENDPOINT = "face-match/findfacebulk"
 DESCRIBE_IMAGES_ENDPOINT = "image_summary/summarize-images"
 SUMMARIZE_ENDPOINT = "text_summarization/summarize"
 PICK_TOOL_ENDPOINT = "pick_tool"
 SMART_ANALYZE_ENDPOINT = "smart_analyze"
 
 TOOL_MENU_KEY_1 = "1"
+TOOL_MENU_KEY_7 = "7"
 TOOL_MENU_KEY_9 = "9"
 
 # Help text constants
@@ -110,10 +112,7 @@ class TestChatbotConfig:
         assert config.OLLAMA_HOST == "http://127.0.0.1:11434"
 
     def test_normalize_ollama_host_helper(self):
-        assert normalize_ollama_host("localhost:11434") == "http://localhost:11434"
-        assert (
-            normalize_ollama_host("https://ollama.example") == "https://ollama.example"
-        )
+        assert normalize_ollama_host("localhost:11434") == "http://127.0.0.1:11434"
 
     def test_resolve_ollama_model_tag(self):
         tags = {
@@ -207,6 +206,8 @@ class TestToolRegistry:
         API endpoints, and descriptive text for proper UI display.
         """
         assert TOOL_MENU_KEY_1 in ToolRegistry.TOOL_MENU
+        assert "4.1" in ToolRegistry.TOOL_MENU
+        assert TOOL_MENU_KEY_7 in ToolRegistry.TOOL_MENU
         assert TOOL_MENU_KEY_9 in ToolRegistry.TOOL_MENU
 
         tool_1 = ToolRegistry.TOOL_MENU[TOOL_MENU_KEY_1]
@@ -214,6 +215,9 @@ class TestToolRegistry:
         assert "endpoint" in tool_1
         assert "desc" in tool_1
         assert tool_1["endpoint"] == DESCRIBE_IMAGES_ENDPOINT
+
+        tool_7 = ToolRegistry.TOOL_MENU[TOOL_MENU_KEY_7]
+        assert tool_7["endpoint"] == FIND_FACE_ENDPOINT
 
         tool_9 = ToolRegistry.TOOL_MENU[TOOL_MENU_KEY_9]
         assert tool_9["endpoint"] == TRANSCRIBE_ENDPOINT

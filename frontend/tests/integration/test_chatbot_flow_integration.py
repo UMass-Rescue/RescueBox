@@ -14,22 +14,24 @@ To run these tests:
 4. Run: pytest frontend/tests/integration/test_chatbot_flow_integration.py -v -m "api and ollama"
 """
 
-import pytest
-import pytest_asyncio
-import httpx
 import logging
 import os
 from pathlib import Path
+
+import httpx
+import pytest
+import pytest_asyncio
+from rb.api.models import (
+    DirectoryInput,
+    FileInput,
+    RequestBody,
+    ResponseBody,
+    TextInput,
+)
+
 from frontend.chatbot.config import ChatbotConfig
 from frontend.chatbot.core import ChatbotCore
 from frontend.chatbot.message_handler import MessageHandler
-from rb.api.models import (
-    RequestBody,
-    DirectoryInput,
-    TextInput,
-    FileInput,
-    ResponseBody,
-)
 
 # Configure logging
 logger = logging.getLogger(__name__)

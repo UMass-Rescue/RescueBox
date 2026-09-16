@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from nicegui import context, ui
 
 from frontend.chatbot.config import ChatbotConfig
 from frontend.components.shared import create_navbar
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.pages.chatbot.chat_page import ChatbotPage
 from frontend.pages.page_shell import COMPACT_TOOLBAR_HEAD_HTML
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.utils import (
     apply_saved_theme,
     ensure_user_id,
@@ -22,7 +21,7 @@ from frontend.utils import (
 logger = logging.getLogger(__name__)
 
 
-def _query_params_from_client(client) -> Optional[dict]:
+def _query_params_from_client(client) -> dict | None:
     req = getattr(client, "request", None)
     if req is None or not hasattr(req, "query_params"):
         return None
@@ -69,9 +68,7 @@ async def handle_rerun_parameter(message_id: str) -> None:
 
 
 @ui.page("/chatbot")
-async def chatbot_page(
-    load_conversation: Optional[str] = None, rerun: Optional[str] = None
-):
+async def chatbot_page(load_conversation: str | None = None, rerun: str | None = None):
     if ensure_user_id() is None:
         return
 
@@ -96,7 +93,7 @@ async def chatbot_page(
             await chatbot.load_conversation_from_data(stored)
 
 
-async def create_chat_ui(config: Optional[ChatbotConfig] = None):
+async def create_chat_ui(config: ChatbotConfig | None = None):
     chatbot = ChatbotPage(config)
     await chatbot.render()
     return chatbot

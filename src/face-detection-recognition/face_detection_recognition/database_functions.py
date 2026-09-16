@@ -3,9 +3,10 @@ import json
 import logging
 import os
 import re
+from collections.abc import Sequence
 from contextvars import ContextVar
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 
 import pandas as pd
 from rb.api.database import FaceEmbedding, create_db_and_tables, engine
@@ -23,10 +24,10 @@ _VALID_DEMO_SCOPE = re.compile(r"^demo[0-9]+$", re.IGNORECASE)
 # Per–RescueBox-user scope (stable hash of explicit user id from X-RescueBox-User-Id)
 _VALID_USER_SCOPE = re.compile(r"^u_[a-f0-9]{16}$")
 
-_vector_db_cache: Dict[tuple, "Vector_Database"] = {}
+_vector_db_cache: dict[tuple, "Vector_Database"] = {}
 
 # Set by FastAPI (cli_to_api) from header X-RescueBox-User-Id for each request; isolates rows per user.
-facematch_rescuebox_user_id: ContextVar[Optional[str]] = ContextVar(
+facematch_rescuebox_user_id: ContextVar[str | None] = ContextVar(
     "facematch_rescuebox_user_id", default=None
 )
 
@@ -37,7 +38,7 @@ def user_scope_from_rescuebox_user_id(user_id: str) -> str:
     return f"u_{h}"
 
 
-def facematch_demo_scope_from_path(path: Optional[str]) -> Optional[str]:
+def facematch_demo_scope_from_path(path: str | None) -> str | None:
     """
     When the path is under .../Documents/<folder>/..., return <folder> if it matches
     ``demo`` + digits (e.g. demo3). Used to isolate pgvector rows per demo user folder.
@@ -70,7 +71,7 @@ def _ensure_face_tables() -> None:
         )
 
 
-def _scope_storage_key(demo_scope: Optional[str]) -> str:
+def _scope_storage_key(demo_scope: str | None) -> str:
     return demo_scope or ""
 
 
@@ -96,14 +97,14 @@ class _FacematchPgClient:
     def __init__(self, db: "Vector_Database"):
         self._db = db
 
-    def list_collections(self) -> List[_CollectionShim]:
+    def list_collections(self) -> list[_CollectionShim]:
         return [_CollectionShim(n) for n in self._db.list_full_collection_names()]
 
     def delete_collection(self, name: str) -> None:
         self._db.delete_collection_by_full_name(name)
 
 
-def get_vector_database(demo_scope: Optional[str] = None) -> "Vector_Database":
+def get_vector_database(demo_scope: str | None = None) -> "Vector_Database":
     """
     Return a cached Vector_Database for the given demo scope (or legacy default when None).
 
@@ -121,7 +122,7 @@ def get_vector_database(demo_scope: Optional[str] = None) -> "Vector_Database":
     return _vector_db_cache[cache_key]
 
 
-def vector_db_for_current_request(path_hint: Optional[str] = None) -> "Vector_Database":
+def vector_db_for_current_request(path_hint: str | None = None) -> "Vector_Database":
     """
     Select face embedding store for the current HTTP request.
 
@@ -140,8 +141,8 @@ def vector_db_for_current_request(path_hint: Optional[str] = None) -> "Vector_Da
 def list_base_collection_names_for_schema(
     *,
     is_ensemble: bool = False,
-    path_hint: Optional[str] = None,
-) -> List[str]:
+    path_hint: str | None = None,
+) -> list[str]:
     """Collection names for task-schema enums; empty when Postgres is unreachable."""
     try:
         db = vector_db_for_current_request(path_hint)
@@ -172,7 +173,7 @@ M = db_config["hnsw:M"]
 
 
 class Vector_Database:
-    def __init__(self, demo_scope: Optional[str] = None):
+    def __init__(self, demo_scope: str | None = None):
         """
         Face embeddings in PostgreSQL/pgvector (``face_embeddings`` table), scoped by
         ``demo_scope`` (e.g. ``demo3`` or ``u_<hash>``) or legacy default when None.
@@ -192,7 +193,7 @@ class Vector_Database:
     def create_full_collection_name(self, base_name, detector, model, isEnsemble):
         return f"{base_name}_{detector.lower()[0:2]}{model.lower()[0:2]}{self.ensemble_indicator if isEnsemble else self.single_indicator}"
 
-    def list_full_collection_names(self) -> List[str]:
+    def list_full_collection_names(self) -> list[str]:
         try:
             _ensure_face_tables()
             with Session(engine) as session:
@@ -278,8 +279,8 @@ class Vector_Database:
         full_collection_name: str,
         query_vectors: Sequence[Any],
         n_results: int,
-    ) -> List[dict]:
-        rows_out: List[dict] = []
+    ) -> list[dict]:
+        rows_out: list[dict] = []
         with Session(engine) as session:
             for idx, qvec in enumerate(query_vectors):
                 literal = _vector_literal(qvec)
@@ -335,7 +336,7 @@ class Vector_Database:
 
     def query_bulk(self, collection, data, n_results, threshold, similarity_filter):
         full_name = self.get_collection(collection)
-        data_rows: List[dict] = []
+        data_rows: list[dict] = []
 
         with Session(engine) as session:
             for query_idx, query in enumerate(data):

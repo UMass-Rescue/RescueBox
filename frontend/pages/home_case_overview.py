@@ -8,9 +8,9 @@ from collections.abc import Awaitable, Callable
 from nicegui import ui
 
 from frontend.components.jobs.status_badge import append_job_status_icon_and_label
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database import get_case_db, get_job_db
 from frontend.design_tokens import Design
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.utils import clear_active_case_id
 
 logger = logging.getLogger(__name__)

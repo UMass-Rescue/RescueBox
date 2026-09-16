@@ -6,7 +6,8 @@ This module provides base classes and utilities for component development.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
+
 from nicegui import ui
 
 from frontend.components.component_utils import create_success_card_element
@@ -90,7 +91,7 @@ class BaseComponent(ABC):
         """
         return create_success_card_element(message)
 
-    def log_action(self, action: str, details: Optional[str] = None):
+    def log_action(self, action: str, details: str | None = None):
         """
         Log a component action.
 
@@ -111,7 +112,7 @@ class ComponentRegistry:
     Provides a centralized way to manage and access component instances.
     """
 
-    _instances: Dict[str, Any] = {}
+    _instances: dict[str, Any] = {}
 
     @classmethod
     def register(cls, name: str, instance: Any):
@@ -126,7 +127,7 @@ class ComponentRegistry:
         logger.info("Registered component: %s", name)
 
     @classmethod
-    def get(cls, name: str) -> Optional[Any]:
+    def get(cls, name: str) -> Any | None:
         """
         Get a registered component instance.
 

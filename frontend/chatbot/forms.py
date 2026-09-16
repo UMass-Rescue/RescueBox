@@ -1,10 +1,9 @@
 """NiceGUI form wrapper for chatbot tool input schemas."""
 
-from typing import Optional, Dict
 import logging
 
 from nicegui import ui
-from rb.api.models import TaskSchema, RequestBody
+from rb.api.models import RequestBody, TaskSchema
 
 from frontend.components.forms import FormGenerator
 from frontend.utils import validate_request_body
@@ -16,10 +15,10 @@ logger.setLevel(logging.INFO)
 async def create_input_form(
     task_schema: TaskSchema,
     endpoint: str,
-    initial_values: Optional[Dict] = None,
+    initial_values: dict | None = None,
     on_submit: callable = None,
     on_cancel: callable = None,
-    container: Optional[ui.element] = None,
+    container: ui.element | None = None,
 ):
     """
     Create input form card using FormGenerator. Returns the created card element.

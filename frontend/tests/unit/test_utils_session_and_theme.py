@@ -11,8 +11,8 @@ from frontend.constants import DEMO_USER_ID_PREFIX
 
 @pytest.fixture
 def patched_app(monkeypatch):
-    import frontend.utils as utils
     import frontend.utils.storage as storage_mod
+    from frontend import utils
     from frontend.utils.storage import reset_test_storage
 
     mock_app = MagicMock()

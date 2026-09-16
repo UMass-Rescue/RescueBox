@@ -7,15 +7,15 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Optional, Union
 
 from frontend.database.db_exceptions import DB_ERRORS
-from frontend.database.file_filter_store import load_filter
 from frontend.database.file_filter_store import (
+    create_composite_filter,
+    load_filter,
     resolve_filter_for_job,
     resolve_output_filter_for_job,
-    create_composite_filter,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,8 +25,8 @@ def set_job_filter(
     job_db,
     job_uid: str,
     *,
-    filter_id: Optional[str] = None,
-    _owner_id: Optional[str] = None,
+    filter_id: str | None = None,
+    _owner_id: str | None = None,
     clear: bool = False,
 ) -> bool:
     """
@@ -94,9 +94,9 @@ def get_job_filters(job_db, job_uid: str) -> dict:
 
 def resolve_input_files(
     input_dir: Path,
-    input_paths: Optional[List[Path]],
-    supported_extensions: Optional[Iterable[str]] = None,
-) -> List[Path]:
+    input_paths: list[Path] | None,
+    supported_extensions: Iterable[str] | None = None,
+) -> list[Path]:
     supported = {
         e.lower()
         for e in (
@@ -152,7 +152,7 @@ def _match_numeric_range(value: float, pattern: str) -> bool:
 
 def _pattern_matches_file_text(
     txt: str,
-    pat: Union[str, int, float],
+    pat: str | float,
     *,
     mode: str,
     case_sensitive: bool,
@@ -179,10 +179,10 @@ def _pattern_matches_file_text(
 
 def apply_output_filter(
     output_files: Iterable[Path],
-    output_patterns: List[Union[str, int, float]],
+    output_patterns: list[str | int | float],
     mode: str = "substring",
     case_sensitive: bool = True,
-) -> List[Path]:
+) -> list[Path]:
     """
     Filter generated summary files by provided patterns.
     mode: 'substring'|'regex'|'numeric_range'
@@ -207,7 +207,7 @@ def apply_output_filter(
     return matched
 
 
-def parse_output_pattern(pattern_str: str) -> Union[dict, str, float, int]:
+def parse_output_pattern(pattern_str: str) -> dict | str | float | int:
     """
     Parse a pattern string into a structured form.
     """
@@ -227,10 +227,10 @@ def parse_output_pattern(pattern_str: str) -> Union[dict, str, float, int]:
 def process_prompt_for_filters(
     _prompt: str,
     tool_call: dict,
-    input_dir: Optional[Path] = None,
-    owner_id: Optional[str] = None,
+    input_dir: Path | None = None,
+    owner_id: str | None = None,
     persist_if_requested: bool = True,
-) -> Optional[str]:
+) -> str | None:
     """
     Inspect the tool_call and prompt to resolve input/output filters.
     Returns a single filter_id if any persisted or referenced filter is found/created.

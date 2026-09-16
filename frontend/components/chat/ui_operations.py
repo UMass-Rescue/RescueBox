@@ -7,8 +7,8 @@ import logging
 
 from nicegui import ui
 
-from frontend.utils import notify_error, notify_info, notify_success, notify_warning
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.utils import notify_error, notify_info, notify_success, notify_warning
 
 logger = logging.getLogger(__name__)
 

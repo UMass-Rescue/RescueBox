@@ -1,10 +1,13 @@
 from __future__ import annotations
+
 import logging
-from typing import Callable, List, Optional, Any, Dict
-from enum import Enum
+from collections.abc import Callable
 from dataclasses import dataclass
-from frontend.utils.storage import set_current_conversation_id
+from enum import Enum
+from typing import Any
+
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
+from frontend.utils.storage import set_current_conversation_id
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +25,8 @@ class ChatMessage:
 
     role: MessageRole | str
     content: str
-    id: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    id: str | None = None
+    metadata: dict[str, Any] | None = None
     message_type: str = "text"
 
 
@@ -37,8 +40,8 @@ class ChatbotStateManager:
 
     def __init__(self):
         """Initialize the state manager with default values."""
-        self.messages: List[ChatMessage] = []
-        self.conversation_id: Optional[str] = None
+        self.messages: list[ChatMessage] = []
+        self.conversation_id: str | None = None
         self.is_processing = False
         self.status_text = "Ready"
         self.input_field = None
@@ -89,11 +92,11 @@ class ChatbotStateManager:
         self.status_text = text
         logger.debug("Status updated: %s", text)
 
-    def get_messages(self) -> List[ChatMessage]:
+    def get_messages(self) -> list[ChatMessage]:
         """Get all messages in the conversation."""
         return self.messages.copy()
 
-    def get_last_message(self) -> Optional[ChatMessage]:
+    def get_last_message(self) -> ChatMessage | None:
         """Get the last message in the conversation."""
         return self.messages[-1] if self.messages else None
 
@@ -194,10 +197,10 @@ class MessageSendParams:
 
     message_text: str
     input_field: Any
-    is_processing_ref: Dict[str, Any]
+    is_processing_ref: dict[str, Any]
     message_handler: Any
     process_handler_result_func: Callable[..., Any]
     add_message_func: Callable[..., Any]
     show_error_func: Callable[..., Any]
     update_status_func: Callable[..., Any]
-    conversation_id_ref: Optional[Dict[str, Any]] = None
+    conversation_id_ref: dict[str, Any] | None = None

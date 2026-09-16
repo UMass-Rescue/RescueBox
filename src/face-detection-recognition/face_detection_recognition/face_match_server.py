@@ -1,43 +1,44 @@
 import json
 import logging
 import os
-import typer
 import threading
-from dotenv import load_dotenv
-from typing import List, TypedDict
+from typing import TypedDict
 
-from rb.lib.ml_service import MLService
+import typer
+from dotenv import load_dotenv
+from pydantic import DirectoryPath
 from rb.api.models import (
-    BatchTextResponse,
-    FileFilterDirectory,
     BatchFileInput,
     BatchFileResponse,
+    BatchTextResponse,
     EnumParameterDescriptor,
     EnumVal,
+    FileFilterDirectory,
     FileResponse,
     FloatRangeDescriptor,
     InputSchema,
     InputType,
-    ParameterSchema,
     IntParameterDescriptor,
+    ParameterSchema,
     RangedFloatParameterDescriptor,
     ResponseBody,
     TaskSchema,
     TextParameterDescriptor,
     TextResponse,
 )
-
-from pydantic import DirectoryPath
-
-from face_detection_recognition.interface import FaceMatchModel
-from face_detection_recognition.utils.GPU import check_cuDNN_version
-from face_detection_recognition.utils.logger import log_info
+from rb.lib.ml_service import MLService
 from face_detection_recognition.database_functions import (
     Vector_Database,
     get_vector_database,
     list_base_collection_names_for_schema,
     vector_db_for_current_request,
 )
+from face_detection_recognition.interface import FaceMatchModel
+from face_detection_recognition.utils.GPU import check_cuDNN_version
+from face_detection_recognition.utils.logger import log_info
+
+APP_NAME = "face-match"
+server = MLService(APP_NAME)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,9 +54,6 @@ def vector_db_for_path(path: str) -> Vector_Database:
     """Backward-compatible alias; prefer :func:`vector_db_for_current_request`."""
     return vector_db_for_current_request(str(path))
 
-
-APP_NAME = "face-match"
-server = MLService(APP_NAME)
 
 # Add static location for app-info.md file
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -80,7 +78,7 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp"}
 
 class ImageDirectory(FileFilterDirectory):
     path: DirectoryPath
-    file_extensions: List[str] = list(IMAGE_EXTENSIONS)
+    file_extensions: list[str] = list(IMAGE_EXTENSIONS)
 
 
 # Legacy default store handle (used where a module-level DB reference is still handy)
@@ -88,9 +86,9 @@ class ImageDirectory(FileFilterDirectory):
 # so each RescueBox user (``X-RescueBox-User-Id``) only sees their own Chroma collections.
 
 
-def _bulk_upload_collection_choices(is_ensemble: bool) -> List[str]:
+def _bulk_upload_collection_choices(is_ensemble: bool) -> list[str]:
     """First row is the UI sentinel; remaining names are collections for the current user only."""
-    rows: List[str] = ["Create a new collection"]
+    rows: list[str] = ["Create a new collection"]
     rows.extend(
         list_base_collection_names_for_schema(is_ensemble=is_ensemble, path_hint=None)
     )
@@ -98,7 +96,7 @@ def _bulk_upload_collection_choices(is_ensemble: bool) -> List[str]:
 
 
 def _resolve_bulk_upload_base_collection_name(
-    parameters: dict, available_collections: List[str]
+    parameters: dict, available_collections: list[str]
 ) -> str:
     """
     Logical collection name: chosen existing collection, or the text field when creating new.
@@ -788,7 +786,7 @@ def multi_pipeline_bulk_upload_endpoint(
             original_config = json.load(f)
     except Exception as e:
         return ResponseBody(
-            root=TextResponse(value=f"Error reading config file: {str(e)}")
+            root=TextResponse(value=f"Error reading config file: {e!s}")
         )
 
     _scope_db = vector_db_for_current_request(base_path)
@@ -984,7 +982,7 @@ def multi_pipeline_face_find_bulk_endpoint(
             original_config = json.load(f)
     except Exception as e:
         return ResponseBody(
-            root=TextResponse(value=f"Error reading config file: {str(e)}")
+            root=TextResponse(value=f"Error reading config file: {e!s}")
         )
 
     # Helper function to run a pipeline with modified config
@@ -1033,7 +1031,7 @@ def multi_pipeline_face_find_bulk_endpoint(
         img_files.sort()
     except Exception as e:
         return ResponseBody(
-            root=TextResponse(value=f"Error listing query directory: {str(e)}")
+            root=TextResponse(value=f"Error listing query directory: {e!s}")
         )
 
     for img in img_files:

@@ -1,17 +1,18 @@
 import argparse
-import csv
-import os
-import pandas as pd
-import numpy as np
-import time
-from dotenv import load_dotenv
 import ast
+import csv
 import json
+import os
+import time
+
+import numpy as np
+import pandas as pd
+from dotenv import load_dotenv
+from fastapi.testclient import TestClient
+from rb.api.main import app
 
 # from flask_ml.flask_ml_client import MLClient
 from rb.api.models import ResponseBody
-from fastapi.testclient import TestClient
-from rb.api.main import app
 
 
 def query_find_face_bulk(query_directory, collection_name):

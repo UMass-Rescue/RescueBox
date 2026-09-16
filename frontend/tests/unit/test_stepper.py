@@ -20,8 +20,9 @@ such as data analysis pipelines, forensic investigations, and multi-stage
 processing tasks where clear progress indication is critical.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 # Test constants for step names
 STEP_1_NAME = "Step 1"
@@ -223,8 +224,9 @@ class TestWorkflowStepper:
 
     def test_previous_step_at_first_step(self, mock_ui):
         """Test previous_step when already at first step"""
-        from frontend.components.shared import WorkflowStepper
         from unittest.mock import patch
+
+        from frontend.components.shared import WorkflowStepper
 
         # Mock the container creation
         mock_container = MagicMock()
@@ -274,7 +276,7 @@ class TestWorkflowStepper:
 
     def test_create_workflow_stepper(self, mock_ui):
         """Test create_workflow_stepper convenience function"""
-        from frontend.components.shared import create_workflow_stepper, WorkflowStepper
+        from frontend.components.shared import WorkflowStepper, create_workflow_stepper
 
         # Mock the container creation
         mock_container = MagicMock()

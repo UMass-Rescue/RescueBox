@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from frontend.database.pipeline_job_index_db import (
     insert_chunks,
@@ -67,7 +67,7 @@ def _sanitize_payload_fragment(obj: Any, depth: int = 0) -> Any:
     if isinstance(obj, (int, float, bool)) or obj is None:
         return obj
     if isinstance(obj, dict):
-        out: Dict[str, Any] = {}
+        out: dict[str, Any] = {}
         items = list(obj.items())
         for k, v in items[:400]:
             sk = str(k)[:200]
@@ -85,7 +85,7 @@ def _sanitize_payload_fragment(obj: Any, depth: int = 0) -> Any:
 
 
 def _append_response_row(
-    out: List[Dict[str, Any]],
+    out: list[dict[str, Any]],
     container: str,
     output_type: str,
     payload: Any,
@@ -104,7 +104,7 @@ def _append_response_row(
 
 
 def _flatten_json_dict_lists(
-    payload: dict, out: List[Dict[str, Any]], cap: int
+    payload: dict, out: list[dict[str, Any]], cap: int
 ) -> None:
     handled: set[str] = set()
     for key in _JSON_LIST_KEYS:
@@ -124,7 +124,7 @@ def _flatten_json_dict_lists(
                     )
                     return
     remainder = {k: v for k, v in payload.items() if k not in handled}
-    extra_lists: Dict[str, list] = {}
+    extra_lists: dict[str, list] = {}
     for k, v in list(remainder.items()):
         if isinstance(v, list) and v:
             extra_lists[k] = v
@@ -142,7 +142,7 @@ def _flatten_json_dict_lists(
         _append_response_row(out, "text.json.remainder", "json_object", remainder, cap)
 
 
-def _flatten_text_value(value: Any, out: List[Dict[str, Any]], cap: int) -> None:
+def _flatten_text_value(value: Any, out: list[dict[str, Any]], cap: int) -> None:
     if not isinstance(value, str):
         _append_response_row(out, "text.value", "text", {"value": value}, cap)
         return
@@ -170,11 +170,11 @@ def flatten_job_response_to_rows(
     response_data: Any,
     _endpoint: str,
     cap: int = _MAX_RESPONSE_ROW_ITEMS,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Produce one logical record per result row: batch members, JSON list elements, etc.
     """
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     root = _response_root_dict(response_data)
     if not root:
         if hasattr(response_data, "model_dump"):
@@ -247,7 +247,7 @@ def flatten_job_response_to_rows(
     return out
 
 
-def _response_root_dict(response_data: Any) -> Optional[dict]:
+def _response_root_dict(response_data: Any) -> dict | None:
     if response_data is None:
         return None
     if hasattr(response_data, "model_dump"):
@@ -260,7 +260,7 @@ def _response_root_dict(response_data: Any) -> Optional[dict]:
     return root if isinstance(root, dict) else None
 
 
-def _parse_text_response_value(response_data: Any) -> Optional[str]:
+def _parse_text_response_value(response_data: Any) -> str | None:
     root = _response_root_dict(response_data)
     if not root or root.get("output_type") != "text":
         return None
@@ -268,10 +268,10 @@ def _parse_text_response_value(response_data: Any) -> Optional[str]:
     return val if isinstance(val, str) else None
 
 
-def _lineage_detail_from_root(root: dict) -> Dict[str, Any]:
+def _lineage_detail_from_root(root: dict) -> dict[str, Any]:
     """Compact summary for pipeline_job_steps (no large blobs)."""
     ot = root.get("output_type") or "unknown"
-    out: Dict[str, Any] = {"output_type": ot}
+    out: dict[str, Any] = {"output_type": ot}
     if ot == "text":
         v = root.get("value")
         if isinstance(v, str):
@@ -303,7 +303,7 @@ def _lineage_detail_from_root(root: dict) -> Dict[str, Any]:
     return out
 
 
-def _parse_json_object_from_text_response(response_data: Any) -> Optional[dict]:
+def _parse_json_object_from_text_response(response_data: Any) -> dict | None:
     raw = _parse_text_response_value(response_data)
     if not raw:
         return None
@@ -320,9 +320,9 @@ def _is_image_summarize_endpoint(endpoint: str) -> bool:
 
 
 def record_pipeline_job_completion(
-    user_id: Optional[str],
-    root_job_id: Optional[str],
-    step_job_id: Optional[str],
+    user_id: str | None,
+    root_job_id: str | None,
+    step_job_id: str | None,
     endpoint: str,
     response_data: Any,
 ) -> None:
@@ -336,7 +336,7 @@ def record_pipeline_job_completion(
     if not user_id or not root_job_id:
         return
     root = _response_root_dict(response_data)
-    detail: Dict[str, Any] = {
+    detail: dict[str, Any] = {
         "endpoint": endpoint,
         "step_job_id": step_job_id or "",
         "pipeline_root_job_id": root_job_id,
@@ -359,7 +359,7 @@ def record_pipeline_job_completion(
 def _record_generic_file_pair_artifacts(
     user_id: str,
     root_job_id: str,
-    step_job_id: Optional[str],
+    step_job_id: str | None,
     endpoint: str,
     response_data: Any,
 ) -> None:
@@ -370,7 +370,7 @@ def _record_generic_file_pair_artifacts(
     summarize-images (handled by :func:`record_image_summary_for_pipeline`).
     """
     root = _response_root_dict(response_data)
-    rows: List[Dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
 
     if root and root.get("output_type") == "batchfile":
         files = root.get("files") or []
@@ -515,7 +515,7 @@ def record_image_summary_for_pipeline(
     if not input_dir and not file_pairs:
         return
 
-    rows: List[Dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
 
     if isinstance(file_pairs, list) and file_pairs:
         for pair in file_pairs:

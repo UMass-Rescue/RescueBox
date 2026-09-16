@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from case_export.fragment import build_jsonld_text
 
@@ -20,11 +20,11 @@ def case_exports_dir() -> Path:
     return d
 
 
-def build_jsonld_bytes_from_job_dict(job: Dict[str, Any]) -> bytes:
+def build_jsonld_bytes_from_job_dict(job: dict[str, Any]) -> bytes:
     return build_jsonld_text(job).encode("utf-8")
 
 
-def write_case_fragment_file(job_uid: str, job: Dict[str, Any]) -> Path:
+def write_case_fragment_file(job_uid: str, job: dict[str, Any]) -> Path:
     """Write ``{job_uid}.jsonld`` under case_exports_dir."""
     path = case_exports_dir() / f"{job_uid}.jsonld"
     path.write_text(build_jsonld_text(job), encoding="utf-8")

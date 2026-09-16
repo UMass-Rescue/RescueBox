@@ -1,7 +1,8 @@
 import logging
 import os
 import uuid
-from typing import Any, Callable, Dict, Optional, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from nicegui import app
 
@@ -35,8 +36,8 @@ def _runs_under_pytest() -> bool:
 
 
 def _ignore_storage_errors(
-    action: Callable[[], _T], default: Optional[_T] = None
-) -> Optional[_T]:
+    action: Callable[[], _T], default: _T | None = None
+) -> _T | None:
     try:
         return action()
     except UI_RENDER_ERRORS:
@@ -91,7 +92,7 @@ def read_user_storage_key(key: str, default: Any = None) -> Any:
     return _user_get(key, default)
 
 
-def get_user_id() -> Optional[str]:
+def get_user_id() -> str | None:
     try:
         user_id = app.storage.user.get("id")
         if not user_id:
@@ -104,7 +105,7 @@ def get_user_id() -> Optional[str]:
         return None
 
 
-def get_explicit_user_id() -> Optional[str]:
+def get_explicit_user_id() -> str | None:
     return get_active_case_id()
 
 
@@ -162,7 +163,7 @@ def try_claim_explicit_user_id(uid: str) -> str:
         return "invalid"
 
 
-def get_active_case_id() -> Optional[str]:
+def get_active_case_id() -> str | None:
     case_id = _user_get("active_case_id")
     if case_id:
         return case_id
@@ -184,7 +185,7 @@ def clear_active_case_id():
         _test_fallback_storage.pop("active_case_id", None)
 
 
-def get_active_case() -> Optional[Any]:
+def get_active_case() -> Any | None:
     case_id = get_active_case_id()
     if not case_id:
         return None
@@ -204,7 +205,7 @@ def get_active_case() -> Optional[Any]:
         return None
 
 
-def get_user_id_for_jobs() -> Optional[str]:
+def get_user_id_for_jobs() -> str | None:
     """Returns the active case ID so that all jobs and chat history are scoped to the active case."""
     return get_active_case_id()
 
@@ -217,7 +218,7 @@ def set_user_preference(key: str, value: Any):
         _test_fallback_storage["preferences"] = prefs
 
 
-def get_user_preferences() -> Dict[str, Any]:
+def get_user_preferences() -> dict[str, Any]:
     prefs = _user_get("preferences")
     if prefs is None and _runs_under_pytest():
         prefs = _test_fallback_storage.get("preferences")
@@ -226,14 +227,14 @@ def get_user_preferences() -> Dict[str, Any]:
     return {**DEFAULT_PREFERENCES, **prefs}
 
 
-def get_current_conversation_id() -> Optional[str]:
+def get_current_conversation_id() -> str | None:
     val = _user_get("current_conversation_id")
     if val:
         return val
     return _test_fallback_storage.get("current_conversation_id")
 
 
-def set_current_conversation_id(conversation_id: Optional[str]):
+def set_current_conversation_id(conversation_id: str | None):
     if conversation_id:
         _user_set("current_conversation_id", conversation_id)
     else:
@@ -296,7 +297,7 @@ def clear_conversation_to_load():
         _test_fallback_storage.pop("conversation_to_load", None)
 
 
-def get_form_draft() -> Optional[dict]:
+def get_form_draft() -> dict | None:
     val = _user_get("form_draft")
     if val:
         return val
@@ -331,7 +332,7 @@ def get_user_preference(key: str, default: Any = None) -> Any:
     return prefs.get(key, default)
 
 
-def set_user_preferences(prefs: Dict[str, Any]):
+def set_user_preferences(prefs: dict[str, Any]):
     current = get_user_preferences()
     current.update(prefs)
     _user_set("preferences", current)

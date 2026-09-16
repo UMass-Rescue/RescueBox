@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Optional
+from typing import Any
 
 from frontend.chatbot.core import ChatbotCore
 from frontend.components.chat import UIOperations
@@ -10,8 +10,8 @@ from frontend.pages.chatbot.handlers import (
     JobSubmissionOrchestrator,
     show_case_notes_dialog,
 )
-from frontend.pages.chatbot.state import ChatbotStateManager
 from frontend.pages.chatbot.handlers.job_submit_params import JobSubmitParams
+from frontend.pages.chatbot.state import ChatbotStateManager
 from frontend.utils import ensure_active_case_id
 
 logger = logging.getLogger(__name__)
@@ -32,8 +32,8 @@ class FormSubmitHandler:
         task_schema,
         container,
         core: ChatbotCore,
-        remaining_calls: Optional[List[dict[str, Any]]] = None,
-        conversation_id: Optional[str] = None,
+        remaining_calls: list[dict[str, Any]] | None = None,
+        conversation_id: str | None = None,
         **kwargs,
     ):
         """Submit a form and handle the complete job execution flow."""
@@ -66,6 +66,6 @@ class FormSubmitHandler:
         )
         return True
 
-    def active_conversation_id(self) -> Optional[str]:
+    def active_conversation_id(self) -> str | None:
         """Active conversation id from state (for tests and callers)."""
         return self.state_manager.conversation_id

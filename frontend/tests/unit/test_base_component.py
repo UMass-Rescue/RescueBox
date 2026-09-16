@@ -5,15 +5,15 @@ This module tests the base component infrastructure including BaseComponent,
 ComponentRegistry, and component utilities.
 """
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from frontend.components.base_component import BaseComponent, ComponentRegistry
 from frontend.components.component_utils import (
-    format_timestamp,
     create_card_container,
-    validate_component_config,
+    format_timestamp,
     get_component_theme_colors,
     log_component_event,
+    validate_component_config,
 )
 
 

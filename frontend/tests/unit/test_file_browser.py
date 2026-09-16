@@ -22,16 +22,17 @@ All tests validate that users can successfully browse and select files
 through the web interface.
 """
 
-import pytest
 import platform
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 from nicegui.testing import User
 
 from frontend.utils import (
     browse_directory,
-    browse_file,
     browse_directory_simple,
+    browse_file,
     is_outputs_results_directory,
 )
 

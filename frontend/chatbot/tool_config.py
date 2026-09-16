@@ -15,13 +15,13 @@ Key Features:
 
 import json
 import logging
-from typing import List, Any, Optional, Literal
+from typing import Any, Literal
 
 from nicegui import app
 from pydantic import BaseModel, Field
 
-from frontend.chatbot.pipeline_context import get_pipeline_output_path
 from frontend.chatbot.exceptions import CHATBOT_ERRORS
+from frontend.chatbot.pipeline_context import get_pipeline_output_path
 from frontend.utils import get_active_case
 
 logger = logging.getLogger(__name__)
@@ -159,6 +159,25 @@ class ImageSeriesSearch(BaseModel):
     )
 
 
+class ImageSeriesExportPrivateEmbeddings(BaseModel):
+    """Export anonymized image embeddings to a JSON file for sharing."""
+
+    organization: str = Field(
+        ...,
+        description="Organization name — stored as embedding owner contact info",
+    )
+    contact_email: str = Field(
+        ...,
+        description="Contact email — stored as embedding owner contact info",
+    )
+
+
+class ImageSeriesImportPrivateEmbeddings(BaseModel):
+    """Import anonymized image embeddings from a JSON file."""
+
+    input_file: str = Field(..., description="Path to the JSON file to import")
+
+
 # Legacy support for backward compatibility
 class RescueBoxToolCall(BaseModel):
     """Single Granite tool call (legacy strict schema)."""
@@ -170,6 +189,8 @@ class RescueBoxToolCall(BaseModel):
         "image_summary/summarize-images",
         "image_embeddings/search_images",
         "image_series_similarity/search_series",
+        "image_series_similarity/export_embeddings",
+        "image_series_similarity/import_embeddings",
         "ufdr_mounter/mount",
         "face-match/findfacebulk",
         "face-match/bulkupload",
@@ -182,7 +203,7 @@ class RescueBoxToolCall(BaseModel):
 class ToolCallList(BaseModel):
     """Wrapper for a list of legacy tool calls."""
 
-    calls: List[RescueBoxToolCall] = Field(
+    calls: list[RescueBoxToolCall] = Field(
         ..., description="List of tool calls (legacy format)"
     )
 
@@ -198,6 +219,8 @@ SCHEMA_MAP = {
     # List image (CLIP) search before text search so tool JSON order matches typical "search images" intent.
     "image_embeddings/search_images": ImageSearch,
     "image_series_similarity/search_series": ImageSeriesSearch,
+    "image_series_similarity/export_embeddings": ImageSeriesExportPrivateEmbeddings,
+    "image_series_similarity/import_embeddings": ImageSeriesImportPrivateEmbeddings,
     "ufdr_mounter/mount": UfdrMount,
     "face-match/findfacebulk": FaceFindBulk,
     "face-match/bulkupload": FaceBulkUpload,
@@ -234,8 +257,7 @@ def remove_tool_schema(tool_name: str) -> None:
     Args:
         tool_name: The tool endpoint name to remove
     """
-    if tool_name in SCHEMA_MAP:
-        del SCHEMA_MAP[tool_name]
+    SCHEMA_MAP.pop(tool_name, None)
 
 
 def generate_tool_definitions() -> list[dict]:
@@ -822,7 +844,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
     return messages
 
 
-def parse_tool_calls_response(response_text: str) -> Optional[list[dict[str, Any]]]:
+def parse_tool_calls_response(response_text: str) -> list[dict[str, Any]] | None:
     """
     Parse the Granite model's tool calls response into a list of tool call dictionaries.
 

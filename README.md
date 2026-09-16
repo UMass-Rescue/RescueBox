@@ -1,5 +1,10 @@
 # Install RescueBox 3.1 on Windows 11
 
+## Refer install/mac/README.txt for developer install steps on a mac
+to run rescuebox locally
+
+## These instructions for windows customer deployment using rescuebox build artifacts download from one drive.
+
 **Recommended hardware:** powerful CPU, 32 GB RAM, NVIDIA GPU with latest driver.
 
 Refer to the screenshots PDF in `help`.

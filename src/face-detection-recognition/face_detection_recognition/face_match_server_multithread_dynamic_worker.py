@@ -1,12 +1,12 @@
+import concurrent.futures
 import json
 import os
 import time
-import psutil
 from pathlib import Path
-from typing import List, TypedDict, Tuple, Union
-import concurrent.futures
 from threading import Lock
+from typing import TypedDict
 
+import psutil
 from flask_ml.flask_ml_server import MLServer, load_file_as_string
 from flask_ml.flask_ml_server.models import (
     BatchDirectoryInput,
@@ -45,7 +45,7 @@ server.add_app_metadata(
 )
 
 # Initialize with "Create a new database" value used in frontend to take new file name entered by user
-available_databases: List[str] = ["Create a new database"]
+available_databases: list[str] = ["Create a new database"]
 
 # Load all available datasets under resources/data folder
 database_directory_path = get_resource_path("data")
@@ -291,7 +291,7 @@ def estimate_image_complexity(image_path):
 # Function to process a single face match
 def process_face_match(
     image_path: str, similarity_threshold: float, database_path: str
-) -> Tuple[bool, Union[List[str], str]]:
+) -> tuple[bool, list[str] | str]:
     """
     Process a single face match request
     """
@@ -401,7 +401,7 @@ def find_face_endpoint(
                     error_messages.append(error_msg)
 
             except Exception as e:
-                error_msg = f"Exception processing {image_path}: {str(e)}"
+                error_msg = f"Exception processing {image_path}: {e!s}"
                 log_info(error_msg)
                 error_messages.append(error_msg)
 

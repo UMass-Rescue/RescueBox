@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from nicegui import ui
 
 from frontend.chatbot.pipeline_context import inject_pipeline_path
 from frontend.components.errors import render_error_message
 from frontend.components.results import render_tool_selection_message
+from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.pages.chatbot.pickers import AnalysisPicker, ToolPicker
 from frontend.pages.chatbot.storage_reads import read_pipeline_job_id
 from frontend.utils import handle_api_error
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -82,11 +81,11 @@ async def load_and_show_form(
     except UI_RENDER_ERRORS as e:
         logger.exception("Error in load_and_show_form: %s", e)
         await handle_api_error(e, "Form loading")
-        show_error_message(container, f"Failed to load form: {str(e)}")
+        show_error_message(container, f"Failed to load form: {e!s}")
 
 
 async def show_results(
-    container: element, response_body, job_id: Optional[str] = None, **kwargs
+    container: element, response_body, job_id: str | None = None, **kwargs
 ):
     """Compact job-completed strip with link to full results."""
     try:
@@ -98,7 +97,7 @@ async def show_results(
 
 
 async def _show_results_body(
-    container: element, _response_body, job_id: Optional[str], **_kwargs
+    container: element, _response_body, job_id: str | None, **_kwargs
 ) -> None:
     with container:
         with card().classes(

@@ -11,14 +11,12 @@ Usage:
     status_text.value = STATUS_MESSAGES['ready']
 """
 
-from typing import Optional
-
 # Demo User ID: fixed prefix + exactly two characters (password-style gate for the UI)
 DEMO_USER_ID_PREFIX = "demo_"
 DEMO_USER_ID_SUFFIX_LEN = 3
 
 
-def is_valid_explicit_user_id(value: Optional[str]) -> bool:
+def is_valid_explicit_user_id(value: str | None) -> bool:
     """
     True if value is exactly DEMO_USER_ID_PREFIX followed by DEMO_USER_ID_SUFFIX_LEN characters.
     """
@@ -121,7 +119,7 @@ DEMO_WALKTHROUGH_MEDIA_URL = "/demo-media"
 DEMO_SAMPLE_INPUTS_URL = f"{NAV_LINKS['demo']}#sample-inputs"
 
 
-def demo_samples_url(walkthrough: Optional[str] = None) -> str:
+def demo_samples_url(walkthrough: str | None = None) -> str:
     """
     Link to /demo sample explorer with the same folder filter as ``render_walkthrough_samples_panel``.
 

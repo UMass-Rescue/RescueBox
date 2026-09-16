@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Final
 
 import ollama
+import rb.lib.ollama  # noqa: F401
 
 SUPPORTED_MODELS: Final[dict[str, dict[str, str]]] = {
     "moondream:latest": {
@@ -55,13 +56,13 @@ def ensure_model_exists(model: str) -> None:
         )
     try:
         logging.getLogger(__name__).info(
-            f"ImageSummary Model: checking availability -> {model}"
+            "ImageSummary Model: checking availability -> %s", model
         )
         resp = ollama.list()
         models = [m.model for m in resp["models"]]
         if model not in models:
             logging.getLogger(__name__).info(
-                f"ImageSummary Model: pulling model -> {model}"
+                "ImageSummary Model: pulling model -> %s", model
             )
             response = ollama.pull(model)
             if response.status != "success":

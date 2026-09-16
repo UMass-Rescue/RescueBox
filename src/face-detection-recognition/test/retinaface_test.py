@@ -1,12 +1,12 @@
-import os
 import logging
-import numpy as np
-import cv2
+import os
 
+import cv2
+import numpy as np
 from face_detection_recognition.utils.retinaface_utils import (
-    detect_with_retinaface,
     create_square_bounds_from_landmarks,
     crop_face_for_facenet512,
+    detect_with_retinaface,
     normalize_face,
     prepare_for_embedding,
 )

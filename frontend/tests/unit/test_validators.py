@@ -85,12 +85,12 @@ class TestValidateFormData:
     def test_query_text_input_must_not_be_empty(self, tmp_path):
         """image_embeddings/search_images (and similar) require a non-blank ``query`` input."""
         from rb.api.models import (
-            TaskSchema,
-            InputSchema,
-            ParameterSchema,
-            InputType,
             EnumParameterDescriptor,
             EnumVal,
+            InputSchema,
+            InputType,
+            ParameterSchema,
+            TaskSchema,
         )
 
         corpus = tmp_path / "corpus"
@@ -147,14 +147,14 @@ class TestValidateFormData:
     def test_image_endpoint_rejects_dir_without_image_files(self, tmp_path):
         """Raster rule follows schema copy: directory labeled for images must contain rasters."""
         from rb.api.models import (
-            TaskSchema,
-            InputSchema,
-            ParameterSchema,
-            InputType,
-            RangedFloatParameterDescriptor,
-            FloatRangeDescriptor,
             EnumParameterDescriptor,
             EnumVal,
+            FloatRangeDescriptor,
+            InputSchema,
+            InputType,
+            ParameterSchema,
+            RangedFloatParameterDescriptor,
+            TaskSchema,
         )
 
         schema = TaskSchema(
@@ -202,14 +202,14 @@ class TestValidateFormData:
 
     def test_image_endpoint_accepts_dir_with_jpeg(self, tmp_path):
         from rb.api.models import (
-            TaskSchema,
-            InputSchema,
-            ParameterSchema,
-            InputType,
-            RangedFloatParameterDescriptor,
-            FloatRangeDescriptor,
             EnumParameterDescriptor,
             EnumVal,
+            FloatRangeDescriptor,
+            InputSchema,
+            InputType,
+            ParameterSchema,
+            RangedFloatParameterDescriptor,
+            TaskSchema,
         )
 
         schema = TaskSchema(
@@ -256,14 +256,14 @@ class TestValidateFormData:
     def test_image_endpoint_skips_raster_check_for_output_dir(self, tmp_path):
         """Output folders are often empty until the job runs; do not require raster files there."""
         from rb.api.models import (
-            TaskSchema,
-            InputSchema,
-            ParameterSchema,
-            InputType,
-            RangedFloatParameterDescriptor,
-            FloatRangeDescriptor,
             EnumParameterDescriptor,
             EnumVal,
+            FloatRangeDescriptor,
+            InputSchema,
+            InputType,
+            ParameterSchema,
+            RangedFloatParameterDescriptor,
+            TaskSchema,
         )
 
         input_dir = tmp_path / "in"
@@ -323,12 +323,12 @@ class TestValidateFormData:
     def test_text_summarization_paired_dirs_skip_raster_check(self, tmp_path):
         """input_dir + output_dir for text summary must not require image rasters."""
         from rb.api.models import (
-            TaskSchema,
-            InputSchema,
-            ParameterSchema,
-            InputType,
             EnumParameterDescriptor,
             EnumVal,
+            InputSchema,
+            InputType,
+            ParameterSchema,
+            TaskSchema,
         )
 
         input_dir = tmp_path / "docs"
@@ -371,14 +371,14 @@ class TestValidateFormData:
 
     def test_audio_endpoint_skips_image_content_check(self, tmp_path):
         from rb.api.models import (
-            TaskSchema,
-            InputSchema,
-            ParameterSchema,
-            InputType,
-            RangedFloatParameterDescriptor,
-            FloatRangeDescriptor,
             EnumParameterDescriptor,
             EnumVal,
+            FloatRangeDescriptor,
+            InputSchema,
+            InputType,
+            ParameterSchema,
+            RangedFloatParameterDescriptor,
+            TaskSchema,
         )
 
         schema = TaskSchema(
@@ -480,7 +480,7 @@ class TestCreateInputModel:
 
     def test_create_text_input(self):
         """Test creating TextInput model"""
-        from rb.api.models import TextInput, InputSchema, InputType
+        from rb.api.models import InputSchema, InputType, TextInput
 
         input_schema = InputSchema(key="text", label="Text", inputType=InputType.TEXT)
         value = {"text": "Hello world"}

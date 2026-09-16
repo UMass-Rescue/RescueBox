@@ -1,11 +1,13 @@
-import pytest
-from age_and_gender_detection.main import app as cli_app, APP_NAME, task_schema, server
-from age_and_gender_detection.model import AgeGenderDetector
-from rb.lib.common_tests import RBAppTest
-from pathlib import Path
-from rb.api.models import ResponseBody
-import logging
 import json
+import logging
+from pathlib import Path
+
+import pytest
+from age_and_gender_detection.main import APP_NAME, server, task_schema
+from age_and_gender_detection.main import app as cli_app
+from age_and_gender_detection.model import AgeGenderDetector
+from rb.api.models import ResponseBody
+from rb.lib.common_tests import RBAppTest
 
 
 class DebugOnlyFilter(logging.Filter):
@@ -39,7 +41,9 @@ EXPECTED_OUTPUT = {
 class TestAgeGender(RBAppTest):
     def setup_method(self):
         self.set_app(cli_app, APP_NAME)
-        models_dir = Path("src/age_and_gender_detection/models")
+        models_dir = Path(
+            "src/age_and_gender_detection/age_and_gender_detection/onnx_models"
+        )
         # If model files are not present in the workspace, skip these heavier integration tests.
         if not (models_dir / "version-RFB-640.onnx").exists():
             pytest.skip("Age/Gender ONNX models not available in CI environment")

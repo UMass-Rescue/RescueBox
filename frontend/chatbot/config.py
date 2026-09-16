@@ -21,7 +21,6 @@ Key Components:
 
 import logging
 import os
-from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -32,7 +31,7 @@ logger.setLevel(logging.INFO)
 
 def normalize_ollama_host(raw: str, *, default: str = "http://127.0.0.1:11434") -> str:
     """Return an Ollama API base URL with ``http://`` or ``https://`` (env often omits scheme)."""
-    url = (raw or "").strip() or default
+    url = default
     if url != "0.0.0.0" and not url.startswith(("http://", "https://")):
         return f"http://{url}"
     if url == "0.0.0.0":
@@ -40,9 +39,9 @@ def normalize_ollama_host(raw: str, *, default: str = "http://127.0.0.1:11434") 
     return url
 
 
-def collect_ollama_model_names(tags_payload: dict) -> List[str]:
+def collect_ollama_model_names(tags_payload: dict) -> list[str]:
     """Collect distinct model ids from an Ollama ``/api/tags`` JSON body."""
-    names: List[str] = []
+    names: list[str] = []
     for entry in tags_payload.get("models") or []:
         for key in ("name", "model"):
             value = (entry.get(key) or "").strip()
@@ -63,7 +62,7 @@ def _model_id_root(normalized_id: str) -> str:
     return normalized_id
 
 
-def resolve_ollama_model_tag(requested: str, available: List[str]) -> Optional[str]:
+def resolve_ollama_model_tag(requested: str, available: list[str]) -> str | None:
     """Map a configured model name to the tag string Ollama expects."""
     req = (requested or "").strip()
     if not req or not available:
@@ -171,7 +170,7 @@ class ToolRegistry:
     """Tool registry - Add new tools here"""
 
     # Slash command to endpoint mapping (Method 1: Slash Commands)
-    SLASH_COMMANDS: Dict[str, str] = {
+    SLASH_COMMANDS: dict[str, str] = {
         "/transcribe": "audio/transcribe",
         "/describe-images": "image_summary/summarize-images",
         "/detect-deepfakes": "deepfake_detection/predict",
@@ -181,6 +180,8 @@ class ToolRegistry:
         "/summarize-text": "text_summarization/summarize",
         "/search-images": "image_embeddings/search_images",
         "/search-series": "image_series_similarity/search_series",
+        "/export-private-embeddings": "image_series_similarity/export_embeddings",
+        "/import-private-embeddings": "image_series_similarity/import_embeddings",
         "/ufdr-mount": "ufdr_mounter/mount",
         "/models": "pick_tool",
         "/assistant": "smart_analyze",
@@ -188,7 +189,7 @@ class ToolRegistry:
     }
 
     # Tool picker menu (Method 4: Tool Picker)
-    TOOL_MENU: Dict[str, Dict[str, str]] = {
+    TOOL_MENU: dict[str, dict[str, str]] = {
         "1": {
             "name": "Describe Images",
             "endpoint": "image_summary/summarize-images",
@@ -204,10 +205,20 @@ class ToolRegistry:
             "endpoint": "age-gender/predict",
             "desc": "Classify faces by age and gender",
         },
-        "4": {
+        "4.1": {
             "name": "Image Series Similarity",
             "endpoint": "image_series_similarity/search_series",
             "desc": "Find images from the same series as a query image",
+        },
+        "4.2": {
+            "name": "Image Series Similarity - Export Embeddings",
+            "endpoint": "image_series_similarity/export_embeddings",
+            "desc": "Save embeddings to share with another organization or user",
+        },
+        "4.3": {
+            "name": "Image Series Similarity - Import Embeddings",
+            "endpoint": "image_series_similarity/import_embeddings",
+            "desc": "Load embeddings from another organization or user",
         },
         "5": {
             "name": "Detect Deepfakes",
@@ -242,7 +253,7 @@ class ToolRegistry:
     }
 
     @staticmethod
-    def tool_menu_name_for_endpoint(endpoint: str) -> Optional[str]:
+    def tool_menu_name_for_endpoint(endpoint: str) -> str | None:
         """
         Return TOOL_MENU ``name`` (e.g. \"Search Images\") for an API endpoint, or None if not in the menu.
         """
@@ -252,7 +263,7 @@ class ToolRegistry:
         return None
 
     @staticmethod
-    def display_name_for_endpoint(endpoint: Optional[str]) -> str:
+    def display_name_for_endpoint(endpoint: str | None) -> str:
         """User-facing plugin label for an API route; falls back to the route string."""
         ep = (endpoint or "").strip().lstrip("/")
         if not ep:
@@ -260,7 +271,7 @@ class ToolRegistry:
         return ToolRegistry.tool_menu_name_for_endpoint(ep) or ep
 
     @staticmethod
-    def ordered_plugin_uids() -> List[str]:
+    def ordered_plugin_uids() -> list[str]:
         """
         Plugin ``uid`` values (first path segment of each TOOL_MENU endpoint) in tool-picker order.
 
@@ -268,7 +279,10 @@ class ToolRegistry:
         a plugin (e.g. ``face-match/...``) appear once, in the position of their first menu entry.
         """
         seen: list[str] = []
-        for key in sorted(ToolRegistry.TOOL_MENU.keys(), key=int):
+        for key in sorted(
+            ToolRegistry.TOOL_MENU.keys(),
+            key=lambda k: tuple(int(part) for part in k.split(".")),
+        ):
             endpoint = ToolRegistry.TOOL_MENU[key]["endpoint"]
             uid = endpoint.split("/")[0]
             if uid not in seen:

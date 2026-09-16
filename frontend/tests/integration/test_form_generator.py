@@ -13,6 +13,7 @@ class TestFormGenerator:
     ):
         """Test form generator creates correct input fields"""
         from nicegui import ui
+
         from frontend.components.forms import FormGenerator
 
         @ui.page("/test")
@@ -37,6 +38,7 @@ class TestFormGenerator:
     async def test_form_generator_submit_button(self, user: User, sample_task_schema):
         """Test form generator has submit button"""
         from nicegui import ui
+
         from frontend.components.forms import FormGenerator
 
         submit_called = False

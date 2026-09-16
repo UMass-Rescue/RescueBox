@@ -6,17 +6,19 @@ processing tools, schema validation, and tool call parsing for the
 RescueBox Assistant's advanced interaction capabilities.
 """
 
-import pytest
 import json
+
+import pytest
 from pydantic import BaseModel
+
 from frontend.chatbot.tool_config import (
-    get_available_tools,
-    update_tool_schema,
-    remove_tool_schema,
-    create_advanced_granite_prompt,
-    parse_tool_calls_response,
     RescueBoxToolCall,
     ToolCallList,
+    create_advanced_granite_prompt,
+    get_available_tools,
+    parse_tool_calls_response,
+    remove_tool_schema,
+    update_tool_schema,
 )
 
 # Test constants

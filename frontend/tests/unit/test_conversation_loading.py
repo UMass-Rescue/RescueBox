@@ -5,18 +5,20 @@ Tests the "Load in Chat" feature that allows users to restore
 conversations from history into the active chat interface.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from frontend.components.chat import load_conversation, rerun_tool_call
+from frontend.database import ChatMessageRecord, ConversationRecord
+from frontend.pages.chatbot import ChatbotPage
 
 # Import the modules we're testing
 from frontend.utils import (
-    set_conversation_to_load,
-    get_conversation_to_load,
     clear_conversation_to_load,
+    get_conversation_to_load,
+    set_conversation_to_load,
 )
-from frontend.pages.chatbot import ChatbotPage
-from frontend.components.chat import load_conversation, rerun_tool_call
-from frontend.database import ConversationRecord, ChatMessageRecord
 
 # Test constants
 TEST_CONVERSATION_ID = "conv-123"
@@ -487,26 +489,23 @@ class TestChatbotPageRerun:
 
         with patch(
             "frontend.pages.chatbot.ChatbotPage.get_instance", return_value=mock_chatbot
+        ), patch("frontend.pages.chatbot.ui.notify") as mock_notify, patch(
+            "frontend.database.chat_history_db.get_chat_history_db",
+            return_value=mock_db,
         ):
-            with patch("frontend.pages.chatbot.ui.notify") as mock_notify, patch(
-                "frontend.database.chat_history_db.get_chat_history_db",
-                return_value=mock_db,
-            ):
-                await handle_rerun_parameter("msg-789")
+            await handle_rerun_parameter("msg-789")
 
-                # Verify database call
-                mock_db.get_tool_call_by_id.assert_called_once_with("msg-789")
+            # Verify database call
+            mock_db.get_tool_call_by_id.assert_called_once_with("msg-789")
 
-                # Verify load_and_show_form was called
-                mock_chatbot.load_and_show_form.assert_called_once_with(
-                    "audio/transcribe", {"input_dir": "/tmp"}
-                )
+            # Verify load_and_show_form was called
+            mock_chatbot.load_and_show_form.assert_called_once_with(
+                "audio/transcribe", {"input_dir": "/tmp"}
+            )
 
-                # Verify notification
-                assert mock_notify.called
-                assert any(
-                    "Re-running" in str(call) for call in mock_notify.call_args_list
-                )
+            # Verify notification
+            assert mock_notify.called
+            assert any("Re-running" in str(call) for call in mock_notify.call_args_list)
 
     @pytest.mark.skip(reason="Brittle mock interactions with ChatbotPage singleton")
     @patch("frontend.database.get_chat_history_db")

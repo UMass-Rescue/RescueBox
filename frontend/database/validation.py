@@ -8,7 +8,8 @@ JSON serialization/deserialization.
 
 import json
 import logging
-from typing import Any, Dict, Optional, Union, Type, TypeVar
+from typing import Any, TypeVar
+
 from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class DatabaseValidator:
     """Utilities for database data validation and serialization."""
 
     @staticmethod
-    def pydantic_to_dict(model: Union[BaseModel, Dict, Any]) -> Dict[str, Any]:
+    def pydantic_to_dict(model: BaseModel | dict | Any) -> dict[str, Any]:
         """
         Convert Pydantic model, dict, or other object to dictionary.
 
@@ -44,7 +45,7 @@ class DatabaseValidator:
             return {"value": str(model)}
 
     @staticmethod
-    def dict_to_pydantic(data: Union[Dict, Any], model_class: Type[T]) -> T:
+    def dict_to_pydantic(data: dict | Any, model_class: type[T]) -> T:
         """
         Convert dictionary or other data to Pydantic model.
 
@@ -75,7 +76,7 @@ class DatabaseValidator:
                 model_class.__name__,
                 data,
             )
-            return model_class(**{"value": data})
+            return model_class(value=data)
 
     @staticmethod
     def serialize_json(data: Any) -> str:
@@ -106,8 +107,8 @@ class DatabaseValidator:
 
     @staticmethod
     def deserialize_json(
-        json_str: str, model_class: Optional[Type[T]] = None
-    ) -> Union[T, Dict, Any]:
+        json_str: str, model_class: type[T] | None = None
+    ) -> T | dict | Any:
         """
         Deserialize JSON string from database storage.
 
@@ -131,7 +132,7 @@ class DatabaseValidator:
             raise
 
     @staticmethod
-    def validate_required_fields(data: Dict[str, Any], required_fields: list) -> None:
+    def validate_required_fields(data: dict[str, Any], required_fields: list) -> None:
         """
         Validate that required fields are present in data.
 
@@ -151,7 +152,7 @@ class DatabaseValidator:
             raise ValueError(f"Missing required fields: {missing_fields}")
 
     @staticmethod
-    def sanitize_string(value: str, max_length: Optional[int] = None) -> str:
+    def sanitize_string(value: str, max_length: int | None = None) -> str:
         """
         Sanitize string value for database storage.
 

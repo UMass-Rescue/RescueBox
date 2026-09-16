@@ -49,6 +49,41 @@ def test_app_show_browser_true_when_env_true(monkeypatch):
     assert mod.APP_SHOW_BROWSER is True
 
 
+def test_demo_files_browse_root_uses_src_tauri_demo_when_repo_demo_missing(
+    monkeypatch,
+):
+    monkeypatch.delenv("RESCUEBOX_DEMO_FILES_DIR", raising=False)
+    monkeypatch.delenv("RESCUEBOX_HOME", raising=False)
+    with patch.object(Path, "mkdir"):
+        mod = _reload_config()
+    expected = mod._REPO_ROOT / "src-tauri" / "demo"
+    assert mod.DEMO_FILES_BROWSE_ROOT == expected
+
+
+def test_backend_log_file_macos_matches_frontend_default(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.delenv("RESCUEBOX_API_LOG_FILE", raising=False)
+    with patch("platform.system", return_value="Darwin"), patch.object(Path, "mkdir"):
+        mod = _reload_config()
+    from rb.api import logging_setup
+
+    with patch.object(logging_setup.platform, "system", return_value="Darwin"):
+        backend_path = logging_setup.backend_log_file_path()
+
+    assert backend_path == mod.BACKEND_LOG_FILE
+
+
+def test_demo_files_browse_root_respects_explicit_env(tmp_path, monkeypatch):
+    demo = tmp_path / "my-demo"
+    demo.mkdir()
+    monkeypatch.setenv("RESCUEBOX_DEMO_FILES_DIR", str(demo))
+    with patch.object(Path, "mkdir"):
+        mod = _reload_config()
+    assert mod.DEMO_FILES_BROWSE_ROOT == demo
+
+
 def test_app_show_browser_false_when_frozen_without_env(monkeypatch):
     monkeypatch.delenv("RESCUEBOX_SHOW_BROWSER", raising=False)
     with patch.object(Path, "mkdir"), patch.object(sys, "frozen", True, create=True):

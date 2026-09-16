@@ -11,15 +11,16 @@ The handler supports multiple input methods:
 """
 
 import logging
-from typing import Dict, Any
 from pathlib import Path
-from frontend.chatbot.config import ToolRegistry, ChatbotConfig
-from frontend.chatbot.exceptions import CHATBOT_ERRORS
+from typing import Any
+
+from frontend.chatbot.config import ChatbotConfig, ToolRegistry
 from frontend.chatbot.core import ChatbotCore
+from frontend.chatbot.exceptions import CHATBOT_ERRORS
 from frontend.chatbot.utils import (
-    normalize_arguments,
-    is_rescuebox_request,
     get_rejection_message,
+    is_rescuebox_request,
+    normalize_arguments,
 )
 from frontend.database.file_filter_utils import process_prompt_for_filters
 from frontend.utils import get_user_id
@@ -36,7 +37,7 @@ def _owner_id_for_filters():
         return None
 
 
-def _attach_filter_to_call(call: Dict[str, Any], user_message: str, owner) -> None:
+def _attach_filter_to_call(call: dict[str, Any], user_message: str, owner) -> None:
     input_dir_arg = call["arguments"].get("input_dir") or call["arguments"].get("input")
     input_dir_path = None
     if input_dir_arg:
@@ -130,7 +131,7 @@ class MessageHandler:
 
     async def handle_message(
         self, user_input: str, update_status_callback=None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Route message to appropriate handler based on input method.
 
@@ -151,7 +152,7 @@ class MessageHandler:
 
     async def handle_slash_command(
         self, user_input: str, _update_status_callback=None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Handle slash commands (/help, /models, /assistant, mapped tools).
 
@@ -198,7 +199,7 @@ class MessageHandler:
 
     async def handle_smart_analyze(
         self, user_message: str, update_status_callback=None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Handle smart analyze using Granite model for tool selection.
 
