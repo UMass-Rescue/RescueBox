@@ -64,7 +64,7 @@ def is_image_result_row(
     if meta.get("Embedding type"):
         return True
     source = str(meta.get("Source") or "")
-    return source == "Local" or looks_like_json_object(source)
+    return looks_like_json_object(source)
 
 
 def enrich_row_with_thumbnail(
