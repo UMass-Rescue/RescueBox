@@ -41,7 +41,9 @@ EXPECTED_OUTPUT = {
 class TestAgeGender(RBAppTest):
     def setup_method(self):
         self.set_app(cli_app, APP_NAME)
-        models_dir = Path("src/age_and_gender_detection/models")
+        models_dir = Path(
+            "src/age_and_gender_detection/age_and_gender_detection/onnx_models"
+        )
         # If model files are not present in the workspace, skip these heavier integration tests.
         if not (models_dir / "version-RFB-640.onnx").exists():
             pytest.skip("Age/Gender ONNX models not available in CI environment")

@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import onnxruntime as ort
 
+from rb.lib.ml_service import plugin_models_dir
 from face_detection_recognition.utils.retinaface_utils import (
     detect_with_retinaface,
     process_retinaface_detections_for_arcface,
@@ -36,8 +37,7 @@ def detect_faces_and_get_embeddings(
     height_factor=1.5,
     separate_detections=False,  # boolean whether or not to separate detections per img in output,
 ):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    models_dir = os.path.join(script_dir, "models")
+    models_dir = str(plugin_models_dir("face_detection_recognition"))
 
     # Set detector path based on backend
     if detector_backend == "yolov8":

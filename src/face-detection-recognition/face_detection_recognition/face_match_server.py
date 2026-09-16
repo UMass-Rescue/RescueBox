@@ -27,7 +27,6 @@ from rb.api.models import (
     TextResponse,
 )
 from rb.lib.ml_service import MLService
-
 from face_detection_recognition.database_functions import (
     Vector_Database,
     get_vector_database,
@@ -37,6 +36,9 @@ from face_detection_recognition.database_functions import (
 from face_detection_recognition.interface import FaceMatchModel
 from face_detection_recognition.utils.GPU import check_cuDNN_version
 from face_detection_recognition.utils.logger import log_info
+
+APP_NAME = "face-match"
+server = MLService(APP_NAME)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,9 +54,6 @@ def vector_db_for_path(path: str) -> Vector_Database:
     """Backward-compatible alias; prefer :func:`vector_db_for_current_request`."""
     return vector_db_for_current_request(str(path))
 
-
-APP_NAME = "face-match"
-server = MLService(APP_NAME)
 
 # Add static location for app-info.md file
 script_dir = os.path.dirname(os.path.abspath(__file__))

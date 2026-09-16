@@ -31,6 +31,10 @@ from rb.lib.ml_service import MLService
 from deepfake_detection.process.bnext_M import BNext_M_ModelONNX
 from deepfake_detection.sim_data import defaultDataset
 
+APP_NAME = "deepfake_detection"
+server = MLService(APP_NAME)
+_MODELS_DIR = server.models_dir
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -39,7 +43,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore")
-APP_NAME = "deepfake_detection"
 
 # Extensions scanned by ``defaultDataset`` in ``sim_data`` (top-level files only).
 DEEPFAKE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
@@ -64,7 +67,7 @@ def _load_face_detector_session():
     the ONNX file loads. The task parameter ``facecrop`` only selects whether result rows
     show the saved crop vs the full image; it does not turn this preprocessing off.
     """
-    model_dir = Path(__file__).resolve().parent / "onnx_models"
+    model_dir = _MODELS_DIR
     available = ort.get_available_providers()
     providers = ["CPUExecutionProvider"]
     if "CUDAExecutionProvider" in available:
@@ -339,9 +342,6 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 # ----------------------------
 # Server Setup Below
 # ----------------------------
-
-# Create a server instance
-server = MLService(APP_NAME)
 
 info_file_path = Path(__file__).resolve().parent / "img-app-info.md"
 with open(info_file_path, "r", encoding="utf-8") as f:

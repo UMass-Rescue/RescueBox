@@ -10,7 +10,6 @@ use std::{thread, time::Duration};
 
 use tauri::webview::PageLoadEvent;
 use tauri::{Manager, RunEvent};
-use tauri_plugin_dialog::MessageDialogKind;
 use tauri_plugin_shell::process::{Command as ShellCommand, CommandChild};
 use tauri_plugin_shell::ShellExt;
 
@@ -264,19 +263,6 @@ fn ollama_installed() -> bool {
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
-}
-
-fn ollama_exe() -> PathBuf {
-    if let Ok(local) = std::env::var("LOCALAPPDATA") {
-        let candidate = PathBuf::from(local)
-            .join("Programs")
-            .join("Ollama")
-            .join("ollama.exe");
-        if candidate.is_file() {
-            return candidate;
-        }
-    }
-    PathBuf::from("ollama")
 }
 
 /// Default Ollama model store: ``%USERPROFILE%\.ollama\models`` (see ``OLLAMA_MODELS``).
@@ -632,7 +618,7 @@ fn backend_onnx_models_present(backend_root: &Path) -> bool {
     let internal = backend_internal_dir(backend_root);
     internal
         .join("image_embeddings")
-        .join("clip_onnx_models")
+        .join("onnx_models")
         .join("text.onnx")
         .is_file()
 }
@@ -694,7 +680,7 @@ fn ensure_models_for_backend(
     if !backend_onnx_models_present(backend_root) {
         let expected = backend_internal_dir(backend_root)
             .join("image_embeddings")
-            .join("clip_onnx_models")
+            .join("onnx_models")
             .join("text.onnx");
         return Err(format!(
             "{} was extracted but expected ONNX files were not found (e.g. {}). \
@@ -856,27 +842,6 @@ fn show_startup_error(app: &tauri::AppHandle, message: impl AsRef<str>) {
     if let Ok(json) = serde_json::to_string(msg) {
         run_splash_js(app, format!("window.setStartupError?.({json});"));
     }
-}
-
-fn notify_user(
-    app: &tauri::AppHandle,
-    title: impl Into<String>,
-    message: impl Into<String>,
-    kind: MessageDialogKind,
-) {
-    let title = title.into();
-    let message = message.into();
-    let level = match kind {
-        MessageDialogKind::Error => "ERROR",
-        MessageDialogKind::Warning => "WARN",
-        MessageDialogKind::Info => "INFO",
-        _ => "LOG",
-    };
-    append_shell_log(app, level, &format!("{title} — {message}"));
-}
-
-fn notify_error(app: &tauri::AppHandle, title: impl Into<String>, message: impl Into<String>) {
-    notify_user(app, title, message, MessageDialogKind::Error);
 }
 
 fn kill_sidecars(app: &tauri::AppHandle) {
