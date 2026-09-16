@@ -165,10 +165,14 @@ def render_batch_file(container, response):
             ui.label(title).classes("font-bold text-zinc-900")
             if preview_toggle:
                 with ui.column().classes("items-end gap-1 max-w-md"):
-                    preview_switch = ui.switch(
-                        "Show match image previews",
-                        value=False,
-                    ).props("dense").classes("text-sm text-zinc-800")
+                    preview_switch = (
+                        ui.switch(
+                            "Show match image previews",
+                            value=False,
+                        )
+                        .props("dense")
+                        .classes("text-sm text-zinc-800")
+                    )
                     ui.label(_PREVIEW_HELP).classes(
                         "text-sm text-zinc-600 text-right leading-relaxed"
                     )
@@ -190,6 +194,7 @@ def render_batch_file(container, response):
             )
 
         if preview_switch is not None:
+
             def on_preview_toggle(_e) -> None:
                 render_table(_switch_is_on(preview_switch.value))
 

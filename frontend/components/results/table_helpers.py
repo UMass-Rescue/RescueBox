@@ -375,7 +375,9 @@ def create_sortable_table(
         if on_row_click:
             table.on("rowClick", on_row_click)
         attach_json_metadata_slots(table, columns, rows)
-        if any(row.get("thumbnail_url") or row.get("preview_unavailable") for row in rows):
+        if any(
+            row.get("thumbnail_url") or row.get("preview_unavailable") for row in rows
+        ):
             attach_image_thumbnail_slots(table)
         if tip_message:
             ui.label(f"💡 {tip_message}").classes(tip_message_classes)
