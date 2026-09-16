@@ -159,7 +159,6 @@ def render_batch_file(container, response):
         "w-full p-4 bg-white border rounded-xl shadow-sm"
     ):
         preview_switch = None
-        preview_help = None
         with ui.row().classes(
             "items-start justify-between w-full gap-4 mb-2 flex-wrap"
         ):
@@ -170,7 +169,7 @@ def render_batch_file(container, response):
                         "Show match image previews",
                         value=False,
                     ).props("dense").classes("text-sm text-zinc-800")
-                    preview_help = ui.label(_PREVIEW_HELP).classes(
+                    ui.label(_PREVIEW_HELP).classes(
                         "text-sm text-zinc-600 text-right leading-relaxed"
                     )
 
