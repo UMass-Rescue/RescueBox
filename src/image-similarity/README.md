@@ -11,8 +11,8 @@ In the **Assistant** tool picker, these are **three separate plugin options** gr
 | # | Chatbot menu option | CLI route | What it does |
 |---|---------------------|-----------|--------------|
 | **4.1** | **Image Series Similarity** | `/search_series` | Search for similar images in a folder |
-| **4.2** | **Export Private Embeddings** | `/export_embeddings` | Save anonymized embeddings to a `.json` for another agency |
-| **4.3** | **Import Private Embeddings** | `/import_embeddings` | Load a `.json` received from another agency |
+| **4.2** | **Image Series Similarity - Export Embeddings** | `/export_embeddings` | Save anonymized embeddings to a `.json` for another agency |
+| **4.3** | **Image Series Similarity - Import Embeddings** | `/import_embeddings` | Load a `.json` received from another agency |
 
 Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-private-embeddings`.
 
@@ -21,8 +21,8 @@ Slash shortcuts: `/search-series`, `/export-private-embeddings`, `/import-privat
 | Goal | Plugin | Notes |
 |------|--------|-------|
 | Find similar photos in **your** folder | **Image Series Similarity** | Pick input directory + query image |
-| Share your indexed photos with another team **without sending files** | **Export Private Embeddings** | Run search first so private embeddings exist |
-| Search your case against another organization’s shared case data | **Import Private Embeddings**, then **Image Series Similarity** | Import their `.json`; search ranks your folder and their indexed embeddings |
+| Share your indexed photos with another team **without sending files** | **Image Series Similarity - Export Embeddings** | Run search first so private embeddings exist |
+| Search your case against another organization’s shared case data | **Image Series Similarity - Import Embeddings**, then **Image Series Similarity** | Import their `.json`; search ranks your folder and their indexed embeddings |
 
 All three are separate entries in the Assistant plugin menu (not sub-steps on one form).
 
@@ -47,14 +47,14 @@ Another team can share anonymized embeddings from their case without sending ima
 **Exporter**
 
 1. **Image Series Similarity** on their case folder
-2. **Export Private Embeddings** — Organization + Contact email → download `.json`
+2. **Image Series Similarity - Export Embeddings** — Organization + Contact email → download `.json`
 
 **Importer**
 
-1. **Import Private Embeddings** → select the `.json`
+1. **Image Series Similarity - Import Embeddings** → select the `.json`
 2. **Image Series Similarity** on your case folder — local query image
-3. **Local** rows — matches in your folder (preview available)
-4. **Imported** rows — matches to their case data (no preview; you do not have their files). If a hit matters, contact **Owner** / **Organization** from the row and send the **Content ID** (content hash prefix) to request more information. They may or may not have included a **filename** in the export — when missing, use Content ID only.
+3. **Local** rows — matches in your folder (preview available when toggled on)
+4. **Imported** rows — matches to their case data (no preview; you do not have their files). Click **Imported** in the Source column to see contact email, organization, and full `content_sha256`. If a hit matters, contact them and send the **Content ID** (first 12 characters of the content hash) to request more information. They may or may not have included a **filename** in the export — when missing, the Filename column shows *Not available*.
 
 
 ```bash
@@ -107,25 +107,25 @@ For concept search ("people eating"), use the **Image Search** plugin with text 
 |-----------|---------|-------------|
 | `model_name` | `google/siglip2-so400m-patch14-384` | Vision encoder |
 | `top_k` | 5 | Results to return (1–20) |
-| `min_similarity` | 0.5 | Minimum score for "match" in metadata |
+| `min_similarity` | 0.5 | Only results with similarity ≥ this value are returned |
 | `scoring_mode` | `combined` | `combined`, `semantic`, or `pdq` |
 
-Search does **not** require an email. Owner contact info is collected only on **4.2 — Export Private Embeddings**.
+Search does **not** require an email. Owner contact info is collected only on **4.2 — Image Series Similarity - Export Embeddings**.
 
 ### Results
 
-Search compares both **plain vs plain** (original images) and **private vs private** (anonymized images) and merges results into one ranked table. This privacy-enhanced search ensures that imported embeddings — which are always anonymized — are compared only against other anonymized embeddings. Example top-5 after importing another organization's embeddings:
+Search compares both **plain vs plain** (original images) and **private vs private** (anonymized images) and merges results into one ranked table. This privacy-enhanced search ensures that imported embeddings — which are always anonymized — are compared only against other anonymized embeddings. Example top-5 — query image `Bernie_Sanders_2016_064_Bernie Sanders by DW Nance 10.jpg`, with some Bernie images imported from another organization's export and others available locally:
 
 | Preview | Filename | Title | Source |
 |---------|----------|-------|--------|
-| thumbnail | `Bernie_Sanders_2016_070…16.jpg` | #1 · similarity 0.97 | **Imported** |
-| thumbnail | `Bernie_Sanders_2016_067…13.jpg` | #2 · similarity 0.93 | **Imported** |
+| *Not available* | `Bernie_Sanders_2016_070…16.jpg` | #1 · similarity 0.97 | **Imported** (click for contact + hash) |
+| *Not available* | `Bernie_Sanders_2016_067…13.jpg` | #2 · similarity 0.93 | **Imported** (click for contact + hash) |
 | thumbnail | `Bernie_Sanders_2016_065…11.jpg` | #3 · similarity 0.91 | Local |
 | thumbnail | `Bernie_Sanders_2016_063…1.jpg` | #4 · similarity 0.89 | Local |
 | thumbnail | `Bernie_Sanders_2016_074…2.jpg` | #5 · similarity 0.86 | Local |
 
-- **Local** rows have a preview thumbnail (file is on disk) and show the local filename
-- **Imported** rows show *Not available* for preview (you do not have the file); filename shown if the exporter included it, otherwise Content ID only
+- **Local** rows show the local filename; enable **Show match image previews** to see thumbnails (file is on disk)
+- **Imported** rows show *Not available* for preview (you do not have the file); filename shown if the exporter included it, otherwise *Not available* in the Filename column — click **Imported** in Source for contact info and full `content_sha256`
 - Both local and imported hits are ranked together by score
 
 ### Scoring modes
@@ -145,49 +145,57 @@ Every search automatically creates **both** plain and private (anonymized) embed
 
 **Test:** `src-tauri/demo/image-similarity/inputs/`, query `Bernie_Sanders_2016_068_*`, scoring **combined** or **semantic**.
 
-## 4.2 Export Private Embeddings (`/export_embeddings`)
+## 4.2 Image Series Similarity - Export Embeddings (`/export_embeddings`)
 
-Exports all your **private (anonymized) embeddings** to a `.json` file you can share with another organization. The exported file does not contain original images or full file paths.
+Exports all your **local private (anonymized) embeddings** to a `.json` file you can share with another organization. The exported file does not contain original images or full file paths. Only embeddings indexed from your machine (`source = local`) are included — previously imported embeddings are not re-exported.
 
 - **Organization** (required) — your organization, so importers know who to contact
-- **Contact email** (required) — stored on every exported record
+- **Contact email** (required) — stored on every exported record (overwrites any per-row values)
 - **Share filename** (default Yes) — include the original filename (basename only) in each record; set to No to omit it
 
-Each search creates private embeddings automatically. Export writes one record per indexed image:
+Each search creates private embeddings automatically. Export writes one record per indexed local image. The file is a JSON object with a `records` array:
 
 ```json
 {
-  "content_sha256": "abc123…",
-  "embedding": [0.1, 0.2, …],
-  "pdq_hash": "def456…",
-  "user_email": "agent@agency.gov",
-  "organization": "Agency A",
-  "privacy_protocol": "clipseg-blackout-v1:face,tattoo,text",
-  "model_name": "google/siglip2-so400m-patch14-384",
-  "filename": "photo.jpg"
+  "format_version": 1,
+  "export_date": "2026-09-16T18:00:00+00:00",
+  "export_filename": "export_20260916_180000.json",
+  "count": 1,
+  "records": [
+    {
+      "content_sha256": "abc123…",
+      "embedding": [0.1, 0.2, …],
+      "pdq_hash": "def456…",
+      "user_email": "agent@agency.gov",
+      "organization": "Agency A",
+      "privacy_protocol": "clipseg-blackout-v1:face,tattoo,text",
+      "model_name": "google/siglip2-so400m-patch14-384",
+      "filename": "photo.jpg"
+    }
+  ]
 }
 ```
 
 | Field | Always present | Description |
 |-------|---------------|-------------|
-| `content_sha256` | Yes | SHA-256 hash of file bytes — used as Content ID |
+| `content_sha256` | Yes | SHA-256 hash of file bytes — use first 12 chars as Content ID |
 | `embedding` | Yes | Anonymized embedding vector |
 | `pdq_hash` | Yes | Perceptual hash |
 | `user_email` | Yes | Contact email from export form |
 | `organization` | Yes | Organization name from export form |
 | `privacy_protocol` | Yes | Anonymization method used (default labels: face, tattoo, text) |
 | `model_name` | Yes | Vision encoder |
-| `filename` | Only if **Share filename = Yes** | Basename of the original file; omitted when the toggle is off or the row is a re-exported import |
+| `filename` | Only if **Share filename = Yes** and a basename is available | Basename of the original file; omitted when the toggle is off |
 
-## 4.3 Import Private Embeddings (`/import_embeddings`)
+## 4.3 Image Series Similarity - Import Embeddings (`/import_embeddings`)
 
-Loads an exported `.json` into your database. Each record stores the same fields described in the export table above, plus `path = "[imported]"` (no local file).
+Loads an exported `.json` into your database. Import requires `format_version: 1` and a `records` list. Each record stores the same fields described in the export table above (except `organization` is optional on import), plus `path = "[imported]"` (no local file).
 
 - **Embeddings file (.json)** — select the file received from another organization
 
 After import, every search ranks your local images **and** the imported embeddings together. Imported records that score high enough appear as **Imported** rows in results.
 
-Duplicates are skipped automatically (matched by content hash + protocol + model + owner email).
+Within a single import file, duplicate records (same `content_sha256` + `model_name`) are skipped. Re-importing the same hash and model updates the existing imported row rather than creating a duplicate.
 
 Import result:
 
@@ -227,7 +235,7 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
 
 ## 7. Demo & testing
 
-`src-tauri/demo/image-similarity/inputs/` — 85 images, 5 series (Bernie Sanders, Kishida, Harris, Le Pen, Bennett).
+`src-tauri/demo/image-similarity/inputs/` — 75 images, 4 series (Bernie Sanders, Kishida, Le Pen, Bennett).
 
 ```bash
 cd src/image-similarity && poetry install

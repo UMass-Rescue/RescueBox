@@ -2,13 +2,13 @@
 """
 Concurrent end-to-end test: N parallel POSTs to ``/image_series_similarity/search_series``.
 
-Tests the Image Series Similarity ML plugin on demo images in ``src-tauri/demo/image-similarity/inputs_kh``.
+Tests the Image Series Similarity ML plugin on demo images in ``src-tauri/demo/image-similarity/inputs``.
 
 Requires a running RescueBox API (default ``http://127.0.0.1:8000``).
 
 Environment:
   RESCUEBOX_API_BASE             Base URL (default: http://127.0.0.1:8000)
-  IMAGE_SIMILARITY_INPUT_DIR     Directory of images to search (default: src-tauri/demo/image-similarity/inputs_kh)
+  IMAGE_SIMILARITY_INPUT_DIR     Directory of images to search (default: src-tauri/demo/image-similarity/inputs)
   IMAGE_SIMILARITY_QUERY_IMAGE   Path to query image (default: first .jpg/.png in input_dir)
   IMAGE_SIMILARITY_MODEL         ONNX vision model (default: google/siglip2-so400m-patch14-384)
   IMAGE_SIMILARITY_TOP_K         Top results to return (default: 5)
@@ -48,7 +48,7 @@ DEFAULT_DEMO_DIR = (
     / "src-tauri"
     / "demo"
     / "image-similarity"
-    / "inputs_kh"
+    / "inputs"
 )
 DEFAULT_MODEL = "google/siglip2-so400m-patch14-384"
 DEFAULT_USER_EMAIL = "e2e-tester@example.com"
