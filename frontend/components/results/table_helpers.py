@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import os
 
 from nicegui import ui
@@ -11,10 +12,174 @@ from PIL import Image, ImageDraw
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.design_tokens import Design
 
-from .serve_paths import open_file, open_folder
+from .serve_paths import IMAGE_PREVIEW_EXTS, open_file, open_folder, serve_path
 
-_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+_IMAGE_EXT = IMAGE_PREVIEW_EXTS
 _MAX_PREVIEW_SIDE = 1600
+JSON_VIEW_LABEL = "Imported"
+_THUMB_CELL_CLASSES = (
+    "w-16 h-16 object-cover rounded border border-zinc-200 cursor-pointer "
+    "hover:ring-2 hover:ring-[#881c1c]"
+)
+PREVIEW_UNAVAILABLE_LABEL = "Not available"
+
+
+def display_filename(path: str) -> str:
+    name = os.path.basename(path or "")
+    if not name or name == "No filepath provided":
+        return PREVIEW_UNAVAILABLE_LABEL
+    return name
+
+
+def is_previewable_image(path: str) -> bool:
+    return (
+        bool(path)
+        and os.path.isfile(path)
+        and os.path.splitext(path)[1].lower() in _IMAGE_EXT
+    )
+
+
+def thumbnail_table_column() -> dict:
+    return {
+        "name": "thumbnail",
+        "label": "Preview",
+        "field": "thumbnail_url",
+        "align": "center",
+        "sortable": False,
+    }
+
+
+def is_image_result_row(
+    path: str,
+    *,
+    file_type: object = None,
+    metadata: dict | None = None,
+) -> bool:
+    ft = getattr(file_type, "value", file_type)
+    if ft == "img":
+        return True
+    if os.path.splitext(path)[1].lower() in _IMAGE_EXT:
+        return True
+    meta = metadata or {}
+    if meta.get("Embedding type"):
+        return True
+    source = str(meta.get("Source") or "")
+    return looks_like_json_object(source)
+
+
+def enrich_row_with_thumbnail(
+    row: dict,
+    *,
+    file_type: object = None,
+    metadata: dict | None = None,
+) -> dict:
+    path = str(row.get("path_full") or row.get("path") or "")
+    if is_previewable_image(path):
+        return {**row, "thumbnail_url": serve_path(path)}
+    if is_image_result_row(path, file_type=file_type, metadata=metadata):
+        return {**row, "preview_unavailable": True}
+    return row
+
+
+def attach_image_thumbnail_slots(table) -> None:
+    table.add_slot(
+        "body-cell-thumbnail",
+        f"""
+        <q-td :props="props">
+            <img v-if="props.row.thumbnail_url"
+                 :src="props.row.thumbnail_url"
+                 class="{_THUMB_CELL_CLASSES}"
+                 @click.stop="$parent.$emit('openThumbnail', props.row.path_full || props.row.path)" />
+            <span v-else-if="props.row.preview_unavailable"
+                  class="text-xs text-zinc-400 italic">{PREVIEW_UNAVAILABLE_LABEL}</span>
+        </q-td>
+        """,
+    )
+
+    def on_open_thumbnail(e) -> None:
+        path = e.args if isinstance(e.args, str) else ""
+        if path:
+            open_file(path)
+
+    table.on("openThumbnail", on_open_thumbnail)
+
+
+def metadata_field_key(label: str) -> str:
+    return label.lower().replace(" ", "_")
+
+
+def json_storage_key(field: str) -> str:
+    return f"_json_{field}"
+
+
+def looks_like_json_object(value: object) -> bool:
+    if not isinstance(value, str) or not value.strip().startswith("{"):
+        return False
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(parsed, dict)
+
+
+def open_json_view_modal(title: str, raw: str) -> None:
+    try:
+        text = json.dumps(json.loads(raw), indent=2)
+    except json.JSONDecodeError:
+        text = raw
+    with ui.dialog() as dialog, ui.card().classes(
+        "max-w-[92vw] w-[min(56rem,92vw)] max-h-[90vh] flex flex-col p-4 gap-3"
+    ):
+        ui.label(title or "JSON").classes(
+            "text-lg font-semibold shrink-0 text-zinc-900"
+        )
+        with ui.scroll_area().classes(
+            "w-full min-h-[50vh] max-h-[75vh] border border-zinc-200 rounded-lg bg-white"
+        ):
+            ui.textarea(value=text).props(
+                "readonly outlined dense input-class=font-mono"
+            ).classes("w-full min-h-[48vh]").style("white-space: pre-wrap")
+        with ui.row().classes("justify-end shrink-0"):
+            ui.button("Close", on_click=dialog.close).classes(Design.BTN_MEDIUM_GRAY)
+    dialog.open()
+
+
+def attach_json_metadata_slots(table, columns: list[dict], rows: list[dict]) -> None:
+    has_json = False
+    for col in columns:
+        field = col.get("field") or col.get("name")
+        storage_key = json_storage_key(field)
+        if not any(row.get(storage_key) for row in rows):
+            continue
+        has_json = True
+        label = str(col.get("label") or field).replace("'", "\\'")
+        table.add_slot(
+            f"body-cell-{field}",
+            f"""
+            <q-td :props="props">
+                <span v-if="props.row.{storage_key}"
+                      class="text-[#881c1c] underline cursor-pointer"
+                      @click.stop="$parent.$emit('viewJson', {{ title: '{label}', payload: props.row.{storage_key} }})">
+                    {JSON_VIEW_LABEL}
+                </span>
+                <span v-else>{{{{ props.value }}}}</span>
+            </q-td>
+            """,
+        )
+
+    if has_json:
+
+        def on_view_json(e) -> None:
+            args = e.args
+            if isinstance(args, dict):
+                open_json_view_modal(
+                    str(args.get("title", "JSON")),
+                    str(args.get("payload", "")),
+                )
+            elif isinstance(args, str):
+                open_json_view_modal("JSON", args)
+
+        table.on("viewJson", on_view_json)
 
 
 def create_metadata_table_columns(
@@ -209,17 +374,22 @@ def create_sortable_table(
                         )
         if on_row_click:
             table.on("rowClick", on_row_click)
+        attach_json_metadata_slots(table, columns, rows)
+        if any(
+            row.get("thumbnail_url") or row.get("preview_unavailable") for row in rows
+        ):
+            attach_image_thumbnail_slots(table)
         if tip_message:
             ui.label(f"💡 {tip_message}").classes(tip_message_classes)
         return table
 
 
-def path_title_subtitle_columns() -> list[dict]:
+def path_title_subtitle_columns(*, path_label: str = "Path") -> list[dict]:
     """Quasar table columns for path / title / subtitle rows."""
     return [
         {
             "name": "path",
-            "label": "Path",
+            "label": path_label,
             "field": "path",
             "align": "left",
             "sortable": True,

@@ -32,6 +32,7 @@ from rb.api.models import (
     BatchFileResponse,
     FileResponse,
     FileType,
+    TextResponse,
 )
 from rb.api.database import (
     ImageSimilarityEmbedding,
@@ -42,7 +43,14 @@ from rb.api.embedding_storage import (
     ImageSimilarityEmbeddingStorage,
     ImageSimilarityPrivateEmbeddingStorage,
 )
-from image_similarity.scorers import ClipScorer, CombinedScorer, ImageScorer, PdqScorer
+from image_similarity.scorers import (
+    ClipScorer,
+    CombinedScorer,
+    ImageScorer,
+    PdqScorer,
+    SOURCE_IMPORTED,
+    SOURCE_LOCAL,
+)
 from image_similarity.anonymizer import anonymize_image, DEFAULT_TARGET_LABELS
 from image_similarity import sql_filters
 from sqlmodel import Session, select
@@ -81,7 +89,6 @@ class Inputs(TypedDict):
 
 
 class Parameters(TypedDict):
-    enable_anonymized: str
     model_name: str
     top_k: int
     min_similarity: float
@@ -95,6 +102,7 @@ class ExportInputs(TypedDict):
 class ExportParameters(TypedDict):
     organization: str
     contact_email: str
+    share_filename: str
 
 
 class ImportInputs(TypedDict):
@@ -145,7 +153,6 @@ def _embed_images_batch(
     processor: AutoImageProcessor,
     image_paths: list[str],
     batch_size: int = _EMBED_BATCH_SIZE,
-    enable_anonymized: bool = False,
 ) -> tuple[dict[str, np.ndarray], int]:
     """Compute normalised embeddings for multiple images, batched when possible.
 
@@ -187,23 +194,13 @@ def _embed_images_batch(
         for path, vec in zip(valid_paths, embeds):
             results[path] = vec
         processed += len(valid_paths)
-        if enable_anonymized:
-            last_reported = report_phased_file_progress(
-                None, 1, 3, processed, total, last_reported
-            )
-        else:
-            last_reported = report_phased_file_progress(
-                None, 1, 2, processed, total, last_reported
-            )
+        last_reported = report_phased_file_progress(
+            None, 1, 3, processed, total, last_reported
+        )
     if total > 0:
-        if enable_anonymized:
-            last_reported = report_phased_file_progress(
-                None, 1, 3, total, total, last_reported
-            )
-        else:
-            last_reported = report_phased_file_progress(
-                None, 1, 2, total, total, last_reported
-            )
+        last_reported = report_phased_file_progress(
+            None, 1, 3, total, total, last_reported
+        )
     return results, last_reported
 
 
@@ -279,15 +276,6 @@ def task_schema() -> TaskSchema:
         ],
         default="combined",
     )
-
-    anonymize_enum = EnumParameterDescriptor(
-        enum_vals=[
-            EnumVal(key="no", label="No"),
-            EnumVal(key="yes", label="Yes"),
-        ],
-        default="no",
-    )
-
     return TaskSchema(
         inputs=[
             InputSchema(
@@ -302,12 +290,6 @@ def task_schema() -> TaskSchema:
             ),
         ],
         parameters=[
-            ParameterSchema(
-                key="enable_anonymized",
-                label="Create anonymized embeddings",
-                subtitle="Blacks out faces, text and logos before embedding so raw image content is never shared across agencies",
-                value=anonymize_enum,
-            ),
             ParameterSchema(
                 key="model_name",
                 label="CLIP model",
@@ -338,8 +320,13 @@ def task_schema() -> TaskSchema:
 
 def export_task_schema() -> TaskSchema:
     text_desc = TextParameterDescriptor(default="")
-    owner_disclaimer = (
-        "Required — stored as embedding owner contact info for cross-agency follow-up"
+    owner_disclaimer = "Required — stored so another organization or user can follow up on exported embeddings"
+    share_filename_enum = EnumParameterDescriptor(
+        enum_vals=[
+            EnumVal(key="yes", label="Yes — include original filename"),
+            EnumVal(key="no", label="No — omit filename"),
+        ],
+        default="yes",
     )
     return TaskSchema(
         inputs=[],
@@ -356,6 +343,12 @@ def export_task_schema() -> TaskSchema:
                 subtitle=owner_disclaimer,
                 value=text_desc,
             ),
+            ParameterSchema(
+                key="share_filename",
+                label="Share filename",
+                subtitle="Include original filename (basename only) in exported records",
+                value=share_filename_enum,
+            ),
         ],
     )
 
@@ -366,6 +359,7 @@ def import_task_schema() -> TaskSchema:
             InputSchema(
                 key="input_file",
                 label="Embeddings file (.json)",
+                subtitle="JSON file from another organization or user",
                 input_type=InputType.FILE,
             ),
         ],
@@ -445,7 +439,6 @@ def _batch_embed_and_hash(
     path_to_hash: dict[str, str],
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
-    enable_anonymized: bool = False,
 ) -> tuple[dict[str, np.ndarray], dict[str, str], int]:
     """Batch-embed (CLIP) and batch-hash (PDQ) all genuinely new content.
 
@@ -465,9 +458,7 @@ def _batch_embed_and_hash(
     unique_paths = list(hash_to_rep.values())
 
     logger.info("Batch-embedding %d new unique image(s) on GPU", len(unique_paths))
-    raw, last_reported = _embed_images_batch(
-        ort_session, processor, unique_paths, enable_anonymized=enable_anonymized
-    )
+    raw, last_reported = _embed_images_batch(ort_session, processor, unique_paths)
     processed = 0
     total = len(hash_to_rep)
     for h, rep in hash_to_rep.items():
@@ -475,14 +466,9 @@ def _batch_embed_and_hash(
             batch_embeddings[h] = raw[rep]
         batch_pdq[h] = _compute_pdq_hash(rep)
         processed += 1
-        if enable_anonymized and total > 0:
-            last_reported = report_phased_file_progress(
-                None, 2, 3, processed, total, last_reported
-            )
-        else:
-            last_reported = report_phased_file_progress(
-                None, 2, 2, processed, total, last_reported
-            )
+        last_reported = report_phased_file_progress(
+            None, 2, 3, processed, total, last_reported
+        )
 
     return batch_embeddings, batch_pdq, last_reported
 
@@ -493,7 +479,6 @@ def _persist_new_path(
     row: ImageSimilarityEmbedding | None,
     batch_embeddings: dict[str, np.ndarray],
     batch_pdq: dict[str, str],
-    file_paths_set: set[str],
     session: Session,
     storage: ImageSimilarityEmbeddingStorage,
     paths_for_search: list[str],
@@ -501,7 +486,7 @@ def _persist_new_path(
     counters: dict[str, int],
     model_name: str = _DEFAULT_MODEL,
 ):
-    """Persist a single new path — insert, relocate, or clone."""
+    """Persist a path — insert new content or update the row for an existing hash."""
     if row is None:
         row = session.exec(
             select(ImageSimilarityEmbedding).where(
@@ -509,55 +494,32 @@ def _persist_new_path(
                 ImageSimilarityEmbedding.model_name == model_name,
             )
         ).first()
-        if row is None:
-            if h in batch_embeddings:
-                try:
-                    storage.save_embedding(
-                        path,
-                        batch_embeddings[h].tolist(),
-                        content_sha256=h,
-                        pdq_hash=batch_pdq[h],
-                    )
-                    paths_for_search.append(path)
-                    counters["new"] += 1
-                    already.add(path)
-                    session.flush()
-                except Exception as e:
-                    session.rollback()
-                    logger.warning("Could not store embedding for %s: %s", path, e)
-            else:
-                logger.warning("Embedding not computed for %s — skipped", path)
-            return
-
     if row is None:
-        return
-
-    if row.path == path:
-        paths_for_search.append(path)
-        already.add(path)
-        return
-
-    if row.path not in file_paths_set:
-        row.path = path
-        counters["relocated"] += 1
-        logger.info(
-            "Reused embedding by content hash (path updated): %s -> %s", row.path, path
-        )
-    else:
-        emb = list(row.embedding) if row.embedding is not None else []
-        session.add(
-            ImageSimilarityEmbedding(
-                path=path,
-                embedding=emb,
+        if h not in batch_embeddings:
+            logger.warning("Embedding not computed for %s — skipped", path)
+            return
+        try:
+            storage.save_embedding(
+                path,
+                batch_embeddings[h].tolist(),
                 content_sha256=h,
-                pdq_hash=row.pdq_hash,
+                pdq_hash=batch_pdq[h],
             )
-        )
-        counters["cloned"] += 1
+            counters["new"] += 1
+            session.flush()
+        except Exception as e:
+            session.rollback()
+            logger.warning("Could not store embedding for %s: %s", path, e)
+            return
+    elif row.path != path:
+        old_path = row.path
+        row.path = path
+        counters["updated"] += 1
+        logger.info("Updated plain embedding by content hash: %s -> %s", old_path, path)
+        session.flush()
 
     paths_for_search.append(path)
     already.add(path)
-    session.flush()
 
 
 def _embed_and_store_images(
@@ -568,11 +530,9 @@ def _embed_and_store_images(
     ort_session: ort.InferenceSession,
     processor: AutoImageProcessor,
     model_name: str = _DEFAULT_MODEL,
-    enable_anonymized: bool = False,
 ) -> tuple[list[str], int]:
     """Ensure every path has an embedding + PDQ row.  Returns paths ready for search."""
     already = _paths_already_embedded(session, file_paths, model_name)
-    file_paths_set = set(file_paths)
 
     paths_for_search = [p for p in file_paths if p in already]
 
@@ -588,10 +548,9 @@ def _embed_and_store_images(
         path_to_hash,
         ort_session,
         processor,
-        enable_anonymized=enable_anonymized,
     )
 
-    counters = {"new": 0, "relocated": 0, "cloned": 0}
+    counters = {"new": 0, "updated": 0}
     for path in file_paths:
         if path in already:
             continue
@@ -602,7 +561,6 @@ def _embed_and_store_images(
             hash_row_cache.get(h),
             batch_embeddings,
             batch_pdq,
-            file_paths_set,
             session,
             storage,
             paths_for_search,
@@ -729,54 +687,62 @@ def _build_scorer(
     )
 
 
-_CONTENT_ID_DISPLAY_LEN = 12
+def _is_imported(hit: dict) -> bool:
+    return hit.get("source") == "imported" or hit.get("remote", False)
 
 
-def _truncate_content_id(content_sha256: str) -> str:
-    if not content_sha256:
-        return ""
-    if len(content_sha256) <= _CONTENT_ID_DISPLAY_LEN:
-        return content_sha256
-    return f"{content_sha256[:_CONTENT_ID_DISPLAY_LEN]}…"
+def _merge_dedup_key(hit: dict) -> tuple:
+    content_sha256 = hit.get("content_sha256", "")
+    if _is_imported(hit):
+        return (content_sha256, SOURCE_IMPORTED)
+    return (content_sha256, SOURCE_LOCAL)
 
 
-def _build_metadata(
-    hit: dict,
-    scoring_mode: str,
-    model_name: str,
-    query_name: str,
-) -> dict[str, str]:
+def _merge_search_results(
+    private_hits: list[dict], plain_hits: list[dict], top_k: int
+) -> list[dict]:
+    """Merge plain/private hits — one local row and one imported row per content hash."""
+    best: dict[tuple, dict] = {}
+    for hit in private_hits + plain_hits:
+        key = _merge_dedup_key(hit)
+        existing = best.get(key)
+        if existing is None or hit["score"] > existing["score"]:
+            best[key] = hit
+    merged = sorted(best.values(), key=lambda h: h["score"], reverse=True)
+    return merged[:top_k]
+
+
+def _imported_data_payload(hit: dict) -> dict[str, str]:
+    payload = {
+        "content_sha256": hit.get("content_sha256", ""),
+        "user_email": hit.get("user_email", ""),
+        "organization": hit.get("organization", ""),
+    }
+    if hit.get("filename"):
+        payload["imported_from"] = hit["filename"]
+    if hit.get("export_file"):
+        payload["export_file"] = hit["export_file"]
+    return payload
+
+
+def _build_metadata(hit: dict) -> dict[str, str]:
     """Build per-result metadata dict with consistent columns across all modes."""
-    scoring_labels = {
-        "combined": "Combined (CLIP + PDQ)",
-        "semantic": "Semantic only (CLIP)",
-        "pdq": "Perceptual only (PDQ)",
-    }
-    meta: dict[str, str] = {
-        "Scoring Mode": scoring_labels.get(scoring_mode, scoring_mode),
-        "Match": "Yes" if hit["is_match"] else "No",
-    }
-    if scoring_mode in ("semantic", "combined"):
-        meta["CLIP Model"] = model_name
-    meta["Query"] = f"Series match for {query_name}"
-    if hit.get("remote"):
-        meta["Source"] = "Imported"
-        meta["Content ID"] = _truncate_content_id(hit.get("content_sha256", ""))
-        meta["Owner"] = hit.get("user_email", "")
-        meta["Organization"] = hit.get("organization", "")
+    meta: dict[str, str] = {}
+    if _is_imported(hit):
+        meta["Source"] = json.dumps(_imported_data_payload(hit))
     else:
         meta["Source"] = "Local"
     return meta
 
 
 def _hit_display_path(hit: dict) -> str:
-    if hit.get("remote"):
-        return ""
-    return str(hit["path"])
+    if _is_imported(hit):
+        return hit.get("filename") or "No filepath provided"
+    return Path(hit["path"]).name
 
 
 def _hit_file_type(hit: dict) -> FileType:
-    return FileType.TEXT if hit.get("remote") else FileType.IMG
+    return FileType.TEXT if _is_imported(hit) else FileType.IMG
 
 
 def _privacy_protocol_tag(labels: list[str]) -> str:
@@ -784,37 +750,73 @@ def _privacy_protocol_tag(labels: list[str]) -> str:
     return "clipseg-blackout-v1:" + ",".join(sorted(labels))
 
 
-def _uncached_private_paths(
+def _local_private_row(
     session: Session,
-    file_paths: list[str],
+    content_sha256: str,
     model_name: str,
     protocol: str,
-) -> list[str]:
-    """Return local paths that do not yet have a private embedding row."""
-    if not file_paths:
-        return []
-    existing_paths = set(
-        session.exec(
-            select(ImageSimilarityPrivateEmbedding.path).where(
-                sql_filters.priv_path_in(file_paths),
-                sql_filters.priv_model_name_eq(model_name),
-                ImageSimilarityPrivateEmbedding.privacy_protocol == protocol,
-            )
-        ).all()
-    )
-    return [p for p in file_paths if p not in existing_paths]
+) -> ImageSimilarityPrivateEmbedding | None:
+    return session.exec(
+        select(ImageSimilarityPrivateEmbedding).where(
+            ImageSimilarityPrivateEmbedding.content_sha256 == content_sha256,
+            sql_filters.priv_model_name_eq(model_name),
+            ImageSimilarityPrivateEmbedding.privacy_protocol == protocol,
+            ImageSimilarityPrivateEmbedding.source == SOURCE_LOCAL,
+        )
+    ).first()
 
 
-def _group_by_hash(
-    paths: list[str], path_to_hash: dict[str, str]
-) -> dict[str, list[str]]:
-    """Group paths by content hash for deduplication."""
-    groups: dict[str, list[str]] = {}
-    for p in paths:
-        h = path_to_hash.get(p, "")
-        if h:
-            groups.setdefault(h, []).append(p)
-    return groups
+def _imported_private_row(
+    session: Session,
+    content_sha256: str,
+    model_name: str,
+) -> ImageSimilarityPrivateEmbedding | None:
+    return session.exec(
+        select(ImageSimilarityPrivateEmbedding).where(
+            ImageSimilarityPrivateEmbedding.content_sha256 == content_sha256,
+            sql_filters.priv_model_name_eq(model_name),
+            ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED,
+        )
+    ).first()
+
+
+def _private_hashes_needing_embed(
+    session: Session,
+    file_paths: list[str],
+    path_to_hash: dict[str, str],
+    model_name: str,
+    protocol: str,
+) -> dict[str, str]:
+    """Return content hashes that need embedding (not yet in the local private table)."""
+    to_embed: dict[str, str] = {}
+    for path in file_paths:
+        h = path_to_hash.get(path, "")
+        if not h or h in to_embed:
+            continue
+        row = _local_private_row(session, h, model_name, protocol)
+        if not row:
+            to_embed[h] = path
+    return to_embed
+
+
+def _sync_local_private_paths(
+    session: Session,
+    file_paths: list[str],
+    path_to_hash: dict[str, str],
+    model_name: str,
+    protocol: str,
+) -> int:
+    """Update path on existing local private rows to match the latest file in the folder."""
+    updated = 0
+    for path in file_paths:
+        h = path_to_hash.get(path, "")
+        if not h:
+            continue
+        row = _local_private_row(session, h, model_name, protocol)
+        if row and row.path != path:
+            row.path = path
+            updated += 1
+    return updated
 
 
 def _create_private_embeddings(
@@ -829,53 +831,49 @@ def _create_private_embeddings(
 ) -> str:
     """Anonymize images via CLIPSeg and store private embeddings + PDQ hashes."""
     protocol = _privacy_protocol_tag(list(DEFAULT_TARGET_LABELS))
-    new_paths = _uncached_private_paths(
+    to_embed = _private_hashes_needing_embed(
         session,
         file_paths,
+        path_to_hash,
         model_name,
         protocol,
     )
-    if not new_paths:
-        logger.info("Private embeddings: all %d paths already cached", len(file_paths))
-        return protocol
 
-    storage = ImageSimilarityPrivateEmbeddingStorage(
-        session,
-        model_name=model_name,
-        user_email=user_email,
-        privacy_protocol=protocol,
-    )
-    groups = _group_by_hash(new_paths, path_to_hash)
-    total = len(groups)
-
-    embedded, cloned = 0, 0
+    embedded = 0
     failures: list[tuple[str, str]] = []
-    for h, paths in groups.items():
-        try:
-            img = Image.open(paths[0]).convert("RGB")
-            anonymized = anonymize_image(img)
-            emb = _embed_pil_image(ort_session, processor, anonymized).tolist()
-            pdq_hash = _compute_pdq_hash(anonymized)
-            for path in paths:
+    if to_embed:
+        storage = ImageSimilarityPrivateEmbeddingStorage(
+            session,
+            model_name=model_name,
+            user_email=user_email,
+            privacy_protocol=protocol,
+        )
+        for h, path in to_embed.items():
+            try:
+                img = Image.open(path).convert("RGB")
+                anonymized = anonymize_image(img)
+                emb = _embed_pil_image(ort_session, processor, anonymized).tolist()
+                pdq_hash = _compute_pdq_hash(anonymized)
                 storage.save_embedding(path, emb, content_sha256=h, pdq_hash=pdq_hash)
-            embedded += 1
-            cloned += len(paths) - 1
-            session.flush()
-            last_reported = report_phased_file_progress(
-                None, 3, 3, embedded, total, last_reported
-            )
-        except Exception as exc:
-            failures.append((paths[0], str(exc)))
-            logger.warning("Private embedding failed for %s: %s", paths[0], exc)
+                embedded += 1
+                session.flush()
+                last_reported = report_phased_file_progress(
+                    None, 3, 3, embedded, len(to_embed), last_reported
+                )
+            except Exception as exc:
+                failures.append((path, str(exc)))
+                logger.warning("Private embedding failed for %s: %s", path, exc)
 
-    if embedded or cloned:
-        storage.commit()
+    path_updates = _sync_local_private_paths(
+        session, file_paths, path_to_hash, model_name, protocol
+    )
+    if embedded or path_updates:
+        session.commit()
     logger.info(
-        "Private embeddings (%s): %d unique + %d cloned (skipped %d cached, %d failed)",
+        "Private embeddings (%s): %d new, %d path updates, %d failed",
         protocol,
         embedded,
-        cloned,
-        len(file_paths) - len(new_paths),
+        path_updates,
         len(failures),
     )
     if embedded == 0 and failures:
@@ -891,6 +889,10 @@ def _create_private_embeddings(
 # ---------------------------------------------------------------------------
 
 _EXPORT_FORMAT_VERSION = 1
+_EXPORT_EMPTY_MESSAGE = (
+    "No local private embeddings found. "
+    "Run Image Series Similarity on a folder first to index private embeddings."
+)
 _IMPORT_RECORD_FIELDS = (
     "content_sha256",
     "embedding",
@@ -924,8 +926,10 @@ def _embedding_to_json_list(embedding) -> list[float]:
     return [float(x) for x in embedding]
 
 
-def _export_record_from_row(row: ImageSimilarityPrivateEmbedding) -> dict:
-    return {
+def _export_record_from_row(
+    row: ImageSimilarityPrivateEmbedding, share_filename: bool = True
+) -> dict:
+    record = {
         "content_sha256": row.content_sha256,
         "embedding": _embedding_to_json_list(row.embedding),
         "pdq_hash": row.pdq_hash,
@@ -934,6 +938,25 @@ def _export_record_from_row(row: ImageSimilarityPrivateEmbedding) -> dict:
         "privacy_protocol": row.privacy_protocol,
         "model_name": row.model_name,
     }
+    if share_filename:
+        if row.filename:
+            record["filename"] = row.filename
+        elif row.path and row.path != "[imported]":
+            record["filename"] = Path(row.path).name
+    return record
+
+
+def _export_output_filename() -> str:
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    return f"export_{timestamp}.json"
+
+
+def _record_image_filename(record: dict) -> str:
+    return Path(record["filename"]).name if record.get("filename") else ""
+
+
+def _import_export_file(header: dict, input_path: Path) -> str:
+    return Path(str(header.get("export_filename") or input_path.name)).name
 
 
 def _parse_export_owner_contact(parameters: ExportParameters) -> tuple[str, str]:
@@ -946,24 +969,25 @@ def _parse_export_owner_contact(parameters: ExportParameters) -> tuple[str, str]
     return organization, contact_email
 
 
-def _stamp_private_embedding_owner(
-    rows: list[ImageSimilarityPrivateEmbedding],
-    organization: str,
-    contact_email: str,
+def _stamp_export_records(
+    records: list[dict], organization: str, contact_email: str
 ) -> None:
-    for row in rows:
-        row.organization = organization
-        row.user_email = contact_email
+    for rec in records:
+        rec["organization"] = organization
+        rec["user_email"] = contact_email
 
 
 def _write_private_embeddings_export(
-    output_path: Path, rows: list[ImageSimilarityPrivateEmbedding]
+    output_path: Path,
+    records: list[dict],
+    export_filename: str,
 ) -> None:
     payload = {
         "format_version": _EXPORT_FORMAT_VERSION,
         "export_date": datetime.now(timezone.utc).isoformat(),
-        "count": len(rows),
-        "records": [_export_record_from_row(row) for row in rows],
+        "export_filename": export_filename,
+        "count": len(records),
+        "records": records,
     }
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(payload, f)
@@ -993,23 +1017,30 @@ def export_embeddings(
 ) -> ResponseBody:
     """Export private embeddings to a JSON file for cross-machine sharing."""
     organization, contact_email = _parse_export_owner_contact(parameters)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    filename = f"private_embeddings_{timestamp}.json"
+    share_filename = parameters.get("share_filename", "yes") == "yes"
+    export_filename = _export_output_filename()
     output_dir = tempfile.mkdtemp(prefix="rb_private_embeddings_")
-    output_path = Path(output_dir) / filename
+    output_path = Path(output_dir) / export_filename
 
     with Session(engine) as session:
-        rows = session.exec(select(ImageSimilarityPrivateEmbedding)).all()
+        rows = session.exec(
+            select(ImageSimilarityPrivateEmbedding).where(
+                ImageSimilarityPrivateEmbedding.source == SOURCE_LOCAL
+            )
+        ).all()
 
         if not rows:
-            raise ValueError(
-                "No private embeddings found. "
-                "Run a search with 'Create anonymized embeddings' enabled first."
+            logger.warning("Export skipped: %s", _EXPORT_EMPTY_MESSAGE)
+            return ResponseBody(
+                root=TextResponse(
+                    value=_EXPORT_EMPTY_MESSAGE,
+                    title="Private embeddings export — nothing to export",
+                )
             )
 
-        _stamp_private_embedding_owner(rows, organization, contact_email)
-        session.commit()
-        _write_private_embeddings_export(output_path, rows)
+        records = [_export_record_from_row(row, share_filename) for row in rows]
+        _stamp_export_records(records, organization, contact_email)
+        _write_private_embeddings_export(output_path, records, export_filename)
 
     logger.info("Exported %d private embeddings to %s", len(rows), output_path)
 
@@ -1036,6 +1067,7 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
 
     with Session(engine) as session:
         header, records = _load_private_embedding_export(input_path)
+        export_file = _import_export_file(header, input_path)
 
         version = header.get("format_version", 0)
         if version != _EXPORT_FORMAT_VERSION:
@@ -1055,24 +1087,23 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
             owner_email = record["user_email"]
             organization = str(record.get("organization", "") or "")
 
-            dedup_key = (content_sha256, privacy_protocol, model_name, owner_email)
+            dedup_key = (content_sha256, model_name)
             if dedup_key in seen_keys:
                 skipped += 1
                 continue
 
-            existing = session.exec(
-                select(ImageSimilarityPrivateEmbedding).where(
-                    ImageSimilarityPrivateEmbedding.content_sha256 == content_sha256,
-                    ImageSimilarityPrivateEmbedding.privacy_protocol
-                    == privacy_protocol,
-                    ImageSimilarityPrivateEmbedding.model_name == model_name,
-                    ImageSimilarityPrivateEmbedding.user_email == owner_email,
-                )
-            ).first()
+            existing = _imported_private_row(session, content_sha256, model_name)
 
             if existing:
-                skipped += 1
+                existing.embedding = [float(x) for x in record["embedding"]]
+                existing.pdq_hash = record["pdq_hash"]
+                existing.user_email = owner_email
+                existing.organization = organization
+                existing.privacy_protocol = privacy_protocol
+                existing.filename = _record_image_filename(record)
+                existing.export_file = export_file
                 seen_keys.add(dedup_key)
+                imported += 1
                 continue
 
             new_row = ImageSimilarityPrivateEmbedding(
@@ -1084,6 +1115,9 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
                 user_email=owner_email,
                 organization=organization,
                 privacy_protocol=privacy_protocol,
+                filename=_record_image_filename(record),
+                export_file=export_file,
+                source=SOURCE_IMPORTED,
             )
             session.add(new_row)
             seen_keys.add(dedup_key)
@@ -1107,6 +1141,7 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
                     path=str(input_path),
                     title=f"Imported {imported} embeddings ({skipped} skipped){error_summary}",
                     metadata={
+                        "Export file": export_file,
                         "Imported": str(imported),
                         "Skipped (duplicates)": str(skipped),
                         "Errors": str(len(errors)),
@@ -1126,16 +1161,13 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     top_k = int(parameters.get("top_k", 5))
     min_similarity = float(parameters.get("min_similarity", 0.5))
     scoring_mode = parameters.get("scoring_mode", "combined")
-    user_email = parameters.get("user_email", "").strip()
-    enable_anonymized = parameters.get("enable_anonymized", "no") == "yes"
 
     ort_session, processor = _get_onnx_vision_model()
     logger.info(
-        "Scoring: providers=%s model=%s mode=%s email=%s",
+        "Scoring: providers=%s model=%s mode=%s",
         ort_session.get_providers(),
         model_name,
         scoring_mode,
-        user_email or "(not provided)",
     )
 
     file_paths = _collect_image_paths(input_dir)
@@ -1150,7 +1182,7 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         storage = ImageSimilarityEmbeddingStorage(
             session,
             model_name=model_name,
-            user_email=user_email,
+            user_email="",
         )
         paths_for_search, last_reported = _embed_and_store_images(
             session,
@@ -1160,62 +1192,71 @@ def search_series(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             ort_session,
             processor,
             model_name,
-            enable_anonymized=enable_anonymized,
         )
 
-        if enable_anonymized:
-            _create_private_embeddings(
-                session,
-                all_paths,
-                path_to_hash,
-                ort_session,
-                processor,
-                user_email,
-                model_name,
-                last_reported=last_reported,
+        _create_private_embeddings(
+            session,
+            all_paths,
+            path_to_hash,
+            ort_session,
+            processor,
+            "",
+            model_name,
+            last_reported=last_reported,
+        )
+
+        plain_query_row = session.exec(
+            select(ImageSimilarityEmbedding).where(
+                sql_filters.path_eq(query_image_path),
+                sql_filters.model_name_eq(model_name),
             )
+        ).first()
+        private_query_row = session.exec(
+            select(ImageSimilarityPrivateEmbedding).where(
+                sql_filters.priv_path_in([query_image_path]),
+                sql_filters.priv_model_name_eq(model_name),
+            )
+        ).first()
 
-        if enable_anonymized:
-            query_row = session.exec(
-                select(ImageSimilarityPrivateEmbedding).where(
-                    sql_filters.priv_path_in([query_image_path]),
-                    sql_filters.priv_model_name_eq(model_name),
-                )
-            ).first()
-        else:
-            query_row = session.exec(
-                select(ImageSimilarityEmbedding).where(
-                    sql_filters.path_eq(query_image_path),
-                    sql_filters.model_name_eq(model_name),
-                )
-            ).first()
+        search_paths = [p for p in paths_for_search if p != query_image_path]
 
-        scorer = _build_scorer(
+        plain_scorer = _build_scorer(
             session,
             scoring_mode,
-            query_row,
+            plain_query_row,
             query_image_path,
             model_name,
             ort_session,
             processor,
-            use_private_table=enable_anonymized,
-            include_imported_private=enable_anonymized,
+            use_private_table=False,
+            include_imported_private=False,
         )
-        search_paths = [p for p in paths_for_search if p != query_image_path]
-        raw_results = scorer.score(query_image_path, search_paths, top_k)
+        private_scorer = _build_scorer(
+            session,
+            scoring_mode,
+            private_query_row,
+            query_image_path,
+            model_name,
+            ort_session,
+            processor,
+            use_private_table=True,
+            include_imported_private=True,
+        )
+        plain_hits = plain_scorer.score(query_image_path, search_paths, top_k)
+        private_hits = private_scorer.score(query_image_path, search_paths, top_k)
+        raw_results = _merge_search_results(private_hits, plain_hits, top_k)
 
+        matches = [hit for hit in raw_results if hit["score"] >= min_similarity]
         search_results = [
-            {**hit, "rank": rank, "is_match": hit["score"] >= min_similarity}
-            for rank, hit in enumerate(raw_results, start=1)
+            {**hit, "rank": rank} for rank, hit in enumerate(matches, start=1)
         ]
 
-    query_name = Path(query_image_path).name
     file_responses = [
         FileResponse(
             file_type=_hit_file_type(hit),
-            path=_hit_display_path(hit),
+            path=_hit_display_path(hit) if _is_imported(hit) else str(hit["path"]),
             title=f"#{hit['rank']} · similarity {hit['score']}",
-            metadata=_build_metadata(hit, scoring_mode, model_name, query_name),
+            metadata=_build_metadata(hit),
         )
         for hit in search_results
     ]
@@ -1246,18 +1287,11 @@ def parameters_cli_parse(value: str) -> Parameters:
             f"scoring_mode must be one of semantic/pdq/combined, got: {raw_mode!r}"
         )
     scoring_mode = raw_mode
-    if len(parts) > 5 and parts[5]:
-        enable_anonymized = parts[5]
-    elif len(parts) > 4 and parts[4] in ("yes", "no"):
-        enable_anonymized = parts[4]
-    else:
-        enable_anonymized = "no"
     return Parameters(
         model_name=model_name,
         top_k=top_k,
         min_similarity=min_similarity,
         scoring_mode=scoring_mode,
-        enable_anonymized=enable_anonymized,
     )
 
 
@@ -1283,10 +1317,15 @@ def export_inputs_cli_parse(_value: str) -> ExportInputs:
 
 
 def export_parameters_cli_parse(value: str) -> ExportParameters:
-    parts = value.split(",", 1)
+    parts = value.split(",", 2)
     organization = parts[0].strip() if parts else ""
     contact_email = parts[1].strip() if len(parts) > 1 else ""
-    return ExportParameters(organization=organization, contact_email=contact_email)
+    share_filename = parts[2].strip() if len(parts) > 2 else "yes"
+    return ExportParameters(
+        organization=organization,
+        contact_email=contact_email,
+        share_filename=share_filename,
+    )
 
 
 server.add_ml_service(
@@ -1298,9 +1337,9 @@ server.add_ml_service(
     ),
     parameters_cli_parser=typer.Argument(
         parser=export_parameters_cli_parse,
-        help="organization,contact_email",
+        help="organization,contact_email,share_filename (yes|no)",
     ),
-    short_title="Export private embeddings",
+    short_title="Image Series Similarity - Export Embeddings",
     order=1,
     task_schema_func=export_task_schema,
 )
@@ -1317,7 +1356,7 @@ server.add_ml_service(
         parser=import_inputs_cli_parse,
         help="Path to the JSON file to import",
     ),
-    short_title="Import private embeddings",
+    short_title="Image Series Similarity - Import Embeddings",
     order=2,
     task_schema_func=import_task_schema,
 )

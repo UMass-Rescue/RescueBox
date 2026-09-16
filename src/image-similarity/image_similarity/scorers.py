@@ -21,6 +21,10 @@ logger = logging.getLogger(__name__)
 
 _PDQ_BITS = 256
 IMPORTED_EMBEDDING_PATH = "[imported]"
+SOURCE_LOCAL = "local"
+SOURCE_IMPORTED = "imported"
+BANK_PLAIN = "plain"
+BANK_PRIVATE = "private"
 
 
 def _result_hit_key(path: str, row_id: int | None) -> str:
@@ -37,18 +41,25 @@ def _search_hit(
     content_sha256: str = "",
     user_email: str = "",
     organization: str = "",
+    bank: str = "",
+    source: str = SOURCE_LOCAL,
+    filename: str = "",
+    export_file: str = "",
 ) -> dict:
-    remote = path == IMPORTED_EMBEDDING_PATH
+    remote = source == SOURCE_IMPORTED
     hit: dict = {
         "path": path,
         "score": round(float(score), 4),
         "hit_key": _result_hit_key(path, row_id),
         "remote": remote,
+        "source": source,
+        "content_sha256": content_sha256,
+        "user_email": user_email,
+        "organization": organization,
+        "bank": bank,
+        "filename": filename,
+        "export_file": export_file,
     }
-    if remote:
-        hit["content_sha256"] = content_sha256
-        hit["user_email"] = user_email
-        hit["organization"] = organization
     return hit
 
 
@@ -102,14 +113,14 @@ def cosine_similarity_search(
     qvec_literal = "[" + ",".join(str(float(x)) for x in query_vec) + "]"
     if include_imported:
         path_clause = (
-            "(path IN :paths OR path = :imported_path)"
+            "(path IN :paths OR source = :imported_source)"
             if search_paths
-            else "path = :imported_path"
+            else "source = :imported_source"
         )
         stmt = text(
             f"""
-            SELECT id, path, content_sha256, user_email, organization,
-                   1 - (embedding <=> CAST(:qvec AS vector)) AS score
+            SELECT id, path, content_sha256, user_email, organization, source, filename,
+                   export_file, 1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
             WHERE model_name = :model_name
               AND {path_clause}
@@ -123,14 +134,14 @@ def cosine_similarity_search(
             "qvec": qvec_literal,
             "top_k": top_k,
             "model_name": model_name,
-            "imported_path": IMPORTED_EMBEDDING_PATH,
+            "imported_source": SOURCE_IMPORTED,
         }
         if search_paths:
             params["paths"] = search_paths
     else:
         stmt = text(
             f"""
-            SELECT path,
+            SELECT path, content_sha256, user_email,
                    1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
             WHERE path IN :paths
@@ -146,6 +157,7 @@ def cosine_similarity_search(
             "model_name": model_name,
         }
     rows = session.execute(stmt, params).fetchall()
+    bank = BANK_PRIVATE if use_private_table else BANK_PLAIN
     if include_imported:
         return [
             _search_hit(
@@ -155,10 +167,23 @@ def cosine_similarity_search(
                 content_sha256=r.content_sha256 or "",
                 user_email=r.user_email or "",
                 organization=r.organization or "",
+                bank=bank,
+                source=r.source or SOURCE_LOCAL,
+                filename=r.filename or "",
+                export_file=r.export_file or "",
             )
             for r in rows
         ]
-    return [_search_hit(r.path, r.score) for r in rows]
+    return [
+        _search_hit(
+            r.path,
+            r.score,
+            content_sha256=r.content_sha256 or "",
+            user_email=r.user_email or "",
+            bank=bank,
+        )
+        for r in rows
+    ]
 
 
 def hamming_distance(hex_a: str, hex_b: str) -> int:
@@ -184,14 +209,12 @@ def pdq_similarity_search(
         if candidate_paths and include_imported:
             filters.append(
                 (sql_filters.priv_path_in(candidate_paths))
-                | (ImageSimilarityPrivateEmbedding.path == IMPORTED_EMBEDDING_PATH)
+                | (ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED)
             )
         elif candidate_paths:
             filters.append(sql_filters.priv_path_in(candidate_paths))
         else:
-            filters.append(
-                ImageSimilarityPrivateEmbedding.path == IMPORTED_EMBEDDING_PATH
-            )
+            filters.append(ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED)
         rows = session.exec(
             select(
                 ImageSimilarityPrivateEmbedding.id,
@@ -200,12 +223,18 @@ def pdq_similarity_search(
                 ImageSimilarityPrivateEmbedding.content_sha256,
                 ImageSimilarityPrivateEmbedding.user_email,
                 ImageSimilarityPrivateEmbedding.organization,
+                ImageSimilarityPrivateEmbedding.source,
+                ImageSimilarityPrivateEmbedding.filename,
+                ImageSimilarityPrivateEmbedding.export_file,
             ).where(*filters)
         ).all()
     else:
         rows = session.exec(
             select(
-                ImageSimilarityEmbedding.path, ImageSimilarityEmbedding.pdq_hash
+                ImageSimilarityEmbedding.path,
+                ImageSimilarityEmbedding.pdq_hash,
+                ImageSimilarityEmbedding.content_sha256,
+                ImageSimilarityEmbedding.user_email,
             ).where(
                 sql_filters.path_in(candidate_paths),
                 sql_filters.pdq_hash_nonempty(),
@@ -216,10 +245,21 @@ def pdq_similarity_search(
         logger.warning("pdq_similarity_search: no PDQ hashes found for candidates")
         return []
 
+    bank = BANK_PRIVATE if use_private_table else BANK_PLAIN
     scored = []
     for row in rows:
         if use_private_table:
-            row_id, path, pdq_hash, content_sha256, user_email, organization = row
+            (
+                row_id,
+                path,
+                pdq_hash,
+                content_sha256,
+                user_email,
+                organization,
+                row_source,
+                row_filename,
+                row_export_file,
+            ) = row
             dist = hamming_distance(query_pdq, pdq_hash)
             scored.append(
                 _search_hit(
@@ -229,12 +269,24 @@ def pdq_similarity_search(
                     content_sha256=content_sha256 or "",
                     user_email=user_email or "",
                     organization=organization or "",
+                    bank=bank,
+                    source=row_source or SOURCE_LOCAL,
+                    filename=row_filename or "",
+                    export_file=row_export_file or "",
                 )
             )
         else:
-            path, pdq_hash = row
+            path, pdq_hash, content_sha256, user_email = row
             dist = hamming_distance(query_pdq, pdq_hash)
-            scored.append(_search_hit(path, 1.0 - dist / _PDQ_BITS))
+            scored.append(
+                _search_hit(
+                    path,
+                    1.0 - dist / _PDQ_BITS,
+                    content_sha256=content_sha256 or "",
+                    user_email=user_email or "",
+                    bank=bank,
+                )
+            )
 
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:top_k]

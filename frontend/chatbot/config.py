@@ -205,47 +205,47 @@ class ToolRegistry:
             "endpoint": "age-gender/predict",
             "desc": "Classify faces by age and gender",
         },
-        "4": {
+        "4.1": {
             "name": "Image Series Similarity",
             "endpoint": "image_series_similarity/search_series",
             "desc": "Find images from the same series as a query image",
         },
-        "5": {
-            "name": "Export Private Embeddings",
+        "4.2": {
+            "name": "Image Series Similarity - Export Embeddings",
             "endpoint": "image_series_similarity/export_embeddings",
-            "desc": "Save anonymized image data to share",
+            "desc": "Save embeddings to share with another organization or user",
         },
-        "6": {
-            "name": "Import Private Embeddings",
+        "4.3": {
+            "name": "Image Series Similarity - Import Embeddings",
             "endpoint": "image_series_similarity/import_embeddings",
-            "desc": "Load anonymized image data from another agency",
+            "desc": "Load embeddings from another organization or user",
         },
-        "7": {
+        "5": {
             "name": "Detect Deepfakes",
             "endpoint": "deepfake_detection/predict",
             "desc": "Find manipulated media",
         },
-        "8": {
+        "6": {
             "name": "Upload Face Match",
             "endpoint": "face-match/bulkupload",
             "desc": "Step 1 Build face collection",
         },
-        "9": {
+        "7": {
             "name": "Find Face Match",
             "endpoint": "face-match/findfacebulk",
             "desc": "Step 2 Search face collection",
         },
-        "10": {
+        "8": {
             "name": "Summarize Text",
             "endpoint": "text_summarization/summarize",
             "desc": "Document summaries",
         },
-        "11": {
+        "9": {
             "name": "Transcribe Audio",
             "endpoint": "audio/transcribe",
             "desc": "Convert speech to text",
         },
-        "12": {
+        "10": {
             "name": "UFDR Mount",
             "endpoint": "ufdr_mounter/mount",
             "desc": "Mount UFDR files",
@@ -279,7 +279,10 @@ class ToolRegistry:
         a plugin (e.g. ``face-match/...``) appear once, in the position of their first menu entry.
         """
         seen: list[str] = []
-        for key in sorted(ToolRegistry.TOOL_MENU.keys(), key=int):
+        for key in sorted(
+            ToolRegistry.TOOL_MENU.keys(),
+            key=lambda k: tuple(int(part) for part in k.split(".")),
+        ):
             endpoint = ToolRegistry.TOOL_MENU[key]["endpoint"]
             uid = endpoint.split("/")[0]
             if uid not in seen:

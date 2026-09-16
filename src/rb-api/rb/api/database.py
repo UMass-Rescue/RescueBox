@@ -112,15 +112,26 @@ def create_db_and_tables():
             )
     except Exception:
         pass
-    # Migration: add organization to private embeddings if missing
+    # Migration: add missing columns to private embeddings
     try:
         from sqlalchemy import text
 
         with engine.begin() as conn:
+            for stmt in (
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "organization VARCHAR(256) DEFAULT '' NOT NULL",
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "filename VARCHAR(512) DEFAULT '' NOT NULL",
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "source VARCHAR(32) DEFAULT 'local' NOT NULL",
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "export_file VARCHAR(512) DEFAULT '' NOT NULL",
+            ):
+                conn.execute(text(stmt))
             conn.execute(
                 text(
-                    "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
-                    "organization VARCHAR(256) DEFAULT '' NOT NULL"
+                    "UPDATE image_similarity_private_embeddings "
+                    "SET source = 'imported' WHERE path = '[imported]'"
                 )
             )
     except Exception:
@@ -283,6 +294,9 @@ class ImageSimilarityPrivateEmbedding(SQLModel, table=True):
     user_email: str = Field(default="", sa_column=Column(String(256), index=True))
     organization: str = Field(default="", sa_column=Column(String(256), index=True))
     privacy_protocol: str = Field(default="", sa_column=Column(String(128), index=True))
+    filename: str = Field(default="", sa_column=Column(String(512)))
+    export_file: str = Field(default="", sa_column=Column(String(512)))
+    source: str = Field(default="local", sa_column=Column(String(32), index=True))
 
 
 class FaceEmbedding(SQLModel, table=True):
