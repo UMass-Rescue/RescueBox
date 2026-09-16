@@ -44,6 +44,7 @@ def _search_hit(
     bank: str = "",
     source: str = SOURCE_LOCAL,
     filename: str = "",
+    export_file: str = "",
 ) -> dict:
     remote = source == SOURCE_IMPORTED
     hit: dict = {
@@ -57,6 +58,7 @@ def _search_hit(
         "organization": organization,
         "bank": bank,
         "filename": filename,
+        "export_file": export_file,
     }
     return hit
 
@@ -118,7 +120,7 @@ def cosine_similarity_search(
         stmt = text(
             f"""
             SELECT id, path, content_sha256, user_email, organization, source, filename,
-                   1 - (embedding <=> CAST(:qvec AS vector)) AS score
+                   export_file, 1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
             WHERE model_name = :model_name
               AND {path_clause}
@@ -168,6 +170,7 @@ def cosine_similarity_search(
                 bank=bank,
                 source=r.source or SOURCE_LOCAL,
                 filename=r.filename or "",
+                export_file=r.export_file or "",
             )
             for r in rows
         ]
@@ -224,6 +227,7 @@ def pdq_similarity_search(
                 ImageSimilarityPrivateEmbedding.organization,
                 ImageSimilarityPrivateEmbedding.source,
                 ImageSimilarityPrivateEmbedding.filename,
+                ImageSimilarityPrivateEmbedding.export_file,
             ).where(*filters)
         ).all()
     else:
@@ -247,7 +251,7 @@ def pdq_similarity_search(
     scored = []
     for row in rows:
         if use_private_table:
-            row_id, path, pdq_hash, content_sha256, user_email, organization, row_source, row_filename = row
+            row_id, path, pdq_hash, content_sha256, user_email, organization, row_source, row_filename, row_export_file = row
             dist = hamming_distance(query_pdq, pdq_hash)
             scored.append(
                 _search_hit(
@@ -260,6 +264,7 @@ def pdq_similarity_search(
                     bank=bank,
                     source=row_source or SOURCE_LOCAL,
                     filename=row_filename or "",
+                    export_file=row_export_file or "",
                 )
             )
         else:

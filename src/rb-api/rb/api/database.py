@@ -112,36 +112,22 @@ def create_db_and_tables():
             )
     except Exception:
         pass
-    # Migration: add organization to private embeddings if missing
+    # Migration: add missing columns to private embeddings
     try:
         from sqlalchemy import text
 
         with engine.begin() as conn:
-            conn.execute(
-                text(
-                    "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
-                    "organization VARCHAR(256) DEFAULT '' NOT NULL"
-                )
-            )
-    except Exception:
-        pass
-    # Migration: add filename and source to private embeddings if missing
-    try:
-        from sqlalchemy import text
-
-        with engine.begin() as conn:
-            conn.execute(
-                text(
-                    "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
-                    "filename VARCHAR(512) DEFAULT '' NOT NULL"
-                )
-            )
-            conn.execute(
-                text(
-                    "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
-                    "source VARCHAR(32) DEFAULT 'local' NOT NULL"
-                )
-            )
+            for stmt in (
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "organization VARCHAR(256) DEFAULT '' NOT NULL",
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "filename VARCHAR(512) DEFAULT '' NOT NULL",
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "source VARCHAR(32) DEFAULT 'local' NOT NULL",
+                "ALTER TABLE image_similarity_private_embeddings ADD COLUMN IF NOT EXISTS "
+                "export_file VARCHAR(512) DEFAULT '' NOT NULL",
+            ):
+                conn.execute(text(stmt))
             conn.execute(
                 text(
                     "UPDATE image_similarity_private_embeddings "
@@ -309,6 +295,7 @@ class ImageSimilarityPrivateEmbedding(SQLModel, table=True):
     organization: str = Field(default="", sa_column=Column(String(256), index=True))
     privacy_protocol: str = Field(default="", sa_column=Column(String(128), index=True))
     filename: str = Field(default="", sa_column=Column(String(512)))
+    export_file: str = Field(default="", sa_column=Column(String(512)))
     source: str = Field(default="local", sa_column=Column(String(32), index=True))
 
 

@@ -11,11 +11,14 @@ from image_similarity.main import (
     Parameters,
     _build_metadata,
     _compute_pdq_hash,
+    _export_output_filename,
     _export_record_from_row,
     _hit_display_path,
+    _import_export_file,
     _import_record_error,
     _is_imported,
     _load_private_embedding_export,
+    _write_private_embeddings_export,
     _merge_dedup_key,
     _merge_search_results,
     _parse_export_owner_contact,
@@ -60,7 +63,15 @@ def _local_hit(path: str, score: float, content_sha256: str = "abc") -> dict:
     }
 
 
-def _imported_hit(score: float, content_sha256: str, user_email: str, hit_key: str) -> dict:
+def _imported_hit(
+    score: float,
+    content_sha256: str,
+    user_email: str,
+    hit_key: str,
+    *,
+    filename: str = "",
+    export_file: str = "",
+) -> dict:
     return {
         "path": "[imported]",
         "hit_key": hit_key,
@@ -69,6 +80,8 @@ def _imported_hit(score: float, content_sha256: str, user_email: str, hit_key: s
         "user_email": user_email,
         "remote": True,
         "source": "imported",
+        "filename": filename,
+        "export_file": export_file,
     }
 
 
@@ -304,15 +317,19 @@ def test_merge_search_results_keeps_higher_score():
     assert merged[0]["score"] == 0.9
 
 
-def test_merge_search_results_separate_owners():
+def test_merge_search_results_dedupes_imported_by_content_hash():
     private = [_imported_hit(0.8, "abc", "a@x.com", "[imported]#1")]
     plain = [_imported_hit(0.75, "abc", "b@x.com", "[imported]#2")]
     merged = _merge_search_results(private, plain, top_k=5)
-    assert len(merged) == 2
+    assert len(merged) == 1
+    assert merged[0]["score"] == 0.8
 
 
 def test_merge_search_results_respects_top_k():
-    hits = [_local_hit(f"/photos/{i}.jpg", score) for i, score in enumerate([0.9, 0.8, 0.7])]
+    hits = [
+        _local_hit(f"/photos/{i}.jpg", score, content_sha256=f"hash{i}")
+        for i, score in enumerate([0.9, 0.8, 0.7])
+    ]
     merged = _merge_search_results(hits, [], top_k=2)
     assert len(merged) == 2
     assert merged[0]["score"] == 0.9
@@ -326,7 +343,7 @@ def test_merge_dedup_key_local():
         "remote": False,
         "source": "local",
     }
-    assert _merge_dedup_key(hit) == ("abc123", "ref_063.jpg", "you@x.com")
+    assert _merge_dedup_key(hit) == ("abc123", "local")
 
 
 def test_merge_dedup_key_imported():
@@ -338,7 +355,7 @@ def test_merge_dedup_key_imported():
         "remote": True,
         "source": "imported",
     }
-    assert _merge_dedup_key(hit) == ("a" * 64, "a" * 12 + "…", "owner@example.com")
+    assert _merge_dedup_key(hit) == ("a" * 64, "imported")
 
 
 # response shaping
@@ -366,8 +383,7 @@ def test_is_imported():
 
 def test_build_metadata_local_match():
     meta = _build_metadata({"score": 0.8, "bank": "plain", "source": "local"})
-    assert meta["Source"] == "Local"
-    assert meta["Embedding type"] == "Plain (original image)"
+    assert meta == {"Source": "Local"}
     assert "Query" not in meta
     assert "Match" not in meta
     assert "Scoring Mode" not in meta
@@ -383,6 +399,7 @@ def test_build_metadata_imported():
         "user_email": "owner@example.com",
         "organization": "RescueLab",
         "filename": "photo.jpg",
+        "export_file": "export_20250916_120000.json",
     }
     meta = _build_metadata(hit)
     assert "Query" not in meta
@@ -390,10 +407,10 @@ def test_build_metadata_imported():
     assert payload["content_sha256"] == "b" * 64
     assert payload["user_email"] == "owner@example.com"
     assert payload["organization"] == "RescueLab"
-    assert payload["filename"] == "photo.jpg"
-    assert "embedding_type" not in payload
+    assert payload["imported_from"] == "photo.jpg"
+    assert payload["export_file"] == "export_20250916_120000.json"
     assert "source" not in payload
-    assert meta["Embedding type"] == "Private (anonymized)"
+    assert "Embedding type" not in meta
     assert "Content ID" not in meta
     assert "Owner" not in meta
 
@@ -413,7 +430,11 @@ def test_imported_data_payload_full_content_hash():
 def test_export_task_schema():
     schema = export_task_schema()
     assert schema.inputs == []
-    assert [p.key for p in schema.parameters] == ["organization", "contact_email"]
+    assert [p.key for p in schema.parameters] == [
+        "organization",
+        "contact_email",
+        "share_filename",
+    ]
 
 
 def test_export_cli():
@@ -460,6 +481,46 @@ def test_export_embeddings_empty_returns_warning(monkeypatch):
     assert result.root.output_type == "text"
     assert "No local private embeddings found" in result.root.value
     assert "Image Series Similarity" in result.root.value
+
+
+def test_export_output_filename():
+    name = _export_output_filename()
+    assert name.startswith("export_")
+    assert name.endswith(".json")
+
+
+def test_import_export_file_prefers_header(tmp_path: Path):
+    export_path = tmp_path / "export_20250916_120000.json"
+    header = {"export_filename": "export_20250916_120000.json"}
+    assert _import_export_file(header, export_path) == export_path.name
+
+
+def test_import_export_file_falls_back_to_input_path(tmp_path: Path):
+    export_path = tmp_path / "received_export.json"
+    assert _import_export_file({}, export_path) == "received_export.json"
+
+
+def test_write_private_embeddings_export_includes_filename(tmp_path: Path):
+    output_path = tmp_path / "export_20250916_120000.json"
+    _write_private_embeddings_export(output_path, [], "export_20250916_120000.json")
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["export_filename"] == "export_20250916_120000.json"
+
+
+def test_export_record_uses_stored_filename():
+    row = ImageSimilarityPrivateEmbedding(
+        path="[imported]",
+        content_sha256="abc123",
+        embedding=[0.1, 0.2],
+        pdq_hash="x" * 64,
+        user_email="a@x.com",
+        organization="Org",
+        privacy_protocol="clipseg-blackout-v1",
+        model_name="google/siglip2-so400m-patch14-384",
+        filename="photo.jpg",
+    )
+    record = _export_record_from_row(row)
+    assert record["filename"] == "photo.jpg"
 
 
 def test_export_record_includes_filename_from_path():
@@ -531,11 +592,11 @@ def test_import_record_validation():
 def test_load_private_embedding_export(tmp_path: Path):
     export_file = tmp_path / "export.json"
     export_file.write_text(
-        '{"format_version": 1, "records": [{"content_sha256": "abc"}]}',
+        '{"format_version": 1, "export_filename": "export.json", "records": [{"content_sha256": "abc"}]}',
         encoding="utf-8",
     )
     header, records = _load_private_embedding_export(export_file)
-    assert header == {"format_version": 1}
+    assert header == {"format_version": 1, "export_filename": "export.json"}
     assert records == [{"content_sha256": "abc"}]
 
     bad_file = tmp_path / "bad.json"
