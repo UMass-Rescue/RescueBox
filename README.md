@@ -1,96 +1,54 @@
-# Install RescueBox 3.1 on Windows 11
+# RescueBox is a AI/ML digital-forensics application. 
 
-## Refer install/mac/README.txt for developer install steps on a mac
-to run rescuebox locally
+It is intended for investigators who have a directory of evidence—images, audio, PDFs, text files, and want to run AI/ML analysis. This is done local without uploading that evidence to a cloud service.
 
-## These instructions for windows customer deployment using rescuebox build artifacts download from one drive.
+## Sample forensics analysis:
 
-**Recommended hardware:** powerful CPU, 32 GB RAM, NVIDIA GPU with latest driver.
+“Transcribe every audio recording in this directory.”
 
-Refer to the screenshots PDF in `help`.
+“Find photographs matching ‘a person wearing a red jacket.’”
 
----
+“Find other images from the same event as this photo.”
 
-## 1. Administrator login and NVIDIA prerequisites
+“Describe these images, then search their descriptions.”
 
-Log in to Windows with **administrator** rights.
+“Find faces resembling the supplied query photographs.”
 
-GPU-accelerated models require these NVIDIA components on Windows 11:
+“Estimate the age range and gender presentation of detected faces.”
 
-| Component | Install |
-|-----------|---------|
-| **cuDNN 9.x** | [NVIDIA cuDNN downloads (Windows 11, x86_64, exe local)](https://developer.nvidia.com/cudnn-downloads?target_os=Windows&target_arch=x86_64&target_version=11&target_type=exe_local) |
-| **CUDA 12.x** | [CUDA 12.0 download archive (Windows 11, x86_64, exe local)](https://developer.nvidia.com/cuda-12-0-0-download-archive?target_os=Windows&target_arch=x86_64&target_version=11&target_type=exe_local) |
+“Flag images that may be manipulated or AI-generated.”
 
-Accept installer defaults. No other prerequisites (for example Visual Studio) are required.
+“Summarize all PDFs in this evidence folder.”
 
-**Verify** — open `cmd.exe` and run:
 
-```text
-where cublasLt64_12.dll
-```
+## The workflow is:
 
-Expected output:
+Create or load an investigative case.
 
-```text
-C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0\bin\cublasLt64_12.dll
-```
+Select an analysis plugin—or describe the desired analysis to the assistant.
 
----
+Point RescueBox at a local evidence directory. fill in or select ML parameters like model to use,top-k.
 
-## 2. Download the RescueBox installer bundle
+Submit a job.
 
-Download the RescueBox installer ZIP to your Windows machine.
+Inspect the results and job history.
 
----
+Optionally chain several tools into a pipeline.
 
-## 3. Extract the bundle
+## Implementation Details:
 
-Extract all files to a folder and confirm **`RescueBox_3.1.0_x64_en-US.msi`** is present along with the other ZIPs:
+Frontend: A Python/NiceGUI web application served locally, normally at localhost:8080. It manages cases, chat history, forms, jobs, and result displays.
 
-- `ollama_models_3.1.zip`
-- `onnx_models_3.1.zip`
-- `pre-reqs_3.1.zip` (bundle may label this similarly to `pre-req_3.1.zip`)
+Assistant: A locally hosted small AI model through Ollama converts natural-language requests into structured plugin calls. It is a tool selector and pipeline planner.
 
----
+Backend: FastAPI dynamically exposes the commands defined by the plugin packages as HTTP routes.
 
-## 4. Trust the signing certificate
+Plugins: Mostly independent Python packages, each containing its own input schema and analysis implementation.
 
-Double-click **`rescuebox.cer`** and import the certificate.
+Storage: SQLite stores UI data such as cases, conversations, and job history. PostgreSQL with pgvector stores semantic image/text embeddings.
 
-Self-signed certificate thumbprint: `721dc6509d5643bc3232c43d3a27ef8af06a1651`
+## Deployment and demo usage
 
----
+Windows installer is available ,details in INSTALL.md.  Developer mac install is also available
 
-## 5. Run the MSI installer
-
-Double-click **`RescueBox_3.1.0_x64_en-US.msi`**. This installs RescueBox and bundled prerequisites.
-
-See the installer PDF in `docs` for a screenshot sequence.
-
-### a. Destination folder
-
-Choose a destination with at least **2 GB** free space.
-
-**Default:** `C:\Users\<USER>\AppData\Local\RescueBox\` — use this or enter another path.
-
-### b. Model extraction and prerequisites
-
-The installer extracts AI/ML models (this can take a while) and installs prerequisites such as **Ollama**, **PostgreSQL**, and **WinFsp**.
-
-Review Ollama and permission prompts; accept defaults and close when finished.
-
-### c. After install
-
-RescueBox starts automatically. Open the UI at:
-
-**http://localhost:8080**
-
----
-
-## 6. Assistant UI, shutdown, and uninstall
-
-- If you **exit the RescueBox assistant** (thin client), the **server keeps running** — you can still use RescueBox in the browser.
-- To **shut down RescueBox**, use the checkbox to stop the server, then close the assistant UI.
-- To **uninstall**, use **Add or remove programs** in Windows Settings / Control Panel.
-- **Ollama** and **WinFsp** must be uninstalled manually if you no longer need them.
+After Installing rescuebox refer the Resources -> Readme for plugin details and Demo for a walk thru.
