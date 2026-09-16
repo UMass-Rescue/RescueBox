@@ -364,11 +364,24 @@ def test_merge_dedup_key_imported():
 def test_hit_display_path():
     full_hash = "a" * 64
     # imported without filename → placeholder
-    assert _hit_display_path({"source": "imported", "content_sha256": full_hash}) == "No filepath provided"
+    assert (
+        _hit_display_path({"source": "imported", "content_sha256": full_hash})
+        == "No filepath provided"
+    )
     # imported with filename → filename
-    assert _hit_display_path({"source": "imported", "content_sha256": full_hash, "filename": "photo.jpg"}) == "photo.jpg"
+    assert (
+        _hit_display_path(
+            {"source": "imported", "content_sha256": full_hash, "filename": "photo.jpg"}
+        )
+        == "photo.jpg"
+    )
     # imported with empty filename → placeholder
-    assert _hit_display_path({"source": "imported", "content_sha256": full_hash, "filename": ""}) == "No filepath provided"
+    assert (
+        _hit_display_path(
+            {"source": "imported", "content_sha256": full_hash, "filename": ""}
+        )
+        == "No filepath provided"
+    )
     # local → basename of path
     assert _hit_display_path({"source": "local", "path": "/photos/a.jpg"}) == "a.jpg"
 
@@ -586,7 +599,10 @@ def test_import_record_validation():
 
     record = _valid_import_record()
     record["embedding"] = []
-    assert _import_record_error(record, 2) == "Record 2: embedding must be a non-empty list"
+    assert (
+        _import_record_error(record, 2)
+        == "Record 2: embedding must be a non-empty list"
+    )
 
 
 def test_load_private_embedding_export(tmp_path: Path):

@@ -214,9 +214,7 @@ def pdq_similarity_search(
         elif candidate_paths:
             filters.append(sql_filters.priv_path_in(candidate_paths))
         else:
-            filters.append(
-                ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED
-            )
+            filters.append(ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED)
         rows = session.exec(
             select(
                 ImageSimilarityPrivateEmbedding.id,
@@ -251,7 +249,17 @@ def pdq_similarity_search(
     scored = []
     for row in rows:
         if use_private_table:
-            row_id, path, pdq_hash, content_sha256, user_email, organization, row_source, row_filename, row_export_file = row
+            (
+                row_id,
+                path,
+                pdq_hash,
+                content_sha256,
+                user_email,
+                organization,
+                row_source,
+                row_filename,
+                row_export_file,
+            ) = row
             dist = hamming_distance(query_pdq, pdq_hash)
             scored.append(
                 _search_hit(

@@ -320,9 +320,7 @@ def task_schema() -> TaskSchema:
 
 def export_task_schema() -> TaskSchema:
     text_desc = TextParameterDescriptor(default="")
-    owner_disclaimer = (
-        "Required — stored so another organization or user can follow up on exported embeddings"
-    )
+    owner_disclaimer = "Required — stored so another organization or user can follow up on exported embeddings"
     share_filename_enum = EnumParameterDescriptor(
         enum_vals=[
             EnumVal(key="yes", label="Yes — include original filename"),
@@ -517,9 +515,7 @@ def _persist_new_path(
         old_path = row.path
         row.path = path
         counters["updated"] += 1
-        logger.info(
-            "Updated plain embedding by content hash: %s -> %s", old_path, path
-        )
+        logger.info("Updated plain embedding by content hash: %s -> %s", old_path, path)
         session.flush()
 
     paths_for_search.append(path)
@@ -836,7 +832,11 @@ def _create_private_embeddings(
     """Anonymize images via CLIPSeg and store private embeddings + PDQ hashes."""
     protocol = _privacy_protocol_tag(list(DEFAULT_TARGET_LABELS))
     to_embed = _private_hashes_needing_embed(
-        session, file_paths, path_to_hash, model_name, protocol,
+        session,
+        file_paths,
+        path_to_hash,
+        model_name,
+        protocol,
     )
 
     embedded = 0
@@ -871,7 +871,10 @@ def _create_private_embeddings(
         session.commit()
     logger.info(
         "Private embeddings (%s): %d new, %d path updates, %d failed",
-        protocol, embedded, path_updates, len(failures),
+        protocol,
+        embedded,
+        path_updates,
+        len(failures),
     )
     if embedded == 0 and failures:
         raise RuntimeError(
