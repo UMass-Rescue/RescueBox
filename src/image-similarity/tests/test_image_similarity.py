@@ -3,6 +3,7 @@
 import inspect
 import json
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from image_similarity.main import (
@@ -14,8 +15,10 @@ from image_similarity.main import (
     _export_output_filename,
     _export_record_from_row,
     _hit_display_path,
+    _apply_imported_record,
     _import_export_file,
     _import_record_error,
+    _local_content_hash_exists,
     _is_imported,
     _load_private_embedding_export,
     _write_private_embeddings_export,
@@ -34,9 +37,10 @@ from image_similarity.main import (
     search_series,
     task_schema,
 )
-from rb.api.database import ImageSimilarityPrivateEmbedding
+from rb.api.database import ImageSimilarityEmbedding, ImageSimilarityPrivateEmbedding
 from image_similarity.scorers import (
     CombinedScorer,
+    SOURCE_IMPORTED,
     _result_hit_key,
     hamming_distance,
 )
@@ -584,6 +588,50 @@ def test_import_cli_inputs(tmp_path: Path):
     export_file.write_text("{}", encoding="utf-8")
     parsed = import_inputs_cli_parse(str(export_file))
     assert str(parsed["input_file"].path) == str(export_file)
+
+
+def test_apply_imported_record_updates_all_fields():
+    row = ImageSimilarityPrivateEmbedding()
+    record = _valid_import_record("case/photo.jpg")
+    record["organization"] = "Agency B"
+    _apply_imported_record(row, record, "export.json")
+    assert row.path == "[imported]"
+    assert row.content_sha256 == record["content_sha256"]
+    assert row.model_name == record["model_name"]
+    assert row.embedding == [float(x) for x in record["embedding"]]
+    assert row.pdq_hash == record["pdq_hash"]
+    assert row.user_email == record["user_email"]
+    assert row.organization == "Agency B"
+    assert row.privacy_protocol == record["privacy_protocol"]
+    assert row.filename == "photo.jpg"
+    assert row.export_file == "export.json"
+    assert row.source == SOURCE_IMPORTED
+
+
+def test_local_content_hash_exists_when_private_local():
+    session = MagicMock()
+    session.exec.return_value.first.return_value = ImageSimilarityPrivateEmbedding()
+    assert _local_content_hash_exists(session, "abc123", DEFAULT_MODEL)
+
+
+def test_local_content_hash_exists_when_plain_only():
+    session = MagicMock()
+    empty = MagicMock()
+    empty.first.return_value = None
+    plain = MagicMock()
+    plain.first.return_value = ImageSimilarityEmbedding(
+        path="/tmp/a.jpg", content_sha256="abc123"
+    )
+    session.exec.side_effect = [empty, plain]
+    assert _local_content_hash_exists(session, "abc123", DEFAULT_MODEL)
+
+
+def test_local_content_hash_missing():
+    session = MagicMock()
+    empty = MagicMock()
+    empty.first.return_value = None
+    session.exec.side_effect = [empty, empty]
+    assert not _local_content_hash_exists(session, "abc123", DEFAULT_MODEL)
 
 
 def test_import_record_validation():
