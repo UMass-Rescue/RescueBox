@@ -1,4 +1,4 @@
-# Image Embeddings (CLIP Search)
+# Search Images
 
 This plugin embeds images in a folder with OpenAI CLIP and runs **text-to-image search** over those images. You provide a directory of images and a natural-language **query**; it returns the top matches ranked by similarity. 
 
@@ -19,9 +19,9 @@ Short single-word queries are often fuzzy; richer phrases usually work better.
 
 - **CLIP model:** `openai/clip-vit-large-patch14-336` (standard Hugging Face ``CLIPModel``; 768-dim, matches PostgreSQL ``image_embeddings.embedding``).
 
-- **Top K:** How many highest-similarity images to return (1–20, default 5).
+- **Top K:** How many highest-similarity images to return (1-20, default 5).
 
-- **Match threshold:** Similarity in 0–1; results at or above this count as a match in metadata. CLIP text–image scores are often roughly in the ~0.2–0.35 range for many queries—tune expectations accordingly.
+- **Match threshold:** Similarity in 0-1; results at or above this count as a match in metadata. CLIP text–image scores are often roughly in the ~0.2-0.35 range for many queries-tune expectations accordingly.
 
 ## Supported Image Types
 
@@ -33,7 +33,7 @@ Short single-word queries are often fuzzy; richer phrases usually work better.
 
 -In the RescueBox UI this appears as a **sortable table**; **click a row** to open or preview the image (same pattern as other batch image plugins). 
 
--If nothing scores in the top‑k list, `files` may be empty.
+-If nothing scores in the top-k list, `files` may be empty.
 
 ## How It Works (brief)
 
@@ -45,7 +45,7 @@ Reuse is by **file path string**; the table does not record `model_name` per row
 
 ## Notes
 
-- Search is **within the given folder’s embedded set** for that job, not a global search across unrelated past embeddings.
+- Search is **within the given folders embedded set** for that job, not a global search across unrelated past embeddings.
 
 - **GPU** speeds up CLIP; CPU works but is slower on large folders.
 

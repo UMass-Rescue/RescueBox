@@ -1,6 +1,6 @@
-# Text Summarization
+# Summarize Text
 
-Text Summarization uses an LLM to summarize text and PDF files in a directory. For each file, it produces a clear, concise summary that captures the main points, structure, and tone of the original document.
+Summarize Text uses an LLM to summarize text and PDF files in a directory. For each file, it produces a clear, concise summary that captures the main points, structure, and tone of the original document.
 
 ## Inputs
 

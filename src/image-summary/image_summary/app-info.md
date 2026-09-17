@@ -1,4 +1,4 @@
-# Image Summary
+# Describe Images
 
 This plugin lets you generate rich descriptions for every image in a folder. 
 For each image, it identifies the scene and setting, 
@@ -48,6 +48,8 @@ The composition is centered, with warm afternoon lighting.
 
 ## Model Performance 
 
+- moondream:latest : fast reasonable accuracy   2 sec / image
+
 - gemma3:27b : slow , higher accuracy , about 5 sec/image
 
-- gemma3:4b : fast , reasonable accuracy   2 sec / image
+- gemma3:1b : fast , reasonable accuracy   2 sec / image
