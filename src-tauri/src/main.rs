@@ -37,9 +37,9 @@ const BACKEND_EXE: &str = "rescuebox-x86_64-pc-windows-msvc.exe";
 const MODELS_REGISTRY_KEY: &str = r"Software\RescueBox\RescueBox";
 const MODELS_REGISTRY_VALUE: &str = "ModelsZipSource";
 const PRE_REQS_ZIP_NAME: &str = "pre-reqs_3.1.zip";
-const PRE_REQS_FOLDER_NAME: &str = "pre-reqs";
 const PREREQS_BUNDLE_DIR: &str = "prereqs_status";
 const PREREQS_SETUP_MARKER: &str = ".prereqs_setup_done.txt";
+const PREREQS_EXTRACT_MARKER: &str = ".prereqs_extract_done.txt";
 const OLLAMA_SETUP_EXE: &str = "OllamaSetup.exe";
 const OLLAMA_MODELS_ZIP: &str = "ollama_models_3.1.zip";
 const ONNX_MODELS_ZIP: &str = "onnx_models_3.1.zip";
@@ -210,21 +210,10 @@ fn find_file_in_tree(root: &Path, name: &str) -> Option<PathBuf> {
     None
 }
 
-fn resolve_pre_reqs_folder(source: &str) -> Option<PathBuf> {
-    let source = normalize_models_zip_source(source);
-    if source.is_empty() {
-        return None;
+fn remove_prereqs_installer_files(root: &Path) {
+    for name in [OLLAMA_SETUP_EXE, WINFSP_MSI_NAME, POSTGRES_ZIP_NAME] {
+        let _ = fs::remove_file(root.join(name));
     }
-    let path = PathBuf::from(&source);
-    if !path.is_dir() {
-        return None;
-    }
-
-    let candidate = path.join(PRE_REQS_FOLDER_NAME);
-    if candidate.is_dir() {
-        return Some(candidate);
-    }
-    None
 }
 
 #[cfg(windows)]
@@ -276,27 +265,13 @@ fn ollama_models_dir() -> PathBuf {
 }
 
 fn install_ollama_models_from_zip(app: &tauri::AppHandle, launch_dir: &Path) -> Result<(), String> {
-    let zip_path = launch_dir.join(OLLAMA_MODELS_ZIP);
-    if !zip_path.is_file() {
-        append_shell_log(
-            app,
-            "INFO",
-            &format!(
-                "No {} in {}; skipping offline Ollama models.",
-                OLLAMA_MODELS_ZIP,
-                launch_dir.display()
-            ),
-        );
-        return Ok(());
-    }
-
     let dest = ollama_models_dir();
     let roaming = install_home(app);
     let ollama_marker = roaming.join(PREREQS_BUNDLE_DIR);
     fs::create_dir_all(&ollama_marker).map_err(|e| e.to_string())?;
     let marker = ollama_marker.join(OLLAMA_OFFLINE_MODELS_MARKER);
     if !marker.is_file() && dest.join("manifests").join("registry.ollama.ai").join("ibm").is_dir() {
-        fs::write(&marker, zip_path.to_string_lossy().as_bytes()).map_err(|e| e.to_string())?;
+        fs::write(&marker, b"existing").map_err(|e| e.to_string())?;
     }
     if marker.is_file() {
         append_shell_log(
@@ -305,6 +280,24 @@ fn install_ollama_models_from_zip(app: &tauri::AppHandle, launch_dir: &Path) -> 
             &format!("Ollama models already installed under {}", dest.display()),
         );
         return Ok(());
+    }
+
+    let zip_path = launch_dir.join(OLLAMA_MODELS_ZIP);
+    if !zip_path.is_file() {
+        append_shell_log(
+            app,
+            "INFO",
+            &format!(
+                "No {} in {}; during Ollama models install.",
+                OLLAMA_MODELS_ZIP,
+                launch_dir.display()
+            ),
+        );
+        return Err(format!(
+            "{} not found next to MSI file: {}",
+            OLLAMA_MODELS_ZIP,
+            launch_dir.display()
+        ));
     }
 
     set_splash_status(app, "Extracting Ollama models…");
@@ -500,7 +493,7 @@ fn run_postgres_setup(app: &tauri::AppHandle, bat_path: &Path) -> Result<(), Str
 
     if !status.success() {
         return Err(format!(
-            "setup.bat exited with code {:?}",
+            "Postgres DB setup.bat exited with error code {:?}",
             status.code()
         ));
     }
@@ -512,79 +505,105 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
         append_shell_log(
             app,
             "WARN",
-            "Skipping pre-reqs: ModelsZipSource not set (MSI launch folder).",
+            "pre-reqs: ModelsZipSource not set.",
         );
-        return Ok(());
+        return Err(format!(
+            "Registry entry not found for {} ",
+            PRE_REQS_ZIP_NAME
+        ));
     };
 
-    let folder_root = resolve_pre_reqs_folder(&source);
     let source = normalize_models_zip_source(&source);
     let launch_dir = PathBuf::from(&source);
 
     if let Err(e) = install_ollama_models_from_zip(app, &launch_dir) {
         append_shell_log(app, "WARN", &format!("Offline Ollama models: {e}"));
+        return Err(format!(
+            "{} ollama install failed: {}",
+            OLLAMA_MODELS_ZIP,
+            e
+        ));
     }
 
     let pre_reqs_zip_path = launch_dir.join(PRE_REQS_ZIP_NAME);
-    let pre_reqs_zip = pre_reqs_zip_path.is_file().then_some(pre_reqs_zip_path);
-
-    if folder_root.is_none() && pre_reqs_zip.is_none() {
+    if !pre_reqs_zip_path.is_file() {
         append_shell_log(
             app,
             "INFO",
             &format!(
-                "No pre-reqs in {} (expected {:?} folder or zip).",
-                source, PRE_REQS_FOLDER_NAME
+                "No {} in {}.",
+                PRE_REQS_ZIP_NAME,
+                launch_dir.display()
             ),
         );
-        return Ok(());
+        return Err(format!(
+            "launch_dir {} pre-reqs zip not found {} ",
+            launch_dir.display(),
+            PRE_REQS_ZIP_NAME
+        ));
     }
 
     let roaming = install_home(app);
     let bundle_root = roaming.join(PREREQS_BUNDLE_DIR);
     let marker = bundle_root.join(PREREQS_SETUP_MARKER);
-    
 
     if !marker.is_file() {
-        set_splash_status(app, "Extracting prerequisites…");
-
-        let prereqs_root = if let Some(ref folder) = folder_root {
-            folder.clone()
+        let extract_marker = bundle_root.join(PREREQS_EXTRACT_MARKER);
+        let prereqs_root = if extract_marker.is_file() {
+            append_shell_log(
+                app,
+                "INFO",
+                &format!(
+                    "Pre-reqs already extracted under {}; skipping {}.",
+                    bundle_root.display(),
+                    PRE_REQS_ZIP_NAME
+                ),
+            );
+            bundle_root.clone()
         } else {
+            set_splash_status(app, "Extracting prerequisites…");
             if bundle_root.exists() {
                 let _ = fs::remove_dir_all(&bundle_root);
             }
-            let zip = pre_reqs_zip.as_ref().expect("pre_reqs_zip");
             append_shell_log(
                 app,
                 "INFO",
                 &format!(
                     "Extracting pre-reqs {} -> {}",
-                    zip.display(),
+                    pre_reqs_zip_path.display(),
                     bundle_root.display()
                 ),
             );
             fs::create_dir_all(&bundle_root).map_err(|e| e.to_string())?;
-            extract_zip_to_dir(zip, &bundle_root)?;
+            extract_zip_to_dir(&pre_reqs_zip_path, &bundle_root)?;
+            fs::write(&extract_marker, b"pre-reqs extract ok").map_err(|e| e.to_string())?;
             bundle_root.clone()
         };
-        
+
         set_splash_status(app, "Installing prerequisites (Ollama)…");
         if let Some(ollama_setup) = find_file_in_tree(&prereqs_root, &OLLAMA_SETUP_EXE) {
             if ollama_installed() {
                 append_shell_log(app, "INFO", "Ollama already installed; skipping setup.");
             } else if let Err(e) = run_exe_installer(app, &ollama_setup, "OllamaSetup") {
                 append_shell_log(app, "WARN", &e);
+                return Err(format!(
+                    "{} ollama install failed: {}",
+                    OLLAMA_SETUP_EXE,
+                    e
+                ));
             }
-            let _ = fs::remove_file(&ollama_setup);
         }
 
         set_splash_status(app, "Installing prerequisites (WinFSP)…");
         if let Some(msi) = find_file_in_tree(&prereqs_root, &WINFSP_MSI_NAME) {
             if let Err(e) = run_winfsp_msi(app, &msi) {
                 append_shell_log(app, "WARN", &e);
+                return Err(format!(
+                    "{} winfsp install failed: {}",
+                    WINFSP_MSI_NAME,
+                    e
+                ));
             }
-            let _ = fs::remove_file(&msi);
         }
         let postgres_zip = prereqs_root.join(POSTGRES_ZIP_NAME);
         append_shell_log(
@@ -593,8 +612,8 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
             &format!("extract postgres_zip: {}", postgres_zip.display()),
         );
         extract_zip_to_dir(&postgres_zip, &roaming.join("postgres"))?;
-        let _ = fs::remove_file(&postgres_zip);
         fs::write(&marker, b"pre-reqs installed ok").map_err(|e| e.to_string())?;
+        remove_prereqs_installer_files(&prereqs_root);
     }
 
     set_splash_status(app, "DB startup…");
@@ -605,8 +624,14 @@ fn ensure_pre_reqs(app: &tauri::AppHandle) -> Result<(), String> {
         &format!("run postgres startup: {}", postgres_bat_file.display()),
     );
 
-    run_postgres_setup(app, &postgres_bat_file)?;
-
+    if let Err(e) = run_postgres_setup(app, &postgres_bat_file) {
+        append_shell_log(app, "WARN", &format!("run postgres startup: {e}"));
+        return Err(format!(
+            "{} postgres setup failed: {}",
+            postgres_bat_file.display(),
+            e
+        ));
+    }
     Ok(())
 }
 
@@ -644,19 +669,17 @@ fn ensure_models_for_backend(
     }
 
     let Some(source) = read_registry_models_zip_source() else {
-        append_shell_log(
-            app,
-            "WARN",
-            "ONNX models missing and no ModelsZipSource in registry (MSI launch folder; set during install).",
-        );
-        return Ok(());
+        return Err(format!(
+            "{} registry entry for models not found",
+            MODELS_REGISTRY_VALUE
+        ));
     };
 
     let launch_dir = PathBuf::from(normalize_models_zip_source(&source));
     let zip_path = launch_dir.join(ONNX_MODELS_ZIP);
     if !zip_path.is_file() {
         return Err(format!(
-            "{} not found next to MSI launch folder: {}",
+            "{} not found next to MSI file: {}",
             ONNX_MODELS_ZIP,
             zip_path.display()
         ));
@@ -762,7 +785,7 @@ fn services_already_running() -> bool {
 }
 
 fn wait_for_backend(app: &tauri::AppHandle) {
-    set_splash_status(app, "RescueBox Backend check..");
+    set_splash_status(app, "RescueBox Backend check..could take a couple of minutes");
     for attempt in 0..UI_READY_MAX_ATTEMPTS {
         if backend_http_ready() {
             append_shell_log(

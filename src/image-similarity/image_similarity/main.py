@@ -367,7 +367,6 @@ def import_task_schema() -> TaskSchema:
     )
 
 
-server = MLService(APP_NAME)
 info_file_path = Path(__file__).resolve().parent / "app-info.md"
 info = info_file_path.read_text(encoding="utf-8")
 

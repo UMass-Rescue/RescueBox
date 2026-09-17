@@ -92,7 +92,7 @@
     <p class="status" id="startup-status">Initializing&hellip;</p>
     <label class="quit-option" id="quit-option" for="quit-on-close">
       <input type="checkbox" id="quit-on-close" />
-      <span>Quit RescueBox when I close this window</span>
+      <span>Shutdown RescueBox services</span>
     </label>
   </div>
   <script>
@@ -159,7 +159,7 @@
         return;
       }
       el.replaceChildren();
-      el.appendChild(document.createTextNode("RescueBox is running at "));
+      el.appendChild(document.createTextNode("RescueBox services running. Browse "));
       const link = document.createElement("a");
       link.href = url;
       link.textContent = url;
@@ -172,7 +172,7 @@
       });
       el.appendChild(link);
       el.appendChild(
-        document.createTextNode(" — open in your web browser.")
+        document.createTextNode(" to use Rescuebox.")
       );
       if (quitRow) quitRow.classList.add("visible");
       if (box) {
