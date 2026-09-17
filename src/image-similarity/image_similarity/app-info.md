@@ -130,7 +130,7 @@ Each imported record stores the same fields described in the export section abov
 
 After import, every search ranks your local images **and** the imported embeddings together. Imported records that score high enough appear as **Imported** rows in results.
 
-Within a single import file, duplicate records (same `content_sha256` + `model_name`) are skipped. Re-importing the same hash and model updates the existing imported row.
+Within a single import file, duplicate records (same `content_sha256` + `model_name`) are skipped. Records already indexed locally (same content hash) are skipped. Re-importing the same hash and model updates the existing imported row with all metadata.
 
 ## How it works (brief)
 

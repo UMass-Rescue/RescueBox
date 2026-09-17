@@ -780,6 +780,47 @@ def _imported_private_row(
     ).first()
 
 
+def _local_content_hash_exists(
+    session: Session,
+    content_sha256: str,
+    model_name: str,
+) -> bool:
+    local_private = session.exec(
+        select(ImageSimilarityPrivateEmbedding).where(
+            ImageSimilarityPrivateEmbedding.content_sha256 == content_sha256,
+            sql_filters.priv_model_name_eq(model_name),
+            ImageSimilarityPrivateEmbedding.source == SOURCE_LOCAL,
+        )
+    ).first()
+    if local_private:
+        return True
+    plain = session.exec(
+        select(ImageSimilarityEmbedding).where(
+            ImageSimilarityEmbedding.content_sha256 == content_sha256,
+            sql_filters.model_name_eq(model_name),
+        )
+    ).first()
+    return plain is not None
+
+
+def _apply_imported_record(
+    row: ImageSimilarityPrivateEmbedding,
+    record: dict,
+    export_file: str,
+) -> None:
+    row.path = "[imported]"
+    row.content_sha256 = record["content_sha256"]
+    row.model_name = record["model_name"]
+    row.embedding = [float(x) for x in record["embedding"]]
+    row.pdq_hash = record["pdq_hash"]
+    row.user_email = record["user_email"]
+    row.organization = str(record.get("organization", "") or "")
+    row.privacy_protocol = record["privacy_protocol"]
+    row.filename = _record_image_filename(record)
+    row.export_file = export_file
+    row.source = SOURCE_IMPORTED
+
+
 def _private_hashes_needing_embed(
     session: Session,
     file_paths: list[str],
@@ -1063,7 +1104,7 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
     imported = 0
     skipped = 0
     errors: list[str] = []
-    seen_keys: set[tuple[str, str, str, str]] = set()
+    seen_keys: set[tuple[str, str]] = set()
 
     with Session(engine) as session:
         header, records = _load_private_embedding_export(input_path)
@@ -1082,43 +1123,28 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
                 continue
 
             content_sha256 = record["content_sha256"]
-            privacy_protocol = record["privacy_protocol"]
             model_name = record["model_name"]
-            owner_email = record["user_email"]
-            organization = str(record.get("organization", "") or "")
 
             dedup_key = (content_sha256, model_name)
             if dedup_key in seen_keys:
                 skipped += 1
                 continue
 
+            if _local_content_hash_exists(session, content_sha256, model_name):
+                skipped += 1
+                seen_keys.add(dedup_key)
+                continue
+
             existing = _imported_private_row(session, content_sha256, model_name)
 
             if existing:
-                existing.embedding = [float(x) for x in record["embedding"]]
-                existing.pdq_hash = record["pdq_hash"]
-                existing.user_email = owner_email
-                existing.organization = organization
-                existing.privacy_protocol = privacy_protocol
-                existing.filename = _record_image_filename(record)
-                existing.export_file = export_file
+                _apply_imported_record(existing, record, export_file)
                 seen_keys.add(dedup_key)
                 imported += 1
                 continue
 
-            new_row = ImageSimilarityPrivateEmbedding(
-                path="[imported]",
-                content_sha256=content_sha256,
-                model_name=model_name,
-                embedding=[float(x) for x in record["embedding"]],
-                pdq_hash=record["pdq_hash"],
-                user_email=owner_email,
-                organization=organization,
-                privacy_protocol=privacy_protocol,
-                filename=_record_image_filename(record),
-                export_file=export_file,
-                source=SOURCE_IMPORTED,
-            )
+            new_row = ImageSimilarityPrivateEmbedding()
+            _apply_imported_record(new_row, record, export_file)
             session.add(new_row)
             seen_keys.add(dedup_key)
             imported += 1
@@ -1126,7 +1152,7 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
         session.commit()
 
     logger.info(
-        "Import complete: %d imported, %d skipped (duplicates), %d errors",
+        "Import complete: %d imported, %d skipped (duplicates or local), %d errors",
         imported,
         skipped,
         len(errors),
@@ -1143,7 +1169,7 @@ def import_embeddings(inputs: ImportInputs) -> ResponseBody:
                     metadata={
                         "Export file": export_file,
                         "Imported": str(imported),
-                        "Skipped (duplicates)": str(skipped),
+                        "Skipped (duplicates or local)": str(skipped),
                         "Errors": str(len(errors)),
                     },
                 )
