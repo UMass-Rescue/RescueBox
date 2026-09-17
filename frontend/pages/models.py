@@ -116,6 +116,20 @@ def _parse_app_metadata(model_info_dict: dict[str, Any]):
         return None
 
 
+async def _fetch_model_metadata_from_api(model_uid: str) -> dict[str, Any] | None:
+    try:
+        response = await api_client.get(f"/models/{model_uid}")
+        if response.status_code == 200:
+            return await api_client.json(response)
+    except UI_RENDER_ERRORS as e:
+        logger.warning(
+            "Failed to fetch model %s from API, using cache if available: %s",
+            model_uid,
+            e,
+        )
+    return None
+
+
 async def _fetch_server_status(model_uid: str) -> str:
     try:
         status_response = await api_client.get(
@@ -131,11 +145,11 @@ async def _fetch_server_status(model_uid: str) -> str:
 async def _load_model_details_context(
     model_uid: str,
 ) -> tuple[Any, dict[str, Any], str] | None:
-    model_info_dict = await get_cached_model_by_uid(model_uid)
+    model_info_dict = await _fetch_model_metadata_from_api(model_uid)
     if not model_info_dict:
-        raise HTTPException(
-            status_code=404, detail=f"Model {model_uid} not found in cache."
-        )
+        model_info_dict = await get_cached_model_by_uid(model_uid)
+    if not model_info_dict:
+        raise HTTPException(status_code=404, detail=f"Model {model_uid} not found.")
     model_info = _parse_app_metadata(model_info_dict)
     server_status = await _fetch_server_status(model_uid)
     return model_info, model_info_dict, server_status
