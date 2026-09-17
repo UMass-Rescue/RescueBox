@@ -1,6 +1,6 @@
-# Image Similarity Search
+# Image Series Similarity
 
-Finds images from the **same series** as a query image.
+Finds images from the **same series** as the query image.
 
 **Series:** Images related **temporally** and by **subject matter** (e.g. one birthday party). Photos of the same person at different times and places are **not** one series.
 

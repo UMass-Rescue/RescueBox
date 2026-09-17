@@ -1,6 +1,6 @@
-# Audio Transcription
+# Transcribe Audio
 
-Audio Transcription uses Whisper to transcribe speech in audio files. It processes all supported audio files in a directory (including subdirectories) and returns the transcription text for each file.
+Transcribe Audio uses Whisper to transcribe speech in audio files. It processes all supported audio files in a directory (including subdirectories) and returns the transcription text for each file.
 Note : this is a CPU intensive operation and not a GPU load. and hence takes  time per audio file
 
 

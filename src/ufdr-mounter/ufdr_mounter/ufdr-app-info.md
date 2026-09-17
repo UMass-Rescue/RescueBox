@@ -1,4 +1,4 @@
-# UFDR-Mounter
+# UFDR Mount
 
 A Python-based FUSE virtual filesystem that allows you to mount `.ufdr` and `.zip` archives as read-only directories. This tool lets you browse the contents of forensic archives (like Cellebrite UFDR exports) without extracting them.
 
@@ -11,6 +11,9 @@ A `.ufdr` file is a Cellebrite forensic export that combines an XML metadata blo
 
 
 ### OS-Specific Notes
+
+#### Windows
+Install Winfsp-2.1.x package. It provides custom file systems on Windows computers
 
 #### Linux 
 Install FUSE (latest) via your package manager:

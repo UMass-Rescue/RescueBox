@@ -25,6 +25,7 @@ from rb.api.models import (
 )
 from rb.lib.ml_service import MLService
 from rb.lib.pipeline_corpus import resolve_text_file_corpus_paths
+from sentence_transformers import SentenceTransformer  # type: ignore
 from sqlalchemy import bindparam, update
 from sqlalchemy import text as sql_text
 from sqlmodel import Session, delete, select
@@ -284,8 +285,6 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
     Semantic search over text files. Embeds the directory if embeddings don't exist
     for the requested model, then runs cosine similarity search.
     """
-
-    from sentence_transformers import SentenceTransformer  # type: ignore
 
     input_dir = str(inputs["input_dir"].path)
     query_text = inputs["query"].text

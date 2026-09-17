@@ -1,4 +1,4 @@
-# Age and Gender Classifier
+# Age and Gender
 
 Age and Gender Classifier detects faces in images and predicts the gender and age range of each face.
 

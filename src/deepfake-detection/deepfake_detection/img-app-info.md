@@ -1,4 +1,4 @@
-# Image Deepfake Detector
+# Detect DeepFakes
 
 ## Overview
 This application is a machine learning-powered deepfake detection tool that analyzes image files to determine whether they contain manipulated/generated (fake) or real content. It uses a machine learning architecture with either a binary neural network or vision transformers to perform image classification.

@@ -1,6 +1,6 @@
-# Text Search
+# Search Text
 
-Text Search performs semantic search over text files. Provide a directory of documents and a search query; if the directory is not yet indexed, it will be embedded automatically, then the most similar documents are returned.
+Search Text performs semantic search over text files. Provide a directory of documents and a search query; if the directory is not yet indexed, it will be embedded automatically, then the most similar documents are returned.
 
 ## Inputs
 
@@ -21,7 +21,7 @@ Text Search performs semantic search over text files. Provide a directory of doc
 ```json
 {
   "query": "vehicle collision report",
-  "model": "BAAI/bge-m3"",
+  "model": "BAAI/bge-m3",
   "top_k": 5,
   "min_similarity": 0.5,
   "similarity_guidance": "Results with similarity >= 0.5 are marked as matches. Chunk-level search improves recall (e.g. 'stones' matches 'pebbles').",

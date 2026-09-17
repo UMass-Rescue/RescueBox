@@ -1,6 +1,6 @@
-# FaceMatch
+# Face Match
 
-FaceMatch is an advanced system designed for identifying facial matches within an image database. This platform enables users to create comprehensive image databases and facilitates efficient searches to find matches for individuals by uploading query images.
+Face Match is an ML system designed for identifying facial matches within an image database. This platform enables users to create comprehensive image databases and facilitates efficient searches to find matches for individuals by uploading query images.
 
 ## 1. Creating a Database of Individuals
 

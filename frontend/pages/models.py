@@ -315,9 +315,6 @@ async def model_details_page(model_uid: str):
         "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
     ), ui.row().classes("gap-6 w-full"):
         with ui.column().classes("flex-1"):
-            ui.label(model_uid + " Model Documentation").classes(
-                "text-2xl font-bold mb-4"
-            )
 
             model_data = extract_model_info(model_info, model_info_dict)
             info_text = model_data["info"]
