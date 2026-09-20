@@ -9,7 +9,7 @@ packages = [{include = "file_utils"}]
 file-utils = "file_utils.main:app"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 typer = "*"
 
 

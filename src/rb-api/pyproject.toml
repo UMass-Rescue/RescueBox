@@ -6,7 +6,7 @@ authors = ["Jagath Jai Kumar <jagath.jaikumar@gmail.com>"]
 packages = [{ include = "rb", from = "." }]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 fastapi = "*"
 uvicorn = "*"
 jinja2 = "*"
