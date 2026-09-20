@@ -1,0 +1,67 @@
+@misc{granite2026,
+  author       = {{IBM Research}},
+  title        = {Granite 4.1 Language Models},
+  year         = {2026},
+  howpublished = {\url{https://huggingface.co/blog/ibm-granite/granit-4-1}},
+  note         = {Accessed: 2026-04-28}
+}
+
+@misc{onnxruntime,
+  title={ONNX Runtime},
+  author={ONNX Runtime developers},
+  year={2021},
+  howpublished={\url{https://onnxruntime.ai/}},
+  note={Version: x.y.z}
+}
+@software{kane_pgvector_2026,
+  author       = {Andrew Kane},
+  title        = {pgvector: Open-source vector similarity search for Postgres},
+  month        = sep,
+  year         = {2026},
+  publisher    = {GitHub},
+  version      = {v0.8.0},
+  url          = {https://github.com/pgvector/pgvector}
+}
+@inproceedings{wolf-etal-2020-transformers,
+    title = "Transformers: State-of-the-Art Natural Language Processing",
+    author = "Thomas Wolf and Lysandre Debut and Victor Sanh and Julien Chaumond and Clement Delangue and Anthony Moi and Pierric Cistac and Tim Rault and Rémi Louf and Morgan Funtowicz and Joe Davison and Sam Shleifer and Patrick von Platen and Clara Ma and Yacine Jernite and Julien Plu and Canwen Xu and Teven Le Scao and Sylvain Gugger and Mariama Drame and Quentin Lhoest and Alexander M. Rush",
+    booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+    month = oct,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.emnlp-demos.6/",
+    pages = "38--45"
+}
+@misc{tschannen2025siglip2multilingualvisionlanguageencoders,
+      title={SigLIP 2: Multilingual Vision-Language Encoders with Improved Semantic Understanding, Localization, and Dense Features}, 
+      author={Michael Tschannen and Sourish Gritsenko and Xiao Wang and Mohamad Amin Mohamadi and Mostafa Dehghani and Xiaohua Zhai and Basil Mustafa and Alexander Kolesnikov and Lucas Beyer and Dirk Weissenborn and Georg Heigold and Sylvain Gelly and Jeremiah Liu and Neil Houlsby and Federico Tombari and Matthias Minderer},
+      year={2025},
+      eprint={2502.14786},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2502.14786},
+}
+@inproceedings{radford2021learning,
+  title={Learning Transferable Visual Models From Natural Language Supervision},
+  author={Radford, Alec and Kim, Jong Wook and Hallacy, Chris and Ramesh, Aditya and Goh, Gabriel and Agarwal, Sandhini and Sastry, Girish and Askell, Amanda and Mishkin, Pamela and Clark, Jack and Krueger, Gretchen and Sutskever, Ilya},
+  booktitle={Proceedings of the 38th International Conference on Machine Learning},
+  pages={8748--8763},
+  year={2021},
+  editor={Meila, Marina and Zhang, Tong},
+  volume={139},
+  series={Proceedings of Machine Learning Research},
+  month={07--11 Jul},
+  publisher={PMLR},
+  pdf={http://mlr.press},
+  url={https://proceedings.mlr.press/v139/radford21a.html}
+}
+@misc{mesnard2024gemma,
+      title={Gemma: Open Models Based on Gemini Research and Technology}, 
+      author={Gemma Team and Thomas Mesnard and Cassidy Hardin and Robert Dadashi and Surya Bhupatiraju and Shreya Pathak and Laurent Sifre and Morgane Riviere and Mihir Sanjay Kale and Juliette Love and Pouya Tafti and Llion Jones and Srivatsan Srinivasan and Laurent El Shafey and Mikołaj Bąk and Sue Da Silva and Eric David Dunlap and Damion Hankins and Gabriela Surita and Jeffrey Devale and Allison Birch and Chris Harris and Stephanie Hunt and Andrew Dai and Tatiana Matejovicova and Lara Tosatto and Marie Kupec and Heather Bradshaw-Martin and Elena Gribovskaya and Praneeth Karinthi and Nash Robson and George Stathopoulos and Somya Jain and Lindsey Li and Victoria Krakovna and Felix Raeber and Valerii Likhomanov and Genevieve Anderson and Simon Tokumine and Danila Sinopalnikov and Rahul Shah and Karol Lasocki and Will Hawkins and Jeff Dean and and others},
+      year={2024},
+      eprint={2403.08295},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2403.08295},
+}
