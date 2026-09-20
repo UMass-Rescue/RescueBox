@@ -1,6 +1,10 @@
+<img  width="200px" src="https://images.squarespace-cdn.com/content/v1/5efb7aa577f8b34b0f786c0f/1598361988326-7EWAXEOBNQGIQGSQK8PS/Rescue+Lab+LogoOL.jpg?format=1500w">
+
 # RescueBox is a AI/ML digital-forensics application. 
 
-It is intended for investigators who have a directory of evidence—images, audio, PDFs, text files, and want to run AI/ML analysis. This is done local without uploading that evidence to a cloud service.
+It is intended for investigators who have a directory of evidence—images, audio, PDFs, text files, and want to run AI/ML analysis. 
+
+This is done local without uploading that evidence to a cloud service.
 
 ## Sample forensics analysis:
 
@@ -23,11 +27,11 @@ It is intended for investigators who have a directory of evidence—images, audi
 
 ## The workflow is:
 
-Create or load an investigative case.
+Create or load an investigation case.
 
-Select an analysis plugin—or describe the desired analysis to the assistant.
+Select an analysis plugin from a Menu or promt the desired analysis to the Chat assistant.
 
-Point RescueBox at a local evidence directory. fill in or select ML parameters like model to use,top-k.
+Fill in inputs like a local evidence directory. fill in or select ML parameters like model to use,top-k.
 
 Submit a job.
 
@@ -51,4 +55,15 @@ Storage: SQLite stores UI data such as cases, conversations, and job history. Po
 
 Windows installer is available ,details in INSTALL.md.  Developer mac install is also available
 
-After Installing rescuebox refer the Resources -> Readme for plugin details and Demo for a walk thru.
+After Installing rescuebox refer the Resources -> Readme for plugin details and Demo link for a walk thru.
+
+## Useful links
+
+ - [Wiki](https://github.com/UMass-Rescue/RescueBox/wiki) for developers
+
+ - [Previous Release](https://github.com/UMass-Rescue/RescueBox/blob/V2.1.0/README.md) for end-users
+
+ - [web site](https://rescue-lab.org) for more on Rescue Lab
+
+
+
