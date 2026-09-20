@@ -10,7 +10,7 @@ audio-transcription = "audio_transcription.main:app"
 
 [tool.poetry.dependencies]
 cmake = "*"
-python = "^3.11"
+python = "^3.12"
 faster-whisper = "*"
 
 [build-system]

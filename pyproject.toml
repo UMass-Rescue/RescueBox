@@ -11,7 +11,7 @@ rescuebox = "rescuebox.main:app"
 [tool.poetry.dependencies]
 virtualenv = ">=20.26.6,<20.33.0"
 requests = "^2.32.3"
-python = ">=3.11,<3.15"
+python = ">=3.12,<3.15"
 pyyaml = "^6.0.2"
 typer = "^0.12.5"
 pytest = "^8.3.4"
