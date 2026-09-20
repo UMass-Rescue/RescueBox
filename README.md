@@ -1,3 +1,5 @@
+<img  width="200px" src="https://images.squarespace-cdn.com/content/v1/5efb7aa577f8b34b0f786c0f/1598361988326-7EWAXEOBNQGIQGSQK8PS/Rescue+Lab+LogoOL.jpg?format=1500w">
+
 # RescueBox is a AI/ML digital-forensics application. 
 
 It is intended for investigators who have a directory of evidence—images, audio, PDFs, text files, and want to run AI/ML analysis. 
@@ -25,11 +27,11 @@ This is done local without uploading that evidence to a cloud service.
 
 ## The workflow is:
 
-Create or load an investigative case.
+Create or load an investigation case.
 
-Select an analysis plugin—or describe the desired analysis to the assistant.
+Select an analysis plugin from a Menu or promt the desired analysis to the Chat assistant.
 
-Point RescueBox at a local evidence directory. fill in or select ML parameters like model to use,top-k.
+Fill in inputs like a local evidence directory. fill in or select ML parameters like model to use,top-k.
 
 Submit a job.
 
@@ -64,4 +66,4 @@ After Installing rescuebox refer the Resources -> Readme for plugin details and 
  - [web site](https://rescue-lab.org) for more on Rescue Lab
 
 
-<img  width="200px" src="https://images.squarespace-cdn.com/content/v1/5efb7aa577f8b34b0f786c0f/1598361988326-7EWAXEOBNQGIQGSQK8PS/Rescue+Lab+LogoOL.jpg?format=1500w">
+
