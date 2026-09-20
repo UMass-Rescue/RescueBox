@@ -195,7 +195,7 @@ Loads an exported `.json` into your database. Import requires `format_version: 1
 
 After import, every search ranks your local images **and** the imported embeddings together. Imported records that score high enough appear as **Imported** rows in results.
 
-Within a single import file, duplicate records (same `content_sha256` + `model_name`) are skipped. Re-importing the same hash and model updates the existing imported row rather than creating a duplicate.
+Within a single import file, duplicate records (same `content_sha256` + `model_name`) are skipped. Records whose `content_sha256` is already indexed locally are skipped. Re-importing the same hash and model updates the existing imported row with all metadata rather than creating a duplicate.
 
 Import result:
 
