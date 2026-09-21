@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": ["main", "splashscreen"],
+    "permissions": [
+    "core:default",
+    "allow-open-ui-url",
+    "shell:allow-spawn",
+    "shell:allow-execute",
+    "dialog:default"
+  ]
+}

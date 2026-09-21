@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-open-ui-url"
+description = "Splash screen: open UI in browser and quit-on-close preference"
+commands.allow = ["open_ui_url", "set_quit_on_close"]

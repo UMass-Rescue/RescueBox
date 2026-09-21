@@ -1,0 +1,9 @@
+# src-tauri/permissions/sidecar.toml
+
+[[permission]]
+identifier = "allow-frontend-sidecar"
+description = "Allows the app to spawn the frontend Python sidecar"
+
+[[scope.allow]]
+# This must match the name in your tauri.conf.json externalBin array
+sidecar = "binaries/frontend"
