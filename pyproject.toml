@@ -114,6 +114,12 @@ case-utils = ">=0.15.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.ruff]
+# Explicit so the CLI, pre-commit and CI can't drift apart again (see #131).
+# Formatting is owned by black; ruff runs as a linter only.
+target-version = "py312"
+line-length = 88
+
 [tool.pytest.ini_options]
 addopts = "-p no:warnings --ignore=frontend/tests/integration/ --import-mode=prepend"
 asyncio_mode = "auto"
