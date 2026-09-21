@@ -385,8 +385,7 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
 
         # One row per file: best-matching chunk only (DISTINCT ON), then top_k files by similarity.
         # Scope to this request's paths so we do not rank unrelated corpus rows.
-        query_sql = sql_text(
-            f"""
+        query_sql = sql_text(f"""
             SELECT * FROM (
                 SELECT DISTINCT ON (path)
                     id,
@@ -403,8 +402,7 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             ) AS best_chunk_per_path
             ORDER BY similarity DESC
             LIMIT :top_k
-            """
-        ).bindparams(bindparam("paths", expanding=True))
+            """).bindparams(bindparam("paths", expanding=True))
         rows = session.execute(
             query_sql,
             {

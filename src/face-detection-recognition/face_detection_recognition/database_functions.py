@@ -284,16 +284,14 @@ class Vector_Database:
         with Session(engine) as session:
             for idx, qvec in enumerate(query_vectors):
                 literal = _vector_literal(qvec)
-                stmt = text(
-                    """
+                stmt = text("""
                     SELECT face_id, image_path,
                            (embedding <=> CAST(:qvec AS vector)) AS distance
                     FROM face_embeddings
                     WHERE scope = :scope AND collection_name = :coll
                     ORDER BY embedding <=> CAST(:qvec AS vector)
                     LIMIT :limit
-                    """
-                )
+                    """)
                 hits = session.execute(
                     stmt,
                     {
@@ -354,16 +352,14 @@ class Vector_Database:
                     continue
                 for face_idx, face in enumerate(query):
                     literal = _vector_literal(face["embedding"])
-                    stmt = text(
-                        """
+                    stmt = text("""
                         SELECT face_id, image_path,
                                (embedding <=> CAST(:qvec AS vector)) AS distance
                         FROM face_embeddings
                         WHERE scope = :scope AND collection_name = :coll
                         ORDER BY embedding <=> CAST(:qvec AS vector)
                         LIMIT :limit
-                        """
-                    )
+                        """)
                     hits = session.execute(
                         stmt,
                         {

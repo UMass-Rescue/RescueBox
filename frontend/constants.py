@@ -6,7 +6,7 @@ consistent terminology and enables future internationalization.
 
 Usage:
     from frontend.constants import UI_TITLES, STATUS_MESSAGES
-    
+
     ui.label(UI_TITLES['models'])
     status_text.value = STATUS_MESSAGES['ready']
 """

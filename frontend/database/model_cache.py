@@ -47,15 +47,13 @@ def init_db():
 
             if migration_needed:
                 logger.info("Creating 'models' table with the latest schema.")
-                cursor.execute(
-                    """
+                cursor.execute("""
                     CREATE TABLE models (
                         uid TEXT PRIMARY KEY,
                         model_data TEXT NOT NULL,
                         cached_at TEXT NOT NULL
                     )
-                """
-                )
+                """)
 
             conn.commit()
         logger.info("Cache database initialized successfully.")

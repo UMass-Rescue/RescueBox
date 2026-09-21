@@ -61,8 +61,7 @@ def _connect(path: Path) -> sqlite3.Connection:
 
 def _ensure_job_steps_schema(conn: sqlite3.Connection) -> None:
     """One row per successful job step in a pipeline (lineage / audit)."""
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS pipeline_job_steps (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             step_job_id TEXT NOT NULL DEFAULT '',
@@ -71,8 +70,7 @@ def _ensure_job_steps_schema(conn: sqlite3.Connection) -> None:
             detail_json TEXT NOT NULL,
             UNIQUE(step_job_id)
         )
-        """
-    )
+        """)
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_pjs_endpoint ON pipeline_job_steps(endpoint)"
     )
@@ -80,8 +78,7 @@ def _ensure_job_steps_schema(conn: sqlite3.Connection) -> None:
 
 def _ensure_response_rows_schema(conn: sqlite3.Connection) -> None:
     """One row per persisted result item from a job response (batch rows, JSON lists, …)."""
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS pipeline_response_rows (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             step_job_id TEXT NOT NULL DEFAULT '',
@@ -93,16 +90,14 @@ def _ensure_response_rows_schema(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL,
             UNIQUE(step_job_id, container, ordinal)
         )
-        """
-    )
+        """)
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_prr_step ON pipeline_response_rows(step_job_id)"
     )
 
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS pipeline_io_links (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             input_path TEXT NOT NULL,
@@ -113,8 +108,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL,
             UNIQUE(output_path_norm)
         )
-        """
-    )
+        """)
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_pio_out ON pipeline_io_links(output_path_norm)"
     )
@@ -123,8 +117,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     )
 
     # Legacy: summarize-only index (older DBs); not written by new code paths.
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS image_text_chunks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             text_path TEXT NOT NULL UNIQUE,
@@ -134,8 +127,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             provenance_json TEXT NOT NULL,
             created_at TEXT NOT NULL
         )
-        """
-    )
+        """)
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_chunks_norm ON image_text_chunks(text_path_norm)"
     )
@@ -204,13 +196,11 @@ def list_pipeline_job_steps(
     conn = _connect(db_path)
     try:
         _ensure_schema(conn)
-        cur = conn.execute(
-            """
+        cur = conn.execute("""
             SELECT step_job_id, endpoint, completed_at, detail_json
             FROM pipeline_job_steps
             ORDER BY id ASC
-            """
-        )
+            """)
         out: list[dict[str, Any]] = []
         for row in cur.fetchall():
             detail: dict[str, Any]
@@ -326,13 +316,11 @@ def list_pipeline_response_rows(
                 ((step_job_id or "").strip(),),
             )
         else:
-            cur = conn.execute(
-                """
+            cur = conn.execute("""
                 SELECT step_job_id, endpoint, container, ordinal, output_type, payload_json, created_at
                 FROM pipeline_response_rows
                 ORDER BY id ASC
-                """
-            )
+                """)
         out: list[dict[str, Any]] = []
         for row in cur.fetchall():
             try:

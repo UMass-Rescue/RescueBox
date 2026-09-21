@@ -6,7 +6,7 @@ All configuration values can be overridden via environment variables.
 
 Usage:
     from frontend.config import API_BASE_URL, APP_PORT
-    
+
     api_client = httpx.AsyncClient(base_url=API_BASE_URL)
 """
 

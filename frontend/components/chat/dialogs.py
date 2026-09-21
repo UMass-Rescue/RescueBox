@@ -20,7 +20,7 @@ def show_help_dialog(help_text: str, title: str | None = "RescueBox Help") -> No
 
 
 async def show_history_dialog(
-    on_conversation_select: Callable[[str], None]
+    on_conversation_select: Callable[[str], None],
 ) -> ui.dialog:
     chat_db = get_chat_history_db()
     conversations = await chat_db.get_all_conversations()
