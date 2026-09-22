@@ -2,8 +2,8 @@
 """
 Comprehensive End-to-End Test for RescueBox Plugins.
 
-This script runs sequentially through all 9 active ML plugins to confirm that 
-the FastAPI backend routes, Pydantic validations, and ML model wrappers are 
+This script runs sequentially through all 9 active ML plugins to confirm that
+the FastAPI backend routes, Pydantic validations, and ML model wrappers are
 all fully functional and thread-safe.
 
 Usage:

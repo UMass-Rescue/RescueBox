@@ -205,8 +205,7 @@ def jobs_runtime_create_statements() -> list[str]:
     because ``JobDB.initialize_schema`` should not own ``cases``/``file_filters``
     lifecycle. Those tables are created by their dedicated modules.
     """
-    return [
-        """
+    return ["""
         CREATE TABLE IF NOT EXISTS jobs (
             uid TEXT PRIMARY KEY,
             userId TEXT,
@@ -223,8 +222,7 @@ def jobs_runtime_create_statements() -> list[str]:
             filterId TEXT,
             caseNotes TEXT
         )
-    """
-    ]
+    """]
 
 
 def jobs_runtime_index_statements() -> list[str]:
@@ -287,8 +285,7 @@ def chat_history_runtime_index_statements() -> list[str]:
 
 def cases_runtime_create_statements() -> list[str]:
     """Canonical CREATE statements used by ``CaseDB._create_schema``."""
-    return [
-        """
+    return ["""
         CREATE TABLE IF NOT EXISTS cases (
             caseId TEXT PRIMARY KEY,
             caseNumber TEXT NOT NULL UNIQUE,
@@ -297,8 +294,7 @@ def cases_runtime_create_statements() -> list[str]:
             createdAt TEXT NOT NULL,
             updatedAt TEXT NOT NULL
         )
-    """
-    ]
+    """]
 
 
 def cases_runtime_index_statements() -> list[str]:
@@ -310,8 +306,7 @@ def cases_runtime_index_statements() -> list[str]:
 
 def file_filters_runtime_create_statements() -> list[str]:
     """Canonical CREATE statements used by ``file_filter_store`` helpers."""
-    return [
-        """
+    return ["""
         CREATE TABLE IF NOT EXISTS file_filters (
             id TEXT PRIMARY KEY,
             name TEXT,
@@ -326,8 +321,7 @@ def file_filters_runtime_create_statements() -> list[str]:
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         )
-    """
-    ]
+    """]
 
 
 def file_filters_runtime_index_statements() -> list[str]:
