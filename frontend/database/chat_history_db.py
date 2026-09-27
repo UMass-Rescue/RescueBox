@@ -303,12 +303,10 @@ class ChatHistoryDB(BaseDatabase):
                 (current_user,),
             )
         else:
-            cursor = conn.execute(
-                """
+            cursor = conn.execute("""
                 SELECT * FROM conversations
                 ORDER BY updated_at DESC
-            """
-            )
+            """)
 
         rows = cursor.fetchall()
         logger.debug("SQL query returned %d rows", len(rows))
@@ -669,13 +667,11 @@ class ChatHistoryDB(BaseDatabase):
                     (endpoint,),
                 )
             else:
-                cursor = conn.execute(
-                    """
+                cursor = conn.execute("""
                     SELECT * FROM chat_messages
                     WHERE message_type = 'tool_call'
                     ORDER BY timestamp DESC
-                """
-                )
+                """)
 
         messages = []
         for row in cursor.fetchall():

@@ -117,8 +117,7 @@ def cosine_similarity_search(
             if search_paths
             else "source = :imported_source"
         )
-        stmt = text(
-            f"""
+        stmt = text(f"""
             SELECT id, path, content_sha256, user_email, organization, source, filename,
                    export_file, 1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
@@ -126,8 +125,7 @@ def cosine_similarity_search(
               AND {path_clause}
             ORDER BY embedding <=> CAST(:qvec AS vector)
             LIMIT :top_k
-            """
-        )
+            """)
         if search_paths:
             stmt = stmt.bindparams(bindparam("paths", expanding=True))
         params: dict = {
@@ -139,8 +137,7 @@ def cosine_similarity_search(
         if search_paths:
             params["paths"] = search_paths
     else:
-        stmt = text(
-            f"""
+        stmt = text(f"""
             SELECT path, content_sha256, user_email,
                    1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
@@ -148,8 +145,7 @@ def cosine_similarity_search(
               AND model_name = :model_name
             ORDER BY embedding <=> CAST(:qvec AS vector)
             LIMIT :top_k
-            """
-        ).bindparams(bindparam("paths", expanding=True))
+            """).bindparams(bindparam("paths", expanding=True))
         params = {
             "qvec": qvec_literal,
             "paths": search_paths,

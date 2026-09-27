@@ -480,15 +480,13 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             if embedded_paths:
                 # pgvector: rank only rows whose path was embedded in this run (uses index on embedding).
                 qvec_literal = "[" + ",".join(str(x) for x in query_vec.tolist()) + "]"
-                stmt = text(
-                    """
+                stmt = text("""
                         SELECT id, path, 1 - (embedding <=> CAST(:qvec AS vector)) AS similarity
                         FROM image_embeddings
                         WHERE path IN :paths
                         ORDER BY embedding <=> CAST(:qvec AS vector)
                         LIMIT :top_k
-                        """
-                ).bindparams(bindparam("paths", expanding=True))
+                        """).bindparams(bindparam("paths", expanding=True))
                 rows = session.execute(
                     stmt,
                     {"qvec": qvec_literal, "paths": embedded_paths, "top_k": top_k},
