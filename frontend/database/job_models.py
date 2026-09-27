@@ -32,35 +32,43 @@ class JobRecord(BaseModel):
     """
 
     uid: str = Field(..., description="Unique job identifier")
-    userId: str | None = Field(None, description="NiceGUI session or user identifier")
-    modelUid: str | None = Field(None, description="Model UID for traditional jobs")
-    taskUid: str | None = Field(None, description="Task UID for traditional jobs")
-    endpoint: str | None = Field(None, description="Endpoint name for chatbot jobs")
+    userId: str | None = Field(
+        default=None, description="NiceGUI session or user identifier"
+    )
+    modelUid: str | None = Field(
+        default=None, description="Model UID for traditional jobs"
+    )
+    taskUid: str | None = Field(
+        default=None, description="Task UID for traditional jobs"
+    )
+    endpoint: str | None = Field(
+        default=None, description="Endpoint name for chatbot jobs"
+    )
     endpointChain: list[str] | None = Field(
-        None,
+        default=None,
         description="Ordered endpoints for multi-step chatbot pipelines (includes current job endpoint)",
     )
     pipelineRootJobId: str | None = Field(
-        None,
+        default=None,
         description="Stable id for the first job in a multi-step pipeline; links sibling step jobs",
     )
     pipelineMetadataFilterCriteria: str | None = Field(
-        None,
+        default=None,
         description="Classifier metadata filter (e.g. age/gender) applied when chaining to the next pipeline step",
     )
     filterId: str | None = Field(
-        None, description="Optional persisted filter id linking to file_filters"
+        default=None, description="Optional persisted filter id linking to file_filters"
     )
     caseNotes: str | None = Field(
-        None, description="User-entered case notes for the job"
+        default=None, description="User-entered case notes for the job"
     )
     startTime: str = Field(..., description="Job start time in ISO format")
-    endTime: str | None = Field(None, description="Job end time in ISO format")
+    endTime: str | None = Field(default=None, description="Job end time in ISO format")
     status: JobStatus = Field(..., description="Job status")
-    statusText: str | None = Field(None, description="Status text for errors")
+    statusText: str | None = Field(default=None, description="Status text for errors")
     request: RequestBody | dict[str, Any] = Field(..., description="Request body")
     response: ResponseBody | dict[str, Any] | None = Field(
-        None, description="Response body"
+        default=None, description="Response body"
     )
     taskSchema: TaskSchema | dict[str, Any] = Field(..., description="Task schema")
 

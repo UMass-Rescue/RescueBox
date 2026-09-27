@@ -284,14 +284,16 @@ class Vector_Database:
         with Session(engine) as session:
             for idx, qvec in enumerate(query_vectors):
                 literal = _vector_literal(qvec)
-                stmt = text("""
+                stmt = text(
+                    """
                     SELECT face_id, image_path,
                            (embedding <=> CAST(:qvec AS vector)) AS distance
                     FROM face_embeddings
                     WHERE scope = :scope AND collection_name = :coll
                     ORDER BY embedding <=> CAST(:qvec AS vector)
                     LIMIT :limit
-                    """)
+                    """
+                )
                 hits = session.execute(
                     stmt,
                     {
@@ -326,7 +328,7 @@ class Vector_Database:
         if threshold is not None:
             result_df = result_df[result_df["similarity"] >= threshold]
 
-        result_df = result_df.sort_values(
+        result_df = result_df.sort_values(  # type: ignore
             by=["query_index", "similarity"], ascending=[True, False]
         )
 
@@ -352,14 +354,16 @@ class Vector_Database:
                     continue
                 for face_idx, face in enumerate(query):
                     literal = _vector_literal(face["embedding"])
-                    stmt = text("""
+                    stmt = text(
+                        """
                         SELECT face_id, image_path,
                                (embedding <=> CAST(:qvec AS vector)) AS distance
                         FROM face_embeddings
                         WHERE scope = :scope AND collection_name = :coll
                         ORDER BY embedding <=> CAST(:qvec AS vector)
                         LIMIT :limit
-                        """)
+                        """
+                    )
                     hits = session.execute(
                         stmt,
                         {

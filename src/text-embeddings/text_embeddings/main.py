@@ -193,7 +193,7 @@ def _paths_with_chunks_for_params(
     rows = session.exec(
         select(TextEmbeddingChunk.path)
         .where(
-            cast(Any, TextEmbeddingChunk.__table__.c.path).in_(paths),
+            cast(Any, TextEmbeddingChunk.__table__.c.path).in_(paths),  # type: ignore
             TextEmbeddingChunk.model_name == model_name,
             TextEmbeddingChunk.chunk_size == chunk_size,
             TextEmbeddingChunk.chunk_overlap == chunk_overlap,
@@ -207,7 +207,7 @@ def _delete_chunks_for_paths(session, paths: list[str], model_name: str) -> None
     """Delete chunks for these paths and model so they can be re-embedded."""
     session.execute(
         delete(TextEmbeddingChunk).where(
-            cast(Any, TextEmbeddingChunk.__table__.c.path).in_(paths),
+            cast(Any, TextEmbeddingChunk.__table__.c.path).in_(paths),  # type: ignore
             TextEmbeddingChunk.model_name == model_name,
         )
     )
@@ -381,11 +381,12 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             normalize_embeddings=True,
             show_progress_bar=False,
         )
-        embedding_str = "[" + ",".join(str(x) for x in query_embedding.tolist()) + "]"
+        embedding_str = "[" + ",".join(str(x) for x in query_embedding.tolist()) + "]"  # type: ignore
 
         # One row per file: best-matching chunk only (DISTINCT ON), then top_k files by similarity.
         # Scope to this request's paths so we do not rank unrelated corpus rows.
-        query_sql = sql_text(f"""
+        query_sql = sql_text(
+            f"""
             SELECT * FROM (
                 SELECT DISTINCT ON (path)
                     id,
@@ -402,7 +403,8 @@ def search(inputs: Inputs, parameters: Parameters) -> ResponseBody:
             ) AS best_chunk_per_path
             ORDER BY similarity DESC
             LIMIT :top_k
-            """).bindparams(bindparam("paths", expanding=True))
+            """
+        ).bindparams(bindparam("paths", expanding=True))
         rows = session.execute(
             query_sql,
             {

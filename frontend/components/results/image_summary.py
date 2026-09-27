@@ -102,9 +102,13 @@ def _open_image_summary_markdown_modal(file_info: dict[str, Any]) -> None:
     )
     with ui.dialog() as dialog:
         dialog.props("position=right full-height").classes("image-summary-side-dialog")
-        with ui.card().classes(
-            "h-full min-h-0 flex flex-col p-6 rounded-none shadow-2xl border-l border-zinc-200 bg-white"
-        ).style("width: min(520px, 48vw); max-width: 100vw;"):
+        with (
+            ui.card()
+            .classes(
+                "h-full min-h-0 flex flex-col p-6 rounded-none shadow-2xl border-l border-zinc-200 bg-white"
+            )
+            .style("width: min(520px, 48vw); max-width: 100vw;")
+        ):
             ui.label(name).classes("text-2xl font-semibold shrink-0 mb-4")
             with ui.column().classes(
                 "overflow-y-auto flex-1 min-h-0 w-full image-summary-md-modal"
@@ -221,11 +225,17 @@ def render_image_summary_json(container, data):
                                     ui.icon("image_not_supported", size="3rem").classes(
                                         "text-zinc-400 mt-10"
                                     )
-                            with ui.element("div").classes(
-                                "grid grid-cols-[12rem_minmax(0,1fr)] gap-3 cursor-pointer hover:bg-zinc-50 p-1"
-                            ).on(
-                                "click",
-                                lambda _e, f=fi: _open_image_summary_markdown_modal(f),
+                            with (
+                                ui.element("div")
+                                .classes(
+                                    "grid grid-cols-[12rem_minmax(0,1fr)] gap-3 cursor-pointer hover:bg-zinc-50 p-1"
+                                )
+                                .on(
+                                    "click",
+                                    lambda _e, f=fi: _open_image_summary_markdown_modal(
+                                        f
+                                    ),
+                                )
                             ):
                                 ui.label(fi["filename"]).classes(
                                     "text-sm font-mono break-all pt-1"

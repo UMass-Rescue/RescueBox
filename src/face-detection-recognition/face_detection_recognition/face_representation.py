@@ -3,7 +3,7 @@ import os
 
 import cv2
 import numpy as np
-import onnxruntime as ort
+import onnxruntime as ort  # type: ignore
 
 from rb.lib.ml_service import plugin_models_dir
 from face_detection_recognition.utils.retinaface_utils import (
@@ -162,10 +162,8 @@ def detect_faces_and_get_embeddings(
         # YOLO preprocessing
         letterbox_info = None
         if detector_backend == "yolov8":
-
             all_boxes, all_scores, all_landmarks = [], [], []
             for img, original_size in zip(imgs, original_sizes):
-
                 scale = min(
                     input_size[0] / original_size[0], input_size[1] / original_size[1]
                 )

@@ -60,9 +60,8 @@ AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"}
 
 
 class AudioDirectory(FileFilterDirectory):
-
     path: DirectoryPath
-    file_extensions: list[str] = AUDIO_EXTENSIONS
+    file_extensions: list[str] = list(AUDIO_EXTENSIONS)
 
 
 class AudioInput(TypedDict):

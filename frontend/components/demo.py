@@ -244,8 +244,9 @@ def render_demo_files_explorer(
 
 def render_walkthrough_samples_panel(container: ui.element, walkthrough: str) -> None:
     """Section with title + filtered explorer for a walkthrough page."""
-    with container, ui.column().props("id=walkthrough-samples").classes(
-        "w-full scroll-mt-24 mt-6"
+    with (
+        container,
+        ui.column().props("id=walkthrough-samples").classes("w-full scroll-mt-24 mt-6"),
     ):
         ui.label("Sample inputs & outputs").classes("text-xl font-bold mb-1")
         ui.label("Browse folders and files for this demo. ").classes(

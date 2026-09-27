@@ -117,7 +117,8 @@ def cosine_similarity_search(
             if search_paths
             else "source = :imported_source"
         )
-        stmt = text(f"""
+        stmt = text(
+            f"""
             SELECT id, path, content_sha256, user_email, organization, source, filename,
                    export_file, 1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
@@ -125,7 +126,8 @@ def cosine_similarity_search(
               AND {path_clause}
             ORDER BY embedding <=> CAST(:qvec AS vector)
             LIMIT :top_k
-            """)
+            """
+        )
         if search_paths:
             stmt = stmt.bindparams(bindparam("paths", expanding=True))
         params: dict = {
@@ -137,7 +139,8 @@ def cosine_similarity_search(
         if search_paths:
             params["paths"] = search_paths
     else:
-        stmt = text(f"""
+        stmt = text(
+            f"""
             SELECT path, content_sha256, user_email,
                    1 - (embedding <=> CAST(:qvec AS vector)) AS score
             FROM {table}
@@ -145,7 +148,8 @@ def cosine_similarity_search(
               AND model_name = :model_name
             ORDER BY embedding <=> CAST(:qvec AS vector)
             LIMIT :top_k
-            """).bindparams(bindparam("paths", expanding=True))
+            """
+        ).bindparams(bindparam("paths", expanding=True))
         params = {
             "qvec": qvec_literal,
             "paths": search_paths,
@@ -200,6 +204,9 @@ def pdq_similarity_search(
     if not query_pdq or (not candidate_paths and not include_imported):
         return []
 
+    bank = BANK_PRIVATE if use_private_table else BANK_PLAIN
+    scored = []
+
     if use_private_table:
         filters = [ImageSimilarityPrivateEmbedding.pdq_hash != ""]
         if candidate_paths and include_imported:
@@ -211,8 +218,8 @@ def pdq_similarity_search(
             filters.append(sql_filters.priv_path_in(candidate_paths))
         else:
             filters.append(ImageSimilarityPrivateEmbedding.source == SOURCE_IMPORTED)
-        rows = session.exec(
-            select(
+        priv_rows = session.exec(
+            select(  # type: ignore
                 ImageSimilarityPrivateEmbedding.id,
                 ImageSimilarityPrivateEmbedding.path,
                 ImageSimilarityPrivateEmbedding.pdq_hash,
@@ -224,38 +231,22 @@ def pdq_similarity_search(
                 ImageSimilarityPrivateEmbedding.export_file,
             ).where(*filters)
         ).all()
-    else:
-        rows = session.exec(
-            select(
-                ImageSimilarityEmbedding.path,
-                ImageSimilarityEmbedding.pdq_hash,
-                ImageSimilarityEmbedding.content_sha256,
-                ImageSimilarityEmbedding.user_email,
-            ).where(
-                sql_filters.path_in(candidate_paths),
-                sql_filters.pdq_hash_nonempty(),
-            )
-        ).all()
 
-    if not rows:
-        logger.warning("pdq_similarity_search: no PDQ hashes found for candidates")
-        return []
+        if not priv_rows:
+            logger.warning("pdq_similarity_search: no PDQ hashes found for candidates")
+            return []
 
-    bank = BANK_PRIVATE if use_private_table else BANK_PLAIN
-    scored = []
-    for row in rows:
-        if use_private_table:
-            (
-                row_id,
-                path,
-                pdq_hash,
-                content_sha256,
-                user_email,
-                organization,
-                row_source,
-                row_filename,
-                row_export_file,
-            ) = row
+        for (
+            row_id,
+            path,
+            pdq_hash,
+            content_sha256,
+            user_email,
+            organization,
+            row_source,
+            row_filename,
+            row_export_file,
+        ) in priv_rows:
             dist = hamming_distance(query_pdq, pdq_hash)
             scored.append(
                 _search_hit(
@@ -271,8 +262,24 @@ def pdq_similarity_search(
                     export_file=row_export_file or "",
                 )
             )
-        else:
-            path, pdq_hash, content_sha256, user_email = row
+    else:
+        pub_rows = session.exec(
+            select(
+                ImageSimilarityEmbedding.path,
+                ImageSimilarityEmbedding.pdq_hash,
+                ImageSimilarityEmbedding.content_sha256,
+                ImageSimilarityEmbedding.user_email,
+            ).where(
+                sql_filters.path_in(candidate_paths),
+                sql_filters.pdq_hash_nonempty(),
+            )
+        ).all()
+
+        if not pub_rows:
+            logger.warning("pdq_similarity_search: no PDQ hashes found for candidates")
+            return []
+
+        for path, pdq_hash, content_sha256, user_email in pub_rows:
             dist = hamming_distance(query_pdq, pdq_hash)
             scored.append(
                 _search_hit(

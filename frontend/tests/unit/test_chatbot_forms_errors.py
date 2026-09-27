@@ -203,14 +203,17 @@ class TestChatbotFormsErrorHandling:
         """
         container = MagicMock()
 
-        with patch.object(
-            core,
-            "get_task_schema_from_endpoint",
-            side_effect=OSError(SCHEMA_FETCH_ERROR_MSG),
-        ), patch(
-            "frontend.pages.chatbot.ui_flow.handle_api_error",
-            new_callable=AsyncMock,
-        ) as mock_handle_error:
+        with (
+            patch.object(
+                core,
+                "get_task_schema_from_endpoint",
+                side_effect=OSError(SCHEMA_FETCH_ERROR_MSG),
+            ),
+            patch(
+                "frontend.pages.chatbot.ui_flow.handle_api_error",
+                new_callable=AsyncMock,
+            ) as mock_handle_error,
+        ):
             with patch("frontend.pages.chatbot.ui_flow.show_error_message"):
                 result = await load_and_show_form(
                     container, core, TEST_ENDPOINT, {}, MagicMock()
@@ -236,25 +239,30 @@ class TestChatbotFormsErrorHandling:
         container.__enter__ = MagicMock(return_value=container)
         container.__exit__ = MagicMock(return_value=False)
 
-        with patch.object(
-            core, "get_task_schema_from_endpoint", return_value=sample_task_schema
-        ), patch.object(
-            core,
-            "convert_arguments_to_initial_values",
-            side_effect=ValueError(CONVERSION_ERROR_MSG),
-        ), patch(
-            "frontend.pages.chatbot.ui_flow.show_tool_selection"
-        ), patch(
-            "frontend.components.results.render_tool_selection_message",
-            return_value=None,
-        ), patch.object(
-            core,
-            "create_input_form",
-            new_callable=AsyncMock,
-            return_value=MagicMock(),
-        ), patch(
-            "frontend.pages.chatbot.ui_flow.handle_api_error",
-            new_callable=AsyncMock,
+        with (
+            patch.object(
+                core, "get_task_schema_from_endpoint", return_value=sample_task_schema
+            ),
+            patch.object(
+                core,
+                "convert_arguments_to_initial_values",
+                side_effect=ValueError(CONVERSION_ERROR_MSG),
+            ),
+            patch("frontend.pages.chatbot.ui_flow.show_tool_selection"),
+            patch(
+                "frontend.components.results.render_tool_selection_message",
+                return_value=None,
+            ),
+            patch.object(
+                core,
+                "create_input_form",
+                new_callable=AsyncMock,
+                return_value=MagicMock(),
+            ),
+            patch(
+                "frontend.pages.chatbot.ui_flow.handle_api_error",
+                new_callable=AsyncMock,
+            ),
         ):
             try:
                 await load_and_show_form(
@@ -274,24 +282,27 @@ class TestChatbotFormsErrorHandling:
         container = MagicMock()
         container.client = MagicMock()
 
-        with patch.object(
-            core, "get_task_schema_from_endpoint", return_value=sample_task_schema
-        ), patch.object(
-            core, "convert_arguments_to_initial_values", return_value={}
-        ), patch(
-            "frontend.pages.chatbot.ui_flow.show_tool_selection"
-        ), patch(
-            "frontend.components.results.render_tool_selection_message",
-            return_value=None,
-        ), patch.object(
-            core,
-            "create_input_form",
-            new_callable=AsyncMock,
-            side_effect=RuntimeError(FORM_CREATION_ERROR_MSG),
-        ), patch(
-            "frontend.pages.chatbot.ui_flow.handle_api_error",
-            new_callable=AsyncMock,
-        ) as mock_show_error:
+        with (
+            patch.object(
+                core, "get_task_schema_from_endpoint", return_value=sample_task_schema
+            ),
+            patch.object(core, "convert_arguments_to_initial_values", return_value={}),
+            patch("frontend.pages.chatbot.ui_flow.show_tool_selection"),
+            patch(
+                "frontend.components.results.render_tool_selection_message",
+                return_value=None,
+            ),
+            patch.object(
+                core,
+                "create_input_form",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError(FORM_CREATION_ERROR_MSG),
+            ),
+            patch(
+                "frontend.pages.chatbot.ui_flow.handle_api_error",
+                new_callable=AsyncMock,
+            ) as mock_show_error,
+        ):
             with patch("frontend.pages.chatbot.ui_flow.show_error_message"):
                 result = await load_and_show_form(
                     container,
@@ -313,12 +324,16 @@ class TestChatbotFormsErrorHandling:
 
         invalid_response = INVALID_RESPONSE_DATA
 
-        with patch(
-            "frontend.pages.chatbot.ui_flow._show_results_body", new_callable=AsyncMock
-        ) as mock_body, patch(
-            "frontend.pages.chatbot.ui_flow.handle_api_error",
-            new_callable=AsyncMock,
-        ) as mock_show_error:
+        with (
+            patch(
+                "frontend.pages.chatbot.ui_flow._show_results_body",
+                new_callable=AsyncMock,
+            ) as mock_body,
+            patch(
+                "frontend.pages.chatbot.ui_flow.handle_api_error",
+                new_callable=AsyncMock,
+            ) as mock_show_error,
+        ):
             await show_results(container, invalid_response, None)
 
         mock_body.assert_called_once()
@@ -341,13 +356,16 @@ class TestChatbotFormsErrorHandling:
         )
 
         # Fail while building the simple result card so the outer handler surfaces the error
-        with patch(
-            "frontend.pages.chatbot.ui_flow.card",
-            side_effect=ValueError(RENDERING_ERROR_MSG),
-        ), patch(
-            "frontend.pages.chatbot.ui_flow.handle_api_error",
-            new_callable=AsyncMock,
-        ) as mock_show_error:
+        with (
+            patch(
+                "frontend.pages.chatbot.ui_flow.card",
+                side_effect=ValueError(RENDERING_ERROR_MSG),
+            ),
+            patch(
+                "frontend.pages.chatbot.ui_flow.handle_api_error",
+                new_callable=AsyncMock,
+            ) as mock_show_error,
+        ):
             await show_results(container, response_body, None)
 
             mock_show_error.assert_called_once()

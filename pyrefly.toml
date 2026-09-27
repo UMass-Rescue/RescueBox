@@ -1,0 +1,3 @@
+[errors]
+bad-argument-type = "ignore"
+missing-attribute = "ignore"

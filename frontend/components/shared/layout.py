@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import logging
 
 from nicegui import ui
@@ -39,7 +40,7 @@ def render_success_card(container, message: str):
         return create_success_card_element(message)
 
 
-def render_page_header(title: str, actions_callable: callable | None = None):
+def render_page_header(title: str, actions_callable: Callable | None = None):
     """Render a standardized page header with title and optional action buttons area."""
     with ui.row().classes("items-center justify-between w-full mb-6"):
         ui.label(title).classes("text-4xl font-bold")

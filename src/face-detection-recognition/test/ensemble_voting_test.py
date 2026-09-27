@@ -121,11 +121,11 @@ def main():
     print(f"Total images evaluated: {len(final_results)}")
     correctly_classified = sum(1 for result in final_results.values() if result == 1)
     print(
-        f"Correctly classified: {correctly_classified} ({correctly_classified/len(final_results)*100:.2f}%)"
+        f"Correctly classified: {correctly_classified} ({correctly_classified / len(final_results) * 100:.2f}%)"
     )
     incorrectly_classified = sum(1 for result in final_results.values() if result == 0)
     print(
-        f"Incorrectly classified: {incorrectly_classified} ({incorrectly_classified/len(final_results)*100:.2f}%)"
+        f"Incorrectly classified: {incorrectly_classified} ({incorrectly_classified / len(final_results) * 100:.2f}%)"
     )
 
     # Save results to CSV

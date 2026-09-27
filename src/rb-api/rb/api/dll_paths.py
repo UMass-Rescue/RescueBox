@@ -91,7 +91,7 @@ def discover_cudnn_bin_windows(
         picked = _pick_cudnn_cuda_bin(cuda_bins, toolkit_ver)
         if picked is not None:
             return picked
-        if toolkit_ver.is_none():
+        if toolkit_ver is None:
             x64 = bin_dir / "x64"
             if _is_cudnn_x64_bin(x64):
                 return x64

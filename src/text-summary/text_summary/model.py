@@ -38,5 +38,5 @@ def summarize(model: str, text: str) -> str:
     prompt = PROMPT.format(text=text)
     response = ollama.generate(model, prompt)
     if response and response["done"]:
-        response = extract_response_after_think(response["response"])
-    return response
+        return extract_response_after_think(response["response"])
+    return ""

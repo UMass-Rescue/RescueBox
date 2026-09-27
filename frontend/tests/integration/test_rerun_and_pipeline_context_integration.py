@@ -52,10 +52,13 @@ async def test_handle_rerun_parameter_delegates_to_chatbot_page():
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_handle_rerun_parameter_notifies_when_chatbot_missing():
-    with patch(
-        "frontend.pages.chatbot.routes.ChatbotPage.get_instance",
-        return_value=None,
-    ), patch("frontend.pages.chatbot.routes.ui.notify") as mock_notify:
+    with (
+        patch(
+            "frontend.pages.chatbot.routes.ChatbotPage.get_instance",
+            return_value=None,
+        ),
+        patch("frontend.pages.chatbot.routes.ui.notify") as mock_notify,
+    ):
         await handle_rerun_parameter("msg-missing")
 
     mock_notify.assert_called_once()

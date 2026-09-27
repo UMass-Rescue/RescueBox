@@ -391,7 +391,7 @@ class TestFileBrowser:
                                 :-1
                             ]
                             ui.label(
-                                f'Found {len(drives)} drives: {", ".join(drives)}'
+                                f"Found {len(drives)} drives: {', '.join(drives)}"
                             ).classes("text-green-600")
                         except ImportError:
                             ui.label("win32api not available").classes(
