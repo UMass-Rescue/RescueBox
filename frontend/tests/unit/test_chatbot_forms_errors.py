@@ -1,3 +1,4 @@
+# type: ignore
 """
 Unit tests for chatbot forms error handling and recovery.
 

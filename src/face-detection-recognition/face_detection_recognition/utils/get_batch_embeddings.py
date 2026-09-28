@@ -124,7 +124,7 @@ def get_embedding(
         # log_info(f"Embedding shape: {embeddings.shape}")
     embedding_norms = [np.linalg.norm(embedding) for embedding in embeddings]  # type: ignore
     normalized_embeddings = [
-        embeddings[i] / embedding_norms[i]
+        embeddings[i] / embedding_norms[i]  # type: ignore
         for i in range(len(embeddings))  # type: ignore
     ]
 

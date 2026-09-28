@@ -1,3 +1,4 @@
+# type: ignore
 """
 Unit tests for conversation loading functionality.
 

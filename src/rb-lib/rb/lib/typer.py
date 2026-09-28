@@ -160,8 +160,8 @@ def typer_app_to_tree(app: typer.Typer) -> tuple[dict, dict]:
             result["endpoint"] = endpoint_path
 
             result["inputs"] = get_inputs_from_signature(
-                node.signature,
-                node.command,
+                node.signature,  # type: ignore
+                node.command,  # type: ignore
                 schema_commands,  # type: ignore
             )
             if (

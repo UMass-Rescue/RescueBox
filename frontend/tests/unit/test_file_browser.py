@@ -1,3 +1,4 @@
+# type: ignore
 """
 Unit tests for file browser utilities and UI components.
 

@@ -144,7 +144,7 @@ def main():
                         cropped_face, target_size, model_name, True
                     )
                     normalized_face_img = cv2.cvtColor(
-                        (normalized_face * 255).astype(np.uint8),
+                        (normalized_face * 255).astype(np.uint8),  # type: ignore
                         cv2.COLOR_RGB2BGR,  # type: ignore
                     )
                     steps_viz.append(("6_normalized_face", normalized_face_img))

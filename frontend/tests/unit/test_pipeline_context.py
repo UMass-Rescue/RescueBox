@@ -1,3 +1,4 @@
+# type: ignore
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
