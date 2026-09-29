@@ -57,11 +57,15 @@ Windows installer is available ,details in INSTALL.md.  Developer mac install is
 
 After Installing rescuebox refer the Resources -> Readme for plugin details and Demo link for a walk thru.
 
+Video of latest [Semantic hash rescuebox plugin](https://umass-my.sharepoint.com/:v:/g/personal/jaikumar_umass_edu/IQBFDv3hVkT6RIXaUTxKzearAddcDvoSXnQ_cBa32XVABP0?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=hszMEf) available in current release.
+
 ## Useful links
 
- - [Wiki](https://github.com/UMass-Rescue/RescueBox/wiki) for developers
+ - [Current Release](https://umass-my.sharepoint.com/:f:/g/personal/jaikumar_umass_edu/IgB3INvqJm8xQra0_wT61hCWARQGcgi-dwSdnfoQKFljVkE?e=SrLN5G)
 
  - [Previous Release](https://github.com/UMass-Rescue/RescueBox/blob/V2.1.0/README.md) for end-users
+
+ - [Wiki](https://github.com/UMass-Rescue/RescueBox/wiki) for developers
 
  - [web site](https://rescue-lab.org) for more on Rescue Lab
 
