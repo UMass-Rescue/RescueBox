@@ -8,9 +8,7 @@ if TYPE_CHECKING:
         CaseDB,
         CaseRecord,
         get_case_db,
-    )
-    from .case_db import (
-        init_database as init_case_database,
+        init_case_database,
     )
     from .chat_history_db import (
         ChatMessageRecord,
@@ -61,7 +59,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "CaseRecord": ("case_db", "CaseRecord"),
     "CaseDB": ("case_db", "CaseDB"),
     "get_case_db": ("case_db", "get_case_db"),
-    "init_case_database": ("case_db", "init_database"),
+    "init_case_database": ("case_db", "init_case_database"),
 }
 
 

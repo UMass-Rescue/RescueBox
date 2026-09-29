@@ -44,7 +44,7 @@ def render_form_actions(
             Design.BTN_MEDIUM_GRAY
         )
 
-        btn_ref = [None]
+        btn_ref: list[ui.button | None] = [None]
 
         async def _submit_wrapper():
             btn = btn_ref[0]
@@ -172,7 +172,7 @@ class FormGenerator:
                     )
 
                 action_col = ui.column()
-                action_col._outer_form_container = container
+                setattr(action_col, "_outer_form_container", container)
                 render_form_actions(action_col, _on_cancel, _on_submit, compact=compact)
 
 

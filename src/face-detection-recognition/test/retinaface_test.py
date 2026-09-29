@@ -54,7 +54,7 @@ def main():
 
             # Read image
             img = cv2.imread(image_path)
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # type: ignore
 
             # Detailed face processing and visualization
             if len(boxes) > 0:
@@ -134,7 +134,7 @@ def main():
 
                     # 5. Crop face
                     cropped_face = crop_face_for_facenet512(face)
-                    cropped_face_img = cv2.cvtColor(cropped_face, cv2.COLOR_RGB2BGR)
+                    cropped_face_img = cv2.cvtColor(cropped_face, cv2.COLOR_RGB2BGR)  # type: ignore
                     steps_viz.append(("5_cropped_face", cropped_face_img))
 
                     # 6. Normalize face
@@ -144,7 +144,8 @@ def main():
                         cropped_face, target_size, model_name, True
                     )
                     normalized_face_img = cv2.cvtColor(
-                        (normalized_face * 255).astype(np.uint8), cv2.COLOR_RGB2BGR
+                        (normalized_face * 255).astype(np.uint8),  # type: ignore
+                        cv2.COLOR_RGB2BGR,  # type: ignore
                     )
                     steps_viz.append(("6_normalized_face", normalized_face_img))
 
@@ -152,7 +153,7 @@ def main():
                     final_face = prepare_for_embedding(
                         normalized_face, model_name, True
                     )
-                    final_face_img = cv2.cvtColor(final_face, cv2.COLOR_RGB2BGR)
+                    final_face_img = cv2.cvtColor(final_face, cv2.COLOR_RGB2BGR)  # type: ignore
                     steps_viz.append(("7_final_face", final_face_img))
 
                     # Save visualizations

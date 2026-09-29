@@ -44,9 +44,7 @@ UI_TITLES = {
 # Home page: inline User ID (required before using jobs / persistent chat)
 HOME_USER_ID = {
     "title": "Set your User ID",
-    "blurb": (
-        "Enter a demo User ID " "Use the same value each time you open RescueBox."
-    ),
+    "blurb": ("Enter a demo User ID Use the same value each time you open RescueBox."),
     "input_label": "User ID",
     "placeholder": "demo_???",
     "save_button": "Save and continue",

@@ -48,6 +48,8 @@ def load_image(img: str | np.ndarray) -> tuple[np.ndarray, str]:
         raise ValueError(f"Input image must not have non-english characters - {img}")
 
     img_obj_bgr = cv2.imread(img)
+    if img_obj_bgr is None:
+        raise ValueError(f"Failed to read image from path: {img}")
     # img_obj_rgb = cv2.cvtColor(img_obj_bgr, cv2.COLOR_BGR2RGB)
     return img_obj_bgr, img
 
@@ -64,6 +66,8 @@ def load_image_from_web(url: str) -> np.ndarray:
     response.raise_for_status()
     image_array = np.asarray(bytearray(response.raw.read()), dtype=np.uint8)
     image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+    if image is None:
+        raise ValueError(f"Failed to decode image from web url: {url}")
     return image
 
 
@@ -93,8 +97,10 @@ def load_base64(uri: str) -> np.ndarray:
         )
 
     encoded_data = encoded_data_parts[1]
-    nparr = np.fromstring(base64.b64decode(encoded_data), np.uint8)
+    nparr = np.frombuffer(base64.b64decode(encoded_data), dtype=np.uint8)
     img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img_bgr is None:
+        raise ValueError("Failed to decode image from base64 string")
     # img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     return img_bgr
 

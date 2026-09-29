@@ -8,7 +8,7 @@ from functools import cache
 from typing import Any, TypedDict, cast
 
 import numpy as np
-import onnxruntime as ort
+import onnxruntime as ort  # type: ignore
 import typer
 from pydantic import DirectoryPath
 from rb.api.database import ImageEmbedding, engine
@@ -153,7 +153,7 @@ def _paths_already_embedded(session: Session, paths: list[str]) -> set[str]:
     rows = (
         session.execute(
             select(ImageEmbedding.path).where(
-                cast(Any, ImageEmbedding.__table__.c.path).in_(paths)
+                cast(Any, ImageEmbedding.__table__.c.path).in_(paths)  # type: ignore
             )
         )
         .scalars()
@@ -175,7 +175,7 @@ def _sha256_file(path: str) -> str:
 def _get_clip_processor() -> Any:
     """Load bundled CLIP tokenizer + image preprocessor (same dir as ONNX exports)."""
 
-    if not (_CLIP_MODELS_DIR / "preprocessor_config.json").is_file():
+    if not (_CLIP_MODELS_DIR / "preprocessor_config.json").is_file():  # type: ignore
         raise FileNotFoundError(
             f"Missing CLIP processor files in {_CLIP_MODELS_DIR} "
             f"(preprocessor_config.json alongside text.onnx / vision.onnx)."
@@ -191,8 +191,8 @@ def _get_clip_processor() -> Any:
 def _get_onnx_sessions() -> tuple[ort.InferenceSession, ort.InferenceSession]:
     """Return (text_session, vision_session) with input validation."""
 
-    text_model = _CLIP_MODELS_DIR / "text.onnx"
-    vision_model = _CLIP_MODELS_DIR / "vision.onnx"
+    text_model = _CLIP_MODELS_DIR / "text.onnx"  # type: ignore
+    vision_model = _CLIP_MODELS_DIR / "vision.onnx"  # type: ignore
     if not text_model.is_file() or not vision_model.is_file():
         raise FileNotFoundError(
             f"Missing CLIP ONNX model files in {_CLIP_MODELS_DIR}: text.onnx/vision.onnx"
@@ -386,10 +386,10 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                                     if k in required
                                 },
                             )
-                            image_features = outputs[0]
-                            if image_features.shape[-1] != expected_dim:
+                            image_features = cast(np.ndarray, outputs[0])
+                            if image_features.shape[-1] != expected_dim:  # type: ignore
                                 raise ValueError(
-                                    f"CLIP ONNX vision output dim={image_features.shape[-1]}; "
+                                    f"CLIP ONNX vision output dim={image_features.shape[-1]}; "  # type: ignore
                                     f"image_embeddings.embedding is vector({expected_dim})."
                                 )
                             image_features = image_features / np.linalg.norm(
@@ -470,7 +470,7 @@ def search_images(inputs: Inputs, parameters: Parameters) -> ResponseBody:
                 ["text_embeds"],
                 {k: v for k, v in text_inputs.items() if k in required},
             )
-            text_features = text_outputs[0]
+            text_features = cast(np.ndarray, text_outputs[0])
             text_features = text_features / np.linalg.norm(
                 text_features, axis=-1, keepdims=True
             )

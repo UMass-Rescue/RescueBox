@@ -50,7 +50,9 @@ def mock_ml_function(inputs: MockInputs, parameters: MockParameters) -> Response
         mock_state.execution_log.append(
             f"End {threading.current_thread().name} at {end_time}"
         )
-        return TextResponse(value=f"Processed by {threading.current_thread().name}")
+        return ResponseBody(
+            root=TextResponse(value=f"Processed by {threading.current_thread().name}")
+        )
 
 
 @pytest.fixture
@@ -92,6 +94,7 @@ def test_ml_service_thread_lock_sequential_execution(ml_service_with_lock: MLSer
         cmd for cmd in ml_service.app.registered_commands if cmd.name == endpoint_rule
     )
     run_callback = run_cmd.callback
+    assert callable(run_callback)
 
     num_concurrent_calls = 5
     threads = []
@@ -156,7 +159,7 @@ def test_ml_service_thread_lock_sequential_execution(ml_service_with_lock: MLSer
         next_start = all_times[i + 1][0]
         assert (
             current_end <= next_start
-        ), f"Overlap detected between calls: {all_times[i]} and {all_times[i+1]}"
+        ), f"Overlap detected between calls: {all_times[i]} and {all_times[i + 1]}"
 
     # Optional: Print execution log for debugging if needed
     # print("\nExecution log:")

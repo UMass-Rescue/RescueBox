@@ -3,7 +3,7 @@ import unittest
 import uuid
 from pathlib import Path
 
-import onnxruntime
+import onnxruntime  # type: ignore
 import pytest
 from face_detection_recognition.database_functions import (
     _face_tables_ready_marker,
@@ -129,7 +129,7 @@ class TestFaceMatch(RBAppTest):
         """Set up before each test method"""
         self.set_app(cli_app, APP_NAME)
 
-    def get_metadata(self):
+    def get_metadata(self):  # type: ignore
         """Return app metadata for testing"""
         return server._app_metadata
 
@@ -313,7 +313,7 @@ class TestFaceMatch(RBAppTest):
         body = ResponseBody(**response.json())
         assert isinstance(body.root, TextResponse)
         # Check if the response contains a success message
-        result_text = body.root.value
+        result_text = body.root.value  # type: ignore
         print(f"Bulk upload result: {result_text}")
         assert "Successfully uploaded" in result_text or "No faces" in result_text
 
@@ -440,13 +440,13 @@ class TestFaceMatch(RBAppTest):
         assert isinstance(body.root, TextResponse)
 
         assert (
-            "Successfully deleted" in body.root.value
-            or "does not exist" in body.root.value
-        ), f"Unexpected response: {body.root.value}"
-        print(f"Delete collection result: {body.root.value}")
+            "Successfully deleted" in body.root.value  # type: ignore
+            or "does not exist" in body.root.value  # type: ignore
+        ), f"Unexpected response: {body.root.value}"  # type: ignore
+        print(f"Delete collection result: {body.root.value}")  # type: ignore
 
         # Only verify collection is gone if it was successfully deleted
-        if "Successfully deleted" in body.root.value:
+        if "Successfully deleted" in body.root.value:  # type: ignore
             collections = DB.client.list_collections()
             collection_names = [col.name for col in collections]
             assert (

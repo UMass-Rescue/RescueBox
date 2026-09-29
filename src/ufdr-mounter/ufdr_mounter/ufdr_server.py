@@ -139,8 +139,7 @@ def validate_mount_folder(mount_path: str) -> tuple[bool, str]:
 
     if os.path.ismount(resolved):
         return False, (
-            "That folder is already a mount point "
-            "(another filesystem is mounted here)."
+            "That folder is already a mount point (another filesystem is mounted here)."
         )
 
     if os.path.exists(resolved):

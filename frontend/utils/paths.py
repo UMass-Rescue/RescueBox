@@ -194,7 +194,7 @@ def _resolved_file_browser_folder(initial: str | None) -> str | None:
 
 def _input_schema_directory_requires_raster_image_corpus(
     input_schema: Any,
-    all_inputs: list[Any] = None,
+    all_inputs: list[Any] | None = None,
     input_index: int = -1,
 ) -> bool:
     """True when the given directory input likely needs to contain raster images."""

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# type: ignore
 """
 Concurrent end-to-end test: N parallel POSTs to ``/image_series_similarity/search_series``.
 

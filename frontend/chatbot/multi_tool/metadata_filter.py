@@ -9,7 +9,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def _parse_age_range_for_comparison(mval_str: str) -> float | None:
+def _parse_age_range_for_comparison(mval_str: str) -> float:
     """Parse ``(min-max)`` age bucket strings and return the upper bound."""
     m = re.match(r"\((\d+)-(\d+)\)", mval_str.strip())
     if m:

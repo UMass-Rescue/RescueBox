@@ -326,7 +326,7 @@ class Vector_Database:
         if threshold is not None:
             result_df = result_df[result_df["similarity"] >= threshold]
 
-        result_df = result_df.sort_values(
+        result_df = result_df.sort_values(  # type: ignore
             by=["query_index", "similarity"], ascending=[True, False]
         )
 

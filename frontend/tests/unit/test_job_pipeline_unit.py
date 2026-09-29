@@ -1,3 +1,4 @@
+# pyright: reportCallIssue=false
 """
 Unit tests for multi-step job pipelines: endpoint chains, job utils, and DB helpers.
 
@@ -144,7 +145,7 @@ class TestJobRecordEndpointChainValidator:
 @pytest.mark.asyncio
 class TestDatabaseServiceJobHelpers:
     async def test_create_and_track_job_passes_endpoint_chain_to_db(self):
-        from frontend.pages.chatbot import database_service as ds
+        from frontend.pages.chatbot.database_service import DatabaseService
 
         mock_job = MagicMock()
         mock_job.uid = "JOB_chain1"
@@ -161,10 +162,17 @@ class TestDatabaseServiceJobHelpers:
         mock_db.create_job = capture_create
         mock_db.update_job_status = AsyncMock()
 
-        with patch(
-            "frontend.pages.chatbot.database_service.get_job_db", return_value=mock_db
-        ), patch.object(ds, "set_logging_context", MagicMock()):
-            out = await ds.DatabaseService.create_and_track_job(
+        with (
+            patch(
+                "frontend.pages.chatbot.database_service.get_job_db",
+                return_value=mock_db,
+            ),
+            patch(
+                "frontend.pages.chatbot.database_service.set_logging_context",
+                MagicMock(),
+            ),
+        ):
+            out = await DatabaseService.create_and_track_job(
                 RequestBody(inputs={}, parameters={}),
                 "text_embeddings/search",
                 task_schema=TaskSchema(inputs=[], parameters=[]),
@@ -220,7 +228,7 @@ class TestPartitionJobsByPipeline:
 
     @pytest.mark.asyncio
     async def test_update_job_status_accepts_string_completed(self):
-        from frontend.pages.chatbot import database_service as ds
+        from frontend.pages.chatbot.database_service import DatabaseService
 
         mock_db = MagicMock()
         mock_db.update_job_status = AsyncMock()
@@ -228,7 +236,7 @@ class TestPartitionJobsByPipeline:
         with patch(
             "frontend.pages.chatbot.database_service.get_job_db", return_value=mock_db
         ):
-            await ds.DatabaseService.update_job_status("JOB_x", "completed")
+            await DatabaseService.update_job_status("JOB_x", "completed")
 
         mock_db.update_job_status.assert_called()
         call_kw = mock_db.update_job_status.call_args

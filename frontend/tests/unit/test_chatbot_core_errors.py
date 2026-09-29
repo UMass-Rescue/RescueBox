@@ -120,11 +120,14 @@ class TestChatbotCoreErrorHandling:
         err = httpx.HTTPStatusError(
             ENDPOINT_NOT_FOUND_MSG, request=Mock(), response=mock_response
         )
-        with patch(
-            "frontend.chatbot.core.fetch_task_schema",
-            new_callable=AsyncMock,
-            side_effect=err,
-        ), pytest.raises(httpx.HTTPStatusError, match=ENDPOINT_NOT_FOUND_MSG):
+        with (
+            patch(
+                "frontend.chatbot.core.fetch_task_schema",
+                new_callable=AsyncMock,
+                side_effect=err,
+            ),
+            pytest.raises(httpx.HTTPStatusError, match=ENDPOINT_NOT_FOUND_MSG),
+        ):
             await core.get_task_schema_from_endpoint(NONEXISTENT_ENDPOINT)
 
     @pytest.mark.asyncio
@@ -140,11 +143,14 @@ class TestChatbotCoreErrorHandling:
         err = httpx.HTTPStatusError(
             HTTP_500_ERROR_MSG, request=Mock(), response=mock_response
         )
-        with patch(
-            "frontend.chatbot.core.fetch_task_schema",
-            new_callable=AsyncMock,
-            side_effect=err,
-        ), pytest.raises(httpx.HTTPStatusError, match=HTTP_500_ERROR_MSG):
+        with (
+            patch(
+                "frontend.chatbot.core.fetch_task_schema",
+                new_callable=AsyncMock,
+                side_effect=err,
+            ),
+            pytest.raises(httpx.HTTPStatusError, match=HTTP_500_ERROR_MSG),
+        ):
             await core.get_task_schema_from_endpoint(TEST_ENDPOINT)
 
     @pytest.mark.asyncio
@@ -155,11 +161,14 @@ class TestChatbotCoreErrorHandling:
         and result in clear error messages indicating network problems
         rather than confusing technical details.
         """
-        with patch(
-            "frontend.chatbot.core.fetch_task_schema",
-            new_callable=AsyncMock,
-            side_effect=httpx.RequestError(CONNECTION_REFUSED_MSG),
-        ), pytest.raises(httpx.RequestError):
+        with (
+            patch(
+                "frontend.chatbot.core.fetch_task_schema",
+                new_callable=AsyncMock,
+                side_effect=httpx.RequestError(CONNECTION_REFUSED_MSG),
+            ),
+            pytest.raises(httpx.RequestError),
+        ):
             await core.get_task_schema_from_endpoint(TEST_ENDPOINT)
 
     @pytest.mark.asyncio
@@ -170,11 +179,14 @@ class TestChatbotCoreErrorHandling:
         are detected and result in appropriate error messages indicating
         schema format problems.
         """
-        with patch(
-            "frontend.chatbot.core.fetch_task_schema",
-            new_callable=AsyncMock,
-            side_effect=ValueError(INVALID_JSON_MSG),
-        ), pytest.raises(ValueError, match=INVALID_JSON_MSG):
+        with (
+            patch(
+                "frontend.chatbot.core.fetch_task_schema",
+                new_callable=AsyncMock,
+                side_effect=ValueError(INVALID_JSON_MSG),
+            ),
+            pytest.raises(ValueError, match=INVALID_JSON_MSG),
+        ):
             await core.get_task_schema_from_endpoint(TEST_ENDPOINT)
 
     @pytest.mark.asyncio
@@ -197,11 +209,14 @@ class TestChatbotCoreErrorHandling:
             request_body = RequestBody(
                 inputs={"input_dir": DirectoryInput(path=Path(temp_dir))}, parameters={}
             )
-            with patch(
-                "frontend.chatbot.core.submit_job_orchestrator",
-                new_callable=AsyncMock,
-                side_effect=Exception("Job submission failed: Not Found"),
-            ), pytest.raises(Exception, match="Job submission failed"):
+            with (
+                patch(
+                    "frontend.chatbot.core.submit_job_orchestrator",
+                    new_callable=AsyncMock,
+                    side_effect=Exception("Job submission failed: Not Found"),
+                ),
+                pytest.raises(Exception, match="Job submission failed"),
+            ):
                 await core.submit_job(request_body, "nonexistent/endpoint")
 
     @pytest.mark.asyncio
@@ -211,11 +226,14 @@ class TestChatbotCoreErrorHandling:
             request_body = RequestBody(
                 inputs={"input_dir": DirectoryInput(path=Path(temp_dir))}, parameters={}
             )
-            with patch(
-                "frontend.chatbot.core.submit_job_orchestrator",
-                new_callable=AsyncMock,
-                side_effect=Exception("Internal server error"),
-            ), pytest.raises(Exception, match="Internal server error"):
+            with (
+                patch(
+                    "frontend.chatbot.core.submit_job_orchestrator",
+                    new_callable=AsyncMock,
+                    side_effect=Exception("Internal server error"),
+                ),
+                pytest.raises(Exception, match="Internal server error"),
+            ):
                 await core.submit_job(request_body, "audio/transcribed")
 
     @pytest.mark.asyncio
@@ -243,11 +261,14 @@ class TestChatbotCoreErrorHandling:
             request_body = RequestBody(
                 inputs={"input_dir": DirectoryInput(path=Path(temp_dir))}, parameters={}
             )
-            with patch(
-                "frontend.chatbot.core.submit_job_orchestrator",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Invalid JSON"),
-            ), pytest.raises(ValueError, match="Invalid JSON"):
+            with (
+                patch(
+                    "frontend.chatbot.core.submit_job_orchestrator",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("Invalid JSON"),
+                ),
+                pytest.raises(ValueError, match="Invalid JSON"),
+            ):
                 await core.submit_job(request_body, "audio/transcribed")
 
     @pytest.mark.asyncio
@@ -257,11 +278,14 @@ class TestChatbotCoreErrorHandling:
             request_body = RequestBody(
                 inputs={"input_dir": DirectoryInput(path=Path(temp_dir))}, parameters={}
             )
-            with patch(
-                "frontend.chatbot.core.submit_job_orchestrator",
-                new_callable=AsyncMock,
-                side_effect=Exception("Invalid response format"),
-            ), pytest.raises(Exception, match="Invalid response format"):
+            with (
+                patch(
+                    "frontend.chatbot.core.submit_job_orchestrator",
+                    new_callable=AsyncMock,
+                    side_effect=Exception("Invalid response format"),
+                ),
+                pytest.raises(Exception, match="Invalid response format"),
+            ):
                 await core.submit_job(request_body, "audio/transcribed")
 
     @pytest.mark.asyncio

@@ -171,16 +171,16 @@ class AudioTranscriptionModel:
             for audio_path in audio_paths
         ]
 
-    def _write_res_to_dir(self, res: list[dict], out_dir: str) -> None:
-        out_dir = Path(out_dir)
-        out_dir.mkdir(parents=True, exist_ok=True)
+    def _write_res_to_dir(self, res: list[dict], out_dir: str | Path) -> None:
+        out_path = Path(out_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
         for r in res:
             stem = Path(r["file_path"]).stem
-            with open(out_dir / f"{stem}.txt", "w", encoding="utf-8") as f:
+            with open(out_path / f"{stem}.txt", "w", encoding="utf-8") as f:
                 f.write(r["result"])
 
     def transcribe_files_in_directory(
-        self, input_dir: str, out_dir: str = None
+        self, input_dir: str, out_dir: str | None = None
     ) -> list[dict]:
         paths = self.get_audio_files(input_dir)
         res = self.transcribe_batch([str(p) for p in paths])

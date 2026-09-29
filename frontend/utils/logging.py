@@ -164,7 +164,7 @@ async def generate_audit_trail_for_job(job_id: str) -> dict[str, Any]:
     if not job:
         return {"error": f"Job {job_id} not found"}
 
-    job_dict = job.model_dump() if hasattr(job, "model_dump") else job
+    job_dict = job.model_dump()
     related_messages = []
     try:
         chat_db = get_chat_history_db()

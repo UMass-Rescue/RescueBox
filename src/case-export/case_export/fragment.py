@@ -158,7 +158,8 @@ def _parse_batch_file_rows(response: Any) -> list[dict[str, Any]]:
         if not isinstance(f, dict) or not f.get("path"):
             continue
         path = str(f["path"])
-        meta = f.get("metadata") if isinstance(f.get("metadata"), dict) else {}
+        raw_meta = f.get("metadata")
+        meta: dict[str, Any] = dict(raw_meta) if isinstance(raw_meta, dict) else {}
         sim: float | None = None
         raw_sim = meta.get("Similarity")
         if raw_sim is not None:

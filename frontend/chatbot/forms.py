@@ -1,5 +1,6 @@
 """NiceGUI form wrapper for chatbot tool input schemas."""
 
+from collections.abc import Callable
 import logging
 
 from nicegui import ui
@@ -16,8 +17,8 @@ async def create_input_form(
     task_schema: TaskSchema,
     endpoint: str,
     initial_values: dict | None = None,
-    on_submit: callable = None,
-    on_cancel: callable = None,
+    on_submit: Callable | None = None,
+    on_cancel: Callable | None = None,
     container: ui.element | None = None,
 ):
     """

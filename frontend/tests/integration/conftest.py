@@ -83,7 +83,7 @@ async def granite_model_tag(
             "Granite model %r not matched in Ollama tags: %s", requested, names
         )
         pytest.skip(
-            f"Granite model {requested!r} not found in Ollama. " f"Available: {names!r}"
+            f"Granite model {requested!r} not found in Ollama. Available: {names!r}"
         )
     logger.info("Using Ollama Granite tag %r (requested %r)", resolved, requested)
     return resolved

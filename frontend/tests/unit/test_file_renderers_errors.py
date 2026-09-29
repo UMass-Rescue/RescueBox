@@ -84,9 +84,12 @@ class TestFileRenderersErrorHandling:
 
         container = self._create_mock_container()
 
-        with patch(
-            "frontend.components.results.file.os.path.exists", return_value=False
-        ), patch("frontend.components.results.file.ui") as mock_ui:
+        with (
+            patch(
+                "frontend.components.results.file.os.path.exists", return_value=False
+            ),
+            patch("frontend.components.results.file.ui") as mock_ui,
+        ):
             render_file(container, response)
 
             # Verify error message is displayed
@@ -111,9 +114,10 @@ class TestFileRenderersErrorHandling:
 
         container = self._create_mock_container()
 
-        with patch(
-            "frontend.components.results.file.os.path.exists", return_value=True
-        ), patch("frontend.components.results.file.ui") as mock_ui:
+        with (
+            patch("frontend.components.results.file.os.path.exists", return_value=True),
+            patch("frontend.components.results.file.ui") as mock_ui,
+        ):
             # Simulate image loading failure
             mock_ui.image.side_effect = RuntimeError(IMAGE_LOAD_ERROR_MSG)
 
