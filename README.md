@@ -57,7 +57,7 @@ Windows installer is available ,details in INSTALL.md.  Developer mac install is
 
 After Installing rescuebox refer the Resources -> Readme for plugin details and Demo link for a walk thru.
 
-Video of latest [Semantic hash rescuebox plugin](https://umass-my.sharepoint.com/:v:/g/personal/jaikumar_umass_edu/IQBFDv3hVkT6RIXaUTxKzearAddcDvoSXnQ_cBa32XVABP0?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=hszMEf) available in current release.
+Latest **Semantic hash** rescuebox plugin available in current release. [Video](https://umass-my.sharepoint.com/:v:/g/personal/jaikumar_umass_edu/IQBFDv3hVkT6RIXaUTxKzearAddcDvoSXnQ_cBa32XVABP0?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=hszMEf) [documentation](https://github.com/UMass-Rescue/RescueBox/blob/main/src/image-similarity/image_similarity/app-info.md)
 
 ## Useful links
 
