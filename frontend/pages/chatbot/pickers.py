@@ -82,10 +82,13 @@ class ToolPicker:
                                 ),
                             )
                             with row:
-                                with ui.row().classes(
-                                    "items-center gap-4 flex-1 min-w-0"
-                                ), ui.column().classes("flex-1 min-w-0 gap-0.5"):
-                                    ui.label(f'{num}. {tool["name"]}').classes(
+                                with (
+                                    ui.row().classes(
+                                        "items-center gap-4 flex-1 min-w-0"
+                                    ),
+                                    ui.column().classes("flex-1 min-w-0 gap-0.5"),
+                                ):
+                                    ui.label(f"{num}. {tool['name']}").classes(
                                         "text-lg font-bold text-slate-800 leading-snug"
                                     )
                                     ui.label(

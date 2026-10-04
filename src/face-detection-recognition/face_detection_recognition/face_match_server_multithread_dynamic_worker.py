@@ -6,9 +6,9 @@ from pathlib import Path
 from threading import Lock
 from typing import TypedDict
 
-import psutil
-from flask_ml.flask_ml_server import MLServer, load_file_as_string
-from flask_ml.flask_ml_server.models import (
+import psutil  # type: ignore
+from flask_ml.flask_ml_server import MLServer, load_file_as_string  # type: ignore
+from flask_ml.flask_ml_server.models import (  # type: ignore
     BatchDirectoryInput,
     BatchFileInput,
     BatchFileResponse,
@@ -74,7 +74,7 @@ class DynamicWorkerPool:
         self.max_workers = max_workers
         self.current_workers = min_workers
         self.lock = Lock()
-        self.last_check_time = 0
+        self.last_check_time: float = 0.0
         self.check_interval = 1.0  # seconds
 
     def get_worker_count(self):
@@ -146,7 +146,7 @@ class DynamicWorkerPool:
         """
         try:
             # Try to import pynvml for NVIDIA GPU monitoring
-            import pynvml
+            import pynvml  # type: ignore
 
             pynvml.nvmlInit()
             device_count = pynvml.nvmlDeviceGetCount()
@@ -201,7 +201,7 @@ class SystemHealthMonitor:
         if current_time - self.last_check < self.check_interval:
             return not self.circuit_open
 
-        self.last_check = current_time
+        self.last_check = current_time  # type: ignore
         cpu_usage = psutil.cpu_percent()
         memory_usage = psutil.virtual_memory().percent
 
@@ -211,7 +211,7 @@ class SystemHealthMonitor:
         if cpu_usage > self.threshold_cpu or memory_usage > self.threshold_memory:
             log_info(f"System overloaded: CPU {cpu_usage}%, Memory {memory_usage}%")
             self.circuit_open = True
-            self.circuit_open_time = current_time
+            self.circuit_open_time = current_time  # type: ignore
             return False
 
         return True

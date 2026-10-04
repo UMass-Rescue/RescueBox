@@ -100,7 +100,7 @@ class ChatUIBuilder:
                     job = get_job_db().get_job_by_uid_sync(pipeline_job_id)
                     if job:
                         endpoint = job.endpoint or "Unknown"
-                        pname = job.plugin_name or endpoint
+                        pname = getattr(job, "plugin_name", None) or endpoint
 
                         with row().classes(
                             "w-full bg-rose-50 border border-rose-200 p-3 rounded-xl "
@@ -174,7 +174,7 @@ class ChatUIBuilder:
                     self.input_area = create_input_area(
                         self.status_text_ref, self.on_send
                     )
-                    self.input_field = self.input_area.input_field
+                    self.input_field = getattr(self.input_area, "input_field", None)
 
                 below_input_area = column().classes(
                     "rb-chat-below-input-area w-full max-w-none space-y-4 mt-2 mb-4"

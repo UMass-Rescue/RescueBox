@@ -20,7 +20,7 @@ def show_help_dialog(help_text: str, title: str | None = "RescueBox Help") -> No
 
 
 async def show_history_dialog(
-    on_conversation_select: Callable[[str], None],
+    on_conversation_select: Callable[[str], Any],
 ) -> ui.dialog:
     chat_db = get_chat_history_db()
     conversations = await chat_db.get_all_conversations()
@@ -39,7 +39,9 @@ async def show_history_dialog(
                 for conv in conversations:
                     # view_callback shows a view dialog, load_callback loads into the main chat
                     async def do_load(cid=conv.conversation_id):
-                        await on_conversation_select(cid)
+                        res = on_conversation_select(cid)
+                        if hasattr(res, "__await__"):
+                            await res
                         dialog.close()
 
                     async def do_view(cid=conv.conversation_id, ctitle=conv.title):
@@ -57,7 +59,7 @@ async def show_history_dialog(
 
 
 def show_conversation_view_dialog(
-    _conversation: Any, messages: list[Any], title: str = None
+    _conversation: Any, messages: list[Any], title: str | None
 ):
     """Render persisted messages; include JSON for tool calls and job payloads when present."""
 

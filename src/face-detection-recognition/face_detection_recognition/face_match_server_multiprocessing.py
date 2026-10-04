@@ -6,8 +6,8 @@ from functools import partial
 from pathlib import Path
 from typing import TypedDict
 
-from flask_ml.flask_ml_server import MLServer, load_file_as_string
-from flask_ml.flask_ml_server.models import (
+from flask_ml.flask_ml_server import MLServer, load_file_as_string  # type: ignore
+from flask_ml.flask_ml_server.models import (  # type: ignore
     BatchDirectoryInput,
     BatchFileInput,
     BatchFileResponse,

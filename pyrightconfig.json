@@ -1,0 +1,34 @@
+{
+    "include": [
+        "."
+    ],
+    "exclude": [
+        "**/node_modules",
+        "**/__pycache__",
+        ".venv"
+    ],
+    "venvPath": ".",
+    "venv": ".venv",
+    "extraPaths": [
+        ".",
+        "src/rb-api",
+        "src/rb-lib",
+        "src/face-detection-recognition",
+        "src/image-embeddings",
+        "src/image-similarity",
+        "src/image-summary",
+        "src/text-summary",
+        "src/text-embeddings",
+        "src/audio-transcription",
+        "src/age_and_gender_detection",
+        "src/case-export",
+        "src/ufdr-mounter",
+        "src/deepfake-detection",
+        "src/file-utils"
+    ],
+    "typeCheckingMode": "basic",
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "reportArgumentType": "none",
+    "reportOptionalMemberAccess": "none"
+}

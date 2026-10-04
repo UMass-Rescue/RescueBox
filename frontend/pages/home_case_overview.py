@@ -116,8 +116,9 @@ async def render_active_case_overview(active_case_id: str) -> None:
                         ui.icon("folder", size="xs").classes("text-slate-400")
 
                     async def _change_path():
-                        with ui.dialog() as d, ui.card().classes(
-                            _CHANGE_PATH_DIALOG_CARD
+                        with (
+                            ui.dialog() as d,
+                            ui.card().classes(_CHANGE_PATH_DIALOG_CARD),
                         ):
                             with ui.row().classes("items-center gap-2 mb-4"):
                                 ui.label("Update Evidence Path").classes(

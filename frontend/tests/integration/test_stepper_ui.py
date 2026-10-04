@@ -1,3 +1,4 @@
+# type: ignore
 """
 Integration tests for stepper component UI
 

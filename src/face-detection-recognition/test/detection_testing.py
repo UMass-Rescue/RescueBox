@@ -20,6 +20,6 @@ success, embeddings = detect_faces_and_get_embeddings(
 if success:
     print(f"Found {len(embeddings)} faces")
     for i, face in enumerate(embeddings):
-        print(f"Face {i+1}: confidence={face['confidence']:.2f}")
+        print(f"Face {i + 1}: confidence={face['confidence']:.2f}")
 else:
     print("No faces detected")

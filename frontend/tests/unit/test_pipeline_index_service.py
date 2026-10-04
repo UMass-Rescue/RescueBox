@@ -220,12 +220,15 @@ class TestRecordImageSummaryForPipeline(unittest.TestCase):
                 captured.extend(rows)
 
             db_file = base / "idx2.sqlite"
-            with patch(
-                "frontend.database.pipeline_job_index_db.index_db_path",
-                return_value=db_file,
-            ), patch(
-                "frontend.database.pipeline_index_service.insert_chunks",
-                side_effect=capture,
+            with (
+                patch(
+                    "frontend.database.pipeline_job_index_db.index_db_path",
+                    return_value=db_file,
+                ),
+                patch(
+                    "frontend.database.pipeline_index_service.insert_chunks",
+                    side_effect=capture,
+                ),
             ):
                 record_image_summary_for_pipeline(
                     "u",

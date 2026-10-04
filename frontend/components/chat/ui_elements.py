@@ -60,12 +60,12 @@ def create_input_area(status_text_ref: object | None, on_send: Callable):
                 if status_text_ref:
                     status_label.bind_text_from(status_text_ref, "status_text")
                     # Add a spinner that only shows while processing
-                # Use explicit UMass Maroon hex for spinner to avoid indigo defaults
-                spinner = ui.spinner(color="#881c1c", size="sm").classes("ml-1")
-                status_text_ref.attach_processing_strip(spinner)
+                    # Use explicit UMass Maroon hex for spinner to avoid indigo defaults
+                    spinner = ui.spinner(color="#881c1c", size="sm").classes("ml-1")
+                    status_text_ref.attach_processing_strip(spinner)  # type: ignore
 
-    input_area.input_field = input_field
-    input_area.send_button = send_button
-    input_area.status_label = status_label
-    input_area.composer_strip = composer_strip
+    input_area.input_field = input_field  # type: ignore
+    input_area.send_button = send_button  # type: ignore
+    input_area.status_label = status_label  # type: ignore
+    input_area.composer_strip = composer_strip  # type: ignore
     return input_area

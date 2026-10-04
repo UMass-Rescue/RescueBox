@@ -101,9 +101,12 @@ def render_merged_job_tool_results(
 
     Uses ``started_msg`` for inputs/parameters (only the start row stores the snapshot).
     """
-    with container, ui.card().classes(
-        "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
-        "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
+    with (
+        container,
+        ui.card().classes(
+            "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
+            "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
+        ),
     ):
         ui.label("Assistant").classes(
             "text-sm font-semibold text-slate-500 uppercase tracking-wider"
@@ -170,9 +173,12 @@ def render_persisted_history_message(container: ui.element, msg: Any) -> None:
     content = (getattr(msg, "content", None) or "").strip()
 
     if mt == "tool_result":
-        with container, ui.card().classes(
-            "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
-            "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
+        with (
+            container,
+            ui.card().classes(
+                "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 bg-slate-50 "
+                "shadow-sm space-y-2 border-l-4 border-l-[#881c1c]"
+            ),
         ):
             ui.label("Assistant").classes(
                 "text-sm font-semibold text-slate-500 uppercase tracking-wider"
@@ -212,9 +218,12 @@ def render_persisted_history_message(container: ui.element, msg: Any) -> None:
             _append_rerun_job_button(msg)
 
     if mt == "tool_call":
-        with container, ui.card().classes(
-            "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 "
-            "bg-amber-50/80 space-y-2 border-l-4 border-l-[#881c1c]"
+        with (
+            container,
+            ui.card().classes(
+                "w-full max-w-3xl border border-slate-200 rounded-2xl p-5 "
+                "bg-amber-50/80 space-y-2 border-l-4 border-l-[#881c1c]"
+            ),
         ):
             ui.label("Tool call").classes(
                 "text-sm font-semibold text-[#881c1c] uppercase tracking-wider"
@@ -228,8 +237,11 @@ def render_persisted_history_message(container: ui.element, msg: Any) -> None:
                 ui.label(content).classes("text-base text-slate-800")
             _append_rerun_job_button(msg)
     if mt == "error":
-        with container, ui.card().classes(
-            "w-full max-w-3xl border border-red-200 bg-red-50 p-4 space-y-1"
+        with (
+            container,
+            ui.card().classes(
+                "w-full max-w-3xl border border-red-200 bg-red-50 p-4 space-y-1"
+            ),
         ):
             ui.label("Error").classes("text-sm font-semibold text-red-800")
             ui.label(content).classes("text-base text-red-900 whitespace-pre-wrap")

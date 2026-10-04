@@ -169,11 +169,15 @@ async def about_page(request: Request):
 
                     with ui.column().classes("w-full gap-2"):
                         for name, icon_name, path, desc in _resources:
-                            with ui.row().classes(
-                                "w-full p-2.5 rounded-xl border border-slate-100 "
-                                "hover:border-slate-200 hover:bg-slate-50 cursor-pointer "
-                                "items-center gap-3 transition-all"
-                            ).on("click", lambda _, p=path: ui.navigate.to(p)):
+                            with (
+                                ui.row()
+                                .classes(
+                                    "w-full p-2.5 rounded-xl border border-slate-100 "
+                                    "hover:border-slate-200 hover:bg-slate-50 cursor-pointer "
+                                    "items-center gap-3 transition-all"
+                                )
+                                .on("click", lambda _, p=path: ui.navigate.to(p))
+                            ):
                                 with ui.column().classes("gap-0.5 flex-1 min-w-0"):
                                     ui.label(name).classes(
                                         "text-sm font-bold text-slate-800"

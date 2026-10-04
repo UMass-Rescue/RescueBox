@@ -133,6 +133,8 @@ class DirectoryBrowser:
         return demo if demo else os.getcwd()
 
     def _render_directory_tree(self, path):
+        if self.file_list is None:
+            return
         self.file_list.clear()
         path = path_for_ui(path)
         self.state["current_path"] = path
@@ -153,13 +155,17 @@ class DirectoryBrowser:
                     if item.is_dir():
                         with ui.row().classes(_DIR_ROW_ITEM):
                             # Left side: Navigation
-                            with ui.row().classes(
-                                "items-center gap-3 cursor-pointer flex-1 py-1"
-                            ).on(
-                                "click",
-                                lambda *a, p=path_for_ui(
-                                    item
-                                ): self._render_directory_tree(p),
+                            with (
+                                ui.row()
+                                .classes(
+                                    "items-center gap-3 cursor-pointer flex-1 py-1"
+                                )
+                                .on(
+                                    "click",
+                                    lambda *a, p=path_for_ui(
+                                        item
+                                    ): self._render_directory_tree(p),
+                                )
                             ):
                                 ui.icon("folder", size="sm").classes("text-[#881c1c]")
                                 ui.label(item.name).classes(
@@ -179,8 +185,9 @@ class DirectoryBrowser:
 
     def show(self):
         # Use PANEL_SHELL_CARD instead of WIDE to avoid clipping on smaller screens
-        with ui.dialog() as self.dialog, ui.card().classes(
-            Design.PANEL_SHELL_CARD + " h-[80vh] max-h-[800px]"
+        with (
+            ui.dialog() as self.dialog,
+            ui.card().classes(Design.PANEL_SHELL_CARD + " h-[80vh] max-h-[800px]"),
         ):
             # Header
             with ui.row().classes(Design.PANEL_SHELL_HEADER):
@@ -230,7 +237,10 @@ class FileBrowser:
         self.on_select = on_select
         self.initial_path = initial_path
         self.filetypes = filetypes or []
-        self.state = {"current_path": self._get_start_path(), "selected_file": None}
+        self.state: dict[str, str | None] = {
+            "current_path": self._get_start_path(),
+            "selected_file": None,
+        }
         self.dialog = None
         self.confirm_btn = None
         self.path_display = None
@@ -249,6 +259,8 @@ class FileBrowser:
         return demo if demo else os.getcwd()
 
     def _render_file_tree(self, path):
+        if self.file_list is None:
+            return
         self.file_list.clear()
         path = path_for_ui(path)
         self.state["current_path"] = path
@@ -274,9 +286,13 @@ class FileBrowser:
                 files = [i for i in entries if i.is_file()]
 
                 for item in dirs:
-                    with ui.row().classes(_DIR_ROW_NAV).on(
-                        "click",
-                        lambda *a, p=path_for_ui(item): self._render_file_tree(p),
+                    with (
+                        ui.row()
+                        .classes(_DIR_ROW_NAV)
+                        .on(
+                            "click",
+                            lambda *a, p=path_for_ui(item): self._render_file_tree(p),
+                        )
                     ):
                         ui.icon("folder", size="sm").classes("text-[#881c1c]")
                         ui.label(item.name).classes("text-sm font-medium text-zinc-800")
@@ -289,11 +305,15 @@ class FileBrowser:
                     ):
                         continue
 
-                    with ui.row().classes(
-                        "w-full items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#881c1c]/10 rounded-lg group"
-                    ).on(
-                        "click",
-                        lambda *a, p=path_for_ui(item): self._select_file(p),
+                    with (
+                        ui.row()
+                        .classes(
+                            "w-full items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#881c1c]/10 rounded-lg group"
+                        )
+                        .on(
+                            "click",
+                            lambda *a, p=path_for_ui(item): self._select_file(p),
+                        )
                     ):
                         ui.label(item.name).classes(
                             "text-sm text-zinc-700 group-hover:text-zinc-900"
@@ -312,8 +332,9 @@ class FileBrowser:
         self.selection_label.set_text(os.path.basename(file_path))
 
     def show(self):
-        with ui.dialog() as self.dialog, ui.card().classes(
-            Design.PANEL_SHELL_CARD + " h-[80vh] max-h-[800px]"
+        with (
+            ui.dialog() as self.dialog,
+            ui.card().classes(Design.PANEL_SHELL_CARD + " h-[80vh] max-h-[800px]"),
         ):
             # Header
             with ui.row().classes(Design.PANEL_SHELL_HEADER):

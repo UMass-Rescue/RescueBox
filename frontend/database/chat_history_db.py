@@ -50,7 +50,7 @@ class ConversationRecord(BaseModel):
         default=0, description="Number of messages in conversation"
     )
     metadata: dict[str, Any] | None = Field(
-        None, description="Additional metadata as JSON"
+        default=None, description="Additional metadata as JSON"
     )
 
 
@@ -73,17 +73,17 @@ class ChatMessageRecord(BaseModel):
         description="Message type: 'text', 'tool_call', 'tool_result', 'error'",
     )
     tool_calls: list[dict[str, Any]] | None = Field(
-        None, description="Tool calls as list of dicts"
+        default=None, description="Tool calls as list of dicts"
     )
     tool_call_endpoint: str | None = Field(
-        None, description="Endpoint name from tool call"
+        default=None, description="Endpoint name from tool call"
     )
     tool_call_arguments: dict[str, Any] | None = Field(
-        None, description="Tool call arguments"
+        default=None, description="Tool call arguments"
     )
     timestamp: str = Field(..., description="Message timestamp (ISO format)")
     metadata: dict[str, Any] | None = Field(
-        None, description="Additional metadata as JSON"
+        default=None, description="Additional metadata as JSON"
     )
 
 

@@ -48,7 +48,7 @@ def string_to_dict(s):
         if isinstance(value.strip(), int):
             result[key.strip().replace("'", "")] = int(value.strip())
         elif isinstance(value.strip(), float):
-            result[key.strip().replace("'", "")] = float(value.strip())
+            result[key.strip().replace("'", "")] = float(value.strip())  # type: ignore
         else:
             result[key.strip().replace("'", "")] = value.strip()
         # logger.info(f'string_to_dict {key} {value}')

@@ -379,9 +379,8 @@ def _record_generic_file_pair_artifacts(
                 if not isinstance(fr, dict):
                     continue
                 outp = fr.get("path")
-                meta = (
-                    fr.get("metadata") if isinstance(fr.get("metadata"), dict) else {}
-                )
+                raw_meta = fr.get("metadata")
+                meta = raw_meta if isinstance(raw_meta, dict) else {}
                 inp = meta.get("input_path") or meta.get("source_path")
                 if (
                     isinstance(outp, str)
@@ -389,7 +388,7 @@ def _record_generic_file_pair_artifacts(
                     and isinstance(inp, str)
                     and inp.strip()
                 ):
-                    merged = dict(meta)
+                    merged: dict[str, Any] = dict(meta)
                     merged.setdefault(
                         "link_kind",
                         "batchfile_metadata_pair",
@@ -423,10 +422,9 @@ def _record_generic_file_pair_artifacts(
                     continue
                 if not inp.strip() or not outp.strip():
                     continue
-                meta = (
-                    pr.get("metadata") if isinstance(pr.get("metadata"), dict) else {}
-                )
-                merged = dict(meta)
+                raw_meta = pr.get("metadata")
+                meta = raw_meta if isinstance(raw_meta, dict) else {}
+                merged: dict[str, Any] = dict(meta)
                 merged.setdefault("link_kind", "file_pair_rows")
                 merged.update(
                     {

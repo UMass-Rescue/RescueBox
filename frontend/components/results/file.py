@@ -155,8 +155,9 @@ def render_batch_file(container, response):
         return on_click
 
     title = f"Batch File Result ({len(files)})"
-    with container, ui.card().classes(
-        "w-full p-4 bg-white border rounded-xl shadow-sm"
+    with (
+        container,
+        ui.card().classes("w-full p-4 bg-white border rounded-xl shadow-sm"),
     ):
         preview_switch = None
         with ui.row().classes(
@@ -218,8 +219,11 @@ def render_file(container, response):
         title = getattr(response, "title", None)
         ext = os.path.splitext(path)[1].lower() if path else ""
         display_title = title or (os.path.basename(path) if path else "File")
-        with container, ui.card().classes(
-            "w-full bg-white border border-zinc-200 p-4 rounded-xl shadow-sm"
+        with (
+            container,
+            ui.card().classes(
+                "w-full bg-white border border-zinc-200 p-4 rounded-xl shadow-sm"
+            ),
         ):
             ui.label("File Result").classes(
                 "text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1"

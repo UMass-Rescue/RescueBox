@@ -56,6 +56,8 @@ class JobsPage:
             await handle_api_error(e, "Error loading jobs")
 
     async def render_jobs(self):
+        if not self.jobs_container:
+            return
         self.jobs_container.clear()
         with self.jobs_container:
             with ui.row().classes(

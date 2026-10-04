@@ -6,8 +6,8 @@ from typing import Any, cast
 
 from rb.api.database import ImageSimilarityEmbedding, ImageSimilarityPrivateEmbedding
 
-_cols = ImageSimilarityEmbedding.__table__.columns
-_priv_cols = ImageSimilarityPrivateEmbedding.__table__.columns
+_cols = ImageSimilarityEmbedding.__table__.columns  # type: ignore
+_priv_cols = ImageSimilarityPrivateEmbedding.__table__.columns  # type: ignore
 
 
 def path_in(paths: list[str]):

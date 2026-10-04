@@ -48,8 +48,11 @@ def render_directory(container, response):
     try:
         path, title = response.path, response.title
         display_title = title or (os.path.basename(path) if path else "Directory")
-        with container, ui.card().classes(
-            "w-full bg-zinc-50 border border-zinc-200 p-4 rounded-xl shadow-sm"
+        with (
+            container,
+            ui.card().classes(
+                "w-full bg-zinc-50 border border-zinc-200 p-4 rounded-xl shadow-sm"
+            ),
         ):
             ui.label("Directory Result").classes(
                 "text-xs font-bold text-[#505759] uppercase tracking-wider mb-1"
@@ -76,14 +79,18 @@ def render_directory(container, response):
                         {"filename": f, "path": os.path.join(path, f)} for f in files
                     ]
                     cols = result_tables.filename_sortable_columns()
+
+                    def _handle_row_click(e):
+                        idx = result_tables.resolve_table_row_index(e, rows)
+                        if idx is not None and 0 <= idx < len(rows):
+                            result_serve.open_file(rows[idx]["path"])
+
                     result_tables.create_sortable_table(
                         ui.column().classes("w-full mt-4"),
                         cols,
                         rows,
                         row_key="filename",
-                        on_row_click=lambda e: result_serve.open_file(
-                            rows[result_tables.resolve_table_row_index(e, rows)]["path"]
-                        ),
+                        on_row_click=_handle_row_click,
                     )
                     with ui.column().classes("hidden"):
                         ui.label("Filename")

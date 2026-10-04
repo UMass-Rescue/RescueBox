@@ -71,7 +71,6 @@ class BNext_S_ModelONNX:
         return self.apply_transforms(image)
 
     def decode_prediction(self, confidence):
-
         confidence = confidence.item()
 
         label = (

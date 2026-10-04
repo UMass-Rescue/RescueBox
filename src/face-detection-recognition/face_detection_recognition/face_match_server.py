@@ -6,7 +6,6 @@ from typing import TypedDict
 
 import typer
 from dotenv import load_dotenv
-from pydantic import DirectoryPath
 from rb.api.models import (
     BatchFileInput,
     BatchFileResponse,
@@ -77,7 +76,6 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp"}
 
 
 class ImageDirectory(FileFilterDirectory):
-    path: DirectoryPath
     file_extensions: list[str] = list(IMAGE_EXTENSIONS)
 
 
@@ -236,7 +234,6 @@ class FindFaceParameters(TypedDict):
 def find_face_endpoint(
     inputs: FindFaceInputs, parameters: FindFaceParameters
 ) -> ResponseBody:
-
     # Get list of file paths from input
     input_file_paths = [str(item.path) for item in inputs["image_paths"].files]
     # Check CUDNN compatability
@@ -364,7 +361,6 @@ class FindFaceBulkParameters(TypedDict):
 def find_face_bulk_endpoint(
     inputs: FindFaceBulkInputs, parameters: FindFaceBulkParameters
 ) -> ResponseBody:
-
     with _FACE_MATCH_LOCK:
         # Check CUDNN compatability
         check_cuDNN_version()
@@ -388,7 +384,7 @@ def find_face_bulk_endpoint(
 
         file_responses = []
         if status and results:
-            for query_img_name, matched_paths in results.items():
+            for query_img_name, matched_paths in results.items():  # type: ignore
                 # Ensure matched_paths is a list, even if it's a single path
                 if not isinstance(matched_paths, list):
                     matched_paths = [matched_paths]
@@ -496,7 +492,6 @@ class FindFaceBulkTestingParameters(TypedDict):
 def find_face_bulk_testing_endpoint(
     inputs: FindFaceBulkTestingInputs, parameters: FindFaceBulkTestingParameters
 ) -> ResponseBody:
-
     # Check CUDNN compatability
     check_cuDNN_version()
 
@@ -870,7 +865,7 @@ def get_multi_pipeline_face_find_bulk_task_schema() -> TaskSchema:
             ParameterSchema(
                 key="min_votes",
                 label="Minimum Votes Required",
-                value=IntParameterDescriptor(default=3, min=1, max=5),
+                value=IntParameterDescriptor(default=3, min=1, max=5),  # type: ignore
             ),
         ],
     )
@@ -1073,7 +1068,7 @@ def multi_pipeline_face_find_bulk_endpoint(
 
             if status and results:
                 # Process votes from this pipeline
-                for query_img, matches in results.items():
+                for query_img, matches in results.items():  # type: ignore
                     if query_img not in vote_tracking:
                         vote_tracking[query_img] = {}
                         match_details[query_img] = {}
@@ -1193,9 +1188,6 @@ def multi_pipeline_face_find_bulk_endpoint(
             return ResponseBody(
                 root=BatchFileResponse(
                     files=image_results,
-                    metadata={
-                        "summary": "See Results_Summary.txt for detailed results"
-                    },
                 )
             )
 
@@ -1324,7 +1316,6 @@ class ListCollectionsInputs(TypedDict):
 
 # Endpoint for listing face-match collections in the current scope
 def list_collections_endpoint(inputs: ListCollectionsInputs) -> ResponseBody:
-
     responseValue = None
 
     try:

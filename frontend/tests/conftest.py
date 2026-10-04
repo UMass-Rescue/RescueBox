@@ -130,9 +130,9 @@ def sample_task_schema():
     return TaskSchema(
         inputs=[
             InputSchema(
-                key="input_dir", label="Input Directory", inputType=InputType.DIRECTORY
+                key="input_dir", label="Input Directory", input_type=InputType.DIRECTORY
             ),
-            InputSchema(key="prompt", label="Prompt", inputType=InputType.TEXT),
+            InputSchema(key="prompt", label="Prompt", input_type=InputType.TEXT),
         ],
         parameters=[
             ParameterSchema(
@@ -146,9 +146,9 @@ def sample_task_schema():
                 key="mode",
                 label="Processing Mode",
                 value=EnumParameterDescriptor(
-                    enumVals=[
-                        EnumVal(key="fast", value="fast", label="Fast"),
-                        EnumVal(key="accurate", value="accurate", label="Accurate"),
+                    enum_vals=[
+                        EnumVal(key="fast", label="Fast"),
+                        EnumVal(key="accurate", label="Accurate"),
                     ],
                     default="fast",
                 ),
@@ -164,8 +164,6 @@ def sample_response_body():
 
     # Create a FileResponse first
     file_response = FileResponse(
-        filename="output.txt",
-        content="Test content",
         file_type=FileType.TEXT,
         path="/tmp/output.txt",
         title="Output Image",
@@ -278,9 +276,9 @@ async def user():
             return super().get(key, default)
 
     try:
-        app.storage.user = _FakeUserStorage()
-        app.storage.client = {}
-        app.storage.general = {}
+        app.storage.user = _FakeUserStorage()  # type: ignore
+        app.storage.client = {}  # type: ignore
+        app.storage.general = {}  # type: ignore
     except Exception:
         # If app.storage is not available for some reason, ignore — tests will handle missing storage
         pass
@@ -288,14 +286,14 @@ async def user():
     try:
         if not hasattr(ui, "ref"):
 
-            def _simple_ref(initial=None):
+            def _simple_ref(initial=None):  # type: ignore
                 class _Ref:
                     def __init__(self, v):
                         self.value = v
 
                 return _Ref(initial)
 
-            ui.ref = _simple_ref
+            ui.ref = _simple_ref  # type: ignore
     except Exception:
         pass
     # Patch get_user_id and get_user_id_for_jobs to provide stable test ids when storage/IP unavailable.
@@ -336,8 +334,8 @@ async def user():
     try:
         import rb.api.models as _rbm
 
-        if hasattr(_rbm, "FileType") and not hasattr(_rbm.FileType, "TXT"):
-            _rbm.FileType.TXT = getattr(_rbm.FileType, "TEXT", None)
+        if hasattr(_rbm, "FileType") and not hasattr(_rbm.FileType, "TXT"):  # type: ignore
+            _rbm.FileType.TXT = getattr(_rbm.FileType, "TEXT", None)  # type: ignore
     except Exception:
         pass
 
@@ -364,13 +362,13 @@ async def user():
                 return res
             raise AttributeError("Element not clickable")
 
-        _user.click = _click
+        _user.click = _click  # type: ignore
         # Expose the NiceGUI app object on the User fixture for tests that register pages via user.app.page
         try:
             # Expose the NiceGUI ui module on the User fixture so tests can register pages via user.app.page
             from nicegui import ui as _nicegui_ui
 
-            _user.app = _nicegui_ui
+            _user.app = _nicegui_ui  # type: ignore
         except Exception:
             pass
         yield _user

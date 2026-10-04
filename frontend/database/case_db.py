@@ -29,7 +29,9 @@ class CaseRecord(BaseModel):
 
     caseId: str = Field(..., description="Unique case identifier")
     caseNumber: str = Field(..., description="Case number or ID")
-    investigators: str | None = Field(None, description="Names of investigators")
+    investigators: str | None = Field(
+        default=None, description="Names of investigators"
+    )
     evidencePath: str = Field(..., description="Path to evidence folder or UFDR file")
     createdAt: str = Field(..., description="ISO timestamp of creation")
     updatedAt: str = Field(..., description="ISO timestamp of last update")

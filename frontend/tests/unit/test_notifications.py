@@ -178,9 +178,10 @@ class TestNotifications:
         """
         from frontend.components.shared import notify_success
 
-        with patch("nicegui.ui.notify"), patch(
-            "frontend.components.shared.notifications.logger"
-        ) as mock_logger:
+        with (
+            patch("nicegui.ui.notify"),
+            patch("frontend.components.shared.notifications.logger") as mock_logger,
+        ):
             notify_success("Test message")
 
             # Should log debug message for audit trail

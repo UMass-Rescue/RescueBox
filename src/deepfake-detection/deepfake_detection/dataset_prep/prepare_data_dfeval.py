@@ -5,21 +5,20 @@ from pathlib import Path
 import pandas as pd
 
 
-def copy_images(dest_dir, max_images=10):
+def copy_images(dest_dir: str, max_images: int = 10):
     # Load metadata
     df = pd.read_csv(
         os.path.join("datasets", "Deepfake-Eval-2024", "image-metadata-publish.csv")
     )
     df = df[df["Finetuning Set"] == "Test"]
-    df = df[~df["Filename"].str.contains("webp", na=False)]  # Exclude "webp" files
+    df = df[~df["Filename"].str.contains("webp", na=False)]  # type: ignore  # Exclude "webp" files
     df["name"] = (
-        df["Ground Truth"].apply(lambda x: "F_" if x == "Fake" else "R_")
+        df["Ground Truth"].apply(lambda x: "F_" if x == "Fake" else "R_")  # type: ignore
         + df["Filename"]
     )
-    filenames = df["name"].values.tolist()
-    filenames = filenames[:max_images]
+    filenames: list[str] = [str(x) for x in df["name"].tolist()[:max_images]]
 
-    # Define source and destination directories
+    # Define source_dir and destination directories
     source_dir = os.path.join("datasets", "Deepfake-Eval-2024", "image_data")
     os.makedirs(dest_dir, exist_ok=True)
 

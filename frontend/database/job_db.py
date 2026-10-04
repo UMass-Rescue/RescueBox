@@ -114,6 +114,7 @@ class JobDB(BaseDatabase):
         endpoint_chain: list[str] | None = None,
         pipeline_root_job_id: str | None = None,
         pipeline_total_steps: Any | None = None,
+        pipeline_metadata_filter_criteria: str | None = None,
     ) -> JobRecord:
         if not model_uid and not endpoint:
             raise ValueError("Either model_uid/task_uid or endpoint must be provided")
@@ -170,6 +171,7 @@ class JobDB(BaseDatabase):
             endpoint=endpoint,
             endpointChain=chain,
             pipelineRootJobId=stored_pipeline_root,
+            pipelineMetadataFilterCriteria=pipeline_metadata_filter_criteria,
             filterId=maybe_filter_id,
             caseNotes=case_notes or None,
             startTime=start_time,
@@ -225,7 +227,12 @@ class JobDB(BaseDatabase):
                 conn.execute(insert_sql, params)
                 conn.commit()
                 logger.debug("Job %s created successfully", uid)
-                return await self.get_job_by_uid(uid)
+                job = await self.get_job_by_uid(uid)
+                if job is None:
+                    raise RuntimeError(
+                        f"Created job {uid} could not be retrieved from database"
+                    )
+                return job
             except sqlite3.IntegrityError as e:
                 logger.warning("Job ID collision detected when creating %s: %s", uid, e)
                 uid = f"JOB_{uuid.uuid4().hex}"

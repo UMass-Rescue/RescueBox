@@ -201,7 +201,7 @@ class AgeGenderDetector:
 
         input_name = self.gender_classifier.get_inputs()[0].name
         genders = self._run_gender({input_name: image})
-        gender = self.genderList[genders[0].argmax()]
+        gender = self.genderList[genders[0].argmax()]  # type: ignore
         return gender
 
     def ageClassifier(self, orig_image):
@@ -215,7 +215,7 @@ class AgeGenderDetector:
 
         input_name = self.age_classifier.get_inputs()[0].name
         ages = self._run_age({input_name: image})
-        age = self.ageList[ages[0].argmax()]
+        age = self.ageList[ages[0].argmax()]  # type: ignore
         return age
 
     def predict_age_and_gender(self, image_path):

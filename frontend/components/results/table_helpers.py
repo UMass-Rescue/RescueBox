@@ -127,8 +127,11 @@ def open_json_view_modal(title: str, raw: str) -> None:
         text = json.dumps(json.loads(raw), indent=2)
     except json.JSONDecodeError:
         text = raw
-    with ui.dialog() as dialog, ui.card().classes(
-        "max-w-[92vw] w-[min(56rem,92vw)] max-h-[90vh] flex flex-col p-4 gap-3"
+    with (
+        ui.dialog() as dialog,
+        ui.card().classes(
+            "max-w-[92vw] w-[min(56rem,92vw)] max-h-[90vh] flex flex-col p-4 gap-3"
+        ),
     ):
         ui.label(title or "JSON").classes(
             "text-lg font-semibold shrink-0 text-zinc-900"
@@ -234,7 +237,7 @@ def parse_int_bbox(value: object) -> tuple[int, int, int, int] | None:
         try:
             t = tuple(int(round(float(x))) for x in value)
             if all(x >= 0 for x in t):
-                return t
+                return (t[0], t[1], t[2], t[3])
         except (TypeError, ValueError):
             return None
     s = str(value).strip()
@@ -245,7 +248,7 @@ def parse_int_bbox(value: object) -> tuple[int, int, int, int] | None:
         if isinstance(v, (list, tuple)) and len(v) == 4:
             t = tuple(int(round(float(x))) for x in v)
             if all(x >= 0 for x in t):
-                return t
+                return (t[0], t[1], t[2], t[3])
     except (SyntaxError, ValueError, TypeError):
         pass
     return None
@@ -447,8 +450,9 @@ def render_batch_path_table(
     on_row_click,
     tip_message: str,
 ) -> None:
-    with container, ui.card().classes(
-        "w-full p-4 bg-white border rounded-xl shadow-sm"
+    with (
+        container,
+        ui.card().classes("w-full p-4 bg-white border rounded-xl shadow-sm"),
     ):
         ui.label(title).classes("font-bold mb-2 text-zinc-900")
         create_sortable_table(

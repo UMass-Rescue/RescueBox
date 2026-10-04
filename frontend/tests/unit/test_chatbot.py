@@ -1,3 +1,4 @@
+# type: ignore
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,14 +9,13 @@ from frontend.pages.chatbot.chat_page import ChatbotPage
 @pytest.mark.asyncio
 async def test_handle_new_conversation_resets_state_and_enables_input():
     """Test that starting a new conversation clears UI and securely enables the chat input."""
-    with patch("frontend.pages.chatbot.chat_page.ChatbotCore"), patch(
-        "frontend.pages.chatbot.chat_page.MessageHandler"
-    ), patch("frontend.pages.chatbot.chat_page.ToolRegistry"), patch(
-        "frontend.pages.chatbot.chat_page.ChatbotStateManager"
-    ), patch(
-        "frontend.pages.chatbot.chat_page.MessageFlowCoordinator"
+    with (
+        patch("frontend.pages.chatbot.chat_page.ChatbotCore"),
+        patch("frontend.pages.chatbot.chat_page.MessageHandler"),
+        patch("frontend.pages.chatbot.chat_page.ToolRegistry"),
+        patch("frontend.pages.chatbot.chat_page.ChatbotStateManager"),
+        patch("frontend.pages.chatbot.chat_page.MessageFlowCoordinator"),
     ):
-
         page = ChatbotPage()
         page.state_manager = MagicMock()
         page.chat_container = MagicMock()

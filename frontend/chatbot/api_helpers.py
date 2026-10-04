@@ -53,7 +53,7 @@ async def resolve_json_response(api_wrapper, response) -> dict[str, Any]:
     if not callable(maybe):
         if inspect.isawaitable(maybe):
             return await maybe
-        return maybe
+        return maybe  # type: ignore
 
     value = maybe()
     attempts = 0
@@ -69,7 +69,7 @@ async def resolve_json_response(api_wrapper, response) -> dict[str, Any]:
             try:
                 value = value()
                 if hasattr(value, "return_value"):
-                    value = value.return_value
+                    value = value.return_value  # type: ignore
                 attempts += 1
                 continue
             except CHATBOT_ERRORS:
@@ -79,13 +79,13 @@ async def resolve_json_response(api_wrapper, response) -> dict[str, Any]:
     # Final coercions
     if not isinstance(value, dict):
         if hasattr(value, "model_dump"):
-            return value.model_dump()
+            return value.model_dump()  # type: ignore
         if hasattr(value, "dict"):
-            return value.dict()
+            return value.dict()  # type: ignore
         if hasattr(value, "to_dict"):
-            return value.to_dict()
+            return value.to_dict()  # type: ignore
         try:
-            return dict(value)
+            return dict(value)  # type: ignore
         except CHATBOT_ERRORS as exc:
             raise ValueError(
                 f"Could not resolve response to dict: {type(value)}"
@@ -164,12 +164,12 @@ async def _get_via_clients(
             if response is None:
                 with httpx.Client(
                     base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT
-                ) as client:
+                ) as client:  # type: ignore
                     response = client.get(raw_path, headers=headers or None)
         else:
             with httpx.Client(
                 base_url=config.RESCUEBOX_HOST, timeout=config.TIMEOUT
-            ) as client:
+            ) as client:  # type: ignore
                 response = client.get(raw_path, headers=headers or None)
         return response
 

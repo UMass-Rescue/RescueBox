@@ -230,7 +230,7 @@ def _validate_parameter_value(value: Any, param_schema: Any) -> None:
                 f"Value {value} must be between {desc.range.min} and {desc.range.max}"
             )
     elif isinstance(desc, EnumParameterDescriptor):
-        valid_values = [v.key for v in desc.enum_vals]
+        valid_values = [str(v.key) for v in desc.enum_vals]
         if value not in valid_values:
             raise ValueError(f"Value must be one of: {', '.join(valid_values)}")
 
