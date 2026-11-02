@@ -31,6 +31,7 @@ pillow = ">=11.2.1,<12.0.0"
 fusepy = "^3.0.1"
 
 rb-lib = { path = "src/rb-lib", develop = true }
+rb-safe-matching-common = { path = "src/rb-safe-matching-common", develop = true }
 
 file-utils = { path = "src/file-utils", develop = true }
 doc-parser = { path = "src/doc-parser", develop = true }
@@ -127,6 +128,7 @@ pythonpath = [
     ".",
     "src/rb-api",
     "src/rb-lib",
+    "src/rb-safe-matching-common",
     "src/face-detection-recognition",
     "src/image-embeddings",
     "src/image-similarity",
