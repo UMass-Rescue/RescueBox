@@ -119,6 +119,44 @@ upload then goes through the durable queue.
 - **Credential changes.** Queued uploads go to whichever UMass deployment the current
   credentials name, for example after switching from staging to production.
 
+## Smoke test
+
+`smoketest.py` starts an intermediary, uploads two synthetic essays, waits for their
+delivery, and checks that a paraphrase finds its original ahead of the unrelated essay.
+It also checks that query responses and the intermediary's log contain no essays,
+emails, hashes, file names or secrets. Then it stops the intermediary and prints `PASS`
+(exit status 0) or `FAIL` with the reason. Run it from the repository root in the
+RescueBox environment:
+
+```sh
+python src/safe-match-intermediary/smoketest.py         # asks for each input
+python src/safe-match-intermediary/smoketest.py --yes   # stub mode, native, no questions
+python src/safe-match-intermediary/smoketest.py --mode live --runtime docker \
+  --credentials ~/.rescuebox/safe-match/credentials.json --yes
+```
+
+| Switch | Default | Purpose |
+|---|---|---|
+| `--mode` | `stub` | `stub` simulates UMass, so nothing leaves the machine; `live` uses the UMass API. |
+| `--runtime` | `native` | `native` runs `python -m safe_match_intermediary`; `docker` builds this directory's image and runs a container. |
+| `--credentials` | `<DATA_DIR>/credentials.json` | The credentials file, for live mode. |
+| `--yes` | off | Answer every question with its default, including live mode's confirmation. |
+| `--timeout` | `600` | Seconds to wait for delivery and for UMass to index the essays. |
+
+Every question comes before anything starts, so the run needs no attention once they
+are answered. The script asks for each input not given as a switch (Enter takes the
+default in brackets) and checks each answer straight away: the credentials file must be
+valid, and Docker must be running. In live mode it then names the UMass API it will
+send to and asks for confirmation, which `--yes` gives. With a switch for every input,
+plus `--yes` in live mode, it asks nothing.
+
+Each run uses a free port, a temporary data directory and, with Docker, a container of
+its own (`rb-safe-match-smoketest-<pid>`), so a running deployment is unaffected. The
+logs stay in the temporary directory printed at the end, and the Docker image stays as
+`rescuebox-safe-match-smoketest`. Live runs reuse fixed synthetic hashes (shared with
+semantic-match-api's smoke test) with a new essay version each time, so they do not
+grow the UMass corpus. New credentials fail with `unauthorized` until UMass redeploys.
+
 ## Development
 
 ```sh
