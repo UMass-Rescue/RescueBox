@@ -51,6 +51,8 @@ Plugins: Mostly independent Python packages, each containing its own input schem
 
 Storage: SQLite stores UI data such as cases, conversations, and job history. PostgreSQL with pgvector stores semantic image/text embeddings.
 
+Safe Match (optional): when an administrator enables it, a local intermediary service sends PII-redacted text descriptions of images, never the evidence itself, to the UMass Safe Matching service to find other investigators holding similar files. See [src/safe-match-intermediary/README.md](src/safe-match-intermediary/README.md).
+
 ## Deployment and demo usage
 
 Windows installer is available ,details in INSTALL.md.  Developer mac install is also available

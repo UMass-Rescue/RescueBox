@@ -101,6 +101,10 @@ pre-commit = "^4.0.1"
 [tool.poetry.group.api.dependencies]
 rb-api = { path = "src/rb-api", develop = true }
 
+# Optional server for the UMass Safe Matching service — `poetry install --with safe-match`
+[tool.poetry.group.safe-match.dependencies]
+safe-match-intermediary = { path = "src/safe-match-intermediary", develop = true }
+
 [tool.poetry.group.bundling.dependencies]
 pyinstaller = ">5.13.0"
 
@@ -127,6 +131,7 @@ pythonpath = [
     ".",
     "src/rb-api",
     "src/rb-lib",
+    "src/safe-match-intermediary",
     "src/face-detection-recognition",
     "src/image-embeddings",
     "src/image-similarity",

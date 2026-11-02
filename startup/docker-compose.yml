@@ -2,6 +2,7 @@ services:
   db:
     image: pgvector/pgvector:pg17
     container_name: rb-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: rbuser
       POSTGRES_PASSWORD: rescue
@@ -15,3 +16,18 @@ services:
       retries: 20
     ports:
       - "5433:5432"
+
+  # Optional; started only by safe_match_start.sh (docker compose --profile safe-match).
+  # Use :- defaults only: compose interpolates this file even when the profile is off.
+  safe-match:
+    profiles: ["safe-match"]
+    build: ../src/safe-match-intermediary
+    container_name: rb-safe-match
+    restart: unless-stopped
+    user: "${RESCUEBOX_SAFE_MATCH_UID:-1000}:${RESCUEBOX_SAFE_MATCH_GID:-1000}"
+    environment:
+      RESCUEBOX_SAFE_MATCH_MODE: ${RESCUEBOX_SAFE_MATCH_MODE:-live}
+    volumes:
+      - ${RESCUEBOX_SAFE_MATCH_DIR:-${HOME}/.rescuebox/safe-match}:/data
+    ports:
+      - "127.0.0.1:8090:8090"

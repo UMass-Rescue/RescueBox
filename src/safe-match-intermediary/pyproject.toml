@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "safe-match-intermediary"
+version = "3.0.0"
+description = "Local intermediary between RescueBox and the UMass Safe Matching service"
+authors = ["RescueBox Team"]
+packages = [{ include = "safe_match_intermediary" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "*"
+uvicorn = "*"
+httpx = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -34,6 +34,9 @@ Notes for Developers Only:
 7. start **frontend UI server**
      poetry run python frontend/main.py, confirm by accessing http://localhost:8080
 
+8. optional: start the **Safe Match intermediary**, which sends PII-redacted image descriptions to the UMass Safe Matching service (needs credentials from UMass)
+     "startup\safe_match_start.sh" , details in src/safe-match-intermediary/README.md
+
 
 NOTES:
 

@@ -36,9 +36,12 @@ jobs:
       - name: Install Poetry and dependencies
         run: |
           pip install poetry
-          poetry install --with api --with dev
+          poetry install --with api --with dev --with safe-match
 
       - name: Run tests
         env:
           DATABASE_URL: postgresql+psycopg2://rbuser:rescue@127.0.0.1:5433/rescuebox
         run: HF_HUB_OFFLINE=0 poetry run pytest frontend/tests/unit
+
+      - name: Run Safe Match intermediary tests
+        run: poetry run pytest src/safe-match-intermediary/tests src/rb-lib/rb/lib/tests/test_safe_match.py -q
