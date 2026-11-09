@@ -45,6 +45,7 @@ image-summary = { path = "src/image-summary", develop = true }
 text-embeddings = { path = "src/text-embeddings", develop = true }
 image-embeddings = { path = "src/image-embeddings", develop = true }
 image-similarity = { path = "src/image-similarity", develop = true }
+image-ingestion = { path = "src/image-ingestion", develop = true }
 case-export = { path = "src/case-export", develop = true }
 case-uco = { git = "https://github.com/vulnmaster/CASE-UCO-SDK.git", rev = "v1.9.0", subdirectory = "python" }
 
@@ -132,6 +133,7 @@ pythonpath = [
     "src/face-detection-recognition",
     "src/image-embeddings",
     "src/image-similarity",
+    "src/image-ingestion",
     "src/image-summary",
     "src/text-summary",
     "src/text-embeddings",

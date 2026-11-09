@@ -84,6 +84,7 @@ text_embeddings_data = f'src/text-embeddings/text_embeddings/app-info.md'
 image_summary_data = f'src/image-summary/image_summary/app-info.md'
 
 image_similarity_data = f'src/image-similarity/image_similarity/app-info.md'
+image_ingestion_data = f'src/image-ingestion/image_ingestion/app-info.md'
 
 # Collect the necessary metadata
 transformers_metadata = []
@@ -144,6 +145,7 @@ a = Analysis(
         (src_facematch_db_config, facematch_config),(facematch_md_data, 'face_detection_recognition'),
         (image_embeddings_data, 'image_embeddings'), (text_embeddings_data, 'text_embeddings'),
         (image_summary_data, 'image_summary'), (image_similarity_data, 'image_similarity'),
+        (image_ingestion_data, 'image_ingestion'),
         (age_and_gender_detection_data, 'age_and_gender_detection'),
         (text_summary_data, 'text_summary'),
         (src_facematch_model_config, facematch_config),

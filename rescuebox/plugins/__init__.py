@@ -23,6 +23,8 @@ from face_detection_recognition.face_match_server import (
 from file_utils.main import app as file_utils_app  # type: ignore
 from image_embeddings.main import APP_NAME as IMAGE_EMB_APP_NAME
 from image_embeddings.main import app as image_embeddings_app  # type: ignore
+from image_ingestion.main import APP_NAME as IMAGE_INGEST_APP_NAME
+from image_ingestion.main import app as image_ingestion_app  # type: ignore
 from image_similarity.main import APP_NAME as IMAGE_SIM_APP_NAME
 from image_similarity.main import app as image_similarity_app  # type: ignore
 from image_summary.main import APP_NAME as IMAGE_SUM_APP_NAME
@@ -70,6 +72,7 @@ plugins: list[RescueBoxPlugin] = [
     RescueBoxPlugin(
         image_similarity_app, IMAGE_SIM_APP_NAME, "Image Similarity Search"
     ),
+    RescueBoxPlugin(image_ingestion_app, IMAGE_INGEST_APP_NAME, "Image Ingestion"),
 ]
 
 if ufdr_app:
