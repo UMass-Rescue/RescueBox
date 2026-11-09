@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "image-ingestion"
+version = "1.0.0"
+description = "Ingest a folder of images into a hash archive for RescueBox"
+authors = ["RescueBox Team"]
+packages = [{include = "image_ingestion"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.15"
+typer = "*"
+pillow = "*"
+sqlmodel = "*"
+rb-lib = { path = "../rb-lib", develop = true }
+rb-api = { path = "../rb-api", develop = true }
+rb-safe-matching-common = { path = "../rb-safe-matching-common", develop = true }
+image-similarity = { path = "../image-similarity", develop = true }
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
