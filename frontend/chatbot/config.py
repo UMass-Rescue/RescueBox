@@ -250,6 +250,11 @@ class ToolRegistry:
             "endpoint": "ufdr_mounter/mount",
             "desc": "Mount UFDR files",
         },
+        "11": {
+            "name": "Image Ingestion",
+            "endpoint": "image_ingestion/ingest_images",
+            "desc": "Hash and archive images for matching",
+        },
     }
 
     @staticmethod
