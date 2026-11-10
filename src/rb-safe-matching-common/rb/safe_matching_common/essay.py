@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from rb.safe_matching_common.privacy import redact_text
 
-DEFAULT_ESSAY_MODEL: Final[str] = "qwen3-vl:8b"
+DEFAULT_ESSAY_MODEL: Final[str] = "qwen3-vl:4b-instruct"
 ESSAY_MAX_WORDS: Final[int] = 60
 ESSAY_MAX_CHARS: Final[int] = 350
 

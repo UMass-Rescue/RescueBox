@@ -4,10 +4,12 @@ from image_ingestion import hashers
 from image_ingestion.main import (
     _ingest,
     _selected_hashes,
+    delete_archive,
     delete_parameters_cli_parse,
     delete_task_schema,
     ingest_parameters_cli_parse,
     ingest_task_schema,
+    rename_archive,
     rename_task_schema,
 )
 from rb.api.database import FileRecord
@@ -66,6 +68,21 @@ def test_ingest_stores_duplicate_content_once_but_links_both_paths():
     store.find_or_create_file.assert_called_once()
     linked = store.link_files.call_args.args[2]
     assert linked == {"a.jpg": "h" * 64, "b.jpg": "h" * 64}
+
+
+def test_delete_and_rename_report_missing_label():
+    store = MagicMock()
+    store.find_archive.return_value = None
+    with (
+        patch("image_ingestion.main.archive_store", store),
+        patch("image_ingestion.main.Session"),
+    ):
+        deleted = delete_archive({}, {"label": "nope", "retain_hashes": "yes"})
+        renamed = rename_archive({}, {"old_label": "nope", "new_label": "new"})
+    assert deleted.root.title == "Archive not found"
+    assert renamed.root.title == "Archive not found"
+    store.delete_archive.assert_not_called()
+    store.rename_archive.assert_not_called()
 
 
 def test_cli_parsers():

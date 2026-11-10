@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 from nicegui import ui
 
@@ -23,6 +24,27 @@ _LAUNCH_ROW = (
     "items-center gap-1 shrink-0 text-[#881c1c] font-semibold text-sm "
     "bg-[#881c1c]/5 hover:bg-[#881c1c]/10 px-3 py-1.5 rounded-lg transition-all"
 )
+_PICKER_ROW = (
+    "w-full min-w-0 py-4 px-5 rounded-xl border border-slate-200 bg-white shadow-sm "
+    "hover:bg-slate-50 hover:border-[#881c1c] cursor-pointer transition-all duration-150 "
+    "items-center justify-between gap-4 border-l-4 border-l-[#881c1c]"
+)
+_PICKER_HEADING = "text-sm font-semibold text-slate-500 uppercase tracking-wider"
+_BACK_LINK = "text-sm font-semibold text-[#881c1c] cursor-pointer hover:underline"
+
+
+def _picker_row(
+    title: str, desc: str, action: str, on_click: Callable[..., object]
+) -> None:
+    with ui.row().classes(_PICKER_ROW).on("click", on_click):
+        with (
+            ui.row().classes("items-center gap-4 flex-1 min-w-0"),
+            ui.column().classes("flex-1 min-w-0 gap-0.5"),
+        ):
+            ui.label(title).classes("text-lg font-bold text-slate-800 leading-snug")
+            ui.label(desc).classes(_TOOL_DESC)
+        with ui.row().classes(_LAUNCH_ROW):
+            ui.label(action)
 
 
 class ToolPicker:
@@ -51,51 +73,57 @@ class ToolPicker:
             len(menu),
         )
 
-        with self.container:
-            with ui.card().classes(
+        with (
+            self.container,
+            ui.card().classes(
                 "w-full max-w-full bg-white border border-slate-200 shadow-md rounded-2xl overflow-hidden p-0"
-            ):
-                with ui.column().classes("p-6 gap-3 w-full bg-slate-50"):
-                    ui.label("Choose a plugin to run:").classes(
-                        "text-sm font-semibold text-slate-500 uppercase tracking-wider"
-                    )
-                    if not menu:
-                        ui.label("No plugins available in TOOL_MENU.").classes(
-                            "text-sm text-rose-500 font-medium"
-                        )
-                    else:
-                        for num, tool in menu.items():
-                            self.logger.debug(
-                                "Adding tool to UI: %s - %s",
-                                num,
-                                tool.get("name"),
-                            )
-                            row = ui.row().classes(
-                                "w-full min-w-0 py-4 px-5 rounded-xl border border-slate-200 bg-white shadow-sm "
-                                "hover:bg-slate-50 hover:border-[#881c1c] cursor-pointer transition-all duration-150 "
-                                "items-center justify-between gap-4 border-l-4 border-l-[#881c1c]"
-                            )
-                            row.on(
-                                "click",
-                                lambda *a, t=tool: self.on_tool_selected(
-                                    t["endpoint"], {}
-                                ),
-                            )
-                            with row:
-                                with ui.row().classes(
-                                    "items-center gap-4 flex-1 min-w-0"
-                                ), ui.column().classes("flex-1 min-w-0 gap-0.5"):
-                                    ui.label(f'{num}. {tool["name"]}').classes(
-                                        "text-lg font-bold text-slate-800 leading-snug"
-                                    )
-                                    ui.label(
-                                        tool.get("desc", "No description")
-                                    ).classes(_TOOL_DESC)
-
-                                with ui.row().classes(_LAUNCH_ROW):
-                                    ui.label("Run")
+            ),
+        ):
+            self.body = ui.column().classes("p-6 gap-3 w-full bg-slate-50")
+        self._show_plugins(menu)
 
         self.logger.info("ToolPicker.show finished building UI.")
+
+    def _show_plugins(self, menu: dict[str, dict[str, str]]) -> None:
+        self.body.clear()
+        with self.body:
+            ui.label("Choose a plugin to run:").classes(_PICKER_HEADING)
+            if not menu:
+                ui.label("No plugins available in TOOL_MENU.").classes(
+                    "text-sm text-rose-500 font-medium"
+                )
+            for num, tool in menu.items():
+                self._plugin_row(num, tool, menu)
+
+    def _plugin_row(
+        self, num: str, tool: dict[str, str], menu: dict[str, dict[str, str]]
+    ) -> None:
+        title = f'{num}. {tool["name"]}'
+        desc = tool.get("desc", "No description")
+        if num in ToolRegistry.TOOL_SUBTASKS:
+            _picker_row(title, desc, "Open", lambda *a: self._show_tasks(num, menu))
+        else:
+            _picker_row(
+                title,
+                desc,
+                "Run",
+                lambda *a: self.on_tool_selected(tool["endpoint"], {}),
+            )
+
+    def _show_tasks(self, num: str, menu: dict[str, dict[str, str]]) -> None:
+        self.body.clear()
+        with self.body:
+            ui.label("← Back to plugins").classes(_BACK_LINK).on(
+                "click", lambda *a: self._show_plugins(menu)
+            )
+            ui.label(f'{menu[num]["name"]}: choose a task').classes(_PICKER_HEADING)
+            for task in ToolRegistry.TOOL_SUBTASKS[num]:
+                _picker_row(
+                    task["name"],
+                    task["desc"],
+                    "Run",
+                    lambda *a, e=task["endpoint"]: self.on_tool_selected(e, {}),
+                )
 
 
 class AnalysisPicker:

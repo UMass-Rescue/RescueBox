@@ -37,9 +37,8 @@ HASH_LABELS: dict[str, tuple[str, str]] = {
     ),
     "essay": (
         "Essay hash",
-        "Slow; enables fuzzy matching against the UMass Safe Semantic Matching "
-        "Service. When selected, essay hashes are automatically sent to UMass. "
-        "Your admin needs to configure access.",
+        "Slow. Essay hashes are uploaded to the Safe Semantic Matching API "
+        "when created",
     ),
 }
 
@@ -184,21 +183,35 @@ def ingest_images(inputs: IngestInputs, parameters: IngestParameters) -> Respons
     return ResponseBody(root=TextResponse(value=message, title="Ingestion complete"))
 
 
+def _text_result(title: str, message: str) -> ResponseBody:
+    return ResponseBody(root=TextResponse(value=message, title=title))
+
+
+def _not_found(label: str) -> ResponseBody:
+    return _text_result("Archive not found", f"No archive has the label '{label}'.")
+
+
 def delete_archive(inputs: NoInputs, parameters: DeleteParameters) -> ResponseBody:
+    label = parameters["label"]
     retain = parameters["retain_hashes"] == "yes"
     with Session(engine) as session:
-        removed = archive_store.delete_archive(session, parameters["label"], retain)
-    message = f"Deleted archive '{parameters['label']}' ({removed} files)."
-    return ResponseBody(root=TextResponse(value=message, title="Archive deleted"))
+        archive = archive_store.find_archive(session, label)
+        if archive is None:
+            return _not_found(label)
+        removed = archive_store.delete_archive(session, archive, retain)
+    return _text_result(
+        "Archive deleted", f"Deleted archive '{label}' ({removed} files)."
+    )
 
 
 def rename_archive(inputs: NoInputs, parameters: RenameParameters) -> ResponseBody:
+    old_label, new_label = parameters["old_label"], parameters["new_label"]
     with Session(engine) as session:
-        archive_store.rename_archive(
-            session, parameters["old_label"], parameters["new_label"]
-        )
-    message = f"Renamed '{parameters['old_label']}' to '{parameters['new_label']}'."
-    return ResponseBody(root=TextResponse(value=message, title="Archive renamed"))
+        archive = archive_store.find_archive(session, old_label)
+        if archive is None:
+            return _not_found(old_label)
+        archive_store.rename_archive(session, archive, new_label)
+    return _text_result("Archive renamed", f"Renamed '{old_label}' to '{new_label}'.")
 
 
 def ingest_inputs_cli_parse(value: str) -> IngestInputs:
