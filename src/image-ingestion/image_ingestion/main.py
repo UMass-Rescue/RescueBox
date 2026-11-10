@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import TypedDict
 
@@ -21,6 +22,8 @@ from rb.api.models import (
 from rb.lib.ml_service import MLService
 from rb.safe_matching_common.essay import ensure_essay_model
 from sqlmodel import Session
+
+logger = logging.getLogger(__name__)
 
 APP_NAME = "image_ingestion"
 server = MLService(APP_NAME)
@@ -161,6 +164,8 @@ def _ingest(
     for sha256, path in first_path.items():
         record = archive_store.find_or_create_file(session, sha256)
         computed += fill_missing(record, path, selected)
+        if "essay" in selected:
+            logger.info("Essay for %s: %s", Path(path).name, record.essay)
     archive_store.link_files(session, archive, sha256s)
     session.commit()
     return computed

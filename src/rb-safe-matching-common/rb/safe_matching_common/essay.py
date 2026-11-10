@@ -7,6 +7,7 @@ from rb.safe_matching_common.privacy import redact_text
 
 DEFAULT_ESSAY_MODEL: Final[str] = "gemma3:4b"
 ESSAY_MAX_WORDS: Final[int] = 55
+ESSAY_MAX_CHARS: Final[int] = 350
 
 ESSAY_PROMPT: Final[str] = (
     "You are an automated digital forensics vision model producing an objective evidence log. "
@@ -27,6 +28,12 @@ def _cap_words(text: str, max_words: int) -> str:
     return " ".join(text.split()[:max_words])
 
 
+def _cap_chars(text: str, max_chars: int) -> str:
+    return (
+        text[:max_chars].rsplit(" ", maxsplit=1)[0] if len(text) > max_chars else text
+    )
+
+
 def ensure_essay_model(model: str = DEFAULT_ESSAY_MODEL) -> None:
     installed = {m.model for m in ollama.list()["models"]}
     if model not in installed:
@@ -39,4 +46,4 @@ def create_essay(image_path: str, model: str = DEFAULT_ESSAY_MODEL) -> str:
 
 
 def create_redacted_essay(image_path: str, model: str = DEFAULT_ESSAY_MODEL) -> str:
-    return redact_text(create_essay(image_path, model))
+    return _cap_chars(redact_text(create_essay(image_path, model)), ESSAY_MAX_CHARS)

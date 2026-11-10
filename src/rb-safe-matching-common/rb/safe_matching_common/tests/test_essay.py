@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from rb.safe_matching_common.essay import (
+    ESSAY_MAX_CHARS,
     ESSAY_MAX_WORDS,
     create_essay,
     create_redacted_essay,
@@ -19,5 +20,14 @@ def test_create_essay_strips_think_and_caps_words(generate_mock):
 @patch("rb.safe_matching_common.essay.ollama.generate")
 def test_create_redacted_essay_redacts_essay(generate_mock, redact_mock):
     generate_mock.return_value = {"response": "A man named Bob stands by a car."}
-    redact_mock.side_effect = lambda text: text.replace("Bob", "<PERSON>")
-    assert create_redacted_essay("image.jpg") == "A man named <PERSON> stands by a car."
+    redact_mock.return_value = "A man named stands by a car."
+    assert create_redacted_essay("image.jpg") == "A man named stands by a car."
+
+
+@patch("rb.safe_matching_common.essay.redact_text", side_effect=lambda text: text)
+@patch("rb.safe_matching_common.essay.ollama.generate")
+def test_redacted_essay_caps_characters_at_word_boundary(generate_mock, _redact):
+    generate_mock.return_value = {"response": "wordy " * 50}
+    essay = create_redacted_essay("image.jpg")
+    assert len(essay) <= ESSAY_MAX_CHARS
+    assert essay.endswith("wordy")
