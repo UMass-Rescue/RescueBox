@@ -32,7 +32,7 @@ HASH_LABELS: dict[str, tuple[str, str]] = {
     "md5": ("MD5 hash", "Fast, common means of finding exact matches"),
     "pdq": ("PDQ hash", "Relatively fast; enables deduplication"),
     "semantic": (
-        "Semantic hash (plain and private)",
+        "Semantic hash",
         "Moderately fast to slow; enables fuzzy matching",
     ),
     "essay": (
@@ -155,32 +155,32 @@ def _ingest(
     description: str,
     paths: list[str],
     selected: list[str],
-) -> int:
+) -> None:
     archive = archive_store.create_archive(session, label, description)
     sha256s = {path: sha256_file(path) for path in paths}
     first_path = {sha256: path for path, sha256 in reversed(list(sha256s.items()))}
-    computed = 0
     for sha256, path in first_path.items():
         record = archive_store.find_or_create_file(session, sha256)
-        computed += fill_missing(record, path, selected)
+        fill_missing(record, path, selected)
         if "essay" in selected:
             logger.info("Essay for %s: %s", Path(path).name, record.essay)
     archive_store.link_files(session, archive, sha256s)
     session.commit()
-    return computed
 
 
 def ingest_images(inputs: IngestInputs, parameters: IngestParameters) -> ResponseBody:
     folder = Path(inputs["input_dir"].path)
     label = parameters["label"] or folder.name
     selected = _selected_hashes(parameters)
-    if "essay" in selected:
-        ensure_essay_model()
-    paths = _collect_image_paths(str(folder))
     with Session(engine) as session:
-        computed = _ingest(session, label, parameters["description"], paths, selected)
-    message = f"Archive '{label}': {len(paths)} files, {computed} hashes computed."
-    return ResponseBody(root=TextResponse(value=message, title="Ingestion complete"))
+        if archive_store.find_archive(session, label) is not None:
+            return _label_taken(label)
+        if "essay" in selected:
+            ensure_essay_model()
+        paths = _collect_image_paths(str(folder))
+        _ingest(session, label, parameters["description"], paths, selected)
+    message = f"Archive '{label}': {len(paths)} files."
+    return _text_result("Ingestion complete", message)
 
 
 def _text_result(title: str, message: str) -> ResponseBody:
@@ -191,6 +191,12 @@ def _not_found(label: str) -> ResponseBody:
     return _text_result("Archive not found", f"No archive has the label '{label}'.")
 
 
+def _label_taken(label: str) -> ResponseBody:
+    return _text_result(
+        "Label already in use", f"An archive with the label '{label}' already exists."
+    )
+
+
 def delete_archive(inputs: NoInputs, parameters: DeleteParameters) -> ResponseBody:
     label = parameters["label"]
     retain = parameters["retain_hashes"] == "yes"
@@ -199,6 +205,7 @@ def delete_archive(inputs: NoInputs, parameters: DeleteParameters) -> ResponseBo
         if archive is None:
             return _not_found(label)
         removed = archive_store.delete_archive(session, archive, retain)
+        session.commit()
     return _text_result(
         "Archive deleted", f"Deleted archive '{label}' ({removed} files)."
     )
@@ -210,7 +217,10 @@ def rename_archive(inputs: NoInputs, parameters: RenameParameters) -> ResponseBo
         archive = archive_store.find_archive(session, old_label)
         if archive is None:
             return _not_found(old_label)
+        if archive_store.find_archive(session, new_label) is not None:
+            return _label_taken(new_label)
         archive_store.rename_archive(session, archive, new_label)
+        session.commit()
     return _text_result("Archive renamed", f"Renamed '{old_label}' to '{new_label}'.")
 
 

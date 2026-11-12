@@ -31,8 +31,13 @@ Hashes a folder of images into the shared archive database. Each ingestion creat
 |---|---|
 | SHA-256, MD5 | `hashers.py` |
 | PDQ, semantic, private | `image-similarity` (SigLIP2 and CLIPSeg ONNX models) |
-| Essay | `gemma3:4b` through Ollama, redacted with Presidio (`rb-safe-matching-common`) |
+| Essay | `qwen3-vl:4b-instruct` through Ollama, redacted with Presidio (`rb-safe-matching-common`) |
 
 ## Dependencies
 
 PostgreSQL with pgvector, the `image-similarity` ONNX models, and Ollama for the essay hash. Sending essays to UMass requires the Safe Match intermediary service.
+
+MD5 and PDQ run on CPU with no extra downloads. The essay hash is the heavy option:
+
+- `qwen3-vl:4b-instruct` is pulled through Ollama on first use (about 3 GB download, several GB of RAM while running; a GPU helps).
+- Presidio uses the spaCy `en_core_web_lg` model (about 600 MB wheel, installed with `rb-safe-matching-common`).

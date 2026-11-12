@@ -193,11 +193,19 @@ def create_db_and_tables():
         from sqlalchemy import text
 
         with engine.begin() as conn:
-            conn.execute(
+            essay_width = conn.execute(
                 text(
-                    f"ALTER TABLE files ALTER COLUMN essay TYPE VARCHAR({ESSAY_MAX_CHARS})"
+                    "SELECT character_maximum_length FROM information_schema.columns "
+                    "WHERE table_name = 'files' AND column_name = 'essay'"
                 )
-            )
+            ).scalar()
+            if essay_width != ESSAY_MAX_CHARS:
+                conn.execute(
+                    text(
+                        "ALTER TABLE files ALTER COLUMN essay "
+                        f"TYPE VARCHAR({ESSAY_MAX_CHARS})"
+                    )
+                )
     except Exception:
         pass
     # Recreate HNSW index for text_embedding_chunks (dropped with table)
@@ -330,7 +338,7 @@ class FileRecord(SQLModel, table=True):
 
 
 class Archive(SQLModel, table=True):
-    """An immutable ingestion, identified by its investigation label."""
+    """One ingestion, identified by its investigation label."""
 
     __tablename__ = "archives"
 

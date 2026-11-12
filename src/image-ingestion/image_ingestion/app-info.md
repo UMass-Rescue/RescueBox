@@ -23,9 +23,11 @@ Hashes a folder of images and stores the results in the shared archive database.
 
 Work already done for a file in an earlier archive is reused, so only missing hashes are computed.
 
+MD5 and PDQ run on any computer. The essay hash downloads the `qwen3-vl:4b-instruct` model (about 3 GB) the first time it is used and needs several GB of memory; a GPU makes semantic and essay hashes much faster.
+
 ## Delete Archive
 
-Archives are immutable, but can be deleted by investigation label. **Retain hashes** keeps the stored hashes in the database, which makes loading faster if the original data is loaded again. Choosing **No** also removes hashes no other archive uses.
+An archive's contents cannot be changed after ingestion, but it can be deleted by investigation label. **Retain hashes** keeps the stored hashes in the database, which makes loading faster if the original data is loaded again. Choosing **No** also removes hashes no other archive uses.
 
 ## Rename Archive
 

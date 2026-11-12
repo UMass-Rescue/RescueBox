@@ -38,7 +38,6 @@ def link_files(session: Session, archive: Archive, paths: dict[str, str]) -> Non
 
 def rename_archive(session: Session, archive: Archive, new_label: str) -> None:
     archive.label = new_label
-    session.commit()
 
 
 def delete_archive(session: Session, archive: Archive, retain_hashes: bool) -> int:
@@ -53,7 +52,6 @@ def delete_archive(session: Session, archive: Archive, retain_hashes: bool) -> i
     session.flush()
     if not retain_hashes:
         _delete_unused_files(session, sha256s)
-    session.commit()
     return len(links)
 
 
