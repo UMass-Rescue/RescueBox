@@ -228,7 +228,7 @@ class TestToolRegistry:
         assert uids[0] == "image_summary"
         assert uids.index("image_summary") < uids.index("image_embeddings")
         assert uids.count("face-match") == 1
-        assert uids[-1] == "ufdr_mounter"
+        assert uids[-1] == "image_ingestion"
         assert uids.index("audio") == 7
         assert "ufdr_mounter" in uids
 

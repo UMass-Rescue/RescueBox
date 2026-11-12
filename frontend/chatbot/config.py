@@ -250,6 +250,32 @@ class ToolRegistry:
             "endpoint": "ufdr_mounter/mount",
             "desc": "Mount UFDR files",
         },
+        "11": {
+            "name": "Image Ingestion",
+            "endpoint": "image_ingestion/ingest_images",
+            "desc": "Ingest images into archives, or delete and rename archives",
+        },
+    }
+
+    # Menu entries that open a second picker listing several tasks of one plugin
+    TOOL_SUBTASKS: dict[str, list[dict[str, str]]] = {
+        "11": [
+            {
+                "name": "Ingest Images",
+                "endpoint": "image_ingestion/ingest_images",
+                "desc": "Hash a folder of images into a new archive",
+            },
+            {
+                "name": "Delete Archive",
+                "endpoint": "image_ingestion/delete_archive",
+                "desc": "Remove an archive by its investigation label",
+            },
+            {
+                "name": "Rename Archive",
+                "endpoint": "image_ingestion/rename_archive",
+                "desc": "Change the investigation label of an archive",
+            },
+        ],
     }
 
     @staticmethod
@@ -260,6 +286,10 @@ class ToolRegistry:
         for tool in ToolRegistry.TOOL_MENU.values():
             if tool["endpoint"] == endpoint:
                 return tool["name"]
+        for num, tasks in ToolRegistry.TOOL_SUBTASKS.items():
+            for task in tasks:
+                if task["endpoint"] == endpoint:
+                    return f'{ToolRegistry.TOOL_MENU[num]["name"]} - {task["name"]}'
         return None
 
     @staticmethod

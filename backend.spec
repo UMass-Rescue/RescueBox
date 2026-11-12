@@ -9,6 +9,7 @@
   now start desktop UI and register models
   
 '''
+from PyInstaller.utils.hooks import collect_all
 from PyInstaller.utils.hooks import collect_submodules
 from PyInstaller.utils.hooks import copy_metadata
 # for tensorflow
@@ -84,6 +85,15 @@ text_embeddings_data = f'src/text-embeddings/text_embeddings/app-info.md'
 image_summary_data = f'src/image-summary/image_summary/app-info.md'
 
 image_similarity_data = f'src/image-similarity/image_similarity/app-info.md'
+image_ingestion_data = f'src/image-ingestion/image_ingestion/app-info.md'
+
+# for image-ingestion essay hash: Presidio recognizers and the spaCy model are loaded dynamically
+essay_datas, essay_binaries = [], []
+for package in ['presidio_analyzer', 'presidio_anonymizer', 'spacy', 'en_core_web_lg']:
+    package_datas, package_binaries, package_hiddenimports = collect_all(package)
+    essay_datas += package_datas
+    essay_binaries += package_binaries
+    hiddenimports += package_hiddenimports
 
 # Collect the necessary metadata
 transformers_metadata = []
@@ -138,19 +148,20 @@ a = Analysis(
     pathex=['src/rb-api/rb/api', 'src/rb-lib', 'src/rb-api', 'rescuebox', 'src', '.', 'src/rb-doc-parser', 'src/rb-file-utils', 'src/audio-transcription',
     'src/text-summary', 'src/age_and_gender_detection'],
     binaries=[('ffmpeg.exe', ".")
-    ],
+    ] + essay_binaries,
     datas=[(audio_md_data, 'audio_transcription'),
         (deepfake_md_data, 'deepfake_detection'), (ufdr_md_data, 'ufdr_mounter'),
         (src_facematch_db_config, facematch_config),(facematch_md_data, 'face_detection_recognition'),
         (image_embeddings_data, 'image_embeddings'), (text_embeddings_data, 'text_embeddings'),
         (image_summary_data, 'image_summary'), (image_similarity_data, 'image_similarity'),
+        (image_ingestion_data, 'image_ingestion'),
         (age_and_gender_detection_data, 'age_and_gender_detection'),
         (text_summary_data, 'text_summary'),
         (src_facematch_model_config, facematch_config),
         ('src/rb-api/rb/api/static', 'static'), ('src/rb-api/rb/api/templates', 'templates'),
         ('src/doc-parser/doc_parser/chat_config.yml', '.'),
         ('static/favicon.ico', 'static'),
-        ] ,
+        ] + essay_datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

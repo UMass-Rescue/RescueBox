@@ -13,6 +13,8 @@ postgres_url = os.getenv(
 )
 engine = create_engine(postgres_url, pool_pre_ping=True, future=True)
 
+ESSAY_COLUMN_CHARS = 600
+
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
@@ -297,6 +299,42 @@ class ImageSimilarityPrivateEmbedding(SQLModel, table=True):
     filename: str = Field(default="", sa_column=Column(String(512)))
     export_file: str = Field(default="", sa_column=Column(String(512)))
     source: str = Field(default="local", sa_column=Column(String(32), index=True))
+
+
+class FileRecord(SQLModel, table=True):
+    """One row per unique file content, shared across all archives."""
+
+    __tablename__ = "files"
+
+    sha256: str = Field(sa_column=Column(String(64), primary_key=True))
+    md5: str = Field(default="", sa_column=Column(String(32), index=True))
+    pdq_hash: str = Field(default="", sa_column=Column(String(64), index=True))
+    semantic_embedding: list[float] | None = Field(
+        default=None, sa_column=Column(Vector(1152))
+    )
+    private_embedding: list[float] | None = Field(
+        default=None, sa_column=Column(Vector(1152))
+    )
+    essay: str = Field(default="", sa_column=Column(String(ESSAY_COLUMN_CHARS)))
+
+
+class Archive(SQLModel, table=True):
+    """One ingestion, identified by its investigation label."""
+
+    __tablename__ = "archives"
+
+    id: int | None = Field(default=None, primary_key=True)
+    label: str = Field(sa_column=Column(String(256), unique=True, index=True))
+    description: str = Field(default="", sa_column=Column(Text))
+
+
+class ArchiveFile(SQLModel, table=True):
+    __tablename__ = "archive_files"
+
+    id: int | None = Field(default=None, primary_key=True)
+    archive_id: int = Field(foreign_key="archives.id", index=True)
+    file_sha256: str = Field(foreign_key="files.sha256", index=True)
+    path: str = Field(sa_column=Column(Text))
 
 
 class FaceEmbedding(SQLModel, table=True):
