@@ -2298,6 +2298,29 @@ type = "directory"
 url = "src/image-embeddings"
 
 [[package]]
+name = "image-ingestion"
+version = "1.0.0"
+description = "Ingest a folder of images into a hash archive for RescueBox"
+optional = false
+python-versions = ">=3.12,<3.15"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+image-similarity = {path = "../image-similarity", develop = true}
+pillow = "*"
+rb-api = {path = "../rb-api", develop = true}
+rb-lib = {path = "../rb-lib", develop = true}
+rb-safe-matching-common = {path = "../rb-safe-matching-common", develop = true}
+sqlmodel = "*"
+typer = "*"
+
+[package.source]
+type = "directory"
+url = "src/image-ingestion"
+
+[[package]]
 name = "image-similarity"
 version = "1.0.0"
 description = "Image-to-image similarity search plugin for RescueBox using CLIP"
@@ -8018,4 +8041,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.15"
-content-hash = "3527b3cb1327f6ca7571b0ba0c71afc4bb113d2e63b25697b65a2332e7bab51d"
+content-hash = "7e915a7c333ec5d3dede71af58fc6ff790b1c9867a3082e8d1338d995c87db4f"
