@@ -12,14 +12,14 @@ Hashes a folder of images and stores the results in the shared archive database.
 
 ## Ingest Images
 
-- **Folder of images:** the images to ingest (`.jpg`, `.jpeg`, `.png`, `.bmp`, `.gif`, `.tiff`, `.webp`).
+- **Folder of images:** the images to ingest, in common formats (JPEG, PNG, BMP, WebP).
 - **Investigation label:** names the archive. Defaults to the folder name. Must be unique.
 - **Description:** case details, survivor information.
 - **SHA256** is always computed and identifies each file.
 - **MD5** (default on): fast exact matching.
 - **PDQ** (default on): perceptual hash that enables deduplication.
 - **Semantic hash** (default on): moderately fast to slow; fuzzy matching. Private hashes (faces, tattoos and text blacked out) are created at the same time.
-- **Essay hash** (default on): slow; a short text description with personal information removed, for fuzzy matching against the UMass Safe Semantic Matching Service. Essay hashes will be sent to the UMass Semantic Matching API; this is not yet being done, and essays are currently stored locally only.
+- **Essay hash** (default on): slow; a short paragraph (at most 60 words) describing the people, objects and scene, with personal information removed, for fuzzy matching. Essay hashes will be sent to the UMass Semantic Matching API; this is not yet being done, and essays are currently stored locally only.
 
 Work already done for a file in an earlier archive is reused, so only missing hashes are computed.
 

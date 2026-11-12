@@ -1,7 +1,8 @@
 from unittest.mock import MagicMock, patch
 
-from image_ingestion import hashers
+from image_ingestion import archive_store, hashers
 from image_ingestion.main import (
+    _image_paths,
     _ingest,
     _selected_hashes,
     delete_archive,
@@ -13,10 +14,27 @@ from image_ingestion.main import (
     rename_archive,
     rename_task_schema,
 )
-from rb.api.database import FileRecord
+from rb.api.database import Archive, ArchiveFile, FileRecord
 from rb.api.models import DirectoryInput
+from sqlmodel import Session, SQLModel, create_engine
 
 ALL_YES = {"md5": "yes", "pdq": "yes", "semantic": "yes", "essay": "yes"}
+ARCHIVE_TABLES = [FileRecord.__table__, Archive.__table__, ArchiveFile.__table__]
+
+
+def _sqlite_session() -> Session:
+    engine = create_engine("sqlite://")
+    SQLModel.metadata.create_all(engine, tables=ARCHIVE_TABLES)
+    return Session(engine)
+
+
+def _ingest_paths(session: Session, label: str, paths: dict[str, str]) -> Archive:
+    archive = archive_store.create_archive(session, label, "")
+    for sha256 in set(paths.values()):
+        archive_store.find_or_create_file(session, sha256)
+    archive_store.link_files(session, archive, paths)
+    session.commit()
+    return archive
 
 
 def test_ingest_schema_has_label_description_and_four_hash_options():
@@ -41,6 +59,13 @@ def test_delete_and_rename_schemas():
         "old_label",
         "new_label",
     ]
+
+
+def test_image_paths_skips_gif_tiff_and_non_images(tmp_path):
+    for name in ["b.PNG", "a.jpg", "c.webp", "anim.gif", "scan.tiff", "notes.txt"]:
+        (tmp_path / name).touch()
+    names = [path.rsplit("/", 1)[-1] for path in _image_paths(tmp_path)]
+    assert names == ["a.jpg", "b.PNG", "c.webp"]
 
 
 def test_semantic_option_also_selects_private_hash():
@@ -102,6 +127,7 @@ def test_ingest_rejects_existing_label(tmp_path):
 
 def test_rename_rejects_existing_new_label():
     store = MagicMock()
+    store.find_archive.side_effect = [MagicMock(), MagicMock()]
     with (
         patch("image_ingestion.main.archive_store", store),
         patch("image_ingestion.main.Session"),
@@ -109,6 +135,36 @@ def test_rename_rejects_existing_new_label():
         result = rename_archive({}, {"old_label": "a", "new_label": "b"})
     assert result.root.title == "Label already in use"
     store.rename_archive.assert_not_called()
+
+
+def test_rename_to_same_label_succeeds():
+    with _sqlite_session() as session:
+        _ingest_paths(session, "a", {"x.jpg": "a" * 64})
+        with patch("image_ingestion.main.Session", return_value=session):
+            result = rename_archive({}, {"old_label": "a", "new_label": "a"})
+    assert result.root.title == "Archive renamed"
+
+
+def test_delete_without_retain_keeps_hashes_used_by_other_archives():
+    shared, only_a = "s" * 64, "a" * 64
+    with _sqlite_session() as session:
+        archive_a = _ingest_paths(session, "a", {"x.jpg": shared, "y.jpg": only_a})
+        _ingest_paths(session, "b", {"z.jpg": shared})
+        removed = archive_store.delete_archive(session, archive_a, retain_hashes=False)
+        session.commit()
+        assert removed == 2
+        assert session.get(FileRecord, shared) is not None
+        assert session.get(FileRecord, only_a) is None
+
+
+def test_delete_with_retain_keeps_all_hashes():
+    only_a = "a" * 64
+    with _sqlite_session() as session:
+        archive_a = _ingest_paths(session, "a", {"x.jpg": only_a})
+        archive_store.delete_archive(session, archive_a, retain_hashes=True)
+        session.commit()
+        assert session.get(FileRecord, only_a) is not None
+        assert archive_store.find_archive(session, "a") is None
 
 
 def test_cli_parsers():

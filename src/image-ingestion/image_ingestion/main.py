@@ -5,7 +5,6 @@ from typing import TypedDict
 import typer
 from image_ingestion import archive_store
 from image_ingestion.hashers import HASH_OPTIONS, fill_missing, sha256_file
-from image_similarity.main import _collect_image_paths
 from rb.api.database import engine
 from rb.api.models import (
     DirectoryInput,
@@ -27,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 APP_NAME = "image_ingestion"
 server = MLService(APP_NAME)
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 HASH_LABELS: dict[str, tuple[str, str]] = {
     "md5": ("MD5 hash", "Fast, common means of finding exact matches"),
@@ -149,6 +150,14 @@ def _selected_hashes(parameters: IngestParameters) -> list[str]:
     ]
 
 
+def _image_paths(folder: Path) -> list[str]:
+    return sorted(
+        str(path)
+        for path in folder.iterdir()
+        if path.suffix.lower() in IMAGE_EXTENSIONS
+    )
+
+
 def _ingest(
     session: Session,
     label: str,
@@ -178,7 +187,7 @@ def ingest_images(inputs: IngestInputs, parameters: IngestParameters) -> Respons
             return _label_taken(label)
         if "essay" in selected:
             ensure_essay_model()
-        paths = _collect_image_paths(str(folder))
+        paths = _image_paths(folder)
         _ingest(session, label, parameters["description"], paths, selected)
     message = f"Archive '{label}': {len(paths)} files."
     return _text_result("Ingestion complete", message)
@@ -218,7 +227,8 @@ def rename_archive(inputs: NoInputs, parameters: RenameParameters) -> ResponseBo
         archive = archive_store.find_archive(session, old_label)
         if archive is None:
             return _not_found(old_label)
-        if archive_store.find_archive(session, new_label) is not None:
+        taken = archive_store.find_archive(session, new_label)
+        if taken is not None and taken is not archive:
             return _label_taken(new_label)
         archive_store.rename_archive(session, archive, new_label)
         session.commit()
