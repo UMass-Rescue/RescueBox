@@ -13,7 +13,7 @@ postgres_url = os.getenv(
 )
 engine = create_engine(postgres_url, pool_pre_ping=True, future=True)
 
-ESSAY_MAX_CHARS = 600  # room for ~100 CLIP tokens
+ESSAY_COLUMN_CHARS = 600
 
 
 def create_db_and_tables():
@@ -189,25 +189,6 @@ def create_db_and_tables():
     except Exception:
         pass
     SQLModel.metadata.create_all(engine)
-    try:
-        from sqlalchemy import text
-
-        with engine.begin() as conn:
-            essay_width = conn.execute(
-                text(
-                    "SELECT character_maximum_length FROM information_schema.columns "
-                    "WHERE table_name = 'files' AND column_name = 'essay'"
-                )
-            ).scalar()
-            if essay_width != ESSAY_MAX_CHARS:
-                conn.execute(
-                    text(
-                        "ALTER TABLE files ALTER COLUMN essay "
-                        f"TYPE VARCHAR({ESSAY_MAX_CHARS})"
-                    )
-                )
-    except Exception:
-        pass
     # Recreate HNSW index for text_embedding_chunks (dropped with table)
     try:
         chunk_index = Index(
@@ -334,7 +315,7 @@ class FileRecord(SQLModel, table=True):
     private_embedding: list[float] | None = Field(
         default=None, sa_column=Column(Vector(1152))
     )
-    essay: str = Field(default="", sa_column=Column(String(ESSAY_MAX_CHARS)))
+    essay: str = Field(default="", sa_column=Column(String(ESSAY_COLUMN_CHARS)))
 
 
 class Archive(SQLModel, table=True):

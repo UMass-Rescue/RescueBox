@@ -37,8 +37,8 @@ HASH_LABELS: dict[str, tuple[str, str]] = {
     ),
     "essay": (
         "Essay hash",
-        "Slow. Essay hashes are uploaded to the Safe Semantic Matching API "
-        "when created",
+        "Slow. Essay hashes will be sent to the UMass Semantic Matching API "
+        "(not yet being done)",
     ),
 }
 
@@ -156,7 +156,6 @@ def _ingest(
     paths: list[str],
     selected: list[str],
 ) -> None:
-    archive = archive_store.create_archive(session, label, description)
     sha256s = {path: sha256_file(path) for path in paths}
     first_path = {sha256: path for path, sha256 in reversed(list(sha256s.items()))}
     for sha256, path in first_path.items():
@@ -164,6 +163,8 @@ def _ingest(
         fill_missing(record, path, selected)
         if "essay" in selected:
             logger.info("Essay for %s: %s", Path(path).name, record.essay)
+        session.commit()
+    archive = archive_store.create_archive(session, label, description)
     archive_store.link_files(session, archive, sha256s)
     session.commit()
 

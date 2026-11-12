@@ -24,6 +24,8 @@ This is done local without uploading that evidence to a cloud service.
 
 “Summarize all PDFs in this evidence folder.”
 
+“Hash this folder of images into a case archive so known images are not reprocessed.”
+
 
 ## The workflow is:
 
@@ -49,7 +51,7 @@ Backend: FastAPI dynamically exposes the commands defined by the plugin packages
 
 Plugins: Mostly independent Python packages, each containing its own input schema and analysis implementation.
 
-Storage: SQLite stores UI data such as cases, conversations, and job history. PostgreSQL with pgvector stores semantic image/text embeddings.
+Storage: SQLite stores UI data such as cases, conversations, and job history. PostgreSQL with pgvector stores semantic image/text embeddings and image hash archives.
 
 ## Deployment and demo usage
 
