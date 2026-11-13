@@ -21,7 +21,6 @@ DEFAULT_GID = 1000
 
 
 class UFDRMount(LoggingMixIn, Operations):
-
     def __init__(self, ufdr_path):
         super().__init__()
         self.ufdr_path = os.path.abspath(ufdr_path)
@@ -35,7 +34,6 @@ class UFDRMount(LoggingMixIn, Operations):
         self._parse_ufdr()
 
     def _parse_ufdr(self):
-
         log.info("Scanning UFDR file for embedded ZIP...")
         with open(self.ufdr_path, "rb") as f:
             head = f.read(16384)

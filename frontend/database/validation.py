@@ -21,7 +21,7 @@ class DatabaseValidator:
     """Utilities for database data validation and serialization."""
 
     @staticmethod
-    def pydantic_to_dict(model: BaseModel | dict | Any) -> dict[str, Any]:
+    def pydantic_to_dict(model: BaseModel | dict[str, Any] | Any) -> dict[str, Any]:
         """
         Convert Pydantic model, dict, or other object to dictionary.
 
@@ -31,15 +31,18 @@ class DatabaseValidator:
         Returns:
             Dictionary representation
         """
-        if hasattr(model, "model_dump"):
+        if isinstance(model, BaseModel):
             # Pydantic v2
             return model.model_dump()
-        elif hasattr(model, "__dict__"):
-            # Object with __dict__
-            return dict(model)
         elif isinstance(model, dict):
             # Already a dict
             return model
+        elif hasattr(model, "model_dump") and callable(getattr(model, "model_dump")):
+            # Duck-typed object with model_dump method
+            return getattr(model, "model_dump")()
+        elif hasattr(model, "__dict__"):
+            # Object with __dict__
+            return dict(vars(model))
         else:
             # Fallback: convert to string and wrap
             return {"value": str(model)}

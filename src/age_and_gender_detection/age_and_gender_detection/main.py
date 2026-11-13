@@ -76,7 +76,7 @@ server.add_app_metadata(
     gpu=True,
     make_threadsafe=True,
 )
-models_dir = server.models_dir
+models_dir = server.models_dir or Path()
 
 model = AgeGenderDetector(
     face_detector_path=models_dir / "version-RFB-640.onnx",

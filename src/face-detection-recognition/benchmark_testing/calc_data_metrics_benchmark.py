@@ -276,20 +276,20 @@ for top_n, n in zip(top_n, N):
                 f"Filename, Expected Match, Found Match (Top-{top_n}), Correct Match?, Matched Names\n"
             )
             for i, row in data.iterrows():
-                expected = "Yes" if row["true_label"] else "No"
-                found = "Yes" if row["predicted"] else "No"
-                correct = "YES" if row["is_correct"] else "NO"
+                expected = "Yes" if row["true_label"] else "No"  # type: ignore
+                found = "Yes" if row["predicted"] else "No"  # type: ignore
+                correct = "YES" if row["is_correct"] else "NO"  # type: ignore
 
                 # Get the matched names for display
                 matched_names = ""
                 if (
-                    row["predicted"]
-                    and not pd.isna(row["result"])
+                    row["predicted"]  # type: ignore
+                    and not pd.isna(row["result"])  # type: ignore
                     and "Collection does not exist" not in row["result"]
                 ):
                     names = []
                     # Limit to top-N matches
-                    for path in row["result"].split()[:n]:
+                    for path in row["result"].split()[:n]:  # type: ignore
                         base_name = os.path.basename(path.strip())
                         names.append(base_name)
                     matched_names = ", ".join(names)

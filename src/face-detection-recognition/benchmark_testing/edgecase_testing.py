@@ -1,5 +1,5 @@
 import cv2
-from deepface import DeepFace
+from deepface import DeepFace  # type: ignore
 
 
 def check_face_recognition_edge_cases(img1_path, img2_path):
@@ -36,13 +36,13 @@ def check_face_detection_edge_cases(image_path):
             key = f"face_{i + 1}"  # Creating a unique identifier for each face
 
             # Draw a rectangle around the detected face
-            cv2.rectangle(img, (x, y), (x + width, y + height), (255, 0, 0), 2)
-            cv2.putText(
+            cv2.rectangle(img, (x, y), (x + width, y + height), (255, 0, 0), 2)  # type: ignore
+            cv2.putText(  # type: ignore
                 img, key, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2
             )
 
     # Display the image with bounding boxes
-    cv2.imshow("Detected Faces", img)
+    cv2.imshow("Detected Faces", img)  # type: ignore
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 

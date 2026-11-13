@@ -73,8 +73,6 @@ plugins: list[RescueBoxPlugin] = [
 ]
 
 if ufdr_app:
-    plugins.append(
-        RescueBoxPlugin(ufdr_app, UFDR_APP_NAME, "UFDR mount plugin")
-    )  # type: ignore
+    plugins.append(RescueBoxPlugin(ufdr_app, UFDR_APP_NAME, "UFDR mount plugin"))  # type: ignore
 
 __all__ = ["plugins"]

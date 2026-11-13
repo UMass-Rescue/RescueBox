@@ -304,7 +304,7 @@ def get_form_draft() -> dict | None:
     return _test_fallback_storage.get("form_draft")
 
 
-def set_form_draft(endpoint: str, arguments: dict = None):
+def set_form_draft(endpoint: str, arguments: dict | None = None):
     if (not endpoint and not arguments) or (
         endpoint == "" and (arguments is None or arguments == {})
     ):

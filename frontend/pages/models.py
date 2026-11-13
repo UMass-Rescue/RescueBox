@@ -144,7 +144,7 @@ async def _fetch_server_status(model_uid: str) -> str:
 
 async def _load_model_details_context(
     model_uid: str,
-) -> tuple[Any, dict[str, Any], str] | None:
+) -> tuple[Any, dict[str, Any], str]:
     model_info_dict = await _fetch_model_metadata_from_api(model_uid)
     if not model_info_dict:
         model_info_dict = await get_cached_model_by_uid(model_uid)
@@ -196,6 +196,8 @@ class ModelsPage:
     async def refresh_models(self):
         """Fetch fresh model metadata from API, save to database cache, and reload."""
         logger.info("Manual refresh triggered. Fetching models from backend API...")
+        if not self.models_container:
+            return
         self.models_container.clear()
         with self.models_container:
             self.loading = ui.spinner(size="lg")
@@ -245,6 +247,8 @@ class ModelsPage:
     async def render_models(self):
         """Render model cards in the UI. Separates models into online and offline categories and renders"""
         logger.info("Rendering models in UI")
+        if not self.models_container:
+            return
         self.models_container.clear()
 
         with self.models_container:
@@ -311,11 +315,13 @@ async def model_details_page(model_uid: str):
 
     model_info, model_info_dict, server_status = bundle
 
-    with ui.column().classes(
-        "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
-    ), ui.row().classes("gap-6 w-full"):
+    with (
+        ui.column().classes(
+            "container mx-auto px-4 sm:px-8 py-8 w-full max-w-6xl pb-16"
+        ),
+        ui.row().classes("gap-6 w-full"),
+    ):
         with ui.column().classes("flex-1"):
-
             model_data = extract_model_info(model_info, model_info_dict)
             info_text = model_data["info"]
             _ = model_data["version"]

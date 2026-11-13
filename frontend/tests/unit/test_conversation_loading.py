@@ -1,3 +1,4 @@
+# type: ignore
 """
 Unit tests for conversation loading functionality.
 
@@ -91,9 +92,10 @@ def mock_chatbot():
 @pytest.fixture
 def mock_user_storage():
     """Fixture to mock nicegui.app.storage.user as a dictionary."""
-    with patch("frontend.utils.storage.app") as mock_app, patch(
-        "frontend.utils.app"
-    ) as mock_utils_app:
+    with (
+        patch("frontend.utils.storage.app") as mock_app,
+        patch("frontend.utils.app") as mock_utils_app,
+    ):
         mock_app.storage.user = {}
         mock_utils_app.storage.user = mock_app.storage.user
         yield mock_app.storage.user
@@ -202,8 +204,9 @@ class TestConversationStorage:
             mock_get_db.return_value = mock_db
 
             # Mock UI operations to avoid slot errors
-            with patch("frontend.pages.chatbot.ui"), patch(
-                "frontend.components.chat.render_welcome_message"
+            with (
+                patch("frontend.pages.chatbot.ui"),
+                patch("frontend.components.chat.render_welcome_message"),
             ):
                 # Call the method
                 await chatbot.load_conversation_from_data(sample_conversation_data)
@@ -244,9 +247,11 @@ class TestConversationStorage:
         mock_get_data.return_value = {"conversation_id": "test"}
 
         # Mock UI operations to avoid slot errors
-        with patch("frontend.pages.chatbot.ChatMessage"), patch(
-            "frontend.pages.chatbot.ui"
-        ), patch("frontend.pages.chatbot.ui"):
+        with (
+            patch("frontend.pages.chatbot.ChatMessage"),
+            patch("frontend.pages.chatbot.ui"),
+            patch("frontend.pages.chatbot.ui"),
+        ):
             # Should handle gracefully
             await chatbot.load_conversation_from_data({})
 
@@ -307,11 +312,12 @@ class TestLoadConversationIntegration:
         mock_db.get_messages = AsyncMock(return_value=[])
         mock_get_db.return_value = mock_db
 
-        with patch(
-            "frontend.components.chat.view.utils.set_conversation_to_load"
-        ) as mock_set, patch(
-            "frontend.components.chat.view.ui.run_javascript"
-        ) as mock_js:
+        with (
+            patch(
+                "frontend.components.chat.view.utils.set_conversation_to_load"
+            ) as mock_set,
+            patch("frontend.components.chat.view.ui.run_javascript") as mock_js,
+        ):
             await load_conversation("conv-123")
 
         mock_set.assert_called_once_with(
@@ -328,9 +334,10 @@ class TestLoadConversationIntegration:
         mock_db.get_conversation = AsyncMock(side_effect=Exception("DB unavailable"))
         mock_get_db.return_value = mock_db
 
-        with patch("frontend.components.chat.view.ui.run_javascript") as mock_js, patch(
-            "frontend.components.chat.view.ui.notify"
-        ) as mock_notify:
+        with (
+            patch("frontend.components.chat.view.ui.run_javascript") as mock_js,
+            patch("frontend.components.chat.view.ui.notify") as mock_notify,
+        ):
             await load_conversation("nonexistent")
 
         mock_js.assert_not_called()
@@ -368,15 +375,14 @@ class TestRerunFunctionality:
         mock_db.get_tool_call_by_id = AsyncMock(return_value=sample_tool_message)
         mock_get_db.return_value = mock_db
 
-        with patch(
-            "frontend.pages.chatbot.chat_page.ChatbotPage.get_instance",
-            return_value=None,
-        ), patch(
-            "frontend.components.chat.view.ui.navigate.to"
-        ) as mock_navigate, patch(
-            "frontend.components.chat.view.ui.notify"
-        ) as mock_notify:
-
+        with (
+            patch(
+                "frontend.pages.chatbot.chat_page.ChatbotPage.get_instance",
+                return_value=None,
+            ),
+            patch("frontend.components.chat.view.ui.navigate.to") as mock_navigate,
+            patch("frontend.components.chat.view.ui.notify") as mock_notify,
+        ):
             await rerun_tool_call("msg-123")
 
             mock_db.get_tool_call_by_id.assert_called_once_with("msg-123")
@@ -395,15 +401,17 @@ class TestRerunFunctionality:
         mock_db.get_tool_call_by_id = AsyncMock(return_value=sample_tool_message)
         mock_get_db.return_value = mock_db
 
-        with patch(
-            "frontend.pages.chatbot.chat_page.ChatbotPage.get_instance",
-            return_value=MagicMock(),
-        ), patch(
-            "frontend.pages.chatbot.routes.handle_rerun_parameter",
-            new_callable=AsyncMock,
-        ) as mock_handle, patch(
-            "frontend.components.chat.view.ui.navigate.to"
-        ) as mock_navigate:
+        with (
+            patch(
+                "frontend.pages.chatbot.chat_page.ChatbotPage.get_instance",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "frontend.pages.chatbot.routes.handle_rerun_parameter",
+                new_callable=AsyncMock,
+            ) as mock_handle,
+            patch("frontend.components.chat.view.ui.navigate.to") as mock_navigate,
+        ):
             await rerun_tool_call("msg-123")
 
             mock_handle.assert_awaited_once_with("msg-123")
@@ -487,11 +495,16 @@ class TestChatbotPageRerun:
         # Import and call the function
         from frontend.pages.chatbot import handle_rerun_parameter
 
-        with patch(
-            "frontend.pages.chatbot.ChatbotPage.get_instance", return_value=mock_chatbot
-        ), patch("frontend.pages.chatbot.ui.notify") as mock_notify, patch(
-            "frontend.database.chat_history_db.get_chat_history_db",
-            return_value=mock_db,
+        with (
+            patch(
+                "frontend.pages.chatbot.ChatbotPage.get_instance",
+                return_value=mock_chatbot,
+            ),
+            patch("frontend.pages.chatbot.ui.notify") as mock_notify,
+            patch(
+                "frontend.database.chat_history_db.get_chat_history_db",
+                return_value=mock_db,
+            ),
         ):
             await handle_rerun_parameter("msg-789")
 
@@ -520,10 +533,14 @@ class TestChatbotPageRerun:
 
         from frontend.pages.chatbot import handle_rerun_parameter
 
-        with patch("frontend.pages.chatbot.ui.notify") as mock_notify, patch(
-            "frontend.database.chat_history_db.get_chat_history_db",
-            return_value=mock_db,
-        ), patch("frontend.pages.chatbot.ChatbotPage.get_instance", return_value=None):
+        with (
+            patch("frontend.pages.chatbot.ui.notify") as mock_notify,
+            patch(
+                "frontend.database.chat_history_db.get_chat_history_db",
+                return_value=mock_db,
+            ),
+            patch("frontend.pages.chatbot.ChatbotPage.get_instance", return_value=None),
+        ):
             await handle_rerun_parameter("nonexistent")
 
             assert mock_notify.called
@@ -567,29 +584,25 @@ class TestErrorHandling:
         # Create a partial mock - use real ChatbotPage but mock the problematic parts
         from frontend.pages.chatbot import ChatbotPage
 
-        with patch("frontend.pages.chatbot.ui.separator"), patch(
-            "frontend.pages.chatbot.ui.label"
-        ), patch("frontend.pages.chatbot.ui.card") as mock_card, patch(
-            "frontend.pages.chatbot.ui.label"
-        ), patch(
-            "frontend.components.chat.ui_bridge.card"
-        ), patch(
-            "frontend.components.chat.ui_bridge.column"
-        ), patch(
-            "frontend.components.chat.ui_bridge.row"
-        ), patch(
-            "frontend.components.chat.ui_bridge.label"
-        ), patch(
-            "frontend.components.chat.ui_bridge.button"
+        with (
+            patch("frontend.pages.chatbot.ui.separator"),
+            patch("frontend.pages.chatbot.ui.label"),
+            patch("frontend.pages.chatbot.ui.card") as mock_card,
+            patch("frontend.pages.chatbot.ui.label"),
+            patch("frontend.components.chat.ui_bridge.card"),
+            patch("frontend.components.chat.ui_bridge.column"),
+            patch("frontend.components.chat.ui_bridge.row"),
+            patch("frontend.components.chat.ui_bridge.label"),
+            patch("frontend.components.chat.ui_bridge.button"),
         ):
-
             # Mock the card context manager
             mock_card.return_value.__enter__ = MagicMock()
             mock_card.return_value.__exit__ = MagicMock()
 
             # Create a real ChatbotPage instance but with mocked UI components
-            with patch("frontend.pages.chatbot.ui.card"), patch(
-                "frontend.components.chat.render_welcome_message"
+            with (
+                patch("frontend.pages.chatbot.ui.card"),
+                patch("frontend.components.chat.render_welcome_message"),
             ):
                 chatbot = ChatbotPage()
                 # Mock methods that create UI to avoid slot issues

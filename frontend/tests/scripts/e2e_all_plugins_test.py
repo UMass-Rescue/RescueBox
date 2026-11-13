@@ -14,6 +14,7 @@ import os
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -22,7 +23,7 @@ DEFAULT_DEMO_DIR = Path(__file__).resolve().parents[3] / "src-tauri" / "demo"
 DEMO_ROOT = Path(os.environ.get("DEMO_ROOT", str(DEFAULT_DEMO_DIR)))
 
 # Define the test sequence for all 9 plugins
-TEST_CASES = [
+TEST_CASES: list[dict[str, Any]] = [
     {
         "name": "1. Audio Transcription",
         "endpoint": "/audio/transcribe",

@@ -107,7 +107,7 @@ class TextEmbeddingStorage(DatabaseEmbeddingStorage):
 
         existing = self.session.exec(
             select(TextEmbedding.path).where(
-                cast(Any, TextEmbedding.__table__.c.path).in_(paths),
+                cast(Any, TextEmbedding.__table__.c.path).in_(paths),  # type: ignore
                 TextEmbedding.model_name == self.model_name,
             )
         ).all()
@@ -119,7 +119,7 @@ class TextEmbeddingStorage(DatabaseEmbeddingStorage):
 
         self.session.execute(
             delete(TextEmbedding).where(
-                cast(Any, TextEmbedding.__table__.c.path).in_(paths),
+                cast(Any, TextEmbedding.__table__.c.path).in_(paths),  # type: ignore
                 TextEmbedding.model_name == self.model_name,
             )
         )

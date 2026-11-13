@@ -106,9 +106,9 @@ def get_embedding(
         # embedding = result[0].flatten()
         # log_info(f"Embedding shape: {embedding.shape}")
         # log_info(f"Embedding type: {type(embedding)}")
-        embedding = result[0][0]
+        embedding = result[0][0]  # type: ignore
         # log_info(f"Embedding shape: {embedding.shape}")
-    embedding_norm = np.linalg.norm(embedding)
-    normalized_embedding = embedding / embedding_norm
+    embedding_norm = np.linalg.norm(embedding)  # type: ignore
+    normalized_embedding = embedding / embedding_norm  # type: ignore
 
     return normalized_embedding

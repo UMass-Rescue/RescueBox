@@ -29,7 +29,7 @@ def query_find_face_bulk(query_directory, collection_name):
         "/face-match/listcollections", json={"inputs": {}, "parameters": {}}
     )
     body = ResponseBody(**response.json())
-    collections = [text.value for text in body.root.texts]
+    collections = [text.value for text in body.root.texts]  # type: ignore
 
     if collection_name not in map(lambda c: c.split("_")[0], collections):
         print("Collection does not exist")
@@ -57,13 +57,14 @@ def query_find_face_bulk(query_directory, collection_name):
     response = client.post("/face-match/findfacebulktesting", json=input_data)
     try:
         body = ResponseBody(**response.json())
-        response_data = ast.literal_eval(body.root.value)
+        response_data = ast.literal_eval(body.root.value)  # type: ignore
         return response_data
 
     except Exception:
         # If response is not an array, print the value
-        print(response["value"])
-        return response["value"]
+        val = response.json().get("value")
+        print(val)
+        return val
 
 
 load_dotenv()
@@ -170,7 +171,7 @@ for st in similarity_thresholds:
 
     top_img_paths = (
         df.groupby("query_idx", sort=False, group_keys=False)
-        .apply(filter_by_similarity, include_groups=False)
+        .apply(filter_by_similarity, include_groups=False)  # type: ignore
         .tolist()
     )
 

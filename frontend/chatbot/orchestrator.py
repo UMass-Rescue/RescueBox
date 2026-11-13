@@ -52,7 +52,7 @@ async def submit_job_orchestrator(
         if status == 404:
             # keep stable prefix expected by tests
             raise RuntimeError(
-                f'Job submission failed: {detail_text or "Not Found"}'
+                f"Job submission failed: {detail_text or 'Not Found'}"
             ) from e
         raise RuntimeError(
             detail_text or f"Job submission failed: HTTP {status}"

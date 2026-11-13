@@ -16,7 +16,6 @@ def read_app_info_markdown(info_path: Path) -> str:
 
 
 class RBAppTest(ABC):
-
     def set_app(self, cli_app, app_name: str):
         """
         cli_app: The Typer app object.

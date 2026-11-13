@@ -21,7 +21,7 @@ for filename in os.listdir(input_dir):
         height = int(image.shape[0] * scale_percent / 100)
         dim = (width, height)
 
-        resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+        resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)  # type: ignore
 
         # Save resized image
         output_path = os.path.join(output_dir, filename)

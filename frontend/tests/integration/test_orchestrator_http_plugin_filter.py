@@ -61,5 +61,8 @@ async def test_orchestrator_posts_filter_meta_and_plugin_honors(tmp_path):
     )
     rd = response.model_dump() if hasattr(response, "model_dump") else response
     assert rd is not None
-    assert "root" in rd or (isinstance(rd, dict) and rd.get("output_type") is not None)
+    if isinstance(rd, dict):
+        assert "root" in rd or rd.get("output_type") is not None
+    else:
+        assert hasattr(rd, "root")
     assert received_meta.get("filterId") == fid

@@ -19,14 +19,16 @@ async def test_load_conversation_navigation_error_notifies():
     mock_db.get_conversation = AsyncMock(return_value=mock_conv)
     mock_db.get_messages = AsyncMock(return_value=[])
 
-    with patch(
-        "frontend.components.chat.view.get_chat_history_db", return_value=mock_db
-    ), patch(
-        "frontend.components.chat.view.ui.run_javascript",
-        side_effect=OSError("Storage error"),
-    ), patch(
-        "frontend.components.chat.view.ui.notify"
-    ) as mock_notify:
+    with (
+        patch(
+            "frontend.components.chat.view.get_chat_history_db", return_value=mock_db
+        ),
+        patch(
+            "frontend.components.chat.view.ui.run_javascript",
+            side_effect=OSError("Storage error"),
+        ),
+        patch("frontend.components.chat.view.ui.notify") as mock_notify,
+    ):
         await load_conversation(TEST_ID)
 
     mock_notify.assert_called()

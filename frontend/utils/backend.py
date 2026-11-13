@@ -14,6 +14,9 @@ _PREFETCH_RETRY_DELAY_SEC = 5.0
 _PREFETCH_RETRIABLE_HTTP = frozenset({502, 503, 504})
 
 
+BACKEND_AVAILABLE: bool = False
+
+
 class _BackendAvailability:
     flag = False
 
@@ -27,8 +30,10 @@ class _BackendAvailability:
 
 
 def set_backend_available(value: bool) -> None:
+    global BACKEND_AVAILABLE
     _BackendAvailability.set_flag(value)
-    sys.modules[__name__].BACKEND_AVAILABLE = _BackendAvailability.flag
+    BACKEND_AVAILABLE = _BackendAvailability.flag
+    setattr(sys.modules[__name__], "BACKEND_AVAILABLE", _BackendAvailability.flag)
 
 
 def is_backend_available() -> bool:

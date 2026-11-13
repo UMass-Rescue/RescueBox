@@ -84,7 +84,6 @@ class DatabaseService:
     async def create_and_track_job(
         request_body, endpoint: str, task_schema=None, **kwargs
     ):
-
         job_db = get_job_db()
         job_record = await job_db.create_job(
             request_body=request_body,
@@ -226,6 +225,3 @@ class DatabaseService:
     @staticmethod
     def set_logging_context(**kwargs):
         return set_logging_context(**kwargs)
-
-
-DatabaseService.DatabaseService = DatabaseService

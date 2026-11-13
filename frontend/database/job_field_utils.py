@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from typing import Any
 
+from pydantic import BaseModel
 from rb.api.models import RequestBody, TaskSchema
 
 from frontend.api_client import APIClient
@@ -18,17 +19,17 @@ def extract_job_fields(job) -> dict[str, Any]:
     if isinstance(job, JobRecord):
         request = (
             job.request.model_dump()
-            if hasattr(job.request, "model_dump")
+            if isinstance(job.request, BaseModel)
             else job.request
         )
         task_schema = (
             job.taskSchema.model_dump()
-            if hasattr(job.taskSchema, "model_dump")
+            if isinstance(job.taskSchema, BaseModel)
             else job.taskSchema
         )
         response = (
             job.response.model_dump()
-            if job.response and hasattr(job.response, "model_dump")
+            if isinstance(job.response, BaseModel)
             else job.response
         )
 
@@ -85,7 +86,7 @@ def partition_jobs_by_pipeline(
             return str(pr)
         uid = j.get("uid") or ""
         if uid in referred_roots:
-            return uid
+            return uid  # type: ignore
         return f"__single:{uid}"
 
     buckets: dict[str, list[dict[str, Any]]] = defaultdict(list)

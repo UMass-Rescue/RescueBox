@@ -27,8 +27,11 @@ from .table_helpers import (
 
 def open_text_markdown_modal(filename: str, body: str) -> None:
     text = body if body is not None else ""
-    with ui.dialog() as dialog, ui.card().classes(
-        "max-w-[92vw] w-[min(56rem,92vw)] max-h-[90vh] flex flex-col p-4 gap-3"
+    with (
+        ui.dialog() as dialog,
+        ui.card().classes(
+            "max-w-[92vw] w-[min(56rem,92vw)] max-h-[90vh] flex flex-col p-4 gap-3"
+        ),
     ):
         ui.label(filename or "Document").classes(
             "text-lg font-semibold shrink-0 text-zinc-900"
@@ -125,9 +128,12 @@ def render_text_search_json(container, data, title="Text Search Results"):
             }
         )
 
-    with container, ui.card().classes(
-        "w-full min-w-0 max-w-full flex flex-col rounded-3xl shadow-xl "
-        "border border-zinc-100 p-0 overflow-hidden bg-white"
+    with (
+        container,
+        ui.card().classes(
+            "w-full min-w-0 max-w-full flex flex-col rounded-3xl shadow-xl "
+            "border border-zinc-100 p-0 overflow-hidden bg-white"
+        ),
     ):
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
             ui.label(title).classes(Design.PANEL_SHELL_HEADER_TITLE)
@@ -176,8 +182,11 @@ def render_searchable_file_list(container, file_paths, title):
             ui.label("No valid files found").classes("text-red-600")
         return
     ensure_image_summary_modal_css()
-    with container, ui.card().classes(
-        "w-full bg-white border border-zinc-300 rounded-xl p-4 shadow-sm"
+    with (
+        container,
+        ui.card().classes(
+            "w-full bg-white border border-zinc-300 rounded-xl p-4 shadow-sm"
+        ),
     ):
         ui.label(f"{title} ({len(file_data)} files)").classes(
             "text-lg font-bold text-zinc-900 mb-4"
@@ -254,8 +263,11 @@ def render_batch_text(container, response):
         with container:
             ui.label("No text found").classes("text-zinc-500 italic")
         return
-    with container, ui.card().classes(
-        "w-full p-0 shadow-sm border rounded-xl overflow-hidden bg-white"
+    with (
+        container,
+        ui.card().classes(
+            "w-full p-0 shadow-sm border rounded-xl overflow-hidden bg-white"
+        ),
     ):
         with ui.row().classes(
             "w-full px-4 py-3 items-center gap-2 border-b border-zinc-200 bg-gradient-to-r from-zinc-50 to-white"
@@ -304,8 +316,11 @@ def render_text(container, response):
             return render_searchable_file_list(container, data, title)
     except (json.JSONDecodeError, TypeError):
         pass
-    with container, ui.card().classes(
-        "w-full p-0 shadow-lg border rounded-xl overflow-hidden bg-white"
+    with (
+        container,
+        ui.card().classes(
+            "w-full p-0 shadow-lg border rounded-xl overflow-hidden bg-white"
+        ),
     ):
         with ui.row().classes("w-full p-4 items-center border-b border-zinc-100"):
             ui.label("Text Result").classes("text-lg font-bold text-zinc-900")

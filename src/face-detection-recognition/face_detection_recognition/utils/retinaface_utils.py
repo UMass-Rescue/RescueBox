@@ -3,7 +3,7 @@ import os
 
 import cv2
 import numpy as np
-import onnxruntime as ort
+import onnxruntime as ort  # type: ignore
 from face_detection_recognition.hash import sha256_image
 from face_detection_recognition.utils.get_batch_embeddings import get_embedding
 
@@ -151,7 +151,7 @@ def detect_with_retinaface(
         return [], [], []
 
     if img_rgb is None:
-        img_raw = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        img_raw = cv2.imread(image_path, cv2.IMREAD_COLOR)  # type: ignore
         if img_raw is None:
             logger.error(f"Could not load image: {image_path}")
             return [], [], []
@@ -203,14 +203,14 @@ def detect_with_retinaface(
         priors = priorbox.forward()
 
         scale = np.array([width, height, width, height])
-        boxes = decode(np.squeeze(loc, axis=0), priors, cfg["variance"])
+        boxes = decode(np.squeeze(loc, axis=0), priors, cfg["variance"])  # type: ignore
         boxes = boxes * scale
-        scores = np.squeeze(conf, axis=0)[:, 1]
+        scores = np.squeeze(conf, axis=0)[:, 1]  # type: ignore
 
         scale1 = np.array(
             [width, height, width, height, width, height, width, height, width, height]
         )
-        landms = decode_landm(np.squeeze(landms, axis=0), priors, cfg["variance"])
+        landms = decode_landm(np.squeeze(landms, axis=0), priors, cfg["variance"])  # type: ignore
         landms = landms * scale1
 
         inds = np.where(scores > confidence_threshold)[0]
@@ -317,7 +317,6 @@ def detect_with_retinaface(
 
 
 def crop_face_for_embedding(face_img):
-
     if face_img is None or face_img.size == 0:
         return None
 
@@ -502,7 +501,6 @@ def process_retinaface_detections(
     scores,
     landmarks,
 ):
-
     face_embeddings = []
     detections = []
     path_strs = []
@@ -595,7 +593,6 @@ def process_retinaface_detections(
 
     # Generate embedding
     try:
-
         embeddings = get_embedding(detections, model_name, "base")
 
     except Exception as e:
@@ -603,7 +600,6 @@ def process_retinaface_detections(
 
     for i in range(len(embeddings)):
         if embeddings[i] is not None:
-
             face_embeddings.append(
                 {
                     "image_path": path_str,
@@ -659,7 +655,6 @@ def process_retinaface_detections_for_facenet512(
     all_landmarks,
     separate_detections,  # boolean whether or not to separate detections per img in output
 ):
-
     face_embeddings = []
     detections = []
     path_strs = []
@@ -762,7 +757,6 @@ def process_retinaface_detections_for_facenet512(
 
     # Generate embedding
     try:
-
         embeddings = get_embedding(detections, model_name, "base")
 
     except Exception as e:
@@ -921,7 +915,6 @@ def process_retinaface_detections_for_arcface(
     all_landmarks,
     separate_detections,  # boolean whether or not to separate detections per img in output
 ):
-
     face_embeddings = []
     detections = []
     path_strs = []
@@ -1033,7 +1026,6 @@ def process_retinaface_detections_for_arcface(
 
     # Generate embedding
     try:
-
         embeddings = get_embedding(detections, model_name, "base")
 
     except Exception as e:

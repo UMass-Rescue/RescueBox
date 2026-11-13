@@ -30,6 +30,7 @@ class MessageFlowCoordinator:
         self.result_processor = ResultProcessor(
             state_manager, None, form_submit_handler=self.form_submit_handler
         )
+        self.chat_container: ui.element | None = None
 
         self.logger.debug("MessageFlowCoordinator initialized")
 
@@ -38,6 +39,9 @@ class MessageFlowCoordinator:
 
     def set_tool_registry(self, tool_registry):
         self.result_processor.tool_registry = tool_registry
+
+    def set_chat_container(self, chat_container: ui.element | None) -> None:
+        self.chat_container = chat_container
 
     async def process_user_message(
         self,

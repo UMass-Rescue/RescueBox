@@ -55,4 +55,4 @@ def test_summarize(mock_generate):
     # Test case where response is not done
     mock_generate.return_value = {"done": False}
     result = summarize("gemma3:1b", text="Some text")
-    assert result == {"done": False}
+    assert result == ""

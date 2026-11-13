@@ -7,6 +7,7 @@ Coordinates API interactions, dynamic forms, job submission, and Granite (Ollama
 
 import json
 import logging
+from collections.abc import Callable
 from typing import Any
 
 import httpx
@@ -66,8 +67,8 @@ class ChatbotCore:
         task_schema: TaskSchema,
         endpoint: str,
         initial_values: dict | None = None,
-        on_submit: callable = None,
-        on_cancel: callable = None,
+        on_submit: Callable | None = None,
+        on_cancel: Callable | None = None,
         container: ui.element | None = None,
     ):
         """Render a NiceGUI form for the given task schema."""

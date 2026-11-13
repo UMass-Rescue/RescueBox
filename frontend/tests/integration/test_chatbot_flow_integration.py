@@ -244,13 +244,11 @@ class TestChatbotFlowIntegration:
         temp_dir = Path(tempfile.mkdtemp())
         (temp_dir / "dummy.jpg").write_text("dummy")
         (temp_dir / "dummy.mp3").write_text("dummy")
-        inputs = {}
+        inputs: dict[str, object] = {}
         for input_field in schema.inputs:
             key = input_field.key
-            input_type = (
-                input_field.input_type.value
-                if hasattr(input_field.input_type, "value")
-                else str(input_field.input_type)
+            input_type = getattr(
+                input_field.input_type, "value", str(input_field.input_type)
             )
 
             if input_type == "directory":
@@ -265,10 +263,12 @@ class TestChatbotFlowIntegration:
         for param in schema.parameters:
             if hasattr(param.value, "default") and param.value.default is not None:
                 parameters[param.key] = param.value.default
-            elif hasattr(param.value, "enum_vals") and param.value.enum_vals:
-                parameters[param.key] = param.value.enum_vals[0].key
             else:
-                parameters[param.key] = "test"
+                enum_vals = getattr(param.value, "enum_vals", None)
+                if enum_vals:
+                    parameters[param.key] = getattr(enum_vals[0], "key", "test")
+                else:
+                    parameters[param.key] = "test"
 
         request_body = RequestBody(inputs=inputs, parameters=parameters)
 

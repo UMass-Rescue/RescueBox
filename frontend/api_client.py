@@ -47,7 +47,7 @@ class ApiClient:
             try:
                 with httpx.Client(
                     base_url=self.base_url, timeout=self.timeout
-                ) as sync_client:
+                ) as sync_client:  # type: ignore
                     return sync_client.get(full_path, **kwargs)
             except _fe_exceptions.HTTP_CLIENT_ERRORS:
                 # fall back to async client
@@ -72,7 +72,7 @@ class ApiClient:
             try:
                 with httpx.Client(
                     base_url=self.base_url, timeout=self.timeout
-                ) as sync_client:
+                ) as sync_client:  # type: ignore
                     return sync_client.post(full_path, json=json, **kwargs)
             except _fe_exceptions.HTTP_CLIENT_ERRORS:
                 pass

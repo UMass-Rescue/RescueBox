@@ -1,5 +1,7 @@
 import logging
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from nicegui import ui
 
@@ -8,6 +10,33 @@ from frontend.design_tokens import Design
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+class LogDisplayLabel(ui.label):
+    """Custom label component for displaying log contents."""
+
+    search_input: ui.input | None
+    raw_content: str
+    current_log_file: Path | None
+    apply_filter: Callable[..., Any] | None
+
+    def __init__(self, text: str = "", *args: Any, **kwargs: Any) -> None:
+        super().__init__(text, *args, **kwargs)
+        self.search_input = None
+        self.raw_content = ""
+        self.current_log_file = None
+        self.apply_filter = None
+
+    @property
+    def content(self) -> str:
+        return self.text
+
+    @content.setter
+    def content(self, value: str) -> None:
+        self.set_text(value)
+
+    def refresh_text(self, value: str) -> None:
+        self.set_text(value)
 
 
 def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:
@@ -96,19 +125,6 @@ def render_log_viewer(
                 with ui.scroll_area().classes(
                     "min-h-[calc(100vh-12rem)] w-full max-w-full"
                 ):
-                    # Lightweight label (not ui.code) to avoid Prism.js lag on large logs
-                    class LogDisplayLabel(ui.label):
-                        @property
-                        def content(self) -> str:
-                            return self.text
-
-                        @content.setter
-                        def content(self, value: str):
-                            self.set_text(value)
-
-                        def refresh_text(self, value: str) -> None:
-                            self.set_text(value)
-
                     log_display_cls = (
                         "w-full max-w-full text-xs font-mono whitespace-pre-wrap block "
                         "p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-inner"
@@ -126,7 +142,7 @@ def render_log_viewer(
 
             _update_path_label()
 
-            def _apply_filter(query: str = None):
+            def _apply_filter(query: str | None = None) -> None:
                 if query is None:
                     query = (search_input.value or "").strip()
                 else:
