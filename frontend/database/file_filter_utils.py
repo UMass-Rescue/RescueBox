@@ -26,7 +26,6 @@ def set_job_filter(
     job_uid: str,
     *,
     filter_id: str | None = None,
-    _owner_id: str | None = None,
     clear: bool = False,
 ) -> bool:
     """

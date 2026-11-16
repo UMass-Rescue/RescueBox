@@ -1,9 +1,8 @@
+import asyncio
 import json
 from collections.abc import Callable
 from typing import Any
-
 from nicegui import ui
-
 from frontend.components.chat.rendering import render_conversation_card
 from frontend.database import get_chat_history_db
 from frontend.design_tokens import Design
@@ -20,15 +19,23 @@ def show_help_dialog(help_text: str, title: str | None = "RescueBox Help") -> No
 
 
 async def show_history_dialog(
-    on_conversation_select: Callable[[str], Any],
-) -> ui.dialog:
+    on_conversation_select: Callable[[str], Any] | None = None,
+) -> str | None:
+    loop = asyncio.get_running_loop()
+    future: asyncio.Future[str | None] = loop.create_future()
+
     chat_db = get_chat_history_db()
     conversations = await chat_db.get_all_conversations()
 
+    def _on_close():
+        if not future.done():
+            future.set_result(None)
+
     with ui.dialog() as dialog, ui.card().classes(Design.PANEL_SHELL_CARD_WIDE):
+        dialog.on("hide", _on_close)
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
             ui.label("Chat History").classes(Design.PANEL_SHELL_HEADER_TITLE)
-            ui.button(color=None, on_click=dialog.close).props("flat round dense")
+            ui.button(color=None, on_click=lambda: (dialog.close(), _on_close())).props("flat round dense")
 
         with ui.column().classes(
             f"{Design.PANEL_SHELL_BODY} gap-3 overflow-y-auto max-h-[60vh] w-full"
@@ -39,14 +46,17 @@ async def show_history_dialog(
                 for conv in conversations:
                     # view_callback shows a view dialog, load_callback loads into the main chat
                     async def do_load(cid=conv.conversation_id):
-                        res = on_conversation_select(cid)
-                        if hasattr(res, "__await__"):
-                            await res
+                        if not future.done():
+                            future.set_result(cid)
+                        if on_conversation_select:
+                            res = on_conversation_select(cid)
+                            if hasattr(res, "__await__"):
+                                await res
                         dialog.close()
 
                     async def do_view(cid=conv.conversation_id, ctitle=conv.title):
                         msgs = await chat_db.get_messages(cid)
-                        show_conversation_view_dialog(None, msgs, title=ctitle)
+                        show_conversation_view_dialog(msgs, title=ctitle)
 
                     render_conversation_card(
                         ui.column().classes("w-full"),
@@ -55,11 +65,11 @@ async def show_history_dialog(
                         load_callback=do_load,
                     )
     dialog.open()
-    return dialog
+    return await future
 
 
 def show_conversation_view_dialog(
-    _conversation: Any, messages: list[Any], title: str | None
+    messages: list[Any], title: str | None = None
 ):
     """Render persisted messages; include JSON for tool calls and job payloads when present."""
 

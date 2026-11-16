@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-
 from nicegui import ui
-
 from frontend.chatbot.pipeline_context import get_pipeline_output_path
 from frontend.components.chat import (
     UIOperations,
@@ -53,12 +51,12 @@ class ChatUIBuilder:
     def __init__(
         self,
         on_send,
-        on_new_conversation,
-        on_conversation_select,
-        on_rerun_tool,
-        tool_registry,
-        core,
-        form_submit_handler,
+        on_new_conversation=None,
+        on_conversation_select=None,
+        on_rerun_tool=None,
+        tool_registry=None,
+        core=None,
+        form_submit_handler=None,
         status_text_ref=None,
         state_manager=None,
     ):
@@ -206,10 +204,9 @@ class ChatUIBuilder:
                 self.input_area.classes("hidden")
 
             await asyncio.sleep(0.01)  # Give NiceGUI a moment
-            picker = ToolPicker(
-                chat_container, self.tool_registry, self._on_tool_selected
-            )
-            await picker.show()
+            picker = ToolPicker(chat_container, self.tool_registry)
+            endpoint, arguments = await picker.select_tool()
+            await self._on_tool_selected(endpoint, arguments)
 
         async def handle_analyze_click():
             self.mode_indicator.set_text("Chat mode")
@@ -237,32 +234,18 @@ class ChatUIBuilder:
                 pass
             self.active_form = None
 
-        async def handle_form_submit(
-            request_body, endpoint=None, task_schema=None, **kwargs
-        ):
-            # Form is being submitted, so it's no longer an active unsubmitted form
-            if hasattr(self, "active_form"):
-                self.active_form = None
-            return await self.form_submit_handler.submit_form(
-                request_body,
-                endpoint,
-                task_schema,
-                self.chat_container,
-                self.core,
-                **kwargs,
-            )
 
-        def _on_cancel():
+        async def _on_cancel() -> None:
             if self.state_manager:
                 self.state_manager.set_input_enabled(True)
             if hasattr(self, "active_form") and self.active_form:
                 form_to_delete = self.active_form
                 self.active_form = None
-
-                def _delete_form() -> None:
+                await asyncio.sleep(0.01)
+                try:
                     form_to_delete.delete()
-
-                ui.timer(0.01, _delete_form, once=True)
+                except UI_RENDER_ERRORS:
+                    pass
 
         # Stage 1: Grey out input area while form is being filled
         if self.state_manager:
@@ -273,19 +256,11 @@ class ChatUIBuilder:
             self.core,
             endpoint,
             arguments or {},
-            handle_form_submit,
+            self.form_submit_handler,
             on_form_cancel=_on_cancel,
         )
         UIOperations.scroll_form_into_view_with_retries()
 
-    def clear_active_form(self) -> None:
-        """Remove any staged form card from the chat UI."""
-        if self.active_form and hasattr(self.active_form, "delete"):
-            try:
-                self.active_form.delete()
-            except UI_RENDER_ERRORS:
-                pass
-        self.active_form = None
 
     async def _show_history_dialog(self):
         await show_history_dialog(

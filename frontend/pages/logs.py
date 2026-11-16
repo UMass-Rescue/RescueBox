@@ -6,7 +6,6 @@ It allows users to view the contents of the RescueBox log file in real-time.
 """
 
 import logging
-from pathlib import Path
 
 from nicegui import ui
 
@@ -99,12 +98,6 @@ class LogsPage:
 
         logger.debug("Loaded log content from: %s", log_path)
 
-    async def refresh_logs(self):
-        """Refresh the log display by reloading content."""
-        logger.info("Refreshing logs")
-        await self._load_logs()
-        ui.notify("Logs refreshed", type="positive", classes="rb-notify-505759")
-
 
 @ui.page("/logs")
 async def logs_page():
@@ -122,20 +115,3 @@ def format_log_content(content: str) -> str:
     """Format log content for display. Args:"""
     # Basic formatting - could be enhanced with syntax highlighting
     return content.strip()
-
-
-def get_log_file_info(log_file_path: Path) -> dict:
-    """Get information about the log file. Args:"""
-    info: dict[str, object] = {
-        "path": str(log_file_path),
-        "exists": log_file_path.exists(),
-        "size": 0,
-        "modified": None,
-    }
-
-    if log_file_path.exists():
-        stat = log_file_path.stat()
-        info["size"] = stat.st_size
-        info["modified"] = stat.st_mtime
-
-    return info

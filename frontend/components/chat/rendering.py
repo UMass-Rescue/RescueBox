@@ -1,10 +1,8 @@
 import logging
 from typing import Any
 
-from frontend.components.ui_exceptions import UI_RENDER_ERRORS
-from frontend.design_tokens import Design
 
-from .ui_bridge import button, card, column, label, markdown, row, ui
+from .ui_bridge import button, card, column, label, row, ui
 
 logger = logging.getLogger(__name__)
 
@@ -30,41 +28,6 @@ def render_welcome_message(container: ui.element) -> None:
             label("New conversation. How can I help you?").classes(
                 "!text-base !leading-relaxed text-slate-800"
             )
-
-
-def render_message_card(
-    container: ui.element, role: str, content: str, _timestamp: str = ""
-) -> None:
-    try:
-        with container:
-            alignment = "items-end" if role == "user" else "items-start"
-            bubble = (
-                Design.CHAT_USER_BUBBLE
-                if role == "user"
-                else Design.CHAT_ASSISTANT_BUBBLE
-            )
-            with row().classes(f"w-full {alignment}"):
-                with card().classes(f"{bubble} max-w-4xl"):
-                    if role == "user":
-                        label("YOU:").classes(Design.CHAT_USER_LABEL)
-                    else:
-                        label("Assistant").classes(
-                            "font-semibold !text-sm text-slate-500 uppercase tracking-wider"
-                        )
-
-                    if (
-                        isinstance(content, str)
-                        and content.startswith("##")
-                        and role != "user"
-                    ):
-                        markdown(content).classes(ASSISTANT_MARKDOWN_CLASSES)
-                    else:
-                        label(content).classes(
-                            USER_PLAIN_CLASSES
-                            + (" whitespace-pre-line" if "\n" in str(content) else "")
-                        )
-    except UI_RENDER_ERRORS as e:
-        logger.error("Error rendering message card: %s", e)
 
 
 def render_conversation_card(

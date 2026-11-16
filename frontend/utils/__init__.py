@@ -212,7 +212,6 @@ for _name in (
     "paired_ufdr_mount_name_field_id",
     "_create_input_model",
     "_validate_parameter_value",
-    "_format_validation_error",
 ):
     _SYMBOL_SUBMODULE[_name] = "validators"
 for _name in (

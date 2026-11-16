@@ -129,7 +129,7 @@ def validate_form_data(
     inputs_data = form_data.get("inputs", {})
 
     inputs_list = list(task_schema.inputs)
-    for input_index, input_schema in enumerate(inputs_list):
+    for input_schema in inputs_list:
         field_id = input_schema.key
         if field_id not in inputs_data:
             errors[field_id] = _required_input_user_message(input_schema)
@@ -148,11 +148,7 @@ def validate_form_data(
 
         try:
             input_model = _create_input_model(input_schema, field_value)
-            if _input_schema_directory_requires_raster_image_corpus(
-                input_schema,
-                all_inputs=inputs_list,
-                input_index=input_index,
-            ):
+            if _input_schema_directory_requires_raster_image_corpus(input_schema):
                 if isinstance(input_model, DirectoryInput):
                     if not _directory_contains_raster_image(input_model.path):
                         errors[field_id] = (
@@ -234,15 +230,3 @@ def _validate_parameter_value(value: Any, param_schema: Any) -> None:
         if value not in valid_values:
             raise ValueError(f"Value must be one of: {', '.join(valid_values)}")
 
-
-def _format_validation_error(e: ValidationError) -> str:
-    """Format a Pydantic ValidationError into a user-friendly string."""
-    errors = e.errors()
-    if not errors:
-        return str(e)
-    messages = []
-    for err in errors:
-        loc = " -> ".join(str(item) for item in err["loc"])
-        msg = err["msg"]
-        messages.append(f"{loc}: {msg}")
-    return "; ".join(messages)

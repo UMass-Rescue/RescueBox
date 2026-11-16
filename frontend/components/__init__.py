@@ -1,12 +1,10 @@
 """Public re-exports for UI components used across the frontend."""
 
-from frontend.components.base_component import BaseComponent, ComponentRegistry
 from frontend.components.component_utils import (
     create_card_container,
     format_timestamp,
     get_component_theme_colors,
     log_component_event,
-    setup_component_imports,
     validate_component_config,
 )
 from frontend.components.jobs import render_job_row
@@ -24,8 +22,6 @@ from frontend.components.shared import (
 )
 
 __all__ = [
-    "BaseComponent",
-    "ComponentRegistry",
     "ResultsPreview",
     "WorkflowStepper",
     "create_card_container",
@@ -41,7 +37,6 @@ __all__ = [
     "notify_warning",
     "render_job_row",
     "render_model_card",
-    "setup_component_imports",
     "validate_component_config",
 ]
 

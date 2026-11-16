@@ -35,7 +35,6 @@ async def view_conversation(conversation_id: str):
 
     try:
         show_conversation_view_dialog(
-            conversation,
             messages,
             title=conversation.title if hasattr(conversation, "title") else None,
         )

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -96,10 +95,6 @@ class ChatbotStateManager:
         """Get all messages in the conversation."""
         return self.messages.copy()
 
-    def get_last_message(self) -> ChatMessage | None:
-        """Get the last message in the conversation."""
-        return self.messages[-1] if self.messages else None
-
     def set_input_field(self, input_field):
         """Set the input field reference for state management."""
         self.input_field = input_field
@@ -180,27 +175,3 @@ class ChatbotStateManager:
         self.set_status("Ready")
         logger.info("Conversation reset")
 
-    def get_conversation_summary(self) -> dict:
-        """Get a summary of the current conversation state."""
-        return {
-            "message_count": len(self.messages),
-            "conversation_id": self.conversation_id,
-            "is_processing": self.is_processing,
-            "status": self.status_text,
-            "has_messages": len(self.messages) > 0,
-        }
-
-
-@dataclass
-class MessageSendParams:
-    """Arguments for MessageSender."""
-
-    message_text: str
-    input_field: Any
-    is_processing_ref: dict[str, Any]
-    message_handler: Any
-    process_handler_result_func: Callable[..., Any]
-    add_message_func: Callable[..., Any]
-    show_error_func: Callable[..., Any]
-    update_status_func: Callable[..., Any]
-    conversation_id_ref: dict[str, Any] | None = None

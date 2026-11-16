@@ -16,14 +16,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def setup_component_imports():
-    """
-    Setup common imports needed by components.
-
-    This function ensures backend models are available to components.
-    """
-
-
 def format_timestamp(timestamp: str, format_type: str = "relative") -> str:
     """
     Format a timestamp for display.

@@ -112,12 +112,6 @@ class ContextFilter(logging.Filter):
             record.context = ""
         return True
 
-    @staticmethod
-    def reset_record_context(record: logging.LogRecord) -> None:
-        """Clear context fields on a log record (for tests)."""
-        record.job_id = record.model_id = record.session_id = "-"
-        record.context = ""
-
 
 def configure_logging_with_context(log_file_path=None, log_level="DEBUG"):
     root = logging.getLogger()
@@ -147,11 +141,11 @@ def configure_logging_with_context(log_file_path=None, log_level="DEBUG"):
     if log_level.upper() == "DEBUG" or (
         Path(log_file_path).name if log_file_path else ""
     ):  # simplified
-        apply_per_logger_levels_for_verbose_root(log_level)
+        apply_per_logger_levels_for_verbose_root()
     return fh
 
 
-def apply_per_logger_levels_for_verbose_root(_level):
+def apply_per_logger_levels_for_verbose_root():
     for n in _NOISY_WARNING_NAMES + _CHATBOT_FORMS_WARNING_NAMES:
         logging.getLogger(n).setLevel(logging.WARNING)
     for n in _PIPELINE_DIAG_INFO_NAMES:
@@ -200,10 +194,7 @@ async def generate_audit_trail_for_job(job_id: str) -> dict[str, Any]:
 async def read_logs_filtered(
     log_file_path=None,
     job_id=None,
-    _model_id=None,
-    _session_id=None,
     start_time=None,
-    _end_time=None,
 ):
     path = Path(log_file_path or LOG_FILE)
     if not path.exists():

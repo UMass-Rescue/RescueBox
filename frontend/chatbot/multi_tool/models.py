@@ -28,7 +28,3 @@ class MultiToolCallResult:
         self.errors.append(error)
         if result:
             self.completed_count += 1
-
-    def result_count(self) -> int:
-        """Number of tool calls that completed without error."""
-        return self.completed_count

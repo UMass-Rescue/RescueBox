@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-
+import json
 from nicegui import ui
 
 from frontend.components.jobs.forms import render_readonly_form
@@ -79,7 +79,7 @@ async def render_job_details_panel(
                             "font-semibold text-zinc-800"
                         )
                         if _status_text:
-                            ui.label(_status_text).classes(
+                            ui.label(json.dumps(_status_text, indent=2).replace('}"', '').replace('"{',"").replace('\\"', '').replace('\\\\\\\\', '\\')).classes(
                                 "text-sm text-zinc-900 whitespace-pre-wrap rounded p-3 "
                                 "bg-zinc-50 border border-zinc-200"
                             )

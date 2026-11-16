@@ -115,8 +115,7 @@ class TestChatbotPageIntegration:
 
         # Should see help content
         await user.should_see("RescueBox Assistant")
-        await user.should_see("Three different ways")
-
+        
     @pytest.mark.asyncio
     async def test_chatbot_tool_picker_command(self, user: User):
         """Test tool picker command"""

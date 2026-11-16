@@ -35,9 +35,6 @@ class LogDisplayLabel(ui.label):
     def content(self, value: str) -> None:
         self.set_text(value)
 
-    def refresh_text(self, value: str) -> None:
-        self.set_text(value)
-
 
 def read_log_file(log_file_path: Path, max_lines: int = 1000) -> str:
     """Read and process log file contents."""

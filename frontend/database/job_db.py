@@ -46,7 +46,6 @@ from frontend.database.base_db import BaseDatabase
 from frontend.database.db_exceptions import DB_ERRORS
 from frontend.database.job_db_migrations import ensure_all_job_columns
 from frontend.database.job_db_pipeline import (
-    count_jobs_for_user,
     list_jobs_for_pipeline_root,
     update_pipeline_metadata_filter_criteria,
 )
@@ -285,9 +284,6 @@ class JobDB(BaseDatabase):
     ) -> bool:
         conn = self.connect()
         return update_pipeline_metadata_filter_criteria(conn, uid, criteria)
-
-    def get_job_count_for_user(self, user_id: str | None) -> int:
-        return count_jobs_for_user(self.connect(), user_id)
 
     async def update_job_status(
         self,

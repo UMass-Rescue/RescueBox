@@ -1,22 +1,16 @@
-"""Smoke tests for ``frontend.components.chat`` public exports."""
+"""Smoke tests for ``frontend.components.chat`` concrete modules and public exports."""
 
 import pytest
 
 import frontend.components.chat as chat_pkg
+from frontend.components.chat import rendering, utils, view
 
 
-def test_backward_compat_chat_submodules_resolve():
-    from frontend.components.chat import (
-        conversation_actions,
-        conversation_renderer,
-        conversation_utils,
-        history_panel,
-    )
-
-    assert conversation_actions is chat_pkg.view
-    assert conversation_renderer is chat_pkg.rendering
-    assert conversation_utils is chat_pkg.utils
-    assert history_panel is chat_pkg
+def test_concrete_chat_submodules_resolve():
+    """Verify concrete submodules are directly imported and match package attributes."""
+    assert view is chat_pkg.view
+    assert rendering is chat_pkg.rendering
+    assert utils is chat_pkg.utils
 
 
 @pytest.mark.parametrize(
@@ -26,6 +20,10 @@ def test_backward_compat_chat_submodules_resolve():
         ("frontend.components.chat", "load_conversation"),
         ("frontend.components.chat", "rerun_tool_call"),
         ("frontend.components.chat", "render_message_in_dialog"),
+        ("frontend.components.chat.view", "view_conversation"),
+        ("frontend.components.chat.view", "load_conversation"),
+        ("frontend.components.chat.view", "rerun_tool_call"),
+        ("frontend.components.chat.rendering", "render_message_in_dialog"),
     ],
 )
 def test_chat_symbols_are_exported(import_path: str, symbol: str):

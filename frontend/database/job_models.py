@@ -1,17 +1,13 @@
 """Job record types shared by ``job_db`` and UI helpers (no SQLite)."""
 
 import json
-import logging
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 from rb.api.models import RequestBody, ResponseBody, TaskSchema
 
-from frontend.database.db_exceptions import DB_ERRORS
 from frontend.database.validation import DatabaseValidator
-
-logger = logging.getLogger(__name__)
 
 
 class JobStatus(str, Enum):
@@ -71,82 +67,6 @@ class JobRecord(BaseModel):
         default=None, description="Response body"
     )
     taskSchema: TaskSchema | dict[str, Any] = Field(..., description="Task schema")
-
-    @field_validator("request", mode="before")
-    @classmethod
-    def validate_request(cls, v):
-        """Convert dict to RequestBody if needed"""
-        if isinstance(v, dict):
-            try:
-                return RequestBody(**v)
-            except DB_ERRORS as e:
-                logger.warning(
-                    "Could not validate request as RequestBody, keeping as dict: %s", e
-                )
-                return v
-        return v
-
-    @field_validator("response", mode="before")
-    @classmethod
-    def validate_response(cls, v):
-        """Convert dict to ResponseBody if needed"""
-        if v is None:
-            return None
-        if isinstance(v, dict):
-            try:
-                return ResponseBody(**v)
-            except DB_ERRORS as e:
-                logger.warning(
-                    "Could not validate response as ResponseBody, keeping as dict: %s",
-                    e,
-                )
-                return v
-        return v
-
-    @field_validator("taskSchema", mode="before")
-    @classmethod
-    def validate_task_schema(cls, v):
-        """Convert dict to TaskSchema if needed"""
-        if isinstance(v, dict):
-            try:
-                return TaskSchema(**v)
-            except DB_ERRORS as e:
-                logger.warning(
-                    "Could not validate taskSchema as TaskSchema, keeping as dict: %s",
-                    e,
-                )
-                return v
-        return v
-
-    @field_validator("endpointChain", mode="before")
-    @classmethod
-    def validate_endpoint_chain(cls, v):
-        if v is None or v == "":
-            return None
-        if isinstance(v, list):
-            return [str(x) for x in v]
-        if isinstance(v, str):
-            try:
-                data = json.loads(v)
-                return [str(x) for x in data] if isinstance(data, list) else None
-            except json.JSONDecodeError:
-                return None
-        return None
-
-    @field_validator("status", mode="before")
-    @classmethod
-    def validate_status(cls, v):
-        """Convert string to JobStatus if needed"""
-        if isinstance(v, str):
-            try:
-                return JobStatus(v)
-            except ValueError:
-                for status in JobStatus:
-                    if status.value.lower() == v.lower():
-                        return status
-                logger.warning("Unknown status: %s, using RUNNING", v)
-                return JobStatus.RUNNING
-        return v
 
     def model_dump_for_db(self) -> dict[str, Any]:
         """Convert JobRecord to dict for database storage."""

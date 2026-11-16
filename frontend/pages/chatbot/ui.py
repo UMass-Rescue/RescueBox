@@ -1,9 +1,25 @@
-# pyright: reportUnsupportedDunderAll=false
 """Chatbot UI public exports and NiceGUI route registration."""
 
 from __future__ import annotations
 
-from frontend.components.chat import ui_bridge
+from frontend.components.chat.ui_bridge import (
+    badge,
+    button,
+    card,
+    chat_message,
+    code,
+    column,
+    element,
+    expansion,
+    icon,
+    label,
+    markdown,
+    navigate,
+    notify,
+    row,
+    separator,
+    timer,
+)
 from frontend.pages.chatbot.chat_page import ChatbotPage
 from frontend.pages.chatbot.history_ui import render_message
 from frontend.pages.chatbot.routes import (
@@ -13,24 +29,6 @@ from frontend.pages.chatbot.routes import (
 )
 from frontend.pages.chatbot.ui_builder import ChatUIBuilder, FormConfig
 from frontend.utils import handle_api_error, show_error_to_user
-
-_PATCHABLE_UI_NAMES = (
-    "badge",
-    "button",
-    "card",
-    "chat_message",
-    "code",
-    "column",
-    "element",
-    "expansion",
-    "icon",
-    "label",
-    "navigate",
-    "notify",
-    "row",
-    "separator",
-    "timer",
-)
 
 __all__ = [
     "ChatbotPage",
@@ -42,10 +40,20 @@ __all__ = [
     "handle_rerun_parameter",
     "ChatUIBuilder",
     "FormConfig",
-    *list(_PATCHABLE_UI_NAMES),
+    "badge",
+    "button",
+    "card",
+    "chat_message",
+    "code",
+    "column",
+    "element",
+    "expansion",
+    "icon",
+    "label",
+    "markdown",
+    "navigate",
+    "notify",
+    "row",
+    "separator",
+    "timer",
 ]
-
-for _export_name in _PATCHABLE_UI_NAMES:
-    globals()[_export_name] = getattr(ui_bridge, _export_name)
-
-del _export_name, _PATCHABLE_UI_NAMES, ui_bridge

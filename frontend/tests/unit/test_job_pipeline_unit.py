@@ -12,6 +12,7 @@ import pytest
 from rb.api.models import RequestBody, TaskSchema
 
 from frontend.database import JobRecord, JobStatus
+from frontend.database.job_db_rows import row_to_job_dict
 from frontend.pages.jobs import (
     compute_job_results_title,
     extract_job_fields,
@@ -104,42 +105,18 @@ class TestExtractJobFieldsEndpointChain:
         assert fields["endpointChain"] == ["a", "b"]
 
 
-class TestJobRecordEndpointChainValidator:
+class TestEndpointChainRowParsing:
     def test_list_normalized_to_strings(self):
-        rec = JobRecord(
-            uid="JOB_x",
-            startTime="t",
-            status=JobStatus.RUNNING,
-            request=RequestBody(inputs={}, parameters={}),
-            taskSchema=TaskSchema(inputs=[], parameters=[]),
-            endpoint="e",
-            endpointChain=["a", 2, "c"],
-        )
-        assert rec.endpointChain == ["a", "2", "c"]
+        job = row_to_job_dict({"endpointChain": ["a", 2, "c"]})
+        assert job["endpointChain"] == ["a", "2", "c"]
 
     def test_json_string_parsed(self):
-        rec = JobRecord(
-            uid="JOB_x",
-            startTime="t",
-            status=JobStatus.RUNNING,
-            request=RequestBody(inputs={}, parameters={}),
-            taskSchema=TaskSchema(inputs=[], parameters=[]),
-            endpoint="e",
-            endpointChain=json.dumps(["x", "y"]),
-        )
-        assert rec.endpointChain == ["x", "y"]
+        job = row_to_job_dict({"endpointChain": json.dumps(["x", "y"])})
+        assert job["endpointChain"] == ["x", "y"]
 
     def test_invalid_json_string_becomes_none(self):
-        rec = JobRecord(
-            uid="JOB_x",
-            startTime="t",
-            status=JobStatus.RUNNING,
-            request=RequestBody(inputs={}, parameters={}),
-            taskSchema=TaskSchema(inputs=[], parameters=[]),
-            endpoint="e",
-            endpointChain="not-json",
-        )
-        assert rec.endpointChain is None
+        job = row_to_job_dict({"endpointChain": "not-json"})
+        assert job["endpointChain"] is None
 
 
 @pytest.mark.asyncio

@@ -1,28 +1,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from typing import Any
 
 from nicegui import ui
-
+from frontend.chatbot.config import ToolRegistry
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database.job_field_utils import get_plugin_name
 
 logger = logging.getLogger(__name__)
-
-
-def render_jobs_header(
-    container: ui.element, title: str, _on_refresh: Callable | None = None
-):
-    """
-    Render the jobs page header with title and refresh button.
-    """
-    try:
-        with container, ui.row().classes("items-center justify-between mb-6"):
-            ui.label(title).classes("text-4xl font-bold")
-    except UI_RENDER_ERRORS as e:
-        logger.exception("Failed to render jobs header component: %s", e)
 
 
 def render_job_action_buttons(job_fields: dict[str, Any]) -> None:
@@ -68,8 +54,11 @@ def render_running_status(status_text: str | None = None) -> None:
 
 def render_job_metadata(job_fields: dict[str, Any]) -> None:
     with ui.column().classes("gap-2 mt-4"):
-        ui.label("Job ID:").classes("font-semibold")
-        ui.label(job_fields.get("uid", "Unknown")).classes("text-sm text-zinc-600 mb-2")
+        ui.label("Job Name:").classes("font-semibold")
+        endpoint_name = (
+            ToolRegistry.display_name_for_endpoint(job_fields.get("endpoint"))
+        )
+        ui.label(endpoint_name).classes("text-sm text-zinc-600 mb-2")
 
 
 async def render_model_info(api_client, job_fields: dict[str, Any]) -> None:
