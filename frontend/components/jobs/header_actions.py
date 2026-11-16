@@ -55,8 +55,8 @@ def render_running_status(status_text: str | None = None) -> None:
 def render_job_metadata(job_fields: dict[str, Any]) -> None:
     with ui.column().classes("gap-2 mt-4"):
         ui.label("Job Name:").classes("font-semibold")
-        endpoint_name = (
-            ToolRegistry.display_name_for_endpoint(job_fields.get("endpoint"))
+        endpoint_name = ToolRegistry.display_name_for_endpoint(
+            job_fields.get("endpoint")
         )
         ui.label(endpoint_name).classes("text-sm text-zinc-600 mb-2")
 

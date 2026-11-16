@@ -368,4 +368,3 @@ class TestTextRenderers:
         await user.should_see("éñüñ")  # Special characters
         await user.should_see("New line here")  # Newline handling
         await user.should_see("©®™")  # Unicode symbols
-

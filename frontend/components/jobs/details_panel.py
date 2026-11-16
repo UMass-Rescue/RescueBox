@@ -79,7 +79,13 @@ async def render_job_details_panel(
                             "font-semibold text-zinc-800"
                         )
                         if _status_text:
-                            ui.label(json.dumps(_status_text, indent=2).replace('}"', '').replace('"{',"").replace('\\"', '').replace('\\\\\\\\', '\\')).classes(
+                            ui.label(
+                                json.dumps(_status_text, indent=2)
+                                .replace('}"', "")
+                                .replace('"{', "")
+                                .replace('\\"', "")
+                                .replace("\\\\\\\\", "\\")
+                            ).classes(
                                 "text-sm text-zinc-900 whitespace-pre-wrap rounded p-3 "
                                 "bg-zinc-50 border border-zinc-200"
                             )

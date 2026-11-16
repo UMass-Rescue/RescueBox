@@ -196,4 +196,3 @@ class DatabaseService:
     ):
         # Implementation if needed by tests
         pass
-

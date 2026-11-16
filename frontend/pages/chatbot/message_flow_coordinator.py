@@ -45,7 +45,9 @@ class MessageFlowCoordinator:
 
     def set_message_handler(self, message_handler: Any) -> None:
         self.message_handler = message_handler
-        if self.message_processor is not self and hasattr(self.message_processor, "message_handler"):
+        if self.message_processor is not self and hasattr(
+            self.message_processor, "message_handler"
+        ):
             self.message_processor.message_handler = message_handler
 
     def set_tool_registry(self, tool_registry: Any) -> None:
@@ -101,7 +103,8 @@ class MessageFlowCoordinator:
             self.logger.info("Starting user message processing flow")
             sender = (
                 self.message_processor.send_message
-                if hasattr(self, "message_processor") and self.message_processor is not self
+                if hasattr(self, "message_processor")
+                and self.message_processor is not self
                 else self.send_message
             )
             result = await sender(

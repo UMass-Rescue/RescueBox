@@ -49,9 +49,7 @@ async def test_ui_flow_show_pickers_awaitable():
     container = MagicMock()
     tool_registry = MagicMock()
 
-    with (
-        pytest.MonkeyPatch.context() as mp,
-    ):
+    with (pytest.MonkeyPatch.context() as mp,):
         mock_tool_picker = MagicMock()
         mock_tool_picker.select_tool = AsyncMock(return_value=("ocr/text", {"box": 1}))
         mp.setattr(
@@ -93,9 +91,15 @@ async def test_show_history_dialog_future_selection():
         )
 
         dialog_mock = MagicMock()
-        mp.setattr("frontend.components.chat.dialogs.ui.dialog", MagicMock(return_value=dialog_mock))
+        mp.setattr(
+            "frontend.components.chat.dialogs.ui.dialog",
+            MagicMock(return_value=dialog_mock),
+        )
         card_mock = MagicMock()
-        mp.setattr("frontend.components.chat.dialogs.ui.card", MagicMock(return_value=card_mock))
+        mp.setattr(
+            "frontend.components.chat.dialogs.ui.card",
+            MagicMock(return_value=card_mock),
+        )
         mp.setattr("frontend.components.chat.dialogs.ui.row", MagicMock())
         mp.setattr("frontend.components.chat.dialogs.ui.column", MagicMock())
         mp.setattr("frontend.components.chat.dialogs.ui.label", MagicMock())
@@ -119,4 +123,3 @@ async def test_show_history_dialog_future_selection():
         asyncio.create_task(trigger_select())
         result = await show_history_dialog()
         assert result == "conv-123"
-

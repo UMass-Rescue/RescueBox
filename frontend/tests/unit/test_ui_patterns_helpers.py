@@ -14,6 +14,7 @@ from frontend.utils.ui import _safe_ui_call, safe_ui_call as utils_safe_ui_call
 from unittest.mock import patch
 from nicegui import context
 
+
 class TestEphemeralUiError(unittest.TestCase):
     def test_deleted_client(self):
         self.assertTrue(is_ephemeral_ui_error(RuntimeError("The client is deleted")))
@@ -52,7 +53,6 @@ class TestSafeUiCall(unittest.TestCase):
         self.assertEqual(safe_ui_call(add, 2, 3), 5)
 
     def test_check_slot_skips_when_no_slot(self):
-       
 
         called = False
 

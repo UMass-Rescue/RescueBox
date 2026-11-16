@@ -202,9 +202,7 @@ class AnalysisPicker:
                             "hover:bg-slate-50 hover:border-[#881c1c] cursor-pointer transition-all duration-150 "
                             "items-center justify-between gap-4 border-l-4 border-l-[#881c1c]"
                         )
-                        row.on(
-                            "click", lambda *a, t=a_type: self._handle_select(t)
-                        )
+                        row.on("click", lambda *a, t=a_type: self._handle_select(t))
                         with row:
                             with ui.row().classes("items-center gap-4 flex-1 min-w-0"):
                                 with ui.element("div").classes(_TOOL_ICON_BOX):

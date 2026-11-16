@@ -163,7 +163,6 @@ class TestChatbotPage:
 
         # Should see help content
         await user.should_see("RescueBox Assistant")
-        
 
     @pytest.mark.asyncio
     @patch("httpx.AsyncClient")

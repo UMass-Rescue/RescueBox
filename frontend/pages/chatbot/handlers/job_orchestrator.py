@@ -300,4 +300,3 @@ class JobSubmissionOrchestrator(BaseHandler):
         await pipeline.handle_remaining_calls(
             remaining_calls, response_body, container, core, **kwargs
         )
-

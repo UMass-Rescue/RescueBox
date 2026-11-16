@@ -234,7 +234,6 @@ class ChatUIBuilder:
                 pass
             self.active_form = None
 
-
         async def _on_cancel() -> None:
             if self.state_manager:
                 self.state_manager.set_input_enabled(True)
@@ -260,7 +259,6 @@ class ChatUIBuilder:
             on_form_cancel=_on_cancel,
         )
         UIOperations.scroll_form_into_view_with_retries()
-
 
     async def _show_history_dialog(self):
         await show_history_dialog(

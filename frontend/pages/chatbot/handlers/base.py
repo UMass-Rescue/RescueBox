@@ -26,4 +26,3 @@ class FormErrorHandler:
                 )
 
         safe_ui_call(_add_label)
-

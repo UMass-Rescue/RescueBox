@@ -1,6 +1,6 @@
 """Unit tests for extracted form input submodules."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from nicegui import ui
@@ -19,7 +19,11 @@ from frontend.components.forms.path_inputs import (
 
 
 def test_ranged_float_helpers():
-    desc_dict = {"parameter_type": "ranged_float", "range": {"min": 0.1, "max": 0.9}, "default": 0.5}
+    desc_dict = {
+        "parameter_type": "ranged_float",
+        "range": {"min": 0.1, "max": 0.9},
+        "default": 0.5,
+    }
     assert _is_ranged_float_descriptor(desc_dict) is True
     rmin, rmax, rdef = _get_ranged_float_values(desc_dict)
     assert rmin == 0.1
@@ -28,7 +32,11 @@ def test_ranged_float_helpers():
 
 
 def test_ranged_int_helpers():
-    desc_dict = {"parameterType": "ranged_int", "range": {"min": 1, "max": 10}, "default": 5}
+    desc_dict = {
+        "parameterType": "ranged_int",
+        "range": {"min": 1, "max": 10},
+        "default": 5,
+    }
     assert _is_ranged_int_descriptor(desc_dict) is True
     rmin, rmax, rdef = _get_ranged_int_values(desc_dict)
     assert rmin == 1
@@ -48,7 +56,9 @@ async def test_create_parameter_field_numeric():
             "default": 0.7,
         },
     }
-    with patch.object(ui, "column"), patch.object(ui, "label"), patch.object(ui, "number") as mock_number:
+    with patch.object(ui, "column"), patch.object(ui, "label"), patch.object(
+        ui, "number"
+    ) as mock_number:
         mock_number.return_value.classes.return_value = "widget"
         await create_parameter_field(param_schema, form_widgets, {"confidence": 0.8})
         assert "confidence" in form_widgets
@@ -58,8 +68,12 @@ def test_create_directory_input():
     form_widgets = {}
     with patch.object(ui, "column"), patch.object(ui, "row"), patch.object(
         ui, "label"
-    ), patch.object(ui, "input") as mock_input, patch.object(ui, "icon"), patch.object(ui, "button"):
-        mock_input.return_value.classes.return_value.props.return_value = mock_input.return_value
+    ), patch.object(ui, "input") as mock_input, patch.object(ui, "icon"), patch.object(
+        ui, "button"
+    ):
+        mock_input.return_value.classes.return_value.props.return_value = (
+            mock_input.return_value
+        )
         create_directory_input("input_dir", {"path": "/tmp/test"}, form_widgets)
         assert "input_dir" in form_widgets
 
@@ -68,7 +82,11 @@ def test_create_file_input():
     form_widgets = {}
     with patch.object(ui, "column"), patch.object(ui, "row"), patch.object(
         ui, "label"
-    ), patch.object(ui, "input") as mock_input, patch.object(ui, "icon"), patch.object(ui, "button"):
-        mock_input.return_value.classes.return_value.props.return_value = mock_input.return_value
+    ), patch.object(ui, "input") as mock_input, patch.object(ui, "icon"), patch.object(
+        ui, "button"
+    ):
+        mock_input.return_value.classes.return_value.props.return_value = (
+            mock_input.return_value
+        )
         create_file_input("input_file", "/tmp/test.jpg", form_widgets)
         assert "input_file" in form_widgets

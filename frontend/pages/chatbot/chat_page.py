@@ -63,7 +63,6 @@ class ChatbotPage:
 
     _handle_conversation_select = handle_conversation_select
 
-
     @property
     def conversation_id(self) -> str | None:
         return self.state_manager.conversation_id

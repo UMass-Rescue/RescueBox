@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from nicegui import ui
-from frontend.chatbot.forms import create_input_form
 from frontend.chatbot.pipeline_context import inject_pipeline_path
 from frontend.chatbot.schema_utils import convert_arguments_to_initial_values
 from frontend.components.errors import render_error_message
@@ -38,9 +37,7 @@ async def show_tool_picker(
     return await picker.select_tool()
 
 
-async def show_analysis_picker(
-    container: ui.element, on_analysis_selected=None
-) -> str:
+async def show_analysis_picker(container: ui.element, on_analysis_selected=None) -> str:
     picker = AnalysisPicker(container, on_analysis_selected)
     if on_analysis_selected is None:
         return await picker.select_analysis()
@@ -71,7 +68,9 @@ async def load_and_show_form(
         pipeline_job_id = read_pipeline_job_id()
         arguments = inject_pipeline_path(arguments, task_schema, pipeline_job_id)
 
-        initial_values = convert_arguments_to_initial_values(arguments,task_schema, endpoint)
+        initial_values = convert_arguments_to_initial_values(
+            arguments, task_schema, endpoint
+        )
 
         if hasattr(on_form_submit, "submit_form"):
             handler = on_form_submit

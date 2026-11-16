@@ -205,7 +205,6 @@ class TestChatbotFlow:
 
         assert result["type"] == "help"
         assert "RescueBox Assistant" in result["content"]
-        
 
     @pytest.mark.asyncio
     async def test_tool_picker_flow(self, mock_core, config):

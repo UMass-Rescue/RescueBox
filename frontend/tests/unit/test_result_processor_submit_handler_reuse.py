@@ -15,7 +15,9 @@ async def test_result_processor_reuses_injected_form_submit_handler():
         form_submit_handler=shared_handler,
     )
 
-    ui_delegate = MagicMock(spec=["add_message", "show_error", "update_status", "set_input_enabled"])
+    ui_delegate = MagicMock(
+        spec=["add_message", "show_error", "update_status", "set_input_enabled"]
+    )
     with patch(
         "frontend.pages.chatbot.result_processor.load_and_show_form",
         new_callable=AsyncMock,
@@ -42,7 +44,9 @@ async def test_result_processor_falls_back_to_new_handler_when_not_injected():
     fake_handler = MagicMock()
     fake_handler.submit_form = AsyncMock(return_value=True)
 
-    ui_delegate = MagicMock(spec=["add_message", "show_error", "update_status", "set_input_enabled"])
+    ui_delegate = MagicMock(
+        spec=["add_message", "show_error", "update_status", "set_input_enabled"]
+    )
     with patch(
         "frontend.pages.chatbot.result_processor.FormSubmitHandler",
         return_value=fake_handler,
@@ -76,7 +80,9 @@ async def test_process_result_show_form_uses_shared_handler_in_fallback_path():
         form_submit_handler=shared_handler,
     )
 
-    ui_delegate = MagicMock(spec=["add_message", "show_error", "update_status", "set_input_enabled"])
+    ui_delegate = MagicMock(
+        spec=["add_message", "show_error", "update_status", "set_input_enabled"]
+    )
 
     with patch(
         "frontend.pages.chatbot.result_processor.load_and_show_form",

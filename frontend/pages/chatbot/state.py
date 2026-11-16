@@ -174,4 +174,3 @@ class ChatbotStateManager:
         self.is_processing = False
         self.set_status("Ready")
         logger.info("Conversation reset")
-

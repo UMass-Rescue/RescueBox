@@ -51,7 +51,9 @@ class ResultProcessor:
                 self.state_manager.set_input_enabled(enabled)
 
         try:
-            has_load_form = hasattr(ui_delegate, "load_form") and callable(getattr(ui_delegate, "load_form", None))
+            has_load_form = hasattr(ui_delegate, "load_form") and callable(
+                getattr(ui_delegate, "load_form", None)
+            )
             if result_type == "show_form":
                 _set_input(False)
                 endpoint = result.get("endpoint")
@@ -133,7 +135,9 @@ class ResultProcessor:
                     "Choose an option from the menu above", scroll_after=False
                 )
                 analysis_type = await picker.select_analysis()
-                message = ChatMessage("assistant", f"Selected analysis: {analysis_type}")
+                message = ChatMessage(
+                    "assistant", f"Selected analysis: {analysis_type}"
+                )
                 ui_delegate.add_message(message)
             else:
                 _set_input(True)

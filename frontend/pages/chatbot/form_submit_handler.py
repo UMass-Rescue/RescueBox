@@ -65,4 +65,3 @@ class FormSubmitHandler:
             **kwargs,
         )
         return True
-

@@ -39,6 +39,7 @@ def resolve_chat_container(
         return override
     return g
 
+
 __all__ = [
     "get_global_chat_container",
     "is_ephemeral_ui_error",

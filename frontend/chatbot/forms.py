@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def _validate_or_raise(form_data: dict, schema: TaskSchema, endpoint: str) -> RequestBody:
+def _validate_or_raise(
+    form_data: dict, schema: TaskSchema, endpoint: str
+) -> RequestBody:
     validated = validate_request_body(form_data, schema, endpoint)
     if isinstance(validated, RequestBody):
         return validated
@@ -42,11 +44,15 @@ async def create_input_form(
             "border-0 rb-form-wrapper !p-0"
         )
     with form_card:
+
         async def handle_submit(form_data: dict):
             if on_submit:
                 body = _validate_or_raise(form_data, task_schema, endpoint)
                 return await on_submit(
-                    body, endpoint=endpoint, task_schema=task_schema, form_element=form_card
+                    body,
+                    endpoint=endpoint,
+                    task_schema=task_schema,
+                    form_element=form_card,
                 )
 
         await FormGenerator().generate_form(

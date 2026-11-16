@@ -238,8 +238,6 @@ def require_demo_user_session():
     return False
 
 
-
-
 def select(*args, **kwargs):
     """Alias for ui.select with default behavior or styling."""
     return ui.select(*args, **kwargs)

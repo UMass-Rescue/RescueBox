@@ -144,8 +144,13 @@ async def test_coordinator_send_message_flow():
     ui_delegate = MagicMock(spec=ChatUIDelegate)
 
     from unittest.mock import patch
-    with patch("frontend.pages.chatbot.message_flow_coordinator.DatabaseService.ensure_active_conversation", new_callable=AsyncMock), \
-         patch("frontend.pages.chatbot.message_flow_coordinator.get_chat_history_db") as mock_db_getter:
+
+    with patch(
+        "frontend.pages.chatbot.message_flow_coordinator.DatabaseService.ensure_active_conversation",
+        new_callable=AsyncMock,
+    ), patch(
+        "frontend.pages.chatbot.message_flow_coordinator.get_chat_history_db"
+    ) as mock_db_getter:
         mock_db = MagicMock()
         mock_db.add_message = AsyncMock()
         mock_db_getter.return_value = mock_db
@@ -159,4 +164,3 @@ async def test_coordinator_send_message_flow():
         ui_delegate.add_message.assert_called_once()
         mock_db.add_message.assert_awaited_once()
         state_manager.clear_input.assert_called_once()
-

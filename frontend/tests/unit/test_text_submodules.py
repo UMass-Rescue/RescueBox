@@ -13,11 +13,15 @@ from frontend.components.results.text_search import (
 
 
 def test_open_text_markdown_modal():
-    with patch.object(ui, "dialog") as mock_dialog, patch.object(ui, "card"), patch.object(
-        ui, "label"
-    ), patch.object(ui, "scroll_area"), patch.object(ui, "textarea"), patch.object(
+    with patch.object(ui, "dialog") as mock_dialog, patch.object(
+        ui, "card"
+    ), patch.object(ui, "label"), patch.object(ui, "scroll_area"), patch.object(
+        ui, "textarea"
+    ), patch.object(
         ui, "row"
-    ), patch.object(ui, "button"):
+    ), patch.object(
+        ui, "button"
+    ):
         mock_instance = MagicMock()
         mock_dialog.return_value.__enter__.return_value = mock_instance
 

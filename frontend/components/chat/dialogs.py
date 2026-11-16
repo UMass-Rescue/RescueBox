@@ -35,7 +35,9 @@ async def show_history_dialog(
         dialog.on("hide", _on_close)
         with ui.row().classes(Design.PANEL_SHELL_HEADER):
             ui.label("Chat History").classes(Design.PANEL_SHELL_HEADER_TITLE)
-            ui.button(color=None, on_click=lambda: (dialog.close(), _on_close())).props("flat round dense")
+            ui.button(color=None, on_click=lambda: (dialog.close(), _on_close())).props(
+                "flat round dense"
+            )
 
         with ui.column().classes(
             f"{Design.PANEL_SHELL_BODY} gap-3 overflow-y-auto max-h-[60vh] w-full"
@@ -68,9 +70,7 @@ async def show_history_dialog(
     return await future
 
 
-def show_conversation_view_dialog(
-    messages: list[Any], title: str | None = None
-):
+def show_conversation_view_dialog(messages: list[Any], title: str | None = None):
     """Render persisted messages; include JSON for tool calls and job payloads when present."""
 
     def _render_message_card(msg: Any) -> None:

@@ -7,7 +7,7 @@ from `frontend.utils.session` and active case record resolution from
 
 from __future__ import annotations
 
-from nicegui import app
+from typing import Any
 
 from .case_context import get_active_case
 from .session import (
@@ -53,8 +53,12 @@ from .session import (
     try_claim_explicit_user_id,
 )
 
+# Tests may set this; ``session._current_app()`` prefers it when not None.
+app: Any = None
+
 __all__ = [
     "DEFAULT_PREFERENCES",
+    "app",
     "_client_get",
     "_client_pop",
     "_client_set",

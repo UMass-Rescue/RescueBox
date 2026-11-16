@@ -88,7 +88,9 @@ def _general_get(key: str, default: Any = None) -> Any:
 
 
 def _general_set(key: str, value: Any) -> None:
-    _ignore_storage_errors(lambda: _current_app().storage.general.__setitem__(key, value))
+    _ignore_storage_errors(
+        lambda: _current_app().storage.general.__setitem__(key, value)
+    )
 
 
 def _client_get(key: str, default: Any = None) -> Any:
@@ -97,7 +99,9 @@ def _client_get(key: str, default: Any = None) -> Any:
 
 
 def _client_set(key: str, value: Any) -> None:
-    _ignore_storage_errors(lambda: _current_app().storage.client.__setitem__(key, value))
+    _ignore_storage_errors(
+        lambda: _current_app().storage.client.__setitem__(key, value)
+    )
 
 
 def _client_pop(key: str, default: Any = None) -> Any:

@@ -229,4 +229,3 @@ def _validate_parameter_value(value: Any, param_schema: Any) -> None:
         valid_values = [str(v.key) for v in desc.enum_vals]
         if value not in valid_values:
             raise ValueError(f"Value must be one of: {', '.join(valid_values)}")
-

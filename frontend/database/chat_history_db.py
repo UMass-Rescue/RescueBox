@@ -557,7 +557,6 @@ class ChatHistoryDB(BaseDatabase):
         )
         return messages
 
-
     async def get_tool_call_history(
         self, endpoint: str | None = None
     ) -> list[ChatMessageRecord]:
