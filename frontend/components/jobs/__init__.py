@@ -11,7 +11,6 @@ from frontend.components.jobs.header_actions import (
     render_job_action_buttons,
     render_job_actions,
     render_job_metadata,
-    render_jobs_header,
     render_model_info,
 )
 from frontend.components.jobs.outputs_card import render_job_outputs_card
@@ -31,7 +30,6 @@ __all__ = [
     "render_job_metadata",
     "render_job_outputs_card",
     "render_job_row",
-    "render_jobs_header",
     "render_model_info",
     "render_pipeline_run_banner",
     "render_readonly_form",

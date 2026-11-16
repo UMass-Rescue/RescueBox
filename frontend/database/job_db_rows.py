@@ -7,6 +7,8 @@ import logging
 import sqlite3
 from typing import Any
 
+from frontend.database.job_models import JobStatus
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,5 +36,26 @@ def row_to_job_dict(row: sqlite3.Row) -> dict[str, Any]:
         except json.JSONDecodeError as e:
             logger.error("Failed to parse taskSchema JSON: %s", e)
             job["taskSchema"] = {}
+
+    if job.get("endpointChain"):
+        if isinstance(job["endpointChain"], str):
+            try:
+                data = json.loads(job["endpointChain"])
+                job["endpointChain"] = (
+                    [str(x) for x in data] if isinstance(data, list) else None
+                )
+            except json.JSONDecodeError as e:
+                logger.error("Failed to parse endpointChain JSON: %s", e)
+                job["endpointChain"] = None
+        elif isinstance(job["endpointChain"], list):
+            job["endpointChain"] = [str(x) for x in job["endpointChain"]]
+    else:
+        job["endpointChain"] = None
+
+    if job.get("status") and isinstance(job["status"], str):
+        for s in JobStatus:
+            if s.value.lower() == job["status"].lower():
+                job["status"] = s
+                break
 
     return job

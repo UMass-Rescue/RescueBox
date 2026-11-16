@@ -11,6 +11,7 @@ from frontend.constants import DEMO_USER_ID_PREFIX
 
 @pytest.fixture
 def patched_app(monkeypatch):
+    import frontend.utils.session as session_mod
     import frontend.utils.storage as storage_mod
     from frontend import utils
     from frontend.utils.storage import reset_test_storage
@@ -21,6 +22,7 @@ def patched_app(monkeypatch):
     mock_app.storage.browser = {}
     monkeypatch.setattr(utils, "app", mock_app)
     monkeypatch.setattr(storage_mod, "app", mock_app)
+    monkeypatch.setattr(session_mod, "app", mock_app)
     reset_test_storage()
     return utils
 

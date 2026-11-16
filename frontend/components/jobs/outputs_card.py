@@ -54,14 +54,14 @@ async def render_job_outputs_card(container, _api_client, job):
 
     logger.debug("Rendering job outputs for job: %s", job_uid)
 
+    task_title = compute_job_results_title(endpoint_name, endpoint_name_chain)
     with container:
         if not response:
             st = str(status or "")
+            err_msg = f"{task_title} No results for this job."
             if st == "Failed":
                 # Message + context live on the Details tab with metadata (no duplicate red card).
-                ui.label("No result output was stored for this job.").classes(
-                    "text-sm font-medium text-zinc-800"
-                )
+                ui.label(err_msg).classes("text-sm font-medium text-zinc-800")
                 ui.label(
                     "Open the Details tab for the failure message, timestamps, "
                     "request inputs, and parameters."
@@ -94,9 +94,6 @@ async def render_job_outputs_card(container, _api_client, job):
                 try:
                     if isinstance(task_schema_dict, dict):
                         TaskSchema(**task_schema_dict)
-                    task_title = compute_job_results_title(
-                        endpoint_name, endpoint_name_chain
-                    )
                 except UI_RENDER_ERRORS:
                     task_title = (
                         task_schema_dict.get("shortTitle", "Results")

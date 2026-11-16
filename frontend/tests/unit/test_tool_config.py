@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from frontend.chatbot.tool_config import (
     RescueBoxToolCall,
+    TextSearch,
     ToolCallList,
     create_advanced_granite_prompt,
     get_available_tools,
@@ -50,6 +51,8 @@ class TestToolConfiguration:
         assert isinstance(tools, dict)
         assert len(tools) > 0
         assert "audio/transcribe" in tools
+        assert "text_embeddings/search" in tools
+        assert tools["text_embeddings/search"] == TextSearch
 
     def test_update_tool_schema(self):
         """Test dynamic tool schema updates.
@@ -160,6 +163,13 @@ class TestToolConfiguration:
         )
         assert valid_call.name == "audio/transcribe"
         assert valid_call.arguments["input_dir"] == "/test"
+
+        text_call = RescueBoxToolCall(
+            name="text_embeddings/search",
+            arguments={"input_dir": "/txt", "query": "hello"},
+        )
+        assert text_call.name == "text_embeddings/search"
+        assert text_call.arguments["query"] == "hello"
 
         # Invalid tool names should be rejected
         with pytest.raises(ValueError):

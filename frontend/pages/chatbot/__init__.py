@@ -9,12 +9,11 @@ from frontend.chatbot.message_handler import MessageHandler
 from frontend.components.chat import UIOperations
 
 from . import handlers
-from .coordinator import (
-    FormSubmitHandler,
-    MessageFlowCoordinator,
-    MessageProcessor,
-    ResultProcessor,
-)
+from .form_submit_handler import FormSubmitHandler
+from .message_flow_coordinator import MessageFlowCoordinator
+from .result_processor import ResultProcessor
+from .ui_delegate import ChatUIDelegate
+
 from .database_service import DatabaseService
 from .handlers import JobSubmissionOrchestrator, PipelineHandler
 from .state import ChatbotStateManager, ChatMessage
@@ -40,10 +39,10 @@ database_service = DatabaseService()
 __all__ = [
     "ChatbotStateManager",
     "ChatMessage",
+    "ChatUIDelegate",
     "MessageFlowCoordinator",
     "FormSubmitHandler",
     "ResultProcessor",
-    "MessageProcessor",
     "PipelineHandler",
     "handlers",
     "ChatbotPage",

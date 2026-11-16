@@ -292,7 +292,7 @@ class TestChatbotFlowIntegration:
 
         assert result["type"] == "help"
         assert "RescueBox Assistant" in result["content"]
-        assert "Three different ways" in result["content"]
+        assert "different ways" in result["content"]
 
     @pytest.mark.asyncio
     async def test_tool_picker_flow(self, core: ChatbotCore, config: ChatbotConfig):

@@ -65,7 +65,3 @@ class FormSubmitHandler:
             **kwargs,
         )
         return True
-
-    def active_conversation_id(self) -> str | None:
-        """Active conversation id from state (for tests and callers)."""
-        return self.state_manager.conversation_id

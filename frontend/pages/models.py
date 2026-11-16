@@ -189,10 +189,6 @@ class ModelsPage:
             logger.error("Error rendering models page: %s", e, exc_info=True)
             ui.label(f"Error rendering models page: {e!s}").classes("text-red-600")
 
-    def cached_model_count(self) -> int:
-        """Number of models currently loaded in memory."""
-        return len(self.models)
-
     async def refresh_models(self):
         """Fetch fresh model metadata from API, save to database cache, and reload."""
         logger.info("Manual refresh triggered. Fetching models from backend API...")

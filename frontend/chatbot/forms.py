@@ -13,6 +13,18 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def _validate_or_raise(
+    form_data: dict, schema: TaskSchema, endpoint: str
+) -> RequestBody:
+    validated = validate_request_body(form_data, schema, endpoint)
+    if isinstance(validated, RequestBody):
+        return validated
+    error_info = (
+        validated.get("errors") if isinstance(validated, dict) else "Unknown error"
+    )
+    raise ValueError(f"Validation failed: {error_info}")
+
+
 async def create_input_form(
     task_schema: TaskSchema,
     endpoint: str,
@@ -32,23 +44,18 @@ async def create_input_form(
             "border-0 rb-form-wrapper !p-0"
         )
     with form_card:
-        form_generator = FormGenerator()
 
         async def handle_submit(form_data: dict):
-            validated = validate_request_body(form_data, task_schema, endpoint)
-            if not isinstance(validated, RequestBody):
-                error_info = (
-                    validated.get("errors")
-                    if isinstance(validated, dict)
-                    else "Unknown error"
-                )
-                raise ValueError(f"Validation failed: {error_info}")
             if on_submit:
+                body = _validate_or_raise(form_data, task_schema, endpoint)
                 return await on_submit(
-                    validated, endpoint, task_schema, form_element=form_card
+                    body,
+                    endpoint=endpoint,
+                    task_schema=task_schema,
+                    form_element=form_card,
                 )
 
-        await form_generator.generate_form(
+        await FormGenerator().generate_form(
             schema=task_schema.model_dump(),
             container=form_card,
             initial_values=initial_values,

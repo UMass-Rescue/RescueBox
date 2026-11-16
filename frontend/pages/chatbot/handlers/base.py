@@ -5,7 +5,7 @@ import logging
 from nicegui import ui
 
 from frontend.components.chat import UIOperations
-from frontend.utils.ui import _safe_ui_call
+from frontend.utils.ui import safe_ui_call
 
 
 class BaseHandler:
@@ -13,14 +13,6 @@ class BaseHandler:
 
     def __init__(self, logger_name: str | None = None):
         self.logger = logging.getLogger(logger_name or self.__class__.__name__)
-
-    def log_debug(self, message: str, *args) -> None:
-        """Log at debug level using the handler logger."""
-        self.logger.debug(message, *args)
-
-    def log_warning(self, message: str, *args) -> None:
-        """Log at warning level using the handler logger."""
-        self.logger.warning(message, *args)
 
 
 class FormErrorHandler:
@@ -33,8 +25,4 @@ class FormErrorHandler:
                     "p-4 bg-red-50 text-red-700 rounded border border-red-200"
                 )
 
-        _safe_ui_call(_add_label)
-
-    def notify_form_error(self, title: str, message: str) -> None:
-        """Surface a form error without requiring a container."""
-        UIOperations.safe_notify(f"{title}: {message}", type="negative")
+        safe_ui_call(_add_label)

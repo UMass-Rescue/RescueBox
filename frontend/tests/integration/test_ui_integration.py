@@ -84,7 +84,6 @@ class TestChatbotUIIntegration:
             from frontend.chatbot.utils import get_rejection_message
             from frontend.pages.chatbot import (
                 MessageFlowCoordinator,
-                MessageProcessor,
                 ResultProcessor,
             )
 
@@ -93,14 +92,14 @@ class TestChatbotUIIntegration:
             state_manager.conversation_id = None
 
             message_handler = TestUtilities.create_mock_message_handler()
-            message_processor = MessageProcessor(state_manager, message_handler)
             result_processor = ResultProcessor(
                 state_manager, None
             )  # tool_registry can be None for this test
 
-            # Create coordinator
-            coordinator = MessageFlowCoordinator(state_manager, MagicMock())
-            coordinator.message_processor = message_processor
+            coordinator = MessageFlowCoordinator(
+                state_manager=state_manager,
+                message_handler=message_handler,
+            )
             coordinator.result_processor = result_processor
 
             # Mock the message handler to return rejection result for invalid input
@@ -109,18 +108,25 @@ class TestChatbotUIIntegration:
 
             message_handler.handle_message = mock_handle_message
 
-            # Track messages and errors
-            messages_received = []
-            errors_received = []
+            class TestUIDelegate:
+                def __init__(self):
+                    self.messages = []
+                    self.errors = []
 
-            def mock_add_message(message):
-                messages_received.append(message)
+                def add_message(self, message, scroll_after=True):
+                    self.messages.append(message)
 
-            def mock_show_error(error_msg):
-                errors_received.append(error_msg)
+                async def show_error(self, error_msg):
+                    self.errors.append(error_msg)
 
-            def mock_update_status(status):
-                pass  # Not testing status updates
+                def update_status(self, status, **kwargs):
+                    pass
+
+                async def load_form(self, endpoint, arguments, remaining_calls=None):
+                    pass
+
+                def set_input_enabled(self, enabled):
+                    pass
 
             # Test processing an invalid message
             from unittest.mock import MagicMock
@@ -130,14 +136,12 @@ class TestChatbotUIIntegration:
 
             import asyncio
 
+            ui_delegate = TestUIDelegate()
+
             async def run_test():
                 await coordinator.process_user_message(
                     message_text="invalid input that should be rejected",
-                    input_field=mock_textarea,
-                    is_processing_ref={"value": False},
-                    add_message_func=mock_add_message,
-                    show_error_func=mock_show_error,
-                    update_status_func=mock_update_status,
+                    ui_delegate=ui_delegate,
                     core=MagicMock(),
                 )
 
@@ -145,13 +149,13 @@ class TestChatbotUIIntegration:
 
             # Verify that messages were added
             assert (
-                len(messages_received) >= 2
+                len(ui_delegate.messages) >= 2
             )  # At least user message + rejection message
-            assert len(errors_received) == 0  # No errors should occur
+            assert len(ui_delegate.errors) == 0  # No errors should occur
 
             # Find the rejection message (should be from assistant)
             assistant_messages = [
-                msg for msg in messages_received if msg.role == "assistant"
+                msg for msg in ui_delegate.messages if msg.role == "assistant"
             ]
             assert len(assistant_messages) >= 1
 

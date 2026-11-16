@@ -46,22 +46,22 @@ class ChatbotPage:
         self.state_manager = ChatbotStateManager()
 
         self.message_flow_coordinator = MessageFlowCoordinator(
-            self.state_manager, self.load_and_show_form
+            self.state_manager,
+            ui_delegate=self,
+            message_handler=self.message_handler,
+            tool_registry=self.tool_registry,
         )
-        self.message_flow_coordinator.set_message_handler(self.message_handler)
-        self.message_flow_coordinator.set_tool_registry(self.tool_registry)
 
-        self.form_handler = self.message_flow_coordinator.form_submit_handler
         self.chat_container = None
         self.input_field = None
 
     async def handle_conversation_select(self, conversation_id: str) -> None:
         """Load a conversation from history (public entry for routes)."""
-        await self._handle_conversation_select(conversation_id)
+        await restore_conversation(
+            self.state_manager, self.chat_container, conversation_id
+        )
 
-    async def handle_rerun_tool(self, message_id: str) -> None:
-        """Re-run a tool from a stored message (public entry for routes)."""
-        await self._handle_rerun_tool(message_id)
+    _handle_conversation_select = handle_conversation_select
 
     @property
     def conversation_id(self) -> str | None:
@@ -84,7 +84,7 @@ class ChatbotPage:
             on_rerun_tool=self._handle_rerun_tool,
             tool_registry=self.tool_registry,
             core=self.core,
-            form_submit_handler=self.form_handler,
+            form_submit_handler=self.message_flow_coordinator.form_submit_handler,
             status_text_ref=self.state_manager,
             state_manager=self.state_manager,
         )
@@ -100,26 +100,26 @@ class ChatbotPage:
             return
         await self.message_flow_coordinator.process_user_message(
             message_text=msg,
-            input_field=self.input_field,
-            is_processing_ref={"value": False},
-            add_message_func=self._add_message,
-            show_error_func=self._show_error,
-            update_status_func=self._update_status,
+            ui_delegate=self,
             core=self.core,
         )
 
-    def _add_message(self, message: ChatMessage, scroll_after: bool = True):
+    def add_message(self, message: ChatMessage, scroll_after: bool = True) -> None:
         self.state_manager.add_message(message)
         render_message(self.chat_container, message)
         if scroll_after:
             UIOperations.scroll_to_bottom()
 
-    async def _show_error(self, error_message: str):
+    _add_message = add_message
+
+    async def show_error(self, error_message: str) -> None:
         show_error_message(self.chat_container, error_message)
 
-    def _update_status(
+    _show_error = show_error
+
+    def update_status(
         self, status: str, scroll_after: bool = True, scroll_to_form: bool = False
-    ):
+    ) -> None:
         self.state_manager.set_status(status)
         if scroll_after:
             if scroll_to_form:
@@ -127,29 +127,32 @@ class ChatbotPage:
             else:
                 UIOperations.scroll_to_bottom()
 
-    async def _handle_new_conversation(self):
-        await self.new_conversation()
+    _update_status = update_status
+
+    async def load_form(
+        self,
+        endpoint: str,
+        arguments: dict,
+        remaining_calls: list | None = None,
+    ) -> None:
+        await self.load_and_show_form(endpoint, arguments, remaining_calls)
+
+    def set_input_enabled(self, enabled: bool) -> None:
+        self.state_manager.set_input_enabled(enabled)
+
+    _handle_new_conversation = new_conversation
 
     async def load_and_show_form(
         self, endpoint, arguments, remaining_calls=None, container=None
     ):
         target_container = container or self.chat_container
 
-        async def _on_submit(
-            request_body, endpoint=endpoint, task_schema=None, **kwargs
-        ):
-            return await self.form_handler.submit_form(
-                request_body,
-                endpoint,
-                task_schema,
-                target_container,
-                self.core,
-                remaining_calls=remaining_calls,
-                **kwargs,
-            )
-
         await load_and_show_form(
-            target_container, self.core, endpoint, arguments, _on_submit
+            target_container,
+            self.core,
+            endpoint,
+            arguments,
+            self.message_flow_coordinator.form_submit_handler,
         )
         UIOperations.scroll_form_into_view_with_retries()
 
@@ -186,7 +189,7 @@ class ChatbotPage:
                 break
             await asyncio.sleep(interval)
 
-    async def _handle_rerun_tool(self, message_id: str):
+    async def handle_rerun_tool(self, message_id: str) -> None:
         """Handle re-running a tool from a specific message."""
         if not isinstance(message_id, str) or not message_id.strip():
             logger.warning("Ignoring invalid rerun message_id: %r", message_id)
@@ -221,6 +224,8 @@ class ChatbotPage:
         UIOperations.safe_notify(
             "Could not find tool metadata for this message.", type="warning"
         )
+
+    _handle_rerun_tool = handle_rerun_tool
 
     async def _resolve_rerun_arguments(self, msg, arguments: dict) -> dict:
         """Fill inputs/parameters from the job record when history row omitted them."""

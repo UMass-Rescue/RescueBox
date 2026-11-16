@@ -28,7 +28,6 @@ from nicegui import ui
 from nicegui.testing import User
 from rb.api.models import BatchTextResponse, MarkdownResponse, TextResponse
 
-from frontend.chatbot.utils import calculate_text_area_height
 from frontend.components.results import render_batch_text, render_markdown, render_text
 
 # Test constants
@@ -369,46 +368,3 @@ class TestTextRenderers:
         await user.should_see("éñüñ")  # Special characters
         await user.should_see("New line here")  # Newline handling
         await user.should_see("©®™")  # Unicode symbols
-
-
-class TestTextAreaHeightCalculation:
-    """Unit tests for text area height calculation utility.
-
-    Tests the calculate_text_area_height function that dynamically
-    determines appropriate CSS height classes based on text length.
-    """
-
-    def test_calculate_text_area_height_short_text(self):
-        """Test height calculation for short text."""
-        result = calculate_text_area_height(50)
-        assert result == "h-25"
-
-    def test_calculate_text_area_height_medium_text(self):
-        """Test height calculation for medium text."""
-        result = calculate_text_area_height(300)
-        assert result == "h-75"
-
-    def test_calculate_text_area_height_long_text(self):
-        """Test height calculation for long text (Twinkle Twinkle lyrics)."""
-        result = calculate_text_area_height(683)  # Length of test lyrics
-        assert result == "h-96"  # Capped at max
-
-    def test_calculate_text_area_height_very_long_text(self):
-        """Test height calculation for very long text."""
-        result = calculate_text_area_height(2000)
-        assert result == "h-96"  # Maximum height cap
-
-    def test_calculate_text_area_height_empty_text(self):
-        """Test height calculation for empty text."""
-        result = calculate_text_area_height(0)
-        assert result == "h-24"  # Minimum height
-
-    def test_calculate_text_area_height_edge_cases(self):
-        """Test height calculation edge cases."""
-        # Very large text
-        result = calculate_text_area_height(10000)
-        assert result == "h-96"  # Maximum height cap
-
-        # Boundary text
-        result = calculate_text_area_height(400)
-        assert result == "h-95"

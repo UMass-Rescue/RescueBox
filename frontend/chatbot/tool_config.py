@@ -188,6 +188,7 @@ class RescueBoxToolCall(BaseModel):
         "text_summarization/summarize",
         "image_summary/summarize-images",
         "image_embeddings/search_images",
+        "text_embeddings/search",
         "image_series_similarity/search_series",
         "image_series_similarity/export_embeddings",
         "image_series_similarity/import_embeddings",
@@ -218,6 +219,7 @@ SCHEMA_MAP: dict[str, type[BaseModel]] = {
     "image_summary/summarize-images": ImageSummarize,
     # List image (CLIP) search before text search so tool JSON order matches typical "search images" intent.
     "image_embeddings/search_images": ImageSearch,
+    "text_embeddings/search": TextSearch,
     "image_series_similarity/search_series": ImageSeriesSearch,
     "image_series_similarity/export_embeddings": ImageSeriesExportPrivateEmbeddings,
     "image_series_similarity/import_embeddings": ImageSeriesImportPrivateEmbeddings,

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import logging
-
+from collections.abc import Callable
+from typing import Any
 from nicegui import ui
-
 from frontend.chatbot.config import ToolRegistry
 from frontend.design_tokens import Design
 
@@ -26,17 +28,41 @@ _LAUNCH_ROW = (
 
 
 class ToolPicker:
-    def __init__(self, container, tool_registry, on_tool_selected):
+    """Renders a tool picker UI and supports both awaitable selection and callback modes."""
+
+    def __init__(
+        self,
+        container: ui.element,
+        tool_registry: ToolRegistry | None = None,
+        on_tool_selected: Callable | None = None,
+    ):
         self.container = container
         self.tool_registry = tool_registry
         self.on_tool_selected = on_tool_selected
+        self._selection_future: asyncio.Future[tuple[str, dict[str, Any]]] | None = None
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def menu_registry(self):
-        """Tool registry backing this picker."""
-        return self.tool_registry
+    def _get_or_create_future(self) -> asyncio.Future[tuple[str, dict[str, Any]]]:
+        if self._selection_future is None:
+            self._selection_future = asyncio.get_running_loop().create_future()
+        return self._selection_future
 
-    async def show(self):
+    async def select_tool(self) -> tuple[str, dict[str, Any]]:
+        """Asynchronously display the picker and await user tool selection."""
+        fut = self._get_or_create_future()
+        await self.show()
+        return await fut
+
+    def _handle_select(self, endpoint: str, arguments: dict[str, Any]) -> None:
+        fut = self._get_or_create_future()
+        if not fut.done():
+            fut.set_result((endpoint, arguments))
+        if self.on_tool_selected:
+            res = self.on_tool_selected(endpoint, arguments)
+            if inspect.isawaitable(res):
+                asyncio.create_task(res)
+
+    async def show(self) -> None:
         self.logger.debug(
             "ToolPicker.show started. Registry type: %s", type(self.tool_registry)
         )
@@ -77,7 +103,7 @@ class ToolPicker:
                             )
                             row.on(
                                 "click",
-                                lambda *a, t=tool: self.on_tool_selected(
+                                lambda *a, t=tool: self._handle_select(
                                     t["endpoint"], {}
                                 ),
                             )
@@ -102,16 +128,39 @@ class ToolPicker:
 
 
 class AnalysisPicker:
-    def __init__(self, container, on_analysis_selected):
+    """Renders an analysis picker UI and supports both awaitable selection and callback modes."""
+
+    def __init__(
+        self,
+        container: ui.element,
+        on_analysis_selected: Callable | None = None,
+    ):
         self.container = container
         self.on_analysis_selected = on_analysis_selected
+        self._selection_future: asyncio.Future[str] | None = None
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def target_container(self):
-        """UI container where analysis options are rendered."""
-        return self.container
+    def _get_or_create_future(self) -> asyncio.Future[str]:
+        if self._selection_future is None:
+            self._selection_future = asyncio.get_running_loop().create_future()
+        return self._selection_future
 
-    async def show(self):
+    async def select_analysis(self) -> str:
+        """Asynchronously display the picker and await user analysis mode selection."""
+        fut = self._get_or_create_future()
+        await self.show()
+        return await fut
+
+    def _handle_select(self, a_type: str) -> None:
+        fut = self._get_or_create_future()
+        if not fut.done():
+            fut.set_result(a_type)
+        if self.on_analysis_selected:
+            res = self.on_analysis_selected(a_type)
+            if inspect.isawaitable(res):
+                asyncio.create_task(res)
+
+    async def show(self) -> None:
         self.logger.info("AnalysisPicker.show started")
         with self.container:
             with ui.card().classes(
@@ -153,9 +202,7 @@ class AnalysisPicker:
                             "hover:bg-slate-50 hover:border-[#881c1c] cursor-pointer transition-all duration-150 "
                             "items-center justify-between gap-4 border-l-4 border-l-[#881c1c]"
                         )
-                        row.on(
-                            "click", lambda *a, t=a_type: self.on_analysis_selected(t)
-                        )
+                        row.on("click", lambda *a, t=a_type: self._handle_select(t))
                         with row:
                             with ui.row().classes("items-center gap-4 flex-1 min-w-0"):
                                 with ui.element("div").classes(_TOOL_ICON_BOX):

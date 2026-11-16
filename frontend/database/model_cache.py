@@ -34,16 +34,6 @@ def init_db():
             table_exists = cursor.fetchone()
 
             migration_needed = not table_exists
-            if table_exists:
-                cursor.execute("PRAGMA table_info(models)")
-                columns = {column["name"] for column in cursor.fetchall()}
-                desired_columns = {"uid", "model_data", "cached_at"}
-                if not desired_columns.issubset(columns):
-                    logger.warning(
-                        "Cache database schema is outdated. Recreating 'models' table."
-                    )
-                    migration_needed = True
-                    cursor.execute("DROP TABLE models")
 
             if migration_needed:
                 logger.info("Creating 'models' table with the latest schema.")

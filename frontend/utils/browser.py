@@ -121,10 +121,6 @@ class DirectoryBrowser:
         self.path_display = None
         self.file_list = None
 
-    def open(self) -> None:
-        """Open the directory picker dialog."""
-        self.show()
-
     def _get_start_path(self) -> str:
         cand = _resolved_existing_directory(self.initial_path)
         if cand:
@@ -246,10 +242,6 @@ class FileBrowser:
         self.path_display = None
         self.file_list = None
         self.selection_label = None
-
-    def open(self) -> None:
-        """Open the file picker dialog."""
-        self.show()
 
     def _get_start_path(self) -> str:
         cand = _resolved_file_browser_folder(self.initial_path)

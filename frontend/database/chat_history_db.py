@@ -557,67 +557,6 @@ class ChatHistoryDB(BaseDatabase):
         )
         return messages
 
-    # get_message is implemented above with ownership checks
-
-    async def delete_message(self, message_id: str) -> bool:
-        """
-        Delete a message.
-
-        Args:
-            message_id: Message unique identifier
-
-        Returns:
-            bool: True if deletion successful, False otherwise
-        """
-        conn = self.connect()
-        logger.info("Deleting message: %s", message_id)
-
-        # Get conversation_id before deleting
-        cursor = conn.execute(
-            "SELECT conversation_id FROM chat_messages WHERE message_id = ?",
-            (message_id,),
-        )
-        row = cursor.fetchone()
-
-        if not row:
-            return False
-
-        conversation_id = row["conversation_id"]
-
-        # Ownership check: ensure current user owns the conversation (if session present)
-        current_user = self._get_current_user()
-        if current_user:
-            conv_user = self._conversation_user_id(conn, conversation_id)
-            if conv_user and conv_user != current_user:
-                logger.warning(
-                    "Access denied to delete message %s for user %s",
-                    message_id,
-                    current_user,
-                )
-                return False
-
-        # Delete message
-        cursor = conn.execute(
-            "DELETE FROM chat_messages WHERE message_id = ?", (message_id,)
-        )
-
-        # Update conversation message count
-        conn.execute(
-            """
-            UPDATE conversations
-            SET message_count = message_count - 1
-            WHERE conversation_id = ?
-        """,
-            (conversation_id,),
-        )
-
-        conn.commit()
-
-        if cursor.rowcount > 0:
-            logger.info("Message %s deleted", message_id)
-            return True
-        return False
-
     async def get_tool_call_history(
         self, endpoint: str | None = None
     ) -> list[ChatMessageRecord]:

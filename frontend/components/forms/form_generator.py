@@ -69,11 +69,6 @@ class FormGenerator:
         self.form_data = {}
         self.form_widgets = {}
 
-    def reset(self) -> None:
-        """Clear collected form state and widget references."""
-        self.form_data = {}
-        self.form_widgets = {}
-
     async def generate_form(
         self,
         schema,
