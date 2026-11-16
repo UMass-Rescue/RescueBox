@@ -2,14 +2,14 @@ import inspect
 import typing
 
 import typer
-from anytree import Node
+from anytree import Node  # type: ignore
 from rb.api.models import InputType
 
 
 def get_inputs_from_signature(
     signature: inspect.Signature,
     command: typer.models.CommandInfo | None = None,
-    schema_commands: dict = None,
+    schema_commands: dict | None = None,
 ) -> list[dict]:
     result = []
 
@@ -66,7 +66,6 @@ def get_inputs_from_signature(
                     pass
 
     for param in signature.parameters.values():
-
         data = {
             "name": param.name,
         }
@@ -78,14 +77,14 @@ def get_inputs_from_signature(
             data["type"] = param.annotation.__name__
 
         if isinstance(param.default, typer.models.OptionInfo):
-            data["default"] = param.default.default
-            data["help"] = param.default.help
+            data["default"] = param.default.default  # type: ignore
+            data["help"] = param.default.help  # type: ignore
         elif isinstance(param.default, typer.models.ArgumentInfo):
-            data["help"] = param.default.help
+            data["help"] = param.default.help  # type: ignore
         elif param.default is not inspect.Parameter.empty:
             data["default"] = param.default
         else:
-            data["default"] = None
+            data["default"] = None  # type: ignore
         result.append(data)
     return result
 
@@ -97,7 +96,6 @@ def typer_app_to_tree(app: typer.Typer) -> tuple[dict, dict]:
     _node_map = {}
 
     def add_commands_to_node(typer_app: typer.Typer, parent_node: Node):
-
         for group in getattr(typer_app, "registered_groups", []):
             group_node = Node(
                 group.name,
@@ -141,11 +139,11 @@ def typer_app_to_tree(app: typer.Typer) -> tuple[dict, dict]:
             return None
 
     def node_to_dict(node: Node) -> dict:
-        _node = node.command
+        _node = node.command  # type: ignore
         endpoint_path = "/" + "/".join([_.name.split("/")[-1] for _ in node.path][1:])
         result = {
             "name": node.name,
-            "is_group": node.is_group,
+            "is_group": node.is_group,  # type: ignore
             "help": None,
             "order": 0,
         }
@@ -153,16 +151,18 @@ def typer_app_to_tree(app: typer.Typer) -> tuple[dict, dict]:
         if _node:
             _node_map[endpoint_path] = _node
 
-        endpoint = get_endpoint_from_schema(node.command)
+        endpoint = get_endpoint_from_schema(node.command)  # type: ignore
 
         if endpoint:
             result["order"] = endpoint.order
 
-        if not node.is_group:
+        if not node.is_group:  # type: ignore
             result["endpoint"] = endpoint_path
 
             result["inputs"] = get_inputs_from_signature(
-                node.signature, node.command, schema_commands
+                node.signature,  # type: ignore
+                node.command,  # type: ignore
+                schema_commands,  # type: ignore
             )
             if (
                 endpoint
@@ -171,9 +171,9 @@ def typer_app_to_tree(app: typer.Typer) -> tuple[dict, dict]:
                 or node.name.endswith("/app_metadata")
             ):
                 result["endpoint"] = node.name
-            result["help"] = node.command.callback.__doc__
+            result["help"] = node.command.callback.__doc__  # type: ignore
             if result["help"] is None:
-                result["help"] = node.command.help
+                result["help"] = node.command.help  # type: ignore
 
         if node.children:
             children_as_dicts = [node_to_dict(child) for child in node.children]

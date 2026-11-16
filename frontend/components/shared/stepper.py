@@ -19,7 +19,7 @@ class WorkflowStepper:
     Usage:
         stepper = WorkflowStepper(['Input', 'Review', 'Submit', 'Results'])
         stepper.set_step(0)  # Start at first step
-        stepper.next_step()  # Move to next step
+        stepper.set_step(1)  # Move to next step
         stepper.set_step(3)  # Jump to specific step
     """
 
@@ -154,48 +154,6 @@ class WorkflowStepper:
         self.step_elements.clear()
         self._render()
 
-    def next_step(self):
-        """
-        Move to next step.
-
-        Returns:
-            None
-        """
-        if self.current_step < len(self.steps) - 1:
-            self.set_step(self.current_step + 1)
-        else:
-            logger.warning("Already at last step")
-
-    def previous_step(self):
-        """
-        Move to previous step.
-
-        Returns:
-            None
-        """
-        if self.current_step > 0:
-            self.set_step(self.current_step - 1)
-        else:
-            logger.warning("Already at first step")
-
-    def get_current_step_name(self) -> str:
-        """
-        Get name of current step.
-
-        Returns:
-            Current step name
-        """
-        return self.steps[self.current_step]
-
-    def is_complete(self) -> bool:
-        """
-        Check if all steps are complete.
-
-        Returns:
-            True if at last step
-        """
-        return self.current_step >= len(self.steps) - 1
-
 
 def create_workflow_stepper(
     steps: list[str], current_step: int = 0, container: ui.element | None = None
@@ -218,31 +176,6 @@ def create_workflow_stepper(
             ['Select Tool', 'Fill Form', 'Submit', 'View Results'],
             current_step=0
         )
-        stepper.next_step()  # Move to "Fill Form"
+        stepper.set_step(1)  # Move to "Fill Form"
     """
     return WorkflowStepper(steps, current_step, container)
-
-
-# Define workflow steps for chatbot
-CHATBOT_WORKFLOW_STEPS = [
-    "Message Sent",
-    "Tool Selected",
-    "Form Ready",
-    "Submitting",
-    "Results Ready",
-]
-
-
-def create_chatbot_stepper(container: ui.element) -> WorkflowStepper:
-    """
-    Create stepper for chatbot workflow.
-
-    Args:
-        container: Container to render stepper into
-
-    Returns:
-        WorkflowStepper instance
-    """
-    return WorkflowStepper(
-        steps=CHATBOT_WORKFLOW_STEPS, current_step=0, container=container
-    )

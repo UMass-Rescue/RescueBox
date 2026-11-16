@@ -194,11 +194,8 @@ def _resolved_file_browser_folder(initial: str | None) -> str | None:
 
 def _input_schema_directory_requires_raster_image_corpus(
     input_schema: Any,
-    all_inputs: list[Any] = None,
-    input_index: int = -1,
 ) -> bool:
     """True when the given directory input likely needs to contain raster images."""
-    _ = (all_inputs, input_index)
     label = (input_schema.label or "").strip().lower()
     key = (input_schema.key or "").strip().lower()
     if "image" in label or "photo" in label or "picture" in label:

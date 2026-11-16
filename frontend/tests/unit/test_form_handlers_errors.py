@@ -57,12 +57,18 @@ class TestFormHandlersErrorHandling:
         data submission.
         """
 
-        with patch(
-            "frontend.components.forms.form_generator.validate_form_data",
-            return_value={"is_valid": False, "errors": {"input_dir": "Invalid path"}},
-        ), patch(
-            "frontend.components.forms.form_generator.handle_validation_error"
-        ) as mock_handle_error:
+        with (
+            patch(
+                "frontend.components.forms.form_generator.validate_form_data",
+                return_value={
+                    "is_valid": False,
+                    "errors": {"input_dir": "Invalid path"},
+                },
+            ),
+            patch(
+                "frontend.components.forms.form_generator.handle_validation_error"
+            ) as mock_handle_error,
+        ):
             submit_called = False
 
             def mock_submit(data):
@@ -89,16 +95,20 @@ class TestFormHandlersErrorHandling:
         """
         from frontend.components.forms import form_generator
 
-        with patch(
-            "frontend.components.forms.form_generator.validate_form_data",
-            return_value={"is_valid": True, "errors": {}},
-        ), patch.object(
-            form_generator,
-            "collect_form_data",
-            side_effect=RuntimeError("Collection error"),
-        ), patch(
-            "frontend.components.forms.form_generator.show_error_to_user"
-        ) as mock_show_error:
+        with (
+            patch(
+                "frontend.components.forms.form_generator.validate_form_data",
+                return_value={"is_valid": True, "errors": {}},
+            ),
+            patch.object(
+                form_generator,
+                "collect_form_data",
+                side_effect=RuntimeError("Collection error"),
+            ),
+            patch(
+                "frontend.components.forms.form_generator.show_error_to_user"
+            ) as mock_show_error,
+        ):
             submit_called = False
 
             def mock_submit(data):
@@ -126,16 +136,20 @@ class TestFormHandlersErrorHandling:
         """
         from frontend.components.forms import form_generator
 
-        with patch(
-            "frontend.components.forms.form_generator.validate_form_data",
-            return_value={"is_valid": True, "errors": {}},
-        ), patch.object(
-            form_generator,
-            "collect_form_data",
-            return_value={"inputs": {}, "parameters": {}},
-        ), patch(
-            "frontend.components.forms.form_generator.show_error_to_user"
-        ) as mock_show_error:
+        with (
+            patch(
+                "frontend.components.forms.form_generator.validate_form_data",
+                return_value={"is_valid": True, "errors": {}},
+            ),
+            patch.object(
+                form_generator,
+                "collect_form_data",
+                return_value={"inputs": {}, "parameters": {}},
+            ),
+            patch(
+                "frontend.components.forms.form_generator.show_error_to_user"
+            ) as mock_show_error,
+        ):
 
             def mock_submit(data):
                 raise RuntimeError("Submit error")
@@ -153,16 +167,20 @@ class TestFormHandlersErrorHandling:
         """Test handling of missing submit callback"""
         from frontend.components.forms import form_generator
 
-        with patch(
-            "frontend.components.forms.form_generator.validate_form_data",
-            return_value={"is_valid": True, "errors": {}},
-        ), patch.object(
-            form_generator,
-            "collect_form_data",
-            return_value={"inputs": {}, "parameters": {}},
-        ), patch(
-            "frontend.components.forms.form_generator.show_error_to_user"
-        ) as mock_show_error:
+        with (
+            patch(
+                "frontend.components.forms.form_generator.validate_form_data",
+                return_value={"is_valid": True, "errors": {}},
+            ),
+            patch.object(
+                form_generator,
+                "collect_form_data",
+                return_value={"inputs": {}, "parameters": {}},
+            ),
+            patch(
+                "frontend.components.forms.form_generator.show_error_to_user"
+            ) as mock_show_error,
+        ):
             await handle_form_submit(sample_task_schema, mock_form_widgets, None)
 
             # Should show error to user
@@ -175,12 +193,15 @@ class TestFormHandlersErrorHandling:
     ):
         """Test handling of unexpected error during form submission"""
 
-        with patch(
-            "frontend.components.forms.form_generator.validate_form_data",
-            side_effect=RuntimeError("Unexpected error"),
-        ), patch(
-            "frontend.components.forms.form_generator.show_error_to_user"
-        ) as mock_show_error:
+        with (
+            patch(
+                "frontend.components.forms.form_generator.validate_form_data",
+                side_effect=RuntimeError("Unexpected error"),
+            ),
+            patch(
+                "frontend.components.forms.form_generator.show_error_to_user"
+            ) as mock_show_error,
+        ):
             submit_called = False
 
             def mock_submit(data):

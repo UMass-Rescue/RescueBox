@@ -49,8 +49,10 @@ def create_navbar():
             # logger.debug("Creating navbar container with responsive layout")
 
             with ui.row().classes("shrink-0 items-center gap-2 min-w-0"):
-                with ui.row().classes("items-center cursor-pointer").on(
-                    "click", lambda _: ui.navigate.to("/")
+                with (
+                    ui.row()
+                    .classes("items-center cursor-pointer")
+                    .on("click", lambda _: ui.navigate.to("/"))
                 ):
                     ui.html(
                         '<img src="/icons/logo.png" class="h-8 sm:h-9 md:h-10 w-auto object-contain shrink-0" />',
@@ -68,26 +70,31 @@ def create_navbar():
 
                     if len(all_cases) <= 1:
                         # Just show a clean static badge if there is only one case in the system
-                        with ui.row().classes(
-                            "items-center gap-1 bg-black/20 px-2.5 py-1 rounded-lg "
-                            "border border-white/20 ml-2 cursor-pointer"
-                        ).on("click", lambda _: ui.navigate.to("/case")):
+                        with (
+                            ui.row()
+                            .classes(
+                                "items-center gap-1 bg-black/20 px-2.5 py-1 rounded-lg "
+                                "border border-white/20 ml-2 cursor-pointer"
+                            )
+                            .on("click", lambda _: ui.navigate.to("/case"))
+                        ):
                             ui.label(f"Case: {active_case.caseNumber}").classes(
                                 "text-xs font-semibold text-white"
                             )
                     else:
                         # Show the interactive dropdown if there are multiple cases to switch between
-                        with ui.dropdown_button(
-                            f"Case: {active_case.caseNumber}",
-                            color=None,
-                            auto_close=True,
-                        ).classes(
-                            "text-xs font-semibold text-white bg-black/20 px-2.5 py-1 "
-                            "rounded-lg border border-white/20 ml-2 cursor-pointer"
-                        ).props(
-                            "flat dense no-caps split"
-                        ).on(
-                            "click", lambda _: ui.navigate.to("/case")
+                        with (
+                            ui.dropdown_button(
+                                f"Case: {active_case.caseNumber}",
+                                color=None,
+                                auto_close=True,
+                            )
+                            .classes(
+                                "text-xs font-semibold text-white bg-black/20 px-2.5 py-1 "
+                                "rounded-lg border border-white/20 ml-2 cursor-pointer"
+                            )
+                            .props("flat dense no-caps split")
+                            .on("click", lambda _: ui.navigate.to("/case"))
                         ):
                             ui.menu_item(
                                 "Case Overview",
@@ -161,11 +168,15 @@ def create_navbar():
                         else:
                             ui.navigate.to(constants.NAV_LINKS["demo"])
 
-                    with ui.dropdown_button(
-                        "Resources",
-                        color=None,
-                        auto_close=True,
-                    ).classes(_link_cls).props("flat dense no-caps"):
+                    with (
+                        ui.dropdown_button(
+                            "Resources",
+                            color=None,
+                            auto_close=True,
+                        )
+                        .classes(_link_cls)
+                        .props("flat dense no-caps")
+                    ):
                         ui.menu_item("Readme", on_click=_open_readme)
                         ui.menu_item("Demo", on_click=_open_demo)
                         ui.menu_item("About", on_click=_open_about)

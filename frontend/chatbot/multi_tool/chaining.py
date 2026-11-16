@@ -108,8 +108,9 @@ def chain_output_to_input(
     logger.info("Chaining path '%s' to input '%s'", output_path, input_dir_key)
     current_arguments = current_arguments.copy()
     current_arguments[input_dir_key] = output_path
-    current_arguments[output_dir_key] = output_path
-    logger.info("Chaining path '%s' to output '%s'", output_path, output_dir_key)
+    if output_dir_key is not None:
+        current_arguments[output_dir_key] = output_path
+        logger.info("Chaining path '%s' to output '%s'", output_path, output_dir_key)
     _apply_default_summarize_output_dir(
         current_arguments, current_schema, input_dir_key, output_path
     )

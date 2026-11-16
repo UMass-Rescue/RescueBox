@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import String, Text
@@ -226,7 +227,7 @@ def create_db_and_tables():
 
 
 class TextEmbedding(SQLModel, table=True):
-    __tablename__ = "text_embeddings"
+    __tablename__: Any = "text_embeddings"
 
     id: int | None = Field(default=None, primary_key=True)
     path: str = Field(index=True)
@@ -237,7 +238,7 @@ class TextEmbedding(SQLModel, table=True):
 class TextEmbeddingChunk(SQLModel, table=True):
     """Chunk-level text embedding for better semantic recall (e.g. 'stones' matches 'pebbles')."""
 
-    __tablename__ = "text_embedding_chunks"
+    __tablename__: Any = "text_embedding_chunks"
 
     id: int | None = Field(default=None, primary_key=True)
     path: str = Field(index=True)
@@ -252,7 +253,7 @@ class TextEmbeddingChunk(SQLModel, table=True):
 
 
 class ImageEmbedding(SQLModel, table=True):
-    __tablename__ = "image_embeddings"
+    __tablename__: Any = "image_embeddings"
 
     id: int | None = Field(default=None, primary_key=True)
     path: str = Field(index=True)
@@ -265,7 +266,7 @@ class ImageEmbedding(SQLModel, table=True):
 class ImageSimilarityEmbedding(SQLModel, table=True):
     """Image embeddings used by the image-to-image similarity search plugin (public only)."""
 
-    __tablename__ = "image_similarity_embeddings"
+    __tablename__: Any = "image_similarity_embeddings"
 
     id: int | None = Field(default=None, primary_key=True)
     path: str = Field(index=True)
@@ -282,10 +283,10 @@ class ImageSimilarityEmbedding(SQLModel, table=True):
 class ImageSimilarityPrivateEmbedding(SQLModel, table=True):
     """Anonymized image embeddings — isolated from public embeddings by design."""
 
-    __tablename__ = "image_similarity_private_embeddings"
+    __tablename__: Any = "image_similarity_private_embeddings"
 
     id: int | None = Field(default=None, primary_key=True)
-    path: str = Field(index=True)
+    path: str = Field(default="", index=True)
     content_sha256: str = Field(default="", sa_column=Column(String(64), index=True))
     model_name: str = Field(
         default="google/siglip2-so400m-patch14-384",
@@ -340,7 +341,7 @@ class ArchiveFile(SQLModel, table=True):
 class FaceEmbedding(SQLModel, table=True):
     """Face-match plugin embeddings (replaces per-scope Chroma collections)."""
 
-    __tablename__ = "face_embeddings"
+    __tablename__: Any = "face_embeddings"
 
     id: int | None = Field(default=None, primary_key=True)
     # Isolation key (demo folder, RescueBox user hash, or "" for legacy default).

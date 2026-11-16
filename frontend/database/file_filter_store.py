@@ -137,36 +137,6 @@ def load_filter(
     return data
 
 
-def list_filters(
-    owner_id: str | None = None, conn: sqlite3.Connection | None = None
-) -> list[dict[str, Any]]:
-    conn = _get_conn(conn)
-    if owner_id:
-        cur = conn.execute(
-            "SELECT * FROM file_filters WHERE owner_id = ? ORDER BY created_at DESC",
-            (owner_id,),
-        )
-    else:
-        cur = conn.execute("SELECT * FROM file_filters ORDER BY created_at DESC")
-    rows = cur.fetchall()
-    result = []
-    cols = [c[0] for c in cur.description]
-    for row in rows:
-        data = dict(zip(cols, row))
-        # parse JSON lightly
-        data["paths_json"] = _json_loads_or(data.get("paths_json") or "[]", [])
-        data["patterns_json"] = _json_loads_or(data.get("patterns_json") or "[]", [])
-        result.append(data)
-    return result
-
-
-def delete_filter(filter_id: str, conn: sqlite3.Connection | None = None) -> bool:
-    conn = _get_conn(conn)
-    cur = conn.execute("DELETE FROM file_filters WHERE id = ?", (filter_id,))
-    conn.commit()
-    return cur.rowcount > 0
-
-
 def resolve_filter_for_job(
     batch_file_input: Any,
     input_dir: Path,

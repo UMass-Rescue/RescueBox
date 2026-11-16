@@ -1,17 +1,13 @@
 """Job record types shared by ``job_db`` and UI helpers (no SQLite)."""
 
 import json
-import logging
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 from rb.api.models import RequestBody, ResponseBody, TaskSchema
 
-from frontend.database.db_exceptions import DB_ERRORS
 from frontend.database.validation import DatabaseValidator
-
-logger = logging.getLogger(__name__)
 
 
 class JobStatus(str, Enum):
@@ -32,113 +28,45 @@ class JobRecord(BaseModel):
     """
 
     uid: str = Field(..., description="Unique job identifier")
-    userId: str | None = Field(None, description="NiceGUI session or user identifier")
-    modelUid: str | None = Field(None, description="Model UID for traditional jobs")
-    taskUid: str | None = Field(None, description="Task UID for traditional jobs")
-    endpoint: str | None = Field(None, description="Endpoint name for chatbot jobs")
+    userId: str | None = Field(
+        default=None, description="NiceGUI session or user identifier"
+    )
+    modelUid: str | None = Field(
+        default=None, description="Model UID for traditional jobs"
+    )
+    taskUid: str | None = Field(
+        default=None, description="Task UID for traditional jobs"
+    )
+    endpoint: str | None = Field(
+        default=None, description="Endpoint name for chatbot jobs"
+    )
     endpointChain: list[str] | None = Field(
-        None,
+        default=None,
         description="Ordered endpoints for multi-step chatbot pipelines (includes current job endpoint)",
     )
     pipelineRootJobId: str | None = Field(
-        None,
+        default=None,
         description="Stable id for the first job in a multi-step pipeline; links sibling step jobs",
     )
     pipelineMetadataFilterCriteria: str | None = Field(
-        None,
+        default=None,
         description="Classifier metadata filter (e.g. age/gender) applied when chaining to the next pipeline step",
     )
     filterId: str | None = Field(
-        None, description="Optional persisted filter id linking to file_filters"
+        default=None, description="Optional persisted filter id linking to file_filters"
     )
     caseNotes: str | None = Field(
-        None, description="User-entered case notes for the job"
+        default=None, description="User-entered case notes for the job"
     )
     startTime: str = Field(..., description="Job start time in ISO format")
-    endTime: str | None = Field(None, description="Job end time in ISO format")
+    endTime: str | None = Field(default=None, description="Job end time in ISO format")
     status: JobStatus = Field(..., description="Job status")
-    statusText: str | None = Field(None, description="Status text for errors")
+    statusText: str | None = Field(default=None, description="Status text for errors")
     request: RequestBody | dict[str, Any] = Field(..., description="Request body")
     response: ResponseBody | dict[str, Any] | None = Field(
-        None, description="Response body"
+        default=None, description="Response body"
     )
     taskSchema: TaskSchema | dict[str, Any] = Field(..., description="Task schema")
-
-    @field_validator("request", mode="before")
-    @classmethod
-    def validate_request(cls, v):
-        """Convert dict to RequestBody if needed"""
-        if isinstance(v, dict):
-            try:
-                return RequestBody(**v)
-            except DB_ERRORS as e:
-                logger.warning(
-                    "Could not validate request as RequestBody, keeping as dict: %s", e
-                )
-                return v
-        return v
-
-    @field_validator("response", mode="before")
-    @classmethod
-    def validate_response(cls, v):
-        """Convert dict to ResponseBody if needed"""
-        if v is None:
-            return None
-        if isinstance(v, dict):
-            try:
-                return ResponseBody(**v)
-            except DB_ERRORS as e:
-                logger.warning(
-                    "Could not validate response as ResponseBody, keeping as dict: %s",
-                    e,
-                )
-                return v
-        return v
-
-    @field_validator("taskSchema", mode="before")
-    @classmethod
-    def validate_task_schema(cls, v):
-        """Convert dict to TaskSchema if needed"""
-        if isinstance(v, dict):
-            try:
-                return TaskSchema(**v)
-            except DB_ERRORS as e:
-                logger.warning(
-                    "Could not validate taskSchema as TaskSchema, keeping as dict: %s",
-                    e,
-                )
-                return v
-        return v
-
-    @field_validator("endpointChain", mode="before")
-    @classmethod
-    def validate_endpoint_chain(cls, v):
-        if v is None or v == "":
-            return None
-        if isinstance(v, list):
-            return [str(x) for x in v]
-        if isinstance(v, str):
-            try:
-                data = json.loads(v)
-                return [str(x) for x in data] if isinstance(data, list) else None
-            except json.JSONDecodeError:
-                return None
-        return None
-
-    @field_validator("status", mode="before")
-    @classmethod
-    def validate_status(cls, v):
-        """Convert string to JobStatus if needed"""
-        if isinstance(v, str):
-            try:
-                return JobStatus(v)
-            except ValueError:
-                for status in JobStatus:
-                    if status.value.lower() == v.lower():
-                        return status
-                logger.warning("Unknown status: %s, using RUNNING", v)
-                return JobStatus.RUNNING
-        return v
 
     def model_dump_for_db(self) -> dict[str, Any]:
         """Convert JobRecord to dict for database storage."""

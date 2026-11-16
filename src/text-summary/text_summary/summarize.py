@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 def extract_text(file_path: Path) -> str:
     parser = PARSERS.get(file_path.suffix.lower())
-    return parser(file_path)
+    return parser(file_path)  # type: ignore
 
 
-def process_files(model: str, input_dir: str, output_dir: str) -> None:
+def process_files(model: str, input_dir: str, output_dir: str) -> set[str]:
     ensure_model_exists(model)
     input_path = Path(input_dir)
     if not input_path.exists():

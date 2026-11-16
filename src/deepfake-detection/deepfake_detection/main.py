@@ -33,7 +33,7 @@ from deepfake_detection.sim_data import defaultDataset
 
 APP_NAME = "deepfake_detection"
 server = MLService(APP_NAME)
-_MODELS_DIR = server.models_dir
+_MODELS_DIR = server.models_dir or Path()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -245,7 +245,7 @@ def give_prediction(inputs: Inputs, parameters: Parameters) -> ResponseBody:
         crop_preview_root = out.parent if out.suffix else out
         crop_preview_root.mkdir(parents=True, exist_ok=True)
         for m in active_models:
-            m.crop_preview_dir = str(crop_preview_root.resolve())
+            m.crop_preview_dir = str(crop_preview_root.resolve())  # type: ignore
 
         now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 

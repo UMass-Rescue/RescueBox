@@ -7,7 +7,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
-from typing import Annotated, Any, get_type_hints
+from typing import Annotated, get_type_hints
 
 import typer
 from fastapi import Body
@@ -178,7 +178,7 @@ class MLService:
     def add_ml_service(
         self,
         rule: str,
-        ml_function: Callable[[Any, Any], ResponseBody],
+        ml_function: Callable[..., ResponseBody],
         inputs_cli_parser,
         parameters_cli_parser=None,
         task_schema_func: Callable[[], TaskSchema] | None = None,
@@ -187,9 +187,10 @@ class MLService:
         is_workflow_step: bool = False,
     ):
         ensure_ml_func_parameters_are_typed_dict(ml_function)
-        ensure_ml_func_hinting_and_task_schemas_are_valid(
-            ml_function, task_schema_func()
-        )
+        if task_schema_func is not None:
+            ensure_ml_func_hinting_and_task_schemas_are_valid(
+                ml_function, task_schema_func()
+            )
         processed_title = short_title or ""
         if is_workflow_step:
             processed_title = f"Step {order + 1}: {processed_title}"
@@ -242,14 +243,14 @@ class MLService:
         if parameter_type:
 
             @self.app.command(f"/{self.name}" + rule)
-            def run(
+            def run_with_params(
                 inputs: Annotated[
-                    merged_inputs_type,
+                    merged_inputs_type,  # type: ignore
                     inputs_cli_parser,
                     Body(embed=True),
                 ],
                 parameters: Annotated[
-                    parameter_type,
+                    parameter_type,  # type: ignore
                     parameters_cli_parser,
                     Body(embed=True),
                 ],
@@ -265,9 +266,9 @@ class MLService:
         else:
 
             @self.app.command(f"/{self.name}" + rule)
-            def run(
+            def run_without_params(
                 inputs: Annotated[
-                    merged_inputs_type,
+                    merged_inputs_type,  # type: ignore
                     inputs_cli_parser,
                     Body(embed=True),
                 ],

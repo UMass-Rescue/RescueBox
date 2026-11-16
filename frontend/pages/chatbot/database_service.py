@@ -13,9 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseService:
-    @staticmethod
-    def get_job_db():
-        return get_job_db()
 
     @staticmethod
     async def ensure_active_conversation(state_manager) -> str:
@@ -72,19 +69,9 @@ class DatabaseService:
         await chat_history.update_conversation(conversation_id, title=new_title)
 
     @staticmethod
-    async def save_message_to_history(
-        conversation_id: str, role: str, content: str, **kwargs
-    ):
-        chat_history = get_chat_history_db()
-        await chat_history.add_message(
-            conversation_id=conversation_id, role=role, content=content, **kwargs
-        )
-
-    @staticmethod
     async def create_and_track_job(
         request_body, endpoint: str, task_schema=None, **kwargs
     ):
-
         job_db = get_job_db()
         job_record = await job_db.create_job(
             request_body=request_body,
@@ -127,19 +114,6 @@ class DatabaseService:
                 "Could not snapshot request body for chat history", exc_info=True
             )
             return None
-
-    @staticmethod
-    async def save_tool_call_to_history(
-        conversation_id: str, endpoint: str, arguments: dict
-    ):
-        chat_history = get_chat_history_db()
-        await chat_history.add_message(
-            conversation_id=conversation_id,
-            role="assistant",
-            content=f"Selected tool: {endpoint}",
-            message_type="tool_call",
-            tool_calls=[{"name": endpoint, "arguments": arguments}],
-        )
 
     @staticmethod
     async def save_job_started_to_history(
@@ -222,10 +196,3 @@ class DatabaseService:
     ):
         # Implementation if needed by tests
         pass
-
-    @staticmethod
-    def set_logging_context(**kwargs):
-        return set_logging_context(**kwargs)
-
-
-DatabaseService.DatabaseService = DatabaseService

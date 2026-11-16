@@ -15,7 +15,7 @@ from frontend.components.shared import (
 )
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.database import get_job_db
-from frontend.job_progress import mirror_progress_to_jobs_db
+from frontend.utils.job_progress import mirror_progress_to_jobs_db
 from frontend.pages.page_shell import begin_demo_session_page
 from frontend.utils.storage import get_user_id_for_jobs
 

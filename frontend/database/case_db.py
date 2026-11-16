@@ -29,7 +29,9 @@ class CaseRecord(BaseModel):
 
     caseId: str = Field(..., description="Unique case identifier")
     caseNumber: str = Field(..., description="Case number or ID")
-    investigators: str | None = Field(None, description="Names of investigators")
+    investigators: str | None = Field(
+        default=None, description="Names of investigators"
+    )
     evidencePath: str = Field(..., description="Path to evidence folder or UFDR file")
     createdAt: str = Field(..., description="ISO timestamp of creation")
     updatedAt: str = Field(..., description="ISO timestamp of last update")
@@ -122,17 +124,6 @@ class CaseDB(BaseDatabase):
             return CaseRecord(**dict(row))
         return None
 
-    async def get_case_by_number(self, case_number: str) -> CaseRecord | None:
-        """Get a case by its case number."""
-        conn = self.connect()
-        cursor = conn.execute(
-            "SELECT * FROM cases WHERE caseNumber = ?", (case_number.strip(),)
-        )
-        row = cursor.fetchone()
-        if row:
-            return CaseRecord(**dict(row))
-        return None
-
     async def get_all_cases(self) -> list[CaseRecord]:
         """Get all cases, sorted by creation time (newest first)."""
         conn = self.connect()
@@ -153,13 +144,6 @@ class CaseDB(BaseDatabase):
             "UPDATE cases SET evidencePath = ?, updatedAt = ? WHERE caseId = ?",
             (new_path.strip(), now, case_id),
         )
-        conn.commit()
-        return cursor.rowcount > 0
-
-    async def delete_case(self, case_id: str) -> bool:
-        """Delete a case by its ID."""
-        conn = self.connect()
-        cursor = conn.execute("DELETE FROM cases WHERE caseId = ?", (case_id,))
         conn.commit()
         return cursor.rowcount > 0
 

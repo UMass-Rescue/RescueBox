@@ -188,6 +188,7 @@ class RescueBoxToolCall(BaseModel):
         "text_summarization/summarize",
         "image_summary/summarize-images",
         "image_embeddings/search_images",
+        "text_embeddings/search",
         "image_series_similarity/search_series",
         "image_series_similarity/export_embeddings",
         "image_series_similarity/import_embeddings",
@@ -211,13 +212,14 @@ class ToolCallList(BaseModel):
 # ==========================================
 # Tool Configuration (Editable)
 # ==========================================
-SCHEMA_MAP = {
+SCHEMA_MAP: dict[str, type[BaseModel]] = {
     "audio/transcribe": AudioTranscribe,
     "age-gender/predict": AgeGenderPredict,
     "text_summarization/summarize": TextSummarize,
     "image_summary/summarize-images": ImageSummarize,
     # List image (CLIP) search before text search so tool JSON order matches typical "search images" intent.
     "image_embeddings/search_images": ImageSearch,
+    "text_embeddings/search": TextSearch,
     "image_series_similarity/search_series": ImageSeriesSearch,
     "image_series_similarity/export_embeddings": ImageSeriesExportPrivateEmbeddings,
     "image_series_similarity/import_embeddings": ImageSeriesImportPrivateEmbeddings,
@@ -289,7 +291,7 @@ def generate_tool_definitions() -> list[dict]:
     return tools_definitions
 
 
-def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
+def create_advanced_granite_prompt(user_query: str) -> list[dict[str, Any]]:
     """
     Creates an advanced structured prompt for the Granite model with comprehensive tool chaining.
 
@@ -299,7 +301,7 @@ def create_advanced_granite_prompt(user_query: str) -> list[dict[str, str]]:
         user_query (str): The user's natural language request.
 
     Returns:
-        list[dict[str, str]]: A list of message dictionaries for chat completion.
+        list[dict[str, Any]]: A list of message dictionaries for chat completion.
     """
     # Generate Dynamic Schema for the prompt
     tools_definitions = generate_tool_definitions()

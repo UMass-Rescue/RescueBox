@@ -5,12 +5,12 @@ import cv2
 
 # 3rd party dependencies
 import numpy as np
-import onnxruntime as ort
-from rb.lib.ml_service import plugin_models_dir
+import onnxruntime as ort  # type: ignore
 from face_detection_recognition.utils import preprocessing
 
 # project dependencies
 from face_detection_recognition.utils.logger import log_info
+from rb.lib.ml_service import plugin_models_dir
 
 
 def get_embedding(
@@ -120,11 +120,12 @@ def get_embedding(
         # embedding = result[0].flatten()
         # log_info(f"Embedding shape: {results.shape}")
         # log_info(f"Embedding type: {type(embedding)}")
-        embeddings = results[0]
+        embeddings = results[0]  # type: ignore
         # log_info(f"Embedding shape: {embeddings.shape}")
-    embedding_norms = [np.linalg.norm(embedding) for embedding in embeddings]
+    embedding_norms = [np.linalg.norm(embedding) for embedding in embeddings]  # type: ignore
     normalized_embeddings = [
-        embeddings[i] / embedding_norms[i] for i in range(len(embeddings))
+        embeddings[i] / embedding_norms[i]  # type: ignore
+        for i in range(len(embeddings))  # type: ignore
     ]
 
     return normalized_embeddings

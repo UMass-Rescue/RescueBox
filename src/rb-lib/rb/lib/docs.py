@@ -21,9 +21,9 @@ def get_wiki_page_links():
         page_urls = [
             BASE_WIKI_URL
             + "/"
-            + link["href"].split("/")[-1]  # Append page name to base URL
+            + str(link["href"]).split("/")[-1]  # Append page name to base URL
             for link in wiki_links
-            if "/RescueBox/wiki/" in link["href"]
+            if "/RescueBox/wiki/" in str(link["href"])
         ]
 
         return page_urls

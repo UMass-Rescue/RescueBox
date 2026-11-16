@@ -95,9 +95,16 @@ tool_calls = parse_tool_calls_response(response_json)
 | `age-gender/predict` | `AgeGenderPredict` | Age/gender prediction from images |
 | `text_summarization/summarize` | `TextSummarize` | Text summarization with model selection |
 | `image_summary/summarize-images` | `ImageSummarize` | Image content summarization |
+| `image_embeddings/search_images` | `ImageSearch` | CLIP text-to-image similarity search |
+| `text_embeddings/search` | `TextSearch` | Semantic search over text files |
+| `image_series_similarity/search_series` | `ImageSeriesSearch` | Image series similarity search |
+| `image_series_similarity/export_embeddings` | `ImageSeriesExportPrivateEmbeddings` | Export image series embeddings |
+| `image_series_similarity/import_embeddings` | `ImageSeriesImportPrivateEmbeddings` | Import image series embeddings |
+| `ufdr_mounter/mount` | `UfdrMount` | UFDR package mounter |
 | `face-match/findfacebulk` | `FaceFindBulk` | Bulk face matching with similarity |
 | `face-match/bulkupload` | `FaceBulkUpload` | Bulk face database upload |
 | `deepfake_detection/predict` | `DeepfakeDetection` | Deepfake detection and reporting |
+| `rescuebox/unknown` | `FileSystemScan` | File system scanner |
 
 ## Dual Approach Availability
 

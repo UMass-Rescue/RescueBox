@@ -36,6 +36,7 @@ class AppMetadata(BaseModel):
     name: Annotated[str, Field(examples=["Face Match App"])]
     plugin_name: Annotated[str, Field(examples=["facematch"])]
     gpu: Annotated[bool, Field(alias="gpu")] = False
+    make_threadsafe: bool = True
 
 
 class SchemaAPIRoute(BaseModel):
@@ -68,7 +69,7 @@ class FileFilterDirectory(DirectoryInput):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    path: str
+    path: Path
     file_extensions: list[str]
 
     @field_validator("path")
@@ -93,7 +94,7 @@ class FileFilterDirectory(DirectoryInput):
         ]
         if len(number_of_matched_files) < 1:
             raise ValueError(
-                f"input directory validate failed: No file extensions matching {self.file_extensions} found in directory: {path_obj}"
+                f"input directory validation failed: \n No file extensions matching {self.file_extensions} found in directory: \n {path_obj}"
             )
         return self
 

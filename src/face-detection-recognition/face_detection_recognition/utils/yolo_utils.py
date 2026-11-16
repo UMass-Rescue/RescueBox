@@ -74,7 +74,6 @@ def get_target_size(model_name):
 
 
 def crop_face_for_facenet_embedding(face_img):
-
     if face_img is None or face_img.size == 0:
         return None
 
@@ -434,7 +433,6 @@ def prepare_for_embedding(face, model_name, normalization):
     # models generally expect uint8 input (0-255)
     # If we've normalized, we need to convert back
     if normalization and face is not None:
-
         if model_name == "Facenet512":
             # For FaceNet, revert normalization
             face_uint8 = ((face * 128.0) + 127.5).astype(np.uint8)
@@ -483,7 +481,6 @@ def process_yolo_detections(
     for boxes, scores, landmarks, image_path, img in zip(
         all_boxes, all_scores, all_landmarks, image_paths, imgs
     ):
-
         detections_per_image.append(len(boxes))
 
         if len(boxes) == 0:
@@ -505,13 +502,13 @@ def process_yolo_detections(
             if face is None or face.size == 0:
                 continue
 
-            region["confidence"] = float(score)
+            region["confidence"] = float(score)  # type: ignore
 
             # Align face if landmarks available
             if (
                 align
-                and region["left_eye"] is not None
-                and region["right_eye"] is not None
+                and region["left_eye"] is not None  # type: ignore
+                and region["right_eye"] is not None  # type: ignore
             ):
                 face = align_face(face, img, region)
 
@@ -531,7 +528,7 @@ def process_yolo_detections(
 
             elif model_name == "ArcFace":
                 face = crop_face_for_embedding(face)
-                face_resized = cv2.resize(face, target_size)
+                face_resized = cv2.resize(face, target_size)  # type: ignore
                 detection = np.clip(face_resized, 0, 255).astype(np.uint8)
 
             # Visualize processed faces
@@ -550,7 +547,6 @@ def process_yolo_detections(
 
     # Generate embedding
     try:
-
         embeddings = get_embedding(detections, model_name, "base")
 
     except Exception as e:

@@ -166,8 +166,9 @@ def render_model_info_card(
     (metadata and status only; no run action).
     """
     try:
-        with container, ui.card().classes(
-            "bg-zinc-50 border border-zinc-200 p-6 sticky top-24"
+        with (
+            container,
+            ui.card().classes("bg-zinc-50 border border-zinc-200 p-6 sticky top-24"),
         ):
             ui.label("Plugin").classes("text-xl font-bold mb-4")
 
@@ -220,9 +221,9 @@ def render_model_info_card(
 
             # GPU info
             gpu_required = (
-                model_info.gpu
-                if model_info and hasattr(model_info, "gpu")
-                else model_info_dict.get("gpu", False)
+                model_info.get("gpu", False)
+                if isinstance(model_info, dict)
+                else getattr(model_info, "gpu", model_info_dict.get("gpu", False))
             )
             if gpu_required:
                 with ui.column().classes("gap-2 mb-4"):

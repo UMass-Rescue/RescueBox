@@ -48,10 +48,6 @@ class ResultDispatcher:
     def __init__(self):
         self._renderers = None
 
-    def register_renderer(self, output_type: str, renderer) -> None:
-        """Register or override a renderer for an output type."""
-        self.renderers[output_type] = renderer
-
     @property
     def renderers(self):
         if self._renderers is None:
@@ -77,11 +73,6 @@ dispatcher = ResultDispatcher()
 
 
 class ResultsPreview:
-    @staticmethod
-    def supported_output_types():
-        """Output type keys handled by the dispatcher."""
-        return list(_RENDERERS.keys())
-
     @staticmethod
     def render(container, response):
         try:

@@ -9,7 +9,7 @@ from frontend.components.shared import create_navbar
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
 from frontend.constants import SUCCESS_MESSAGES, UI_TITLES
 from frontend.database import JobStatus, get_job_db
-from frontend.job_progress import mirror_running_jobs
+from frontend.utils.job_progress import mirror_running_jobs
 from frontend.utils import (
     apply_saved_theme,
     ensure_user_id,
@@ -56,6 +56,8 @@ class JobsPage:
             await handle_api_error(e, "Error loading jobs")
 
     async def render_jobs(self):
+        if not self.jobs_container:
+            return
         self.jobs_container.clear()
         with self.jobs_container:
             with ui.row().classes(

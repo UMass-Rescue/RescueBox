@@ -8,14 +8,19 @@ if TYPE_CHECKING:
         CaseDB,
         CaseRecord,
         get_case_db,
-    )
-    from .case_db import (
-        init_database as init_case_database,
+        init_case_database,
     )
     from .chat_history_db import (
         ChatMessageRecord,
         ConversationRecord,
         get_chat_history_db,
+    )
+    from .db_exceptions import (
+        DB_ERRORS,
+        DatabaseConnectionError,
+        DatabaseError,
+        RecordNotFoundError,
+        SchemaError,
     )
     from .job_db import get_job_db
     from .job_db import init_database as init_job_database
@@ -32,8 +37,13 @@ __all__ = [
     "CaseRecord",
     "ChatMessageRecord",
     "ConversationRecord",
+    "DatabaseConnectionError",
+    "DatabaseError",
+    "DB_ERRORS",
     "JobRecord",
     "JobStatus",
+    "RecordNotFoundError",
+    "SchemaError",
     "cache_models",
     "get_cached_model_by_uid",
     "get_cached_models",
@@ -47,6 +57,11 @@ __all__ = [
 
 # name -> (submodule, attribute on submodule; default same as name)
 _EXPORTS: dict[str, tuple[str, str]] = {
+    "DatabaseError": ("db_exceptions", "DatabaseError"),
+    "RecordNotFoundError": ("db_exceptions", "RecordNotFoundError"),
+    "SchemaError": ("db_exceptions", "SchemaError"),
+    "DatabaseConnectionError": ("db_exceptions", "DatabaseConnectionError"),
+    "DB_ERRORS": ("db_exceptions", "DB_ERRORS"),
     "init_db": ("model_cache", "init_db"),
     "cache_models": ("model_cache", "cache_models"),
     "get_cached_models": ("model_cache", "get_cached_models"),
@@ -61,7 +76,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "CaseRecord": ("case_db", "CaseRecord"),
     "CaseDB": ("case_db", "CaseDB"),
     "get_case_db": ("case_db", "get_case_db"),
-    "init_case_database": ("case_db", "init_database"),
+    "init_case_database": ("case_db", "init_case_database"),
 }
 
 

@@ -133,7 +133,7 @@ class TestAgeGender(RBAppTest):
                 assert file_map[k]["Age"] == expected_meta["age"]
         else:
             # Fallback: older behavior where root.value contained JSON string
-            preds = json.loads(body.root.value)
+            preds = json.loads(body.root.value)  # type: ignore
             assert len(preds) == 4
             for k, v in EXPECTED_OUTPUT.items():
                 assert k in preds

@@ -22,7 +22,7 @@ def get_arcface_embedding(face_img, model_path):
     output = session.run(None, {input_name: img_input})[0]
 
     # L2 normalize
-    embedding = output[0]
+    embedding = output[0]  # type: ignore
     embedding_norm = np.linalg.norm(embedding)
     normalized_embedding = embedding / embedding_norm
 

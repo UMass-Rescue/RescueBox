@@ -32,12 +32,3 @@ def create_breadcrumbs(items: list[dict[str, str | None]], container=None):
 
     logger.debug("Breadcrumbs created successfully")
     return breadcrumb_container
-
-
-def create_job_breadcrumbs(job_id: str, current_page: str = "Results"):
-    items = [
-        {"label": "Jobs", "link": "/jobs"},
-        {"label": f"Job {job_id[:8]}...", "link": f"/jobs/{job_id}"},
-        {"label": current_page},
-    ]
-    return create_breadcrumbs(items)

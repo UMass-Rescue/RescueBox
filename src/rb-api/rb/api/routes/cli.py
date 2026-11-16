@@ -57,11 +57,11 @@ def static_endpoint(callback: Callable, *args, **kwargs) -> ResponseBody:
             if isinstance(
                 result, dict
             ):  # or Ensure it's a valid dict model for desktop app metadata call to work
-                return result
+                return result  # type: ignore
             if isinstance(
                 result, list
             ):  # or Ensure it's a valid str model for routes call
-                return JSONResponse(content=result)
+                return JSONResponse(content=result)  # type: ignore
             if isinstance(
                 result, str
             ):  # or Ensure it's a valid str model for routes call
@@ -174,7 +174,7 @@ def command_callback(command: typer.models.CommandInfo, plugin_name: str):
         if streaming:
             return StreamingResponse(
                 streaming_endpoint(command.callback, *args, **kwargs)
-            )
+            )  # type: ignore
 
         return static_endpoint(command.callback, *args, **kwargs)
 

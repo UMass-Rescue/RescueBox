@@ -1,3 +1,4 @@
+# type: ignore
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -42,9 +43,13 @@ def test_get_pipeline_output_path_uses_response_extractor():
     response = ResponseBody(file_response)
     mock_job = MagicMock()
     mock_job.response = response
-    with patch("frontend.chatbot.pipeline_context.get_job_db") as mock_get_db, patch(
-        "frontend.chatbot.pipeline_context.extract_output_path", return_value="/tmp/out"
-    ) as mock_extract:
+    with (
+        patch("frontend.chatbot.pipeline_context.get_job_db") as mock_get_db,
+        patch(
+            "frontend.chatbot.pipeline_context.extract_output_path",
+            return_value="/tmp/out",
+        ) as mock_extract,
+    ):
         mock_get_db.return_value.get_job_by_uid_sync.return_value = mock_job
         assert get_pipeline_output_path("JOB_1") == "/tmp/out"
         mock_extract.assert_called_once_with(response)

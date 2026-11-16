@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional, Sequence, cast
 
 import numpy as np
 import onnxruntime as ort
@@ -114,7 +114,7 @@ def _create_mask(
     }
     outputs = session.run(None, ort_inputs)
 
-    logits = outputs[0]  # (num_labels, H, W)
+    logits = cast(np.ndarray, outputs[0])  # (num_labels, H, W)
     for i, label in enumerate(labels):
         mask_logits = logits[i]
         mask_prob = _sigmoid(mask_logits)

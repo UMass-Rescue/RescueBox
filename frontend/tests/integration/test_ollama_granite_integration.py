@@ -421,6 +421,7 @@ class TestOllamaGraniteIntegration:
                 assert (
                     result is not None and len(result) > 0
                 ), f"Request {i} failed to return tool calls"
+                assert isinstance(result, list)
 
                 first_tool = result[0]
                 assert (

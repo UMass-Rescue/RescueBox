@@ -1,3 +1,4 @@
+# type: ignore
 """
 Integration tests for post-refactor chatbot modules (no live backend required).
 

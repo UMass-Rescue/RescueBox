@@ -60,7 +60,6 @@ class PipelineHandler:
         response_body,
         container,
         core,
-        _load_form_func=None,
         accumulated_endpoint_chain=None,
         pipeline_total_steps=None,
         pipeline_root_job_id=None,

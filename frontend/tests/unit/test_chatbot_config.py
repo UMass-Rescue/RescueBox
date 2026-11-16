@@ -62,9 +62,8 @@ TOOL_MENU_KEY_9 = "9"
 
 # Help text constants
 RESCUEBOX_ASSISTANT_TEXT = "RescueBox Assistant"
-MENU_SELECTOR_TEXT = "Menu Selctor"
+MENU_SELECTOR_TEXT = "Menu Selector"
 NATURAL_LANGUAGE_TEXT = "natural language"
-THREE_WAYS_TEXT = "Three different ways"
 
 # Content filtering constants
 WEATHER_PATTERN = "weather"
@@ -112,7 +111,12 @@ class TestChatbotConfig:
         assert config.OLLAMA_HOST == "http://127.0.0.1:11434"
 
     def test_normalize_ollama_host_helper(self):
-        assert normalize_ollama_host("localhost:11434") == "http://127.0.0.1:11434"
+        assert normalize_ollama_host("localhost:11434") == "http://localhost:11434"
+        assert (
+            normalize_ollama_host("https://ollama.example") == "https://ollama.example"
+        )
+        assert normalize_ollama_host("0.0.0.0") == "http://127.0.0.1:11434"
+        assert normalize_ollama_host("") == "http://127.0.0.1:11434"
 
     def test_resolve_ollama_model_tag(self):
         tags = {
@@ -268,4 +272,4 @@ class TestToolRegistry:
         assert MENU_SELECTOR_TEXT in help_text
         assert TRANSCRIBE_KEYWORD in help_text.lower()
         assert NATURAL_LANGUAGE_TEXT in help_text.lower()
-        assert THREE_WAYS_TEXT in help_text
+        assert "different ways" in help_text

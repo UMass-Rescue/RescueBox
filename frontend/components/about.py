@@ -232,16 +232,8 @@ def render_license_documents_section(
             if val and val in third_party_files:
                 _show_document(val)
 
-        # NiceGUI event API: prefer `on_value_change` (newer), fall back to `on_change` (older).
-        if hasattr(main_select, "on_value_change"):
-            main_select.on_value_change(_on_main_change)
-        else:
-            main_select.on_change(_on_main_change)
-
-        if hasattr(third_select, "on_value_change"):
-            third_select.on_value_change(_on_third_change)
-        else:
-            third_select.on_change(_on_third_change)
+        main_select.on_value_change(_on_main_change)
+        third_select.on_value_change(_on_third_change)
         close_btn.on_click(_close_viewer)
 
         # Initial load from query param if present

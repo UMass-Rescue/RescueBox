@@ -9,13 +9,13 @@ from frontend.chatbot.config import ToolRegistry
 from frontend.components.chat import UIOperations
 from frontend.components.shared import render_loading_row
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
-from frontend.job_progress import (
+from frontend.utils.job_progress import (
     JobProgressPoller,
     cleanup_job_progress,
     init_job_progress,
 )
 from frontend.pages.chatbot.ui_flow import show_results
-from frontend.utils.ui import _safe_ui_call
+from frontend.utils.ui import safe_ui_call
 
 from .base import BaseHandler, FormErrorHandler
 from .job_lifecycle_service import JobLifecycleService
@@ -27,16 +27,16 @@ logger = logging.getLogger(__name__)
 
 def _delete_loading_row(loading_row) -> None:
     if loading_row and hasattr(loading_row, "delete"):
-        _safe_ui_call(loading_row.delete)
+        safe_ui_call(loading_row.delete)
 
 
 def _reset_form_state(state_manager) -> None:
-    _safe_ui_call(state_manager.set_processing, False)
-    _safe_ui_call(state_manager.set_input_enabled, True)
+    safe_ui_call(state_manager.set_processing, False)
+    safe_ui_call(state_manager.set_input_enabled, True)
 
 
 def _schedule_jobs_page_navigation() -> None:
-    _safe_ui_call(ui.timer, 0.1, lambda: ui.navigate.to("/jobs"), once=True)
+    safe_ui_call(ui.timer, 0.1, lambda: ui.navigate.to("/jobs"), once=True)
 
 
 class JobSubmissionOrchestrator(BaseHandler):
@@ -223,9 +223,6 @@ class JobSubmissionOrchestrator(BaseHandler):
 
         try:
             await self._handle_success(
-                request_body,
-                endpoint,
-                task_schema,
                 target_container,
                 core,
                 remaining_calls,
@@ -271,17 +268,14 @@ class JobSubmissionOrchestrator(BaseHandler):
 
     async def _handle_success(
         self,
-        _request_body,
-        endpoint,
-        task_schema,
         container,
         core,
         remaining_calls,
         conversation_id,
         response_body,
         job_info,
+        **_kwargs,
     ):
-        _ = task_schema
         job_id = job_info.get("job_id")
 
         await show_results(container, response_body, job_id)
@@ -306,7 +300,3 @@ class JobSubmissionOrchestrator(BaseHandler):
         await pipeline.handle_remaining_calls(
             remaining_calls, response_body, container, core, **kwargs
         )
-
-    def pipeline_handler(self):
-        """Construct a pipeline handler bound to this orchestrator."""
-        return PipelineHandler(self)

@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict, cast
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -57,7 +57,7 @@ from sqlmodel import Session, select
 
 APP_NAME = "image_series_similarity"
 server = MLService(APP_NAME)
-_MODELS_DIR = server.models_dir
+_MODELS_DIR = server.models_dir or Path()
 
 
 logger = logging.getLogger(__name__)
@@ -102,7 +102,7 @@ class ExportInputs(TypedDict):
 class ExportParameters(TypedDict):
     organization: str
     contact_email: str
-    share_filename: str
+    share_filename: NotRequired[str]
 
 
 class ImportInputs(TypedDict):
@@ -138,7 +138,7 @@ def _load_onnx_vision_model() -> tuple[ort.InferenceSession, AutoImageProcessor]
         providers=_get_ort_providers(),
     )
     processor = AutoImageProcessor.from_pretrained(_MODELS_DIR)
-    return session, processor
+    return session, processor  # type: ignore
 
 
 def _supports_dynamic_batch(ort_session: ort.InferenceSession) -> bool:
@@ -185,11 +185,11 @@ def _embed_images_batch(
                 logger.warning("Could not open %s: %s", p, exc)
         if not images:
             continue
-        pixel_values = processor(images=images, return_tensors="np")[
+        pixel_values = processor(images=images, return_tensors="np")[  # type: ignore
             "pixel_values"
         ].astype(np.float32)
         outputs = ort_session.run(["pooler_output"], {"pixel_values": pixel_values})
-        embeds = outputs[0]
+        embeds = cast(np.ndarray, outputs[0])
         embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
         for path, vec in zip(valid_paths, embeds):
             results[path] = vec
@@ -210,11 +210,11 @@ def _embed_pil_image(
     image: Image.Image,
 ) -> np.ndarray:
     """Compute a normalised embedding from an in-memory PIL Image via ONNX Runtime."""
-    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(
+    pixel_values = processor(images=image, return_tensors="np")["pixel_values"].astype(  # type: ignore
         np.float32
     )
     outputs = ort_session.run(["pooler_output"], {"pixel_values": pixel_values})
-    embeds = outputs[0]
+    embeds = cast(np.ndarray, outputs[0])
     embeds = embeds / np.linalg.norm(embeds, axis=-1, keepdims=True)
     return embeds.squeeze()
 

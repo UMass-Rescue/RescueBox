@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import logging
-
 from nicegui import ui
-
 from frontend.chatbot.pipeline_context import inject_pipeline_path
+from frontend.chatbot.schema_utils import convert_arguments_to_initial_values
 from frontend.components.errors import render_error_message
 from frontend.components.results import render_tool_selection_message
 from frontend.components.ui_exceptions import UI_RENDER_ERRORS
@@ -28,14 +27,22 @@ def show_error_message(container: element, message: str):
     render_error_message(container, message)
 
 
-async def show_tool_picker(container: ui.element, tool_registry, on_tool_selected):
+async def show_tool_picker(
+    container: ui.element, tool_registry, on_tool_selected=None
+) -> tuple[str, dict]:
     picker = ToolPicker(container, tool_registry, on_tool_selected)
+    if on_tool_selected is None:
+        return await picker.select_tool()
     await picker.show()
+    return await picker.select_tool()
 
 
-async def show_analysis_picker(container: ui.element, on_analysis_selected):
+async def show_analysis_picker(container: ui.element, on_analysis_selected=None) -> str:
     picker = AnalysisPicker(container, on_analysis_selected)
+    if on_analysis_selected is None:
+        return await picker.select_analysis()
     await picker.show()
+    return await picker.select_analysis()
 
 
 async def show_tool_selection(container: element, endpoint: str):
@@ -61,20 +68,34 @@ async def load_and_show_form(
         pipeline_job_id = read_pipeline_job_id()
         arguments = inject_pipeline_path(arguments, task_schema, pipeline_job_id)
 
-        initial_values = core.convert_arguments_to_initial_values(
+        initial_values = convert_arguments_to_initial_values(
             arguments, task_schema, endpoint
         )
 
-        async def _wrapped_submit(form_data, endpoint=None, task_schema=None, **kwargs):
-            return await on_form_submit(
-                form_data, endpoint=endpoint, task_schema=task_schema, **kwargs
-            )
+        if hasattr(on_form_submit, "submit_form"):
+            handler = on_form_submit
+
+            async def _submit_wrapper(
+                request_body, endpoint=endpoint, task_schema=task_schema, **kwargs
+            ):
+                return await handler.submit_form(
+                    request_body,
+                    endpoint or kwargs.get("endpoint"),
+                    task_schema,
+                    container,
+                    core,
+                    **kwargs,
+                )
+
+            submit_action = _submit_wrapper
+        else:
+            submit_action = on_form_submit
 
         return await core.create_input_form(
             task_schema,
             endpoint,
             initial_values=initial_values,
-            on_submit=_wrapped_submit,
+            on_submit=submit_action,
             on_cancel=on_form_cancel,
             container=container,
         )

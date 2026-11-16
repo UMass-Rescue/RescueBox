@@ -126,24 +126,6 @@ class BaseDatabase(ABC):
             logger.error("Database query failed: %s with params %s", query, params)
             raise
 
-    def execute_query_many(self, query: str, params_list: list) -> sqlite3.Cursor:
-        """
-        Execute a SQL query with multiple parameter sets.
-
-        Args:
-            query: SQL query string
-            params_list: List of parameter tuples
-
-        Returns:
-            sqlite3.Cursor: Query cursor
-        """
-        conn = self.connect()
-        try:
-            return conn.executemany(query, params_list)
-        except sqlite3.Error:
-            logger.error("Database query failed: %s with params %s", query, params_list)
-            raise
-
     def commit(self) -> None:
         """Commit current transaction."""
         if self.conn:
@@ -166,19 +148,6 @@ class BaseDatabase(ABC):
         """
         return dict(row)
 
-    def get_row_count(self, table_name: str) -> int:
-        """
-        Get the number of rows in a table.
-
-        Args:
-            table_name: Name of the table
-
-        Returns:
-            Number of rows in the table
-        """
-        cursor = self.execute_query(f"SELECT COUNT(*) FROM {table_name}")
-        return cursor.fetchone()[0]
-
     def table_exists(self, table_name: str) -> bool:
         """
         Check if a table exists in the database.
@@ -194,24 +163,3 @@ class BaseDatabase(ABC):
             (table_name,),
         )
         return cursor.fetchone() is not None
-
-    def get_table_schema(self, table_name: str) -> dict[str, Any] | None:
-        """
-        Get schema information for a table.
-
-        Args:
-            table_name: Name of the table
-
-        Returns:
-            Dict with table schema information or None if table doesn't exist
-        """
-        cursor = self.execute_query("PRAGMA table_info(?)", (table_name,))
-        columns = cursor.fetchall()
-
-        if not columns:
-            return None
-
-        return {
-            "table_name": table_name,
-            "columns": [self._row_to_dict(col) for col in columns],
-        }

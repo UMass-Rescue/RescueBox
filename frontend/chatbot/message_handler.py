@@ -151,7 +151,7 @@ class MessageHandler:
         return await self.handle_smart_analyze(user_input, update_status_callback)
 
     async def handle_slash_command(
-        self, user_input: str, _update_status_callback=None
+        self, user_input: str, update_status_callback=None
     ) -> dict[str, Any]:
         """
         Handle slash commands (/help, /models, /assistant, mapped tools).

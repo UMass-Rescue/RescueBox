@@ -17,7 +17,7 @@ class Compose:
 
 
 class InterpolationMode:
-    BILINEAR = Image.BILINEAR
+    BILINEAR = Image.Resampling.BILINEAR
 
 
 class Resize:

@@ -31,11 +31,11 @@ logger.setLevel(logging.INFO)
 
 def normalize_ollama_host(raw: str, *, default: str = "http://127.0.0.1:11434") -> str:
     """Return an Ollama API base URL with ``http://`` or ``https://`` (env often omits scheme)."""
-    url = default
-    if url != "0.0.0.0" and not url.startswith(("http://", "https://")):
-        return f"http://{url}"
+    url = (raw or "").strip() or default
     if url == "0.0.0.0":
         return default
+    if not url.startswith(("http://", "https://")):
+        return f"http://{url}"
     return url
 
 
@@ -443,15 +443,15 @@ class ToolRegistry:
 
         help_text = """
 
-#### Three different ways to use RescueBox Assistant
-1. **Menu Selctor** - **Type `/models`** to see all the plugins and you pick one
+#### different ways to use RescueBox Assistant
+1. **Menu Selector** - **Type `/models`** to see all the plugins and you pick one
 2. **Assistant** - Enter a **prompt plugin task in natural language**
 -**Transcribe** audio files in /evidence/recordings
 or
 -**Summarize** photos in /images/case456
 
 The typical workflow sequence is :
-  1 you pick a menul plugin or enter a chat prompt and let the assistant select the plugin
+  1 you pick a menu plugin or enter a chat prompt and let the assistant select the plugin
   2 a form is displayed with inputs and you fill in the inputs
   3 you submit the job and the assistant runs the job
   4 the results are shown in the jobs page with details
