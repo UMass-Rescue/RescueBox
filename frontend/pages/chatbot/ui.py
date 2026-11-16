@@ -1,3 +1,4 @@
+# pyright: reportUnsupportedDunderAll=false
 """Chatbot UI public exports and NiceGUI route registration."""
 
 from __future__ import annotations

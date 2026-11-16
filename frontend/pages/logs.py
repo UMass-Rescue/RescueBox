@@ -66,6 +66,7 @@ class LogsPage:
         """Load and display log file contents. Reads the log file, limits to max_lines, and displays in the UI."""
         log_path = (
             getattr(self.log_display, "current_log_file", LOG_FILE)
+            getattr(self.log_display, "current_log_file", LOG_FILE)
             if self.log_display is not None
             else LOG_FILE
         )
@@ -73,6 +74,10 @@ class LogsPage:
 
         # Cache raw content in log_display and apply search filter if available
         if hasattr(self, "log_display") and self.log_display is not None:
+            setattr(self.log_display, "raw_content", self.log_content)
+            apply_fn = getattr(self.log_display, "apply_filter", None)
+            if callable(apply_fn):
+                apply_fn()
             setattr(self.log_display, "raw_content", self.log_content)
             apply_fn = getattr(self.log_display, "apply_filter", None)
             if callable(apply_fn):

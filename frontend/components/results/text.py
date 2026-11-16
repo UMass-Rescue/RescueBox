@@ -7,10 +7,10 @@ from typing import Any
 
 from nicegui import ui
 
-from .batch_text import render_batch_text
-from .image_summary import render_image_summary_json
-from .text_modal import open_text_markdown_modal
-from .text_search import render_searchable_file_list, render_text_search_json
+from frontend.components.results.batch_text import render_batch_text
+from frontend.components.results.image_summary import render_image_summary_json
+from frontend.components.results.text_modal import open_text_markdown_modal
+from frontend.components.results.text_search import render_searchable_file_list, render_text_search_json
 
 
 def render_markdown(container: Any, response: Any) -> None:
@@ -35,6 +35,11 @@ def render_text(container: Any, response: Any) -> None:
             return render_searchable_file_list(container, data, title)
     except (json.JSONDecodeError, TypeError):
         pass
+    with (
+        container,
+        ui.card().classes(
+            "w-full p-0 shadow-lg border rounded-xl overflow-hidden bg-white"
+        ),
     with (
         container,
         ui.card().classes(
