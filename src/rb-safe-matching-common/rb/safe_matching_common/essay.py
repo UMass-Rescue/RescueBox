@@ -9,6 +9,8 @@ from rb.safe_matching_common.privacy import redact_text
 DEFAULT_ESSAY_MODEL: Final[str] = "qwen3-vl:4b-instruct"
 ESSAY_MAX_WORDS: Final[int] = 60
 ESSAY_MAX_CHARS: Final[int] = 350
+ESSAY_NUM_CTX: Final[int] = 8192
+ESSAY_NUM_PREDICT: Final[int] = 256
 SENTENCE_END: Final[re.Pattern[str]] = re.compile(r"(?<=[.!?])\s+")
 
 ESSAY_PROMPT: Final[str] = (
@@ -49,7 +51,12 @@ def ensure_essay_model(model: str = DEFAULT_ESSAY_MODEL) -> None:
 
 
 def create_essay(image_path: str, model: str = DEFAULT_ESSAY_MODEL) -> str:
-    response = ollama.generate(model=model, prompt=ESSAY_PROMPT, images=[image_path])
+    response = ollama.generate(
+        model=model,
+        prompt=ESSAY_PROMPT,
+        images=[image_path],
+        options={"num_ctx": ESSAY_NUM_CTX, "num_predict": ESSAY_NUM_PREDICT},
+    )
     return _pack_sentences(response["response"])
 
 

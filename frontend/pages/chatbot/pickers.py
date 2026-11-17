@@ -133,7 +133,7 @@ class ToolPicker:
                 title,
                 desc,
                 "Run",
-                lambda *a: self.on_tool_selected(tool["endpoint"], {}),
+                lambda *a: self._handle_select(tool["endpoint"], {}),
             )
 
     def _show_tasks(self, num: str, menu: dict[str, dict[str, str]]) -> None:
@@ -148,7 +148,7 @@ class ToolPicker:
                     task["name"],
                     task["desc"],
                     "Run",
-                    lambda *a, e=task["endpoint"]: self.on_tool_selected(e, {}),
+                    lambda *a, e=task["endpoint"]: self._handle_select(e, {}),
                 )
 
 

@@ -3,6 +3,8 @@ from unittest.mock import patch
 from rb.safe_matching_common.essay import (
     ESSAY_MAX_CHARS,
     ESSAY_MAX_WORDS,
+    ESSAY_NUM_CTX,
+    ESSAY_NUM_PREDICT,
     create_essay,
     create_redacted_essay,
 )
@@ -21,6 +23,10 @@ def test_create_essay_returns_short_paragraph_unchanged(generate_mock):
         "A man stands by a car. The scene is a parking lot."
     )
     assert "format" not in generate_mock.call_args.kwargs
+    assert generate_mock.call_args.kwargs["options"] == {
+        "num_ctx": ESSAY_NUM_CTX,
+        "num_predict": ESSAY_NUM_PREDICT,
+    }
 
 
 @patch("rb.safe_matching_common.essay.ollama.generate")
