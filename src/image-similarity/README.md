@@ -209,7 +209,7 @@ Imported 7 embeddings (0 skipped)
 poetry install
 ```
 
-Download ONNX models into `onnx_models/`:
+Download ONNX models into `onnx_models/`. The [image-ingestion](../image-ingestion/README.md) Semantic hash also loads these models from this folder.
 
 **SigLIP2** (~1.7 GB):
 
@@ -219,7 +219,12 @@ curl -L -o src/image-similarity/image_similarity/onnx_models/siglip2-so400m-patc
   https://huggingface.co/onnx-community/siglip2-so400m-patch14-384-ONNX/resolve/main/onnx/vision_model.onnx
 ```
 
-**CLIPSeg** (~545 MB) — save as `clipseg-rd64-refined.onnx` from [Xenova/clipseg-rd64-refined](https://huggingface.co/Xenova/clipseg-rd64-refined).
+**CLIPSeg** (~545 MB) from [Xenova/clipseg-rd64-refined](https://huggingface.co/Xenova/clipseg-rd64-refined):
+
+```bash
+curl -L -o src/image-similarity/image_similarity/onnx_models/clipseg-rd64-refined.onnx \
+  https://huggingface.co/Xenova/clipseg-rd64-refined/resolve/main/onnx/model.onnx
+```
 
 ## 6. Benchmarks
 

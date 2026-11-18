@@ -24,7 +24,7 @@ The **essay** is one plain paragraph describing people, then key objects, then t
 
 - PostgreSQL with pgvector, started by `./run_backend_server`.
 - MD5 and PDQ: nothing else; they run on CPU.
-- Semantic: the `image-similarity` ONNX models.
+- Semantic: the `image-similarity` SigLIP2 and CLIPSeg ONNX models; download them with the commands in [image-similarity installation](../image-similarity/README.md#5-installation).
 - Essay: Ollama. `qwen3-vl:4b-instruct` (about 3 GB, several GB of RAM; a GPU helps) is pulled on first use, and Presidio's spaCy model `en_core_web_lg` (about 600 MB) is installed with `rb-safe-matching-common`.
 
 ## Demo images
