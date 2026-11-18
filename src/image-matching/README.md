@@ -35,7 +35,7 @@ The Image Ingestion in-app page is [`image_ingestion/app-info.md`](image_matchin
 | Ingestion | Rename Archive | `/image_matching/rename_archive` | Change an archive's label |
 | Query | Not yet implemented | | Find matches for an image in local archives and at UMass |
 
-Ingest Images takes a folder of images in common formats (JPEG, PNG, BMP, WebP), a label (defaults to the folder name), a description, and four hash options that default to Yes. SHA-256 is always computed.
+Ingest Images takes a folder of images in common formats (JPEG, PNG, BMP, WebP), a label (defaults to the folder name), a description, four hash options that default to Yes, and **Max essay words** (default 60). SHA-256 is always computed.
 
 | Hash | Computed by |
 |---|---|
@@ -43,7 +43,7 @@ Ingest Images takes a folder of images in common formats (JPEG, PNG, BMP, WebP),
 | PDQ, semantic, private | `image-similarity` (SigLIP2 and CLIPSeg ONNX models); Semantic also creates the private hash |
 | Essay | `hashing/essay.py` (`qwen3-vl:4b-instruct` through Ollama), redacted by `hashing/privacy.py` (Presidio) |
 
-The **essay** is one plain paragraph describing people, then key objects, then the scene, kept to whole sentences within 60 words and 350 characters. Essays will be sent to the UMass Safe Matching service through the Safe Match intermediary; this is not yet done, and essays stay in the local database only. They are not written to the backend log; use the essay smoke test below to read them.
+The **essay** is one plain paragraph describing people, then key objects, then the scene, kept to whole sentences within **Max essay words** and 350 characters. The 350-character cap always applies, so values above about 60 words have little effect. Essays are stored once per file; changing Max essay words affects only newly generated essays, and existing essays are not regenerated. To regenerate, delete the archive with Retain hashes No and ingest again. Essays will be sent to the UMass Safe Matching service through the Safe Match intermediary; this is not yet done, and essays stay in the local database only. They are not written to the backend log; use the essay smoke test below to read them.
 
 ## Requirements
 

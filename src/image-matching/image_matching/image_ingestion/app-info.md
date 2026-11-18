@@ -26,9 +26,11 @@ Hashes a folder of images and stores the results in the shared archive database.
 - **MD5** (default on): fast exact matching.
 - **PDQ** (default on): perceptual hash that enables deduplication.
 - **Semantic hash** (default on): moderately fast to slow; fuzzy matching. Private hashes (faces, tattoos and text blacked out) are created at the same time.
-- **Essay hash** (default on): slow; a short paragraph (at most 60 words) describing the people, objects and scene, with personal information removed, for fuzzy matching. Essay hashes will be sent to the UMass Safe Matching service; this is not yet being done, and essays are currently stored locally only.
+- **Essay hash** (default on): slow; a short paragraph (at most **Max essay words**, default 60, and 350 characters) describing the people, objects and scene, with personal information removed, for fuzzy matching. Essay hashes will be sent to the UMass Safe Matching service; this is not yet being done, and essays are currently stored locally only.
 
-Work already done for a file in an earlier archive is reused, so only missing hashes are computed.
+- **Max essay words** (default 60): word limit for new essays. Suggested max 60; more words make essays slower.
+
+Work already done for a file in an earlier archive is reused, so only missing hashes are computed. A stored essay is kept even if Max essay words changes; to regenerate it, delete the archive with **Retain hashes** No and ingest again.
 
 MD5 and PDQ run on any computer. The essay hash downloads the `qwen3-vl:4b-instruct` model (about 3 GB) the first time it is used and needs several GB of memory; a GPU makes semantic and essay hashes much faster.
 

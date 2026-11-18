@@ -1,7 +1,8 @@
 import hashlib
 from collections.abc import Callable
+from functools import partial
 
-from image_matching.hashing.essay import create_redacted_essay
+from image_matching.hashing.essay import ESSAY_MAX_WORDS, create_redacted_essay
 from image_similarity.anonymizer import anonymize_image
 from image_similarity.main import (
     _compute_pdq_hash,
@@ -69,11 +70,20 @@ def _is_missing(value: object) -> bool:
     return value is None or (isinstance(value, str) and not value)
 
 
-def fill_missing(record: FileRecord, path: str, selected: list[str]) -> int:
+def fill_missing(
+    record: FileRecord,
+    path: str,
+    selected: list[str],
+    max_essay_words: int = ESSAY_MAX_WORDS,
+) -> int:
     """Compute only the selected hashes this file does not have yet."""
+    hashers = {
+        **HASHERS,
+        "essay": partial(create_redacted_essay, max_words=max_essay_words),
+    }
     computed = 0
     for name in selected:
         if _is_missing(getattr(record, COLUMNS[name])):
-            setattr(record, COLUMNS[name], HASHERS[name](path))
+            setattr(record, COLUMNS[name], hashers[name](path))
             computed += 1
     return computed

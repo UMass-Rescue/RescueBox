@@ -60,6 +60,14 @@ def test_create_essay_cuts_oversized_first_sentence(generate_mock):
     assert essay == essay.strip()
 
 
+@patch("image_matching.hashing.essay.ollama.generate")
+def test_create_essay_uses_configured_max_words(generate_mock):
+    generate_mock.return_value = _reply(" ".join(["A short factual sentence."] * 10))
+    essay = create_essay("image.jpg", max_words=10)
+    assert len(essay.split()) <= 10
+    assert "at most 10 words" in generate_mock.call_args.kwargs["prompt"]
+
+
 @patch("image_matching.hashing.essay.redact_text")
 @patch("image_matching.hashing.essay.ollama.generate")
 def test_create_redacted_essay_redacts_essay(generate_mock, redact_mock):

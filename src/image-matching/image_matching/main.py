@@ -38,7 +38,7 @@ server.add_ml_service(
     ),
     parameters_cli_parser=typer.Argument(
         parser=ingest_parameters_cli_parse,
-        help="label|description|md5|pdq|semantic|essay (each yes|no)",
+        help="label|description|md5|pdq|semantic|essay|max_essay_words (hashes yes|no)",
     ),
     short_title="Ingest Images",
     order=0,

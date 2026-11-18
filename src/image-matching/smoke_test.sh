@@ -37,7 +37,7 @@ check_essays() {
     fi
 }
 
-ingest='{"inputs":{"input_dir":{"path":"'"$FOLDER"'"}},"parameters":{"label":"'"$LABEL"'","description":"smoke test","md5":"yes","pdq":"yes","semantic":"no","essay":"no"}}'
+ingest='{"inputs":{"input_dir":{"path":"'"$FOLDER"'"}},"parameters":{"label":"'"$LABEL"'","description":"smoke test","md5":"yes","pdq":"yes","semantic":"no","essay":"no","max_essay_words":60}}'
 rename='{"inputs":{},"parameters":{"old_label":"'"$LABEL"'","new_label":"'"$RENAMED"'"}}'
 delete='{"inputs":{},"parameters":{"label":"'"$RENAMED"'","retain_hashes":"no"}}'
 
@@ -50,7 +50,7 @@ call delete_archive "$delete" "Archive not found"
 echo "PASS: ingest, duplicate label, rename, delete"
 
 if [[ "${ESSAY:-0}" == "1" ]]; then
-    essay_ingest='{"inputs":{"input_dir":{"path":"'"$FOLDER"'"}},"parameters":{"label":"'"$ESSAY_LABEL"'","description":"essay smoke test","md5":"no","pdq":"no","semantic":"no","essay":"yes"}}'
+    essay_ingest='{"inputs":{"input_dir":{"path":"'"$FOLDER"'"}},"parameters":{"label":"'"$ESSAY_LABEL"'","description":"essay smoke test","md5":"no","pdq":"no","semantic":"no","essay":"yes","max_essay_words":60}}'
     essay_delete='{"inputs":{},"parameters":{"label":"'"$ESSAY_LABEL"'","retain_hashes":"no"}}'
     call ingest_images "$essay_ingest" "3 files"
     check_essays "$ESSAY_LABEL"

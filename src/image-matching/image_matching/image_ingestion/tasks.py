@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import TypedDict
 
 from image_matching import archive_store
-from image_matching.hashing.essay import ensure_essay_model
+from image_matching.hashing.essay import ESSAY_MAX_WORDS, ensure_essay_model
 from image_matching.hashing.hashers import (
     HASH_OPTIONS,
     fill_missing,
@@ -15,6 +15,7 @@ from rb.api.models import (
     EnumVal,
     InputSchema,
     InputType,
+    IntParameterDescriptor,
     ParameterSchema,
     ResponseBody,
     TaskSchema,
@@ -51,6 +52,7 @@ class IngestParameters(TypedDict):
     pdq: str
     semantic: str
     essay: str
+    max_essay_words: int
 
 
 class NoInputs(TypedDict):
@@ -83,6 +85,18 @@ def _text(key: str, label: str, subtitle: str = "") -> ParameterSchema:
     )
 
 
+def _max_essay_words() -> ParameterSchema:
+    return ParameterSchema(
+        key="max_essay_words",
+        label="Max essay words",
+        subtitle=(
+            f"Suggested max {ESSAY_MAX_WORDS}; more words make essays slower. "
+            "Applies only to new essays"
+        ),
+        value=IntParameterDescriptor(default=ESSAY_MAX_WORDS),
+    )
+
+
 def ingest_task_schema() -> TaskSchema:
     hash_parameters = [
         ParameterSchema(key=key, label=label, subtitle=subtitle, value=_yes_no())
@@ -100,6 +114,7 @@ def ingest_task_schema() -> TaskSchema:
             _text("label", "Investigation label", "Defaults to the folder name"),
             _text("description", "Description", "Case details, survivor information"),
             *hash_parameters,
+            _max_essay_words(),
         ],
     )
 
@@ -150,12 +165,13 @@ def _ingest(
     description: str,
     paths: list[str],
     selected: list[str],
+    max_essay_words: int,
 ) -> None:
     sha256s = {path: sha256_file(path) for path in paths}
     first_path = {sha256: path for path, sha256 in reversed(list(sha256s.items()))}
     for sha256, path in first_path.items():
         record = archive_store.find_or_create_file(session, sha256)
-        fill_missing(record, path, selected)
+        fill_missing(record, path, selected, max_essay_words)
         session.commit()
     archive = archive_store.create_archive(session, label, description)
     archive_store.link_files(session, archive, sha256s)
@@ -172,7 +188,14 @@ def ingest_images(inputs: IngestInputs, parameters: IngestParameters) -> Respons
         if "essay" in selected:
             ensure_essay_model()
         paths = _image_paths(folder)
-        _ingest(session, label, parameters["description"], paths, selected)
+        _ingest(
+            session,
+            label,
+            parameters["description"],
+            paths,
+            selected,
+            int(parameters["max_essay_words"]),
+        )
     message = f"Archive '{label}': {len(paths)} files."
     return _text_result("Ingestion complete", message)
 
@@ -224,7 +247,7 @@ def ingest_inputs_cli_parse(value: str) -> IngestInputs:
 
 
 def ingest_parameters_cli_parse(value: str) -> IngestParameters:
-    label, description, md5, pdq, semantic, essay = value.split("|")
+    label, description, md5, pdq, semantic, essay, max_essay_words = value.split("|")
     return IngestParameters(
         label=label,
         description=description,
@@ -232,6 +255,7 @@ def ingest_parameters_cli_parse(value: str) -> IngestParameters:
         pdq=pdq,
         semantic=semantic,
         essay=essay,
+        max_essay_words=int(max_essay_words),
     )
 
 

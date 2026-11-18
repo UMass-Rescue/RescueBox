@@ -20,6 +20,7 @@ from rb.api.models import DirectoryInput
 from sqlmodel import Session, SQLModel, create_engine
 
 ALL_YES = {"md5": "yes", "pdq": "yes", "semantic": "yes", "essay": "yes"}
+INGEST_DEFAULTS = {"label": "case", "description": "", "max_essay_words": 60}
 ARCHIVE_TABLES = [FileRecord.__table__, Archive.__table__, ArchiveFile.__table__]
 
 
@@ -48,7 +49,9 @@ def test_ingest_schema_has_label_description_and_four_hash_options():
         "pdq",
         "semantic",
         "essay",
+        "max_essay_words",
     ]
+    assert schema.parameters[-1].value.default == 60
 
 
 def test_delete_and_rename_schemas():
@@ -84,6 +87,23 @@ def test_fill_missing_computes_only_missing_hashes():
     fake_hashers["md5"].assert_not_called()
 
 
+def test_fill_missing_passes_max_words_to_new_essays():
+    record = FileRecord(sha256="a" * 64)
+    with patch.object(hashers, "create_redacted_essay", return_value="e") as essay:
+        hashers.fill_missing(record, "img.jpg", ["essay"], max_essay_words=25)
+    essay.assert_called_once_with("img.jpg", max_words=25)
+    assert record.essay == "e"
+
+
+def test_fill_missing_keeps_stored_essay_when_max_words_changes():
+    record = FileRecord(sha256="a" * 64, essay="stored essay")
+    with patch.object(hashers, "create_redacted_essay") as essay:
+        computed = hashers.fill_missing(record, "img.jpg", ["essay"], 25)
+    assert computed == 0
+    assert record.essay == "stored essay"
+    essay.assert_not_called()
+
+
 def test_ingest_stores_duplicate_content_once_but_links_both_paths():
     store = MagicMock()
     with (
@@ -93,7 +113,7 @@ def test_ingest_stores_duplicate_content_once_but_links_both_paths():
         ),
         patch("image_matching.image_ingestion.tasks.fill_missing", return_value=1),
     ):
-        _ingest(MagicMock(), "case", "", ["a.jpg", "b.jpg"], ["md5"])
+        _ingest(MagicMock(), "case", "", ["a.jpg", "b.jpg"], ["md5"], 60)
     store.find_or_create_file.assert_called_once()
     linked = store.link_files.call_args.args[2]
     assert linked == {"a.jpg": "h" * 64, "b.jpg": "h" * 64}
@@ -122,7 +142,7 @@ def test_ingest_rejects_existing_label(tmp_path):
     ):
         result = ingest_images(
             {"input_dir": DirectoryInput(path=str(tmp_path))},
-            {"label": "case", "description": "", **ALL_YES},
+            {**INGEST_DEFAULTS, **ALL_YES},
         )
     assert result.root.title == "Label already in use"
     store.create_archive.assert_not_called()
@@ -173,9 +193,10 @@ def test_delete_with_retain_keeps_all_hashes():
 
 
 def test_cli_parsers():
-    params = ingest_parameters_cli_parse("case|details|yes|no|yes|no")
+    params = ingest_parameters_cli_parse("case|details|yes|no|yes|no|40")
     assert params["label"] == "case"
     assert params["pdq"] == "no"
+    assert params["max_essay_words"] == 40
     assert delete_parameters_cli_parse("case,no") == {
         "label": "case",
         "retain_hashes": "no",
