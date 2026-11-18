@@ -1,18 +1,21 @@
 [tool.poetry]
-name = "image-ingestion"
+name = "image-matching"
 version = "1.0.0"
-description = "Ingest a folder of images into a hash archive for RescueBox"
+description = "Ingest images into hash archives and match against them for RescueBox"
 authors = ["RescueBox Team"]
-packages = [{include = "image_ingestion"}]
+packages = [{include = "image_matching"}]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.15"
 typer = "*"
 pillow = "*"
 sqlmodel = "*"
+ollama = "*"
+presidio-analyzer = "^2.2.366"
+presidio-anonymizer = "^2.2.366"
+en-core-web-lg = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl" }
 rb-lib = { path = "../rb-lib", develop = true }
 rb-api = { path = "../rb-api", develop = true }
-rb-safe-matching-common = { path = "../rb-safe-matching-common", develop = true }
 image-similarity = { path = "../image-similarity", develop = true }
 
 [build-system]

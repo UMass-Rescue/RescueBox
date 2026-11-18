@@ -1,6 +1,7 @@
 import hashlib
 from collections.abc import Callable
 
+from image_matching.hashing.essay import create_redacted_essay
 from image_similarity.anonymizer import anonymize_image
 from image_similarity.main import (
     _compute_pdq_hash,
@@ -9,7 +10,6 @@ from image_similarity.main import (
 )
 from PIL import Image
 from rb.api.database import FileRecord
-from rb.safe_matching_common.essay import create_redacted_essay
 
 CHUNK_BYTES = 1024 * 1024
 

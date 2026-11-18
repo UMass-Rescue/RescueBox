@@ -3,8 +3,7 @@ from typing import Final
 
 import ollama
 import rb.lib.ollama  # noqa: F401
-
-from rb.safe_matching_common.privacy import redact_text
+from image_matching.hashing.privacy import redact_text
 
 DEFAULT_ESSAY_MODEL: Final[str] = "qwen3-vl:4b-instruct"
 ESSAY_MAX_WORDS: Final[int] = 60

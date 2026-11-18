@@ -209,7 +209,7 @@ Imported 7 embeddings (0 skipped)
 poetry install
 ```
 
-Download ONNX models into `onnx_models/`. The [image-ingestion](../image-ingestion/README.md) Semantic hash also loads these models from this folder.
+Download ONNX models into `onnx_models/`. The [image-matching](../image-matching/README.md) Semantic hash also loads these models from this folder.
 
 **SigLIP2** (~1.7 GB):
 

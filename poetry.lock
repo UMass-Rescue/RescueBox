@@ -2298,9 +2298,9 @@ type = "directory"
 url = "src/image-embeddings"
 
 [[package]]
-name = "image-ingestion"
+name = "image-matching"
 version = "1.0.0"
-description = "Ingest a folder of images into a hash archive for RescueBox"
+description = "Ingest images into hash archives and match against them for RescueBox"
 optional = false
 python-versions = ">=3.12,<3.15"
 groups = ["main"]
@@ -2308,17 +2308,20 @@ files = []
 develop = true
 
 [package.dependencies]
+en-core-web-lg = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl"}
 image-similarity = {path = "../image-similarity", develop = true}
+ollama = "*"
 pillow = "*"
+presidio-analyzer = "^2.2.366"
+presidio-anonymizer = "^2.2.366"
 rb-api = {path = "../rb-api", develop = true}
 rb-lib = {path = "../rb-lib", develop = true}
-rb-safe-matching-common = {path = "../rb-safe-matching-common", develop = true}
 sqlmodel = "*"
 typer = "*"
 
 [package.source]
 type = "directory"
-url = "src/image-ingestion"
+url = "src/image-matching"
 
 [[package]]
 name = "image-similarity"
@@ -5502,27 +5505,6 @@ type = "directory"
 url = "src/rb-lib"
 
 [[package]]
-name = "rb-safe-matching-common"
-version = "3.0.0"
-description = "Shared essay, privacy and hash modules for RescueBox safe matching"
-optional = false
-python-versions = "^3.12"
-groups = ["main"]
-files = []
-develop = true
-
-[package.dependencies]
-en-core-web-lg = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl"}
-ollama = "*"
-presidio-analyzer = "^2.2.366"
-presidio-anonymizer = "^2.2.366"
-rb-lib = {path = "../rb-lib", develop = true}
-
-[package.source]
-type = "directory"
-url = "src/rb-safe-matching-common"
-
-[[package]]
 name = "rdflib"
 version = "7.6.0"
 description = "RDFLib is a Python library for working with RDF, a simple yet powerful language for representing information."
@@ -8046,4 +8028,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.15"
-content-hash = "1e3f753e567490e9e2134456365e84286e19eaa76a77ec96cd2b3fa5d6fde802"
+content-hash = "a97fb0b7c54af410ab1f161c0a1b7d87df372888c5cd106b60589e9565f0f233"

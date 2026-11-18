@@ -1,10 +1,13 @@
-import logging
 from pathlib import Path
 from typing import TypedDict
 
-import typer
-from image_ingestion import archive_store
-from image_ingestion.hashers import HASH_OPTIONS, fill_missing, sha256_file
+from image_matching import archive_store
+from image_matching.hashing.essay import ensure_essay_model
+from image_matching.hashing.hashers import (
+    HASH_OPTIONS,
+    fill_missing,
+    sha256_file,
+)
 from rb.api.database import engine
 from rb.api.models import (
     DirectoryInput,
@@ -18,14 +21,7 @@ from rb.api.models import (
     TextParameterDescriptor,
     TextResponse,
 )
-from rb.lib.ml_service import MLService
-from rb.safe_matching_common.essay import ensure_essay_model
 from sqlmodel import Session
-
-logger = logging.getLogger(__name__)
-
-APP_NAME = "image_ingestion"
-server = MLService(APP_NAME)
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -38,7 +34,7 @@ HASH_LABELS: dict[str, tuple[str, str]] = {
     ),
     "essay": (
         "Essay hash",
-        "Slow. Essay hashes will be sent to the UMass Semantic Matching API "
+        "Slow. Essay hashes will be sent to the UMass Safe Matching service "
         "(not yet being done)",
     ),
 }
@@ -131,16 +127,6 @@ def rename_task_schema() -> TaskSchema:
     )
 
 
-server.add_app_metadata(
-    plugin_name=APP_NAME,
-    name="Image Ingestion",
-    author="UMass RescueLab",
-    version="1.0.0",
-    info=(Path(__file__).resolve().parent / "app-info.md").read_text(encoding="utf-8"),
-    gpu=True,
-)
-
-
 def _selected_hashes(parameters: IngestParameters) -> list[str]:
     return [
         hash_name
@@ -170,8 +156,6 @@ def _ingest(
     for sha256, path in first_path.items():
         record = archive_store.find_or_create_file(session, sha256)
         fill_missing(record, path, selected)
-        if "essay" in selected:
-            logger.info("Essay for %s: %s", Path(path).name, record.essay)
         session.commit()
     archive = archive_store.create_archive(session, label, description)
     archive_store.link_files(session, archive, sha256s)
@@ -263,48 +247,3 @@ def delete_parameters_cli_parse(value: str) -> DeleteParameters:
 def rename_parameters_cli_parse(value: str) -> RenameParameters:
     old_label, new_label = value.split(",")
     return RenameParameters(old_label=old_label, new_label=new_label)
-
-
-server.add_ml_service(
-    rule="/ingest_images",
-    ml_function=ingest_images,
-    inputs_cli_parser=typer.Argument(
-        parser=ingest_inputs_cli_parse, help="Folder of images"
-    ),
-    parameters_cli_parser=typer.Argument(
-        parser=ingest_parameters_cli_parse,
-        help="label|description|md5|pdq|semantic|essay (each yes|no)",
-    ),
-    short_title="Ingest Images",
-    order=0,
-    task_schema_func=ingest_task_schema,
-)
-
-server.add_ml_service(
-    rule="/delete_archive",
-    ml_function=delete_archive,
-    inputs_cli_parser=typer.Argument(parser=no_inputs_cli_parse, help="Unused"),
-    parameters_cli_parser=typer.Argument(
-        parser=delete_parameters_cli_parse, help="label,retain_hashes (yes|no)"
-    ),
-    short_title="Delete Archive",
-    order=1,
-    task_schema_func=delete_task_schema,
-)
-
-server.add_ml_service(
-    rule="/rename_archive",
-    ml_function=rename_archive,
-    inputs_cli_parser=typer.Argument(parser=no_inputs_cli_parse, help="Unused"),
-    parameters_cli_parser=typer.Argument(
-        parser=rename_parameters_cli_parse, help="old_label,new_label"
-    ),
-    short_title="Rename Archive",
-    order=2,
-    task_schema_func=rename_task_schema,
-)
-
-app = server.app
-
-if __name__ == "__main__":
-    app()

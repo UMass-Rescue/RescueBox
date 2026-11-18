@@ -1,4 +1,4 @@
-from rb.safe_matching_common.privacy import redact_text
+from image_matching.hashing.privacy import redact_text
 
 
 def test_redact_text_removes_name_email_phone_and_place():

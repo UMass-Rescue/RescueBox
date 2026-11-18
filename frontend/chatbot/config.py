@@ -251,8 +251,8 @@ class ToolRegistry:
             "desc": "Mount UFDR files",
         },
         "11": {
-            "name": "Image Ingestion",
-            "endpoint": "image_ingestion/ingest_images",
+            "name": "Image Matching",
+            "endpoint": "image_matching/ingest_images",
             "desc": "Ingest images into archives, or delete and rename archives",
         },
     }
@@ -262,17 +262,17 @@ class ToolRegistry:
         "11": [
             {
                 "name": "Ingest Images",
-                "endpoint": "image_ingestion/ingest_images",
+                "endpoint": "image_matching/ingest_images",
                 "desc": "Hash a folder of images into a new archive",
             },
             {
                 "name": "Delete Archive",
-                "endpoint": "image_ingestion/delete_archive",
+                "endpoint": "image_matching/delete_archive",
                 "desc": "Remove an archive by its investigation label",
             },
             {
                 "name": "Rename Archive",
-                "endpoint": "image_ingestion/rename_archive",
+                "endpoint": "image_matching/rename_archive",
                 "desc": "Change the investigation label of an archive",
             },
         ],

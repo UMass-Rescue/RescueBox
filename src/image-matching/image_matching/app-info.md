@@ -1,14 +1,18 @@
-# Image Ingestion
+# Image Matching
 
-Hashes a folder of images and stores the results in the shared archive database. Each distinct file is stored once in the `files` table; every ingestion is an **archive** that lists its files.
+Finds matches for images across investigations. It has two parts:
+
+- **Ingestion (available now):** hashes a folder of images and stores the results in the shared archive database. Each distinct file is stored once in the `files` table; every ingestion is an **archive** that lists its files.
+- **Query (coming soon):** searches your archives for an image by SHA256, MD5, PDQ and semantic hashes, and compares its essay with other agencies' essays through the UMass Safe Matching service.
 
 ## Tasks
 
-| Task | Use |
-|---|---|
-| **Ingest Images** | Hash a folder into a new archive |
-| **Delete Archive** | Remove an archive by investigation label |
-| **Rename Archive** | Change an archive's investigation label |
+| Task | Status | Use |
+|---|---|---|
+| **Ingest Images** | Available | Hash a folder into a new archive |
+| **Delete Archive** | Available | Remove an archive by investigation label |
+| **Rename Archive** | Available | Change an archive's investigation label |
+| **Query** | Coming soon | Find matches for an image in your archives and at UMass |
 
 ## Ingest Images
 

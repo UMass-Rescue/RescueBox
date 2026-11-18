@@ -1,7 +1,8 @@
 from unittest.mock import MagicMock, patch
 
-from image_ingestion import archive_store, hashers
-from image_ingestion.main import (
+from image_matching import archive_store
+from image_matching.hashing import hashers
+from image_matching.image_ingestion.tasks import (
     _image_paths,
     _ingest,
     _selected_hashes,
@@ -86,9 +87,11 @@ def test_fill_missing_computes_only_missing_hashes():
 def test_ingest_stores_duplicate_content_once_but_links_both_paths():
     store = MagicMock()
     with (
-        patch("image_ingestion.main.archive_store", store),
-        patch("image_ingestion.main.sha256_file", return_value="h" * 64),
-        patch("image_ingestion.main.fill_missing", return_value=1),
+        patch("image_matching.image_ingestion.tasks.archive_store", store),
+        patch(
+            "image_matching.image_ingestion.tasks.sha256_file", return_value="h" * 64
+        ),
+        patch("image_matching.image_ingestion.tasks.fill_missing", return_value=1),
     ):
         _ingest(MagicMock(), "case", "", ["a.jpg", "b.jpg"], ["md5"])
     store.find_or_create_file.assert_called_once()
@@ -100,8 +103,8 @@ def test_delete_and_rename_report_missing_label():
     store = MagicMock()
     store.find_archive.return_value = None
     with (
-        patch("image_ingestion.main.archive_store", store),
-        patch("image_ingestion.main.Session"),
+        patch("image_matching.image_ingestion.tasks.archive_store", store),
+        patch("image_matching.image_ingestion.tasks.Session"),
     ):
         deleted = delete_archive({}, {"label": "nope", "retain_hashes": "yes"})
         renamed = rename_archive({}, {"old_label": "nope", "new_label": "new"})
@@ -114,8 +117,8 @@ def test_delete_and_rename_report_missing_label():
 def test_ingest_rejects_existing_label(tmp_path):
     store = MagicMock()
     with (
-        patch("image_ingestion.main.archive_store", store),
-        patch("image_ingestion.main.Session"),
+        patch("image_matching.image_ingestion.tasks.archive_store", store),
+        patch("image_matching.image_ingestion.tasks.Session"),
     ):
         result = ingest_images(
             {"input_dir": DirectoryInput(path=str(tmp_path))},
@@ -129,8 +132,8 @@ def test_rename_rejects_existing_new_label():
     store = MagicMock()
     store.find_archive.side_effect = [MagicMock(), MagicMock()]
     with (
-        patch("image_ingestion.main.archive_store", store),
-        patch("image_ingestion.main.Session"),
+        patch("image_matching.image_ingestion.tasks.archive_store", store),
+        patch("image_matching.image_ingestion.tasks.Session"),
     ):
         result = rename_archive({}, {"old_label": "a", "new_label": "b"})
     assert result.root.title == "Label already in use"
@@ -140,7 +143,9 @@ def test_rename_rejects_existing_new_label():
 def test_rename_to_same_label_succeeds():
     with _sqlite_session() as session:
         _ingest_paths(session, "a", {"x.jpg": "a" * 64})
-        with patch("image_ingestion.main.Session", return_value=session):
+        with patch(
+            "image_matching.image_ingestion.tasks.Session", return_value=session
+        ):
             result = rename_archive({}, {"old_label": "a", "new_label": "a"})
     assert result.root.title == "Archive renamed"
 
