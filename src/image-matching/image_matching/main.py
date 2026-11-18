@@ -21,10 +21,12 @@ server = MLService(APP_NAME)
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Image Matching",
+    name="Image Ingestion",
     author="UMass RescueLab",
     version="1.0.0",
-    info=(Path(__file__).resolve().parent / "app-info.md").read_text(encoding="utf-8"),
+    info=(
+        Path(__file__).resolve().parent / "image_ingestion" / "app-info.md"
+    ).read_text(encoding="utf-8"),
     gpu=True,
 )
 

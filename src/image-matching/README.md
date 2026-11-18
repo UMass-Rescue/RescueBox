@@ -1,9 +1,9 @@
 # Image Matching Plugin
 
-The RescueBox matching plugin from the Safe Semantic Matching design. It has two parts:
+Finds images that match across investigations, both in this RescueBox's own archives and, through the UMass Safe Matching service, in other agencies' collections. It implements two tasks, each shown as its own tool in the RescueBox UI and served under `/image_matching/...` routes:
 
-- **Ingestion (implemented):** hashes a folder of images into the shared PostgreSQL database. Each ingestion creates an **archive** named by a unique investigation label. Each distinct image (by SHA-256) is stored once and reused by every archive that contains it, so re-ingesting known images only computes the hashes they are missing.
-- **Query and upload (not yet implemented):** query will search local archives by hash and compare essays with other agencies' through the UMass Safe Matching service; ingestion will upload essays to it.
+- **Ingestion** (UI tool **Image Ingestion**, implemented): hashes a folder of images into the shared PostgreSQL database. Each ingestion creates an **archive** named by a unique investigation label. Each distinct image (by SHA-256) is stored once and reused by every archive that contains it, so re-ingesting known images only computes the hashes they are missing. Uploading essays to the UMass Safe Matching service will be added here.
+- **Query** (UI tool **Image Match**, not yet implemented): will search local archives by hash and compare essays with other agencies' through the UMass Safe Matching service.
 
 The plugin never talks to UMass directly. It will call the separate Safe Match intermediary (`src/safe-match-intermediary`, a local service that holds the agency's credentials) through the client in `rb.lib.safe_match`, and the intermediary calls the UMass Safe Matching API.
 
@@ -14,7 +14,7 @@ flowchart LR
     intermediary --> umass["UMass Safe Matching API"]
 ```
 
-The in-app description is in [`app-info.md`](image_matching/app-info.md).
+The Image Ingestion in-app page is [`image_ingestion/app-info.md`](image_matching/image_ingestion/app-info.md).
 
 ## Layout
 
@@ -22,17 +22,18 @@ The in-app description is in [`app-info.md`](image_matching/app-info.md).
 |---|---|
 | `image_matching/main.py` | Registers the plugin and its tasks |
 | `image_matching/archive_store.py` | Reads and writes the shared `files`, `archives` and `archive_files` tables |
-| `image_matching/image_ingestion/` | Ingest, delete and rename archive tasks (implemented) |
+| `image_matching/image_ingestion/` | Ingestion task: its three subtasks and its in-app page `app-info.md` (implemented) |
 | `image_matching/hashing/` | SHA-256 and MD5 (`hashers.py`, which calls `image-similarity` for PDQ, semantic and private hashes), essay generation (`essay.py`) and PII redaction (`privacy.py`) |
-| `image_matching/query/` | Not yet implemented; will search archives by hash and query essays through the intermediary |
+| `image_matching/query/` | Query task, not yet implemented; will search archives by hash, query essays through the intermediary, and have its own `app-info.md` |
 
-## Tasks
+## Tasks and subtasks
 
-| Task | Route | Purpose |
-|---|---|---|
-| Ingest Images | `/image_matching/ingest_images` | Hash a folder into a new archive |
-| Delete Archive | `/image_matching/delete_archive` | Delete an archive; optionally keep its hashes for faster re-ingestion |
-| Rename Archive | `/image_matching/rename_archive` | Change an archive's label |
+| Task | Subtask | Route | Purpose |
+|---|---|---|---|
+| Ingestion | Ingest Images | `/image_matching/ingest_images` | Hash a folder into a new archive |
+| Ingestion | Delete Archive | `/image_matching/delete_archive` | Delete an archive; optionally keep its hashes for faster re-ingestion |
+| Ingestion | Rename Archive | `/image_matching/rename_archive` | Change an archive's label |
+| Query | Not yet implemented | | Find matches for an image in local archives and at UMass |
 
 Ingest Images takes a folder of images in common formats (JPEG, PNG, BMP, WebP), a label (defaults to the folder name), a description, and four hash options that default to Yes. SHA-256 is always computed.
 
@@ -83,7 +84,7 @@ After the steps above, it ingests the same folder with Essay only, prints the th
 
 ### UI
 
-In a second terminal run `./run_ui_server`, open http://localhost:8080/chatbot, click **Menu**, then **11. Image Matching -> Open**.
+In a second terminal run `./run_ui_server`, open http://localhost:8080/chatbot, click **Menu**, then **11. Image Ingestion -> Open**.
 
 | Try | Expected result |
 |---|---|

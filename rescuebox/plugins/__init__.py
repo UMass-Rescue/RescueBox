@@ -72,7 +72,7 @@ plugins: list[RescueBoxPlugin] = [
     RescueBoxPlugin(
         image_similarity_app, IMAGE_SIM_APP_NAME, "Image Similarity Search"
     ),
-    RescueBoxPlugin(image_matching_app, IMAGE_MATCH_APP_NAME, "Image Matching"),
+    RescueBoxPlugin(image_matching_app, IMAGE_MATCH_APP_NAME, "Image Ingestion"),
 ]
 
 if ufdr_app:

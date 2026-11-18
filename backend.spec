@@ -85,7 +85,7 @@ text_embeddings_data = f'src/text-embeddings/text_embeddings/app-info.md'
 image_summary_data = f'src/image-summary/image_summary/app-info.md'
 
 image_similarity_data = f'src/image-similarity/image_similarity/app-info.md'
-image_matching_data = f'src/image-matching/image_matching/app-info.md'
+image_matching_data = f'src/image-matching/image_matching/image_ingestion/app-info.md'
 
 # for image-matching essay hash: Presidio recognizers and the spaCy model are loaded dynamically
 essay_datas, essay_binaries = [], []
@@ -154,7 +154,7 @@ a = Analysis(
         (src_facematch_db_config, facematch_config),(facematch_md_data, 'face_detection_recognition'),
         (image_embeddings_data, 'image_embeddings'), (text_embeddings_data, 'text_embeddings'),
         (image_summary_data, 'image_summary'), (image_similarity_data, 'image_similarity'),
-        (image_matching_data, 'image_matching'),
+        (image_matching_data, 'image_matching/image_ingestion'),
         (age_and_gender_detection_data, 'age_and_gender_detection'),
         (text_summary_data, 'text_summary'),
         (src_facematch_model_config, facematch_config),
