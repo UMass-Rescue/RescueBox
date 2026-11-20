@@ -204,9 +204,10 @@ class ChatUIBuilder:
                 self.input_area.classes("hidden")
 
             await asyncio.sleep(0.01)  # Give NiceGUI a moment
-            picker = ToolPicker(chat_container, self.tool_registry)
-            endpoint, arguments = await picker.select_tool()
-            await self._on_tool_selected(endpoint, arguments)
+            picker = ToolPicker(
+                chat_container, self.tool_registry, self._on_tool_selected
+            )
+            await picker.show()
 
         async def handle_analyze_click():
             self.mode_indicator.set_text("Chat mode")
