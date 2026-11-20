@@ -204,9 +204,10 @@ class ChatUIBuilder:
                 self.input_area.classes("hidden")
 
             await asyncio.sleep(0.01)  # Give NiceGUI a moment
-            picker = ToolPicker(chat_container, self.tool_registry)
-            endpoint, arguments = await picker.select_tool()
-            await self._on_tool_selected(endpoint, arguments)
+            picker = ToolPicker(
+                chat_container, self.tool_registry, self._on_tool_selected
+            )
+            await picker.show()
 
         async def handle_analyze_click():
             self.mode_indicator.set_text("Chat mode")
@@ -258,7 +259,8 @@ class ChatUIBuilder:
             self.form_submit_handler,
             on_form_cancel=_on_cancel,
         )
-        UIOperations.scroll_form_into_view_with_retries()
+        with self.chat_container:
+            UIOperations.scroll_form_into_view_with_retries()
 
     async def _show_history_dialog(self):
         await show_history_dialog(

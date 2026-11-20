@@ -128,13 +128,14 @@ Comprehensive reference for user journeys, execution flows, and corresponding co
 - **User Action:** User fills parameters and clicks "Submit" / "Execute".
 - **Runtime Journey:**
   1. `FormSubmitHandler.submit_form()` checks if an active case is selected (`get_active_case_id()`). If none, notifies user and aborts.
-  2. Validates inputs against schema (`validate_form_data()`).
+  2. Validates inputs against schema (`validate_form_data()`). For image-matching archive tasks it also checks investigation labels against the backend (`validate_image_archive_form()`).
   3. Constructs `JobSubmitParams` data object.
   4. Hands execution over to `JobSubmissionOrchestrator.submit_job()`.
 - **Code Handlers:**
   - `frontend/pages/chatbot/form_submit_handler.py`: `FormSubmitHandler.submit_form()`
   - `frontend/utils/storage.py`: `get_active_case_id()`
   - `frontend/utils/validators.py`: `validate_form_data()`
+  - `frontend/utils/image_archive_validation.py`: `validate_image_archive_form()`
   - `frontend/pages/chatbot/handlers/job_submit_params.py`: `JobSubmitParams`
 
 ### Scenario 5.2: Job Persistence & API Dispatch

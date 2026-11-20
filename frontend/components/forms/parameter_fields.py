@@ -17,6 +17,10 @@ from rb.api.models import (
 )
 
 from frontend.utils import select as safe_select
+from frontend.utils.image_archive_validation import (
+    fetch_archive_labels,
+    use_archive_label_picker,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +61,7 @@ async def create_parameter_field(
     param_schema: ParameterSchema | dict[str, Any],
     form_widgets: dict[str, Any],
     initial_values: dict[str, Any],
+    endpoint: str | None = None,
 ) -> None:
     """Render a parameter input widget (number, slider, enum select, or text)."""
     if isinstance(param_schema, dict):
@@ -142,10 +147,18 @@ async def create_parameter_field(
                 "label_to_key": l2k,
             }
         elif isinstance(param_descriptor, TextParameterDescriptor):
-            form_widgets[param_id] = ui.input(
-                value=(
-                    str(initial_value)
-                    if initial_value is not None
-                    else param_descriptor.default
-                )
-            ).classes("w-full")
+            text_value = (
+                str(initial_value)
+                if initial_value is not None
+                else param_descriptor.default
+            )
+            if use_archive_label_picker(endpoint, param_id):
+                labels = fetch_archive_labels()
+                form_widgets[param_id] = safe_select(
+                    options=labels,
+                    value=text_value if text_value in labels else None,
+                    with_input=True,
+                    clearable=True,
+                ).classes("w-full")
+            else:
+                form_widgets[param_id] = ui.input(value=text_value).classes("w-full")

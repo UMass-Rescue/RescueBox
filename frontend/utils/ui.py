@@ -194,6 +194,9 @@ def handle_validation_error(
     errors: dict | list, context_str: str = "Form validation failed"
 ):
     logger.warning("%s: %s", context_str, errors)
+    if isinstance(errors, dict) and errors:
+        notify_warning(str(next(iter(errors.values()))))
+        return
     notify_warning("Form validation failed. Please check your inputs.")
 
 

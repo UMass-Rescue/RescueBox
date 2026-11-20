@@ -152,6 +152,7 @@ class FormGenerator:
                             param,
                             self.form_widgets,
                             self.form_data.get("parameters", {}),
+                            endpoint=endpoint,
                         )
 
                 def _on_cancel():
