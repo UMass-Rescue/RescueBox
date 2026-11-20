@@ -228,8 +228,15 @@ def delete_archive(inputs: NoInputs, parameters: DeleteParameters) -> ResponseBo
     )
 
 
+def archive_labels() -> list[str]:
+    with Session(engine) as session:
+        return archive_store.list_archive_labels(session)
+
+
 def rename_archive(inputs: NoInputs, parameters: RenameParameters) -> ResponseBody:
-    old_label, new_label = parameters["old_label"], parameters["new_label"]
+    old_label, new_label = parameters["old_label"], parameters["new_label"].strip()
+    if not new_label:
+        return _text_result("Label required", "Enter a new investigation label.")
     with Session(engine) as session:
         archive = archive_store.find_archive(session, old_label)
         if archive is None:

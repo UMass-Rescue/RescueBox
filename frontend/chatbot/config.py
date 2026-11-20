@@ -251,7 +251,7 @@ class ToolRegistry:
             "desc": "Mount UFDR files",
         },
         "11": {
-            "name": "Image Ingestion",
+            "name": "Image Archive Management",
             "endpoint": "image_matching/ingest_images",
             "desc": "Ingest images into archives, or delete and rename archives",
         },

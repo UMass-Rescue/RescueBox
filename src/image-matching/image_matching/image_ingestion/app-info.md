@@ -4,7 +4,7 @@ Finds matches for images across investigations. It has two tasks:
 
 | Task | Tool | Status |
 |---|---|---|
-| **Ingestion** | Image Ingestion | Implemented |
+| **Ingestion** | Image Archive Management | Implemented |
 | **Query** | Image Match | Not yet implemented |
 
 ## Ingestion
@@ -36,11 +36,11 @@ MD5 and PDQ run on any computer. The essay hash downloads the `qwen3-vl:4b-instr
 
 ### Delete Archive
 
-An archive's contents cannot be changed after ingestion, but it can be deleted by investigation label. **Retain hashes** keeps the stored hashes in the database, which makes loading faster if the original data is loaded again. Choosing **No** also removes hashes no other archive uses.
+An archive's contents cannot be changed after ingestion, but it can be deleted by investigation label. In the RescueBox UI, pick the archive from a searchable list of existing labels. **Retain hashes** keeps the stored hashes in the database, which makes loading faster if the original data is loaded again. Choosing **No** also removes hashes no other archive uses.
 
 ### Rename Archive
 
-Changes the investigation label of an existing archive. The label must stay unique.
+Changes the investigation label of an existing archive. In the UI, pick the current archive from the same searchable list; enter the new label as text. The new label must not be empty and must stay unique.
 
 ## Query
 

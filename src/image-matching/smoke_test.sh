@@ -39,15 +39,18 @@ check_essays() {
 
 ingest='{"inputs":{"input_dir":{"path":"'"$FOLDER"'"}},"parameters":{"label":"'"$LABEL"'","description":"smoke test","md5":"yes","pdq":"yes","semantic":"no","essay":"no","max_essay_words":60}}'
 rename='{"inputs":{},"parameters":{"old_label":"'"$LABEL"'","new_label":"'"$RENAMED"'"}}'
+rename_blank='{"inputs":{},"parameters":{"old_label":"'"$LABEL"'","new_label":""}}'
 delete='{"inputs":{},"parameters":{"label":"'"$RENAMED"'","retain_hashes":"no"}}'
 
 call ingest_images "$ingest" "3 files"
+call archive_labels '{}' "\"$LABEL\""
 call ingest_images "$ingest" "Label already in use"
+call rename_archive "$rename_blank" "Label required"
 call rename_archive "$rename" "Archive renamed"
 call delete_archive "$delete" "Archive deleted"
 call delete_archive "$delete" "Archive not found"
 
-echo "PASS: ingest, duplicate label, rename, delete"
+echo "PASS: ingest, archive labels, duplicate label, rename, delete"
 
 if [[ "${ESSAY:-0}" == "1" ]]; then
     essay_ingest='{"inputs":{"input_dir":{"path":"'"$FOLDER"'"}},"parameters":{"label":"'"$ESSAY_LABEL"'","description":"essay smoke test","md5":"no","pdq":"no","semantic":"no","essay":"yes","max_essay_words":60}}'

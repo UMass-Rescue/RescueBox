@@ -13,6 +13,13 @@ def find_archive(session: Session, label: str) -> Archive | None:
     ).first()
 
 
+def list_archive_labels(session: Session) -> list[str]:
+    labels = session.exec(
+        select(Archive.label).order_by(cast(Any, _archive_cols["label"]))
+    ).all()
+    return list(labels)
+
+
 def create_archive(session: Session, label: str, description: str) -> Archive:
     archive = Archive(label=label, description=description)
     session.add(archive)

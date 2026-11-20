@@ -2,7 +2,7 @@
 
 Finds images that match across investigations, both in this RescueBox's own archives and, through the UMass Safe Matching service, in other agencies' collections. It implements two tasks, each shown as its own tool in the RescueBox UI and served under `/image_matching/...` routes:
 
-- **Ingestion** (UI tool **Image Ingestion**, implemented): hashes a folder of images into the shared PostgreSQL database. Each ingestion creates an **archive** named by a unique investigation label. Each distinct image (by SHA-256) is stored once and reused by every archive that contains it, so re-ingesting known images only computes the hashes they are missing. Uploading essays to the UMass Safe Matching service will be added here.
+- **Ingestion** (UI tool **Image Archive Management**, implemented): hashes a folder of images into the shared PostgreSQL database and manages archives (delete, rename). Each ingestion creates an **archive** named by a unique investigation label. Each distinct image (by SHA-256) is stored once and reused by every archive that contains it, so re-ingesting known images only computes the hashes they are missing. Uploading essays to the UMass Safe Matching service will be added here.
 - **Query** (UI tool **Image Match**, not yet implemented): will search local archives by hash and compare essays with other agencies' through the UMass Safe Matching service.
 
 The plugin never talks to UMass directly. It will call the separate Safe Match intermediary (`src/safe-match-intermediary`, a local service that holds the agency's credentials) through the client in `rb.lib.safe_match`, and the intermediary calls the UMass Safe Matching API.
@@ -14,7 +14,7 @@ flowchart LR
     intermediary --> umass["UMass Safe Matching API"]
 ```
 
-The Image Ingestion in-app page is [`image_ingestion/app-info.md`](image_matching/image_ingestion/app-info.md).
+The Image Archive Management in-app page is [`image_ingestion/app-info.md`](image_matching/image_ingestion/app-info.md).
 
 ## Layout
 
@@ -34,6 +34,8 @@ The Image Ingestion in-app page is [`image_ingestion/app-info.md`](image_matchin
 | Ingestion | Delete Archive | `/image_matching/delete_archive` | Delete an archive; optionally keep its hashes for faster re-ingestion |
 | Ingestion | Rename Archive | `/image_matching/rename_archive` | Change an archive's label |
 | Query | Not yet implemented | | Find matches for an image in local archives and at UMass |
+
+`POST /image_matching/archive_labels` (no body) returns the existing archive labels, sorted, as a JSON list. It is not a task in the UI. The RescueBox UI calls it to fill the archive picker on Delete Archive and Rename Archive, and to check labels before a job is submitted: the ingest label must be new, and a rename's new label must be non-empty and unused.
 
 Ingest Images takes a folder of images in common formats (JPEG, PNG, BMP, WebP), a label (defaults to the folder name), a description, four hash options that default to Yes, and **Max essay words** (default 60). SHA-256 is always computed.
 
@@ -72,7 +74,7 @@ In a second terminal:
 ./src/image-matching/smoke_test.sh
 ```
 
-It ingests `series_0013_Alexandria_Ocasio-Cortez_2019` with MD5 and PDQ only, then checks the duplicate-label error, rename, delete, and the not-found error. Each request is printed as a `curl` command. A passing run ends with `PASS: ingest, duplicate label, rename, delete` and exits 0; otherwise it prints `FAIL` and exits nonzero. It deletes its own archive. Set `RESCUEBOX_API` to use a backend other than `http://127.0.0.1:8000`.
+It ingests `series_0013_Alexandria_Ocasio-Cortez_2019` with MD5 and PDQ only, then checks that the label appears in `archive_labels`, the duplicate-label error, the empty-new-label error, rename, delete, and the not-found error. Each request is printed as a `curl` command. A passing run ends with `PASS: ingest, archive labels, duplicate label, rename, delete` and exits 0; otherwise it prints `FAIL` and exits nonzero. It deletes its own archive. Set `RESCUEBOX_API` to use a backend other than `http://127.0.0.1:8000`.
 
 To also check essays (needs Ollama and Docker; the first run downloads the essay model):
 
@@ -84,23 +86,25 @@ After the steps above, it ingests the same folder with Essay only, prints the th
 
 ### UI
 
-In a second terminal run `./run_ui_server`, open http://localhost:8080/chatbot, click **Menu**, then **11. Image Ingestion -> Open**.
+In a second terminal run `./run_ui_server`, open http://localhost:8080/chatbot, click **Menu**, then **11. Image Archive Management -> Open**.
 
 | Try | Expected result |
 |---|---|
 | Ingest `series_0013_Alexandria_Ocasio-Cortez_2019`, label blank, Semantic and Essay No | `Archive 'series_0013_Alexandria_Ocasio-Cortez_2019': 3 files.` |
-| The same ingest again | "Label already in use" |
+| The same ingest again | Submit blocked on the form: label already exists (no job created) |
 | Ingest `series_0014_Alexandria_Ocasio-Cortez_2019` with Essay Yes | `3 files.`; essays are stored in the `files.essay` column |
 | The same folder again with a new label | Finishes quickly; existing hashes are reused |
-| Rename `series_0013_Alexandria_Ocasio-Cortez_2019` to `demo-case` | "Archive renamed" |
-| Delete `demo-case` with Retain hashes No | "Archive deleted" (3 files) |
+| Open Rename Archive and type `0013` in **Current investigation label** | The list narrows to `series_0013_Alexandria_Ocasio-Cortez_2019` |
+| Pick it, rename to `demo-case` | "Archive renamed" |
+| Rename with **New investigation label** blank | Submit blocked on the form: enter a new label |
+| Delete `demo-case` (picked from the list) with Retain hashes No | "Archive deleted" (3 files) |
 
 Delete any remaining demo archives when done.
 
 ## Unit tests
 
-No Postgres, Ollama or ONNX models needed (archive tests use in-memory SQLite):
+No running backend, Postgres, Ollama or ONNX models needed:
 
 ```bash
-poetry run pytest src/image-matching/tests
+poetry run pytest src/image-matching/tests frontend/tests/unit/test_image_archive_validation.py
 ```

@@ -18,6 +18,7 @@ from rb.api.models import (
 
 from frontend.utils.exceptions import UI_RENDER_ERRORS
 
+from .image_archive_validation import validate_image_archive_form
 from .paths import (
     _directory_contains_raster_image,
     _input_schema_directory_requires_raster_image_corpus,
@@ -116,7 +117,7 @@ def paired_ufdr_mount_folder_field_id(inputs_list: list[Any], index: int) -> str
 def validate_form_data(
     form_data: dict,
     schema: TaskSchema | dict,
-    _endpoint: str | None = None,
+    endpoint: str | None = None,
 ) -> dict[str, Any]:
     """Validate form inputs against a TaskSchema using Pydantic models."""
     errors = {}
@@ -163,6 +164,11 @@ def validate_form_data(
 
     if errors:
         return {"is_valid": False, "errors": errors}
+
+    if endpoint:
+        archive_errors = validate_image_archive_form(form_data, endpoint)
+        if archive_errors:
+            return {"is_valid": False, "errors": archive_errors}
 
     return {
         "is_valid": True,

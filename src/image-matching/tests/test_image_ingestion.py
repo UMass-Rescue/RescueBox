@@ -6,6 +6,7 @@ from image_matching.image_ingestion.tasks import (
     _image_paths,
     _ingest,
     _selected_hashes,
+    archive_labels,
     delete_archive,
     delete_parameters_cli_parse,
     delete_task_schema,
@@ -158,6 +159,23 @@ def test_rename_rejects_existing_new_label():
         result = rename_archive({}, {"old_label": "a", "new_label": "b"})
     assert result.root.title == "Label already in use"
     store.rename_archive.assert_not_called()
+
+
+def test_rename_rejects_empty_new_label():
+    with patch("image_matching.image_ingestion.tasks.Session") as session:
+        result = rename_archive({}, {"old_label": "a", "new_label": " "})
+    assert result.root.title == "Label required"
+    session.assert_not_called()
+
+
+def test_archive_labels_lists_sorted_labels():
+    with _sqlite_session() as session:
+        _ingest_paths(session, "beta", {"b.jpg": "b" * 64})
+        _ingest_paths(session, "alpha", {"a.jpg": "a" * 64})
+        with patch(
+            "image_matching.image_ingestion.tasks.Session", return_value=session
+        ):
+            assert archive_labels() == ["alpha", "beta"]
 
 
 def test_rename_to_same_label_succeeds():

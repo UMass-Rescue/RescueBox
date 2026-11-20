@@ -2,6 +2,7 @@ from pathlib import Path
 
 import typer
 from image_matching.image_ingestion.tasks import (
+    archive_labels,
     delete_archive,
     delete_parameters_cli_parse,
     delete_task_schema,
@@ -21,7 +22,7 @@ server = MLService(APP_NAME)
 
 server.add_app_metadata(
     plugin_name=APP_NAME,
-    name="Image Ingestion",
+    name="Image Archive Management",
     author="UMass RescueLab",
     version="1.0.0",
     info=(
@@ -68,6 +69,8 @@ server.add_ml_service(
     order=2,
     task_schema_func=rename_task_schema,
 )
+
+server.app.command(f"/{APP_NAME}/archive_labels")(archive_labels)
 
 app = server.app
 
