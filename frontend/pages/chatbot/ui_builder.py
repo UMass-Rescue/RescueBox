@@ -259,7 +259,8 @@ class ChatUIBuilder:
             self.form_submit_handler,
             on_form_cancel=_on_cancel,
         )
-        UIOperations.scroll_form_into_view_with_retries()
+        with self.chat_container:
+            UIOperations.scroll_form_into_view_with_retries()
 
     async def _show_history_dialog(self):
         await show_history_dialog(
